@@ -3,160 +3,784 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SnapSelect - Photo Selection Platform for Photographers</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <title>SnapSelect - Streamline Your Photo Workflow</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary: #00a0e9;
+            --primary-light: #e0f5ff;
+            --accent: #ffa837;
+            --dark: #2d2d2d;
+            --gray: #555555;
+            --light-gray: #f8f9fa;
+            --border: #e0e0e0;
+            --white: #ffffff;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            color: var(--dark);
+            line-height: 1.6;
+        }
+        
+        .container {
+            width: 90%;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 15px;
+        }
+        
+        /* Navigation */
+        header {
+            background-color: var(--white);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            position: fixed;
+            width: 100%;
+            z-index: 1000;
+            padding: 15px 0;
+        }
+        
+        nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .logo {
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--primary);
+            text-decoration: none;
+            font-family: 'Arial', cursive;
+            letter-spacing: -0.5px;
+        }
+        
+        .logo span {
+            font-size: 18px;
+            color: var(--gray);
+            margin-left: 5px;
+        }
+        
+        .nav-links {
+            display: flex;
+            list-style: none;
+            align-items: center;
+        }
+        
+        .nav-links li {
+            margin: 0 15px;
+        }
+        
+        .nav-links a {
+            text-decoration: none;
+            color: var(--dark);
+            font-weight: 500;
+            transition: color 0.3s;
+            font-size: 16px;
+            position: relative;
+            padding: 5px 0;
+        }
+        
+        .nav-links a:hover {
+            color: var(--primary);
+        }
+        
+        .nav-links a.dropdown::after {
+            content: '▼';
+            font-size: 10px;
+            margin-left: 5px;
+            display: inline-block;
+            vertical-align: middle;
+        }
+        
+        .btn {
+            display: inline-block;
+            background-color: var(--accent);
+            color: var(--white);
+            padding: 12px 25px;
+            border-radius: 25px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: background-color 0.3s;
+            border: none;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+        
+        .btn:hover {
+            background-color: #f09b29;
+        }
+        
+        .btn-outline {
+            background-color: transparent;
+            border: 2px solid var(--accent);
+            color: var(--accent);
+            padding: 10px 25px;
+        }
+        
+        .btn-outline:hover {
+            background-color: var(--accent);
+            color: var(--white);
+        }
+        
+        .login-btn {
+            color: var(--dark);
+            font-weight: 600;
+            text-decoration: none;
+            margin-right: 20px;
+            transition: color 0.3s;
+        }
+        
+        .login-btn:hover {
+            color: var(--primary);
+        }
+        
+        /* Mobile menu */
+        .hamburger {
+            display: none;
+            cursor: pointer;
+            font-size: 24px;
+        }
+        
+        /* Hero Section */
+        .hero {
+            background-color: var(--primary-light);
+            padding: 150px 0 100px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .hero-content {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+        }
+        
+        .hero-text {
+            flex: 1;
+            max-width: 550px;
+            padding-right: 30px;
+        }
+        
+        .hero h1 {
+            font-size: 42px;
+            line-height: 1.2;
+            margin-bottom: 20px;
+        }
+        
+        .hero p {
+            font-size: 18px;
+            color: var(--gray);
+            margin-bottom: 30px;
+        }
+        
+        .hero-image {
+            flex: 1;
+            max-width: 500px;
+            text-align: center;
+        }
+        
+        .hero-image img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 10px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+        
+        /* Features */
+        .features {
+            padding: 100px 0;
+            background-color: var(--white);
+        }
+        
+        .section-title {
+            text-align: center;
+            margin-bottom: 60px;
+        }
+        
+        .section-title h2 {
+            font-size: 36px;
+            margin-bottom: 15px;
+        }
+        
+        .section-title p {
+            color: var(--gray);
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        
+        .features-grid {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            gap: 30px;
+        }
+        
+        .feature-card {
+            flex: 1;
+            min-width: 300px;
+            background-color: var(--white);
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+            padding: 30px;
+            transition: transform 0.3s, box-shadow 0.3s;
+            text-align: center;
+        }
+        
+        .feature-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 15px 30px rgba(0,0,0,0.1);
+        }
+        
+        .feature-icon {
+            width: 80px;
+            height: 80px;
+            background-color: var(--primary-light);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 20px;
+            font-size: 30px;
+            color: var(--primary);
+        }
+        
+        .feature-card h3 {
+            font-size: 22px;
+            margin-bottom: 15px;
+        }
+        
+        .feature-card p {
+            color: var(--gray);
+        }
+        
+        /* How It Works */
+        .how-it-works {
+            padding: 100px 0;
+            background-color: var(--light-gray);
+        }
+        
+        .steps {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            margin-top: 50px;
+        }
+        
+        .step {
+            flex: 1;
+            min-width: 250px;
+            text-align: center;
+            position: relative;
+            padding: 0 20px;
+        }
+        
+        .step-number {
+            width: 60px;
+            height: 60px;
+            background-color: var(--primary);
+            color: var(--white);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            font-weight: 700;
+            margin: 0 auto 20px;
+        }
+        
+        .step h3 {
+            font-size: 22px;
+            margin-bottom: 15px;
+        }
+        
+        .step p {
+            color: var(--gray);
+        }
+        
+        .step:not(:last-child)::after {
+            content: '';
+            position: absolute;
+            top: 30px;
+            right: -50px;
+            width: 100px;
+            height: 2px;
+            background-color: var(--border);
+            display: none;
+        }
+        
+        @media (min-width: 992px) {
+            .step:not(:last-child)::after {
+                display: block;
+            }
+        }
+        
+        /* Testimonials */
+        .testimonials {
+            padding: 100px 0;
+            background-color: var(--white);
+        }
+        
+        .testimonial {
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: var(--white);
+            border-radius: 10px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.05);
+            padding: 40px;
+            text-align: center;
+        }
+        
+        .testimonial-image {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            margin: 0 auto 20px;
+            overflow: hidden;
+            background-color: #ddd;
+        }
+        
+        .testimonial-image img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        .testimonial-text {
+            font-style: italic;
+            font-size: 18px;
+            color: var(--gray);
+            margin-bottom: 20px;
+            line-height: 1.8;
+        }
+        
+        .testimonial-author {
+            font-weight: 700;
+            color: var(--dark);
+        }
+        
+        .testimonial-role {
+            color: var(--gray);
+            font-size: 14px;
+        }
+        
+        /* Pricing */
+        .pricing {
+            padding: 100px 0;
+            background-color: var(--light-gray);
+        }
+        
+        .pricing-grid {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 30px;
+            margin-top: 50px;
+        }
+        
+        .pricing-card {
+            flex: 1;
+            min-width: 280px;
+            max-width: 350px;
+            background-color: var(--white);
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+            padding: 40px 30px;
+            text-align: center;
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+        
+        .pricing-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 15px 30px rgba(0,0,0,0.1);
+        }
+        
+        .pricing-card.featured {
+            border: 2px solid var(--primary);
+            transform: scale(1.05);
+        }
+        
+        .pricing-card.featured:hover {
+            transform: scale(1.05) translateY(-10px);
+        }
+        
+        .price-title {
+            font-size: 22px;
+            margin-bottom: 15px;
+        }
+        
+        .price {
+            font-size: 48px;
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+        
+        .price span {
+            font-size: 16px;
+            font-weight: 400;
+            color: var(--gray);
+        }
+        
+        .pricing-features {
+            list-style: none;
+            margin: 30px 0;
+            padding: 20px 0;
+            border-top: 1px solid var(--border);
+            border-bottom: 1px solid var(--border);
+        }
+        
+        .pricing-features li {
+            margin: 15px 0;
+            color: var(--gray);
+        }
+        
+        /* Media Queries */
+        @media (max-width: 991px) {
+            .nav-links {
+                display: none;
+                flex-direction: column;
+                position: absolute;
+                top: 80px;
+                left: 0;
+                width: 100%;
+                background-color: var(--white);
+                padding: 20px 0;
+                box-shadow: 0 5px 10px rgba(0,0,0,0.1);
+            }
+            
+            .nav-links.active {
+                display: flex;
+            }
+            
+            .nav-links li {
+                margin: 10px 0;
+                text-align: center;
+            }
+            
+            .hamburger {
+                display: block;
+            }
+            
+            .hero {
+                padding: 120px 0 80px;
+            }
+            
+            .hero-text, .hero-image {
+                max-width: 100%;
+                padding-right: 0;
+                margin-bottom: 40px;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .features-grid, .pricing-grid {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .feature-card, .pricing-card {
+                max-width: 100%;
+                margin-bottom: 30px;
+            }
+            
+            .pricing-card.featured {
+                transform: none;
+            }
+            
+            .pricing-card.featured:hover {
+                transform: translateY(-10px);
+            }
+            
+            .step:not(:last-child) {
+                margin-bottom: 50px;
+            }
+        }
+    </style>
 </head>
-<body class="bg-gray-50">
-    <!-- Navigation -->
-    <nav class="bg-white shadow-sm">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex justify-between h-16">
-                <div class="flex">
-                    <div class="flex-shrink-0 flex items-center">
-                        <h1 class="text-xl font-bold text-gray-800">SnapSelect</h1>
-                    </div>
+<body>
+    <!-- Navigation Header -->
+    <header>
+        <div class="container">
+            <nav>
+                <a href="#" class="logo">SnapSelect</a>
+                <ul class="nav-links">
+                    <li><a href="#" class="dropdown">Galleries</a></li>
+                    <li><a href="#" class="dropdown">Store/Selling</a></li>
+                    <li><a href="#" class="dropdown">Studio</a></li>
+                    <li><a href="#" class="dropdown">Learn</a></li>
+                    <li><a href="#pricing">Pricing</a></li>
+                </ul>
+                <div class="right-nav">
+                    <a href="#" class="login-btn">Log In</a>
+                    <a href="#" class="btn">Start now</a>
                 </div>
-                <div class="flex items-center">
-                    <a href="#login" class="px-4 py-2 text-sm font-medium text-gray-700 hover:text-gray-900">Log in</a>
-                    <a href="#signup" class="ml-4 px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-md">Sign up</a>
+                <div class="hamburger">
+                    <i class="fas fa-bars"></i>
                 </div>
-            </div>
+            </nav>
         </div>
-    </nav>
+    </header>
 
     <!-- Hero Section -->
-    <div class="py-12 bg-white">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="lg:grid lg:grid-cols-2 lg:gap-8 items-center">
-                <div>
-                    <h2 class="text-4xl font-extrabold text-gray-900 sm:text-5xl sm:tracking-tight lg:text-6xl">Simplify your photo selection workflow</h2>
-                    <p class="mt-4 text-xl text-gray-500">Let your clients select their favorite photos before you start editing, saving you hours of work.</p>
-                    <div class="mt-8">
-                        <a href="#signup" class="px-5 py-3 text-base font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-md">Get started for free</a>
-                    </div>
+    <section class="hero">
+        <div class="container">
+            <div class="hero-content">
+                <div class="hero-text">
+                    <h1>Streamline Your Photo Workflow with SnapSelect</h1>
+                    <p>The platform where clients select their favorites, so you can focus on editing what matters.</p>
+                    <a href="#" class="btn">Start Free Trial</a>
                 </div>
-                <div class="mt-12 lg:mt-0">
-                    <div class="bg-gray-200 rounded-lg overflow-hidden h-96">
-                        <!-- Placeholder for hero image -->
-                        <div class="h-full w-full flex items-center justify-center">
-                            <p class="text-gray-500">Hero Image Placeholder</p>
-                        </div>
-                    </div>
+                <div class="hero-image">
+                    <img src="/api/placeholder/500/400" alt="Photographer and client reviewing photos">
                 </div>
             </div>
         </div>
-    </div>
+    </section>
 
     <!-- Features Section -->
-    <div class="py-12 bg-gray-50">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="text-center">
-                <h2 class="text-3xl font-extrabold text-gray-900">How SnapSelect works</h2>
+    <section class="features" id="features">
+        <div class="container">
+            <div class="section-title">
+                <h2>Key Features</h2>
+                <p>SnapSelect helps photographers save time and focus on what matters most.</p>
             </div>
-            <div class="mt-12 grid gap-8 md:grid-cols-3">
-                <!-- Feature 1 -->
-                <div class="bg-white p-6 rounded-lg shadow">
-                    <div class="text-center">
-                        <div class="h-12 w-12 mx-auto bg-indigo-100 rounded-full flex items-center justify-center">
-                            <svg class="h-6 w-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path>
-                            </svg>
-                        </div>
-                        <h3 class="mt-4 text-lg font-medium text-gray-900">Upload your photos</h3>
-                        <p class="mt-2 text-base text-gray-500">Easily upload your photoshoot collection and organize them into albums.</p>
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-upload"></i>
                     </div>
+                    <h3>Effortless Uploads</h3>
+                    <p>Drag-and-drop interface for batch uploads. Automatic organization by shoot date and client.</p>
                 </div>
-                
-                <!-- Feature 2 -->
-                <div class="bg-white p-6 rounded-lg shadow">
-                    <div class="text-center">
-                        <div class="h-12 w-12 mx-auto bg-indigo-100 rounded-full flex items-center justify-center">
-                            <svg class="h-6 w-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path>
-                            </svg>
-                        </div>
-                        <h3 class="mt-4 text-lg font-medium text-gray-900">Share with clients</h3>
-                        <p class="mt-2 text-base text-gray-500">Generate a unique link for your clients to view and select their favorite photos.</p>
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-check-circle"></i>
                     </div>
+                    <h3>Client Selection</h3>
+                    <p>Simple sharing via custom links. Real-time notifications when clients make selections.</p>
                 </div>
-                
-                <!-- Feature 3 -->
-                <div class="bg-white p-6 rounded-lg shadow">
-                    <div class="text-center">
-                        <div class="h-12 w-12 mx-auto bg-indigo-100 rounded-full flex items-center justify-center">
-                            <svg class="h-6 w-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-                            </svg>
-                        </div>
-                        <h3 class="mt-4 text-lg font-medium text-gray-900">Edit selected photos</h3>
-                        <p class="mt-2 text-base text-gray-500">Focus your editing time only on the photos your clients have chosen.</p>
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-sync-alt"></i>
                     </div>
+                    <h3>Workflow Integration</h3>
+                    <p>Export selected photos to editing software. Progress tracking from selection to final delivery.</p>
                 </div>
             </div>
         </div>
-    </div>
+    </section>
+
+    <!-- How It Works Section -->
+    <section class="how-it-works" id="how-it-works">
+        <div class="container">
+            <div class="section-title">
+                <h2>How It Works</h2>
+                <p>A simple three-step process that saves you hours of editing time.</p>
+            </div>
+            <div class="steps">
+                <div class="step">
+                    <div class="step-number">1</div>
+                    <h3>Upload Photos</h3>
+                    <p>Create collections for your clients and upload your photos in batches.</p>
+                </div>
+                <div class="step">
+                    <div class="step-number">2</div>
+                    <h3>Clients Select</h3>
+                    <p>They mark their favorite photos through an intuitive interface.</p>
+                </div>
+                <div class="step">
+                    <div class="step-number">3</div>
+                    <h3>Edit & Deliver</h3>
+                    <p>Focus only on selected photos, saving time and resources.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Testimonials Section -->
+    <section class="testimonials">
+        <div class="container">
+            <div class="section-title">
+                <h2>Photographers Love SnapSelect</h2>
+                <p>Hear what professional photographers have to say about our platform.</p>
+            </div>
+            <div class="testimonial">
+                <div class="testimonial-image">
+                    <!-- Placeholder for testimonial image -->
+                </div>
+                <p class="testimonial-text">"SnapSelect saved me hours of editing time. My clients love the selection process and I only edit what they truly want. This has revolutionized my workflow and made my business more efficient."</p>
+                <p class="testimonial-author">Sarah Johnson</p>
+                <p class="testimonial-role">Wedding Photographer</p>
+            </div>
+        </div>
+    </section>
 
     <!-- Pricing Section -->
-    <div class="py-12 bg-white">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="text-center">
-                <h2 class="text-3xl font-extrabold text-gray-900">Simple, transparent pricing</h2>
-                <p class="mt-4 text-xl text-gray-500">No hidden fees or complicated tiers</p>
+    <section class="pricing" id="pricing">
+        <div class="container">
+            <div class="section-title">
+                <h2>Pricing Plans</h2>
+                <p>Choose the plan that best fits your photography business needs.</p>
             </div>
-            <div class="mt-12 max-w-lg mx-auto bg-white rounded-lg shadow-lg overflow-hidden lg:max-w-none lg:flex">
-                <div class="flex-1 bg-white p-6">
-                    <h3 class="text-2xl font-extrabold text-gray-900">Pay Per Album</h3>
-                    <p class="mt-4 text-lg text-gray-500">Perfect for photographers of all sizes</p>
-                    <div class="mt-6">
-                        <div class="flex items-center">
-                            <svg class="h-5 w-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-                            </svg>
-                            <span class="ml-3 text-base text-gray-500">Unlimited photos per album</span>
-                        </div>
-                        <div class="mt-2 flex items-center">
-                            <svg class="h-5 w-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-                            </svg>
-                            <span class="ml-3 text-base text-gray-500">Easy client sharing</span>
-                        </div>
-                        <div class="mt-2 flex items-center">
-                            <svg class="h-5 w-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-                            </svg>
-                            <span class="ml-3 text-base text-gray-500">No monthly subscription</span>
-                        </div>
-                    </div>
+            <div class="pricing-grid">
+                <div class="pricing-card">
+                    <h3 class="price-title">Basic</h3>
+                    <div class="price">₹999<span>/month</span></div>
+                    <ul class="pricing-features">
+                        <li>Up to 5 active collections/albums</li>
+                        <li>5GB total storage</li>
+                        <li>Standard image quality (up to 2MB per image)</li>
+                        <li>10-day client selection window</li>
+                        <li>Basic gallery customization (colors, logo)</li>
+                        <li>Email support within 48 hours</li>
+                        <li>Standard watermarking</li>
+                        <li>Basic analytics (views, selections)</li>
+                        <li>Mobile-friendly galleries</li>
+                    </ul>
+                    <a href="#" class="btn btn-outline">Get Started</a>
                 </div>
-                <div class="py-8 px-6 text-center bg-gray-50 lg:flex-shrink-0 lg:flex lg:flex-col lg:justify-center lg:p-12">
-                    <p class="text-lg font-medium text-gray-900">Starting at</p>
-                    <div class="mt-4 flex items-center justify-center text-5xl font-extrabold text-gray-900">
-                        <span>₹20</span>
-                        <span class="ml-3 text-xl font-medium text-gray-500">per album</span>
-                    </div>
-                    <div class="mt-6">
-                        <a href="#signup" class="w-full flex items-center justify-center px-5 py-3 border border-transparent text-base font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700">Get started</a>
-                    </div>
+                <div class="pricing-card featured">
+                    <h3 class="price-title">Pro</h3>
+                    <div class="price">₹1,999<span>/month</span></div>
+                    <ul class="pricing-features">
+                        <li>Up to 20 active collections/albums</li>
+                        <li>25GB total storage</li>
+                        <li>High image quality (up to 5MB per image)</li>
+                        <li>30-day client selection window</li>
+                        <li>Advanced gallery customization</li>
+                        <li>Priority email support within 24 hours</li>
+                        <li>Custom domain support</li>
+                        <li>Advanced watermarking options</li>
+                        <li>Detailed analytics</li>
+                        <li>Direct client messaging system</li>
+                        <li>Comment and feedback collection</li>
+                        <li>Password protection for galleries</li>
+                    </ul>
+                    <a href="#" class="btn">Get Started</a>
                 </div>
+                <div class="pricing-card">
+                    <h3 class="price-title">Studio</h3>
+                    <div class="price">₹3,999<span>/month</span></div>
+                    <ul class="pricing-features">
+                        <li>Unlimited active collections/albums</li>
+                        <li>100GB total storage</li>
+                        <li>Premium image quality (up to 10MB per image)</li>
+                        <li>Unlimited client selection window</li>
+                        <li>Complete white-label experience</li>
+                        <li>Phone support during business hours</li>
+                        <li>Multiple photographer sub-accounts</li>
+                        <li>Client CRM integration</li>
+                        <li>Advanced export options</li>
+                        <li>Integrated invoicing system</li>
+                        <li>Team collaboration tools</li>
+                        <li>API access for custom integrations</li>
+                    </ul>
+                    <a href="#" class="btn btn-outline">Get Started</a>
+                </div>
+            </div>
+            
+            <div class="add-ons" style="margin-top: 60px; text-align: center;">
+                <h3 style="margin-bottom: 30px; font-size: 24px;">Add-on Options</h3>
+                <ul style="list-style: none; max-width: 600px; margin: 0 auto; text-align: left; display: inline-block;">
+                    <li style="margin: 10px 0; padding: 10px; background: var(--primary-light); border-radius: 8px;">
+                        <strong>Additional storage:</strong> ₹250 per 10GB
+                    </li>
+                    <li style="margin: 10px 0; padding: 10px; background: var(--primary-light); border-radius: 8px;">
+                        <strong>Extended collection lifetime:</strong> ₹250 per collection per month
+                    </li>
+                    <li style="margin: 10px 0; padding: 10px; background: var(--primary-light); border-radius: 8px;">
+                        <strong>Rush processing:</strong> ₹500 per collection
+                    </li>
+                    <li style="margin: 10px 0; padding: 10px; background: var(--primary-light); border-radius: 8px;">
+                        <strong>Additional photographer account:</strong> ₹500 per month (Pro tier and above)
+                    </li>
+                    <li style="margin: 10px 0; padding: 10px; background: var(--primary-light); border-radius: 8px;">
+                        <strong>Advanced photo editing tools:</strong> ₹750 per month
+                    </li>
+                </ul>
             </div>
         </div>
-    </div>
+    </section>
 
+    <!-- Footer CTA -->
+    <section class="hero" style="padding: 80px 0;">
+        <div class="container" style="text-align: center;">
+            <h2 style="margin-bottom: 30px;">Ready to streamline your workflow?</h2>
+            <a href="#" class="btn">Start now</a>
+        </div>
+    </section>
+    
     <!-- Footer -->
-    <footer class="bg-gray-800">
-        <div class="max-w-7xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
-            <div class="flex justify-between items-center">
-                <div>
-                    <h2 class="text-xl font-bold text-white">SnapSelect</h2>
-                    <p class="mt-2 text-base text-gray-300">© 2025 SnapSelect. All rights reserved.</p>
+    <footer style="background-color: var(--dark); color: var(--white); padding: 60px 0 30px;">
+        <div class="container">
+            <div style="display: flex; flex-wrap: wrap; justify-content: space-between; margin-bottom: 40px;">
+                <div style="flex: 1; min-width: 200px; margin-bottom: 30px;">
+                    <h3 style="margin-bottom: 20px; font-size: 18px;">Product</h3>
+                    <ul style="list-style: none;">
+                        <li style="margin-bottom: 10px;"><a href="#" style="color: #aaa; text-decoration: none; transition: color 0.3s;">Features</a></li>
+                        <li style="margin-bottom: 10px;"><a href="#" style="color: #aaa; text-decoration: none; transition: color 0.3s;">Pricing</a></li>
+                        <li style="margin-bottom: 10px;"><a href="#" style="color: #aaa; text-decoration: none; transition: color 0.3s;">Integrations</a></li>
+                        <li style="margin-bottom: 10px;"><a href="#" style="color: #aaa; text-decoration: none; transition: color 0.3s;">Updates</a></li>
+                    </ul>
                 </div>
-                <div class="flex space-x-6">
-                    <a href="#" class="text-gray-400 hover:text-gray-300">Terms</a>
-                    <a href="#" class="text-gray-400 hover:text-gray-300">Privacy</a>
-                    <a href="#" class="text-gray-400 hover:text-gray-300">Contact</a>
+                <div style="flex: 1; min-width: 200px; margin-bottom: 30px;">
+                    <h3 style="margin-bottom: 20px; font-size: 18px;">Resources</h3>
+                    <ul style="list-style: none;">
+                        <li style="margin-bottom: 10px;"><a href="#" style="color: #aaa; text-decoration: none; transition: color 0.3s;">Blog</a></li>
+                        <li style="margin-bottom: 10px;"><a href="#" style="color: #aaa; text-decoration: none; transition: color 0.3s;">Tutorials</a></li>
+                        <li style="margin-bottom: 10px;"><a href="#" style="color: #aaa; text-decoration: none; transition: color 0.3s;">Help Center</a></li>
+                        <li style="margin-bottom: 10px;"><a href="#" style="color: #aaa; text-decoration: none; transition: color 0.3s;">Community</a></li>
+                    </ul>
                 </div>
+                <div style="flex: 1; min-width: 200px; margin-bottom: 30px;">
+                    <h3 style="margin-bottom: 20px; font-size: 18px;">Company</h3>
+                    <ul style="list-style: none;">
+                        <li style="margin-bottom: 10px;"><a href="#" style="color: #aaa; text-decoration: none; transition: color 0.3s;">About Us</a></li>
+                        <li style="margin-bottom: 10px;"><a href="#" style="color: #aaa; text-decoration: none; transition: color 0.3s;">Careers</a></li>
+                        <li style="margin-bottom: 10px;"><a href="#" style="color: #aaa; text-decoration: none; transition: color 0.3s;">Contact</a></li>
+                        <li style="margin-bottom: 10px;"><a href="#" style="color: #aaa; text-decoration: none; transition: color 0.3s;">Partners</a></li>
+                    </ul>
+                </div>
+                <div style="flex: 1; min-width: 200px; margin-bottom: 30px;">
+                    <h3 style="margin-bottom: 20px; font-size: 18px;">Legal</h3>
+                    <ul style="list-style: none;">
+                        <li style="margin-bottom: 10px;"><a href="#" style="color: #aaa; text-decoration: none; transition: color 0.3s;">Privacy Policy</a></li>
+                        <li style="margin-bottom: 10px;"><a href="#" style="color: #aaa; text-decoration: none; transition: color 0.3s;">Terms of Service</a></li>
+                        <li style="margin-bottom: 10px;"><a href="#" style="color: #aaa; text-decoration: none; transition: color 0.3s;">Cookie Policy</a></li>
+                        <li style="margin-bottom: 10px;"><a href="#" style="color: #aaa; text-decoration: none; transition: color 0.3s;">GDPR</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div style="text-align: center; padding-top: 30px; border-top: 1px solid #444;">
+                <p style="margin-bottom: 20px; color: #aaa;">Connect with us</p>
+                <div style="margin-bottom: 30px;">
+                    <a href="#" style="color: var(--white); margin: 0 10px; font-size: 20px;"><i class="fab fa-facebook"></i></a>
+                    <a href="#" style="color: var(--white); margin: 0 10px; font-size: 20px;"><i class="fab fa-twitter"></i></a>
+                    <a href="#" style="color: var(--white); margin: 0 10px; font-size: 20px;"><i class="fab fa-instagram"></i></a>
+                    <a href="#" style="color: var(--white); margin: 0 10px; font-size: 20px;"><i class="fab fa-linkedin"></i></a>
+                </div>
+                <p style="color: #777; font-size: 14px;">&copy; 2025 SnapSelect. All rights reserved.</p>
             </div>
         </div>
     </footer>
+
+    <!-- JavaScript for mobile menu toggle -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const hamburger = document.querySelector('.hamburger');
+            const navLinks = document.querySelector('.nav-links');
+            
+            hamburger.addEventListener('click', function() {
+                navLinks.classList.toggle('active');
+            });
+        });
+    </script>
 </body>
 </html>
