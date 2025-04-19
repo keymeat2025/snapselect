@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>studiopanel-login.html</title>
+    <title>SnapSelect Login</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         :root {
@@ -143,6 +143,44 @@
             background-color: #0086c4;
         }
         
+        .btn-google {
+            background-color: #ffffff;
+            color: var(--dark);
+            border: 1px solid var(--border);
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .btn-google:hover {
+            background-color: #f8f8f8;
+        }
+        
+        .divider {
+            display: flex;
+            align-items: center;
+            margin: 25px 0;
+            color: var(--gray);
+            font-size: 14px;
+        }
+        
+        .divider::before,
+        .divider::after {
+            content: "";
+            flex: 1;
+            border-bottom: 1px solid var(--border);
+        }
+        
+        .divider::before {
+            margin-right: 15px;
+        }
+        
+        .divider::after {
+            margin-left: 15px;
+        }
+        
         .signup-message {
             text-align: center;
             margin-top: 30px;
@@ -164,6 +202,11 @@
             font-size: 14px;
             text-align: center;
         }
+        
+        .google-icon {
+            color: #4285F4;
+            font-size: 18px;
+        }
     </style>
 </head>
 <body>
@@ -174,6 +217,13 @@
     
     <div class="login-container">
         <h1 class="login-title">Login</h1>
+        
+        <button type="button" class="btn btn-google">
+            <i class="fab fa-google google-icon"></i>
+            Continue with Gmail
+        </button>
+        
+        <div class="divider">OR</div>
         
         <form>
             <div class="form-group">
