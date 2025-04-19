@@ -38,6 +38,8 @@
             padding: 60px 40px;
             display: flex;
             flex-direction: column;
+            position: relative;
+            z-index: 1;
         }
         
         .right-panel {
@@ -46,6 +48,8 @@
             display: flex;
             flex-direction: column;
             justify-content: center;
+            position: relative;
+            z-index: 1;
         }
         
         .logo {
@@ -223,34 +227,157 @@
             background-color: #0086c4;
         }
         
+        .google-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            background-color: var(--white);
+            color: var(--dark);
+            padding: 12px 15px;
+            border-radius: 5px;
+            text-decoration: none;
+            font-weight: 500;
+            text-align: center;
+            transition: background-color 0.3s;
+            border: 1px solid var(--border);
+            cursor: pointer;
+            font-size: 16px;
+            margin-bottom: 20px;
+        }
+        
+        .google-btn:hover {
+            background-color: var(--light-gray);
+        }
+        
+        .google-icon {
+            margin-right: 10px;
+            font-size: 18px;
+        }
+        
+        .divider {
+            position: relative;
+            text-align: center;
+            margin: 20px 0 30px;
+        }
+        
+        .divider:before {
+            content: "";
+            position: absolute;
+            top: 50%;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background-color: var(--border);
+        }
+        
+        .divider span {
+            position: relative;
+            background-color: var(--white);
+            padding: 0 15px;
+            color: var(--gray);
+            font-size: 14px;
+        }
+        
         .footer-note {
             margin-top: 20px;
             font-size: 12px;
             color: var(--gray);
         }
         
-        .promo-code {
-            margin-top: 30px;
+        /* Step indicators */
+        .steps {
+            display: flex;
+            margin-bottom: 30px;
+        }
+        
+        .step {
+            flex: 1;
             text-align: center;
+            position: relative;
+        }
+        
+        .step:not(:last-child):after {
+            content: "";
+            position: absolute;
+            top: 14px;
+            left: 60%;
+            width: 80%;
+            height: 2px;
+            background-color: var(--border);
+        }
+        
+        .step.active:not(:last-child):after {
+            background-color: var(--primary);
+        }
+        
+        .step-number {
+            width: 30px;
+            height: 30px;
+            background-color: var(--white);
+            border: 2px solid var(--border);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 10px;
             color: var(--gray);
-            font-size: 14px;
-        }
-        
-        .promo-link {
-            color: var(--primary);
-            text-decoration: none;
-            cursor: pointer;
-        }
-        
-        .promo-link:hover {
-            text-decoration: underline;
-        }
-        
-        .no-card {
-            text-align: center;
-            margin-top: 15px;
             font-weight: 600;
-            color: var(--dark);
+        }
+        
+        .step.active .step-number {
+            background-color: var(--primary);
+            border-color: var(--primary);
+            color: var(--white);
+        }
+        
+        .step-label {
+            font-size: 14px;
+            color: var(--gray);
+            font-weight: 500;
+        }
+        
+        .step.active .step-label {
+            color: var(--primary);
+            font-weight: 600;
+        }
+        
+        /* Form screens */
+        .form-screen {
+            display: none;
+        }
+        
+        .form-screen.active {
+            display: block;
+        }
+        
+        /* Pre-filled field styling */
+        .prefilled {
+            background-color: var(--light-gray);
+            color: var(--gray);
+            cursor: not-allowed;
+        }
+        
+        .prefilled-note {
+            font-size: 12px;
+            color: var(--gray);
+            margin-top: 5px;
+            font-style: italic;
+        }
+        
+        /* Step screen transitions */
+        .form-screen {
+            transition: opacity 0.3s, transform 0.3s;
+            opacity: 0;
+            transform: translateX(20px);
+            position: absolute;
+            width: calc(100% - 80px);
+        }
+        
+        .form-screen.active {
+            opacity: 1;
+            transform: translateX(0);
+            position: relative;
         }
         
         @media (max-width: 992px) {
@@ -260,6 +387,10 @@
             
             .left-panel, .right-panel {
                 padding: 40px 20px;
+            }
+            
+            .form-screen {
+                width: calc(100% - 40px);
             }
         }
     </style>
@@ -285,61 +416,215 @@
     </div>
     
     <div class="right-panel">
-        <form>
-            <div class="form-group">
-                <label for="studio-name">Studio Name</label>
-                <div class="input-icon-wrapper">
-                    <i class="fas fa-camera input-icon"></i>
-                    <input type="text" id="studio-name" class="input-with-icon" placeholder="Enter a Studio Name" required>
-                </div>
+        <!-- Step indicators -->
+        <div class="steps">
+            <div class="step active" id="step-1-indicator">
+                <div class="step-number">1</div>
+                <div class="step-label">Account</div>
             </div>
-            
-            <div class="form-group">
-                <label for="email">Email</label>
-                <div class="input-icon-wrapper">
-                    <i class="fas fa-envelope input-icon"></i>
-                    <input type="email" id="email" class="input-with-icon" placeholder="your@email.com" required>
-                </div>
+            <div class="step" id="step-2-indicator">
+                <div class="step-number">2</div>
+                <div class="step-label">Studio Info</div>
             </div>
-            
-            <div class="form-group">
-                <label for="password">Password</label>
-                <div class="input-icon-wrapper">
-                    <i class="fas fa-lock input-icon"></i>
-                    <input type="password" id="password" class="input-with-icon" required>
+        </div>
+        
+        <!-- Step 1: Account Creation -->
+        <div class="form-screen active" id="step-1-screen">
+            <form id="step-1-form">
+                <button type="button" class="google-btn" id="google-signin-btn">
+                    <i class="fab fa-google google-icon"></i>
+                    Sign up with Google
+                </button>
+                
+                <div class="divider">
+                    <span>or sign up with email</span>
                 </div>
-            </div>
-            
-            <div class="form-group">
-                <label for="owner-name">Owner Name</label>
-                <div class="input-icon-wrapper">
-                    <i class="fas fa-user input-icon"></i>
-                    <input type="text" id="owner-name" class="input-with-icon" placeholder="Your Name" required>
+                
+                <div class="form-group">
+                    <label for="email">Email</label>
+                    <div class="input-icon-wrapper">
+                        <i class="fas fa-envelope input-icon"></i>
+                        <input type="email" id="email" class="input-with-icon" placeholder="your@email.com" required>
+                    </div>
                 </div>
-            </div>
-            
-            <div class="form-group">
-                <label for="owner-number">Owner Number</label>
-                <div class="input-icon-wrapper">
-                    <i class="fas fa-phone input-icon"></i>
-                    <input type="tel" id="owner-number" class="input-with-icon" placeholder="Phone Number" required>
+                
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <div class="input-icon-wrapper">
+                        <i class="fas fa-lock input-icon"></i>
+                        <input type="password" id="password" class="input-with-icon" placeholder="Choose a password" required>
+                    </div>
                 </div>
-            </div>
-            
-            <div class="checkbox-group">
-                <input type="checkbox" id="terms" required>
-                <div class="checkbox-text">
-                    I agree to the <a href="#">Terms of Service</a> and <a href="#">Privacy Policy</a> for this site.
+                
+                <div class="form-group">
+                    <label for="confirm-password">Confirm Password</label>
+                    <div class="input-icon-wrapper">
+                        <i class="fas fa-lock input-icon"></i>
+                        <input type="password" id="confirm-password" class="input-with-icon" placeholder="Confirm your password" required>
+                    </div>
                 </div>
-            </div>
-            
-            <button type="submit" class="btn">Start 7 Day Trial</button>
-            
-            <p class="footer-note">This site is protected by reCAPTCHA Enterprise and the Google <a href="#" style="color: var(--primary); text-decoration: none;">Privacy Policy</a> and <a href="#" style="color: var(--primary); text-decoration: none;">Terms of Service</a> apply.</p>
-            
-   
-       
-        </form>
+                
+                <button type="button" class="btn" id="to-step-2-btn">Continue</button>
+            </form>
+        </div>
+        
+        <!-- Step 2: Additional Info -->
+        <div class="form-screen" id="step-2-screen">
+            <form id="step-2-form">
+                <div class="form-group">
+                    <label for="studio-name">Studio Name</label>
+                    <div class="input-icon-wrapper">
+                        <i class="fas fa-camera input-icon"></i>
+                        <input type="text" id="studio-name" class="input-with-icon" placeholder="Enter a Studio Name" required>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="owner-name">Owner Name</label>
+                    <div class="input-icon-wrapper">
+                        <i class="fas fa-user input-icon"></i>
+                        <input type="text" id="owner-name" class="input-with-icon" placeholder="Your Name" required>
+                    </div>
+                    <p class="prefilled-note" id="owner-name-note" style="display: none;">Auto-filled from Google account</p>
+                </div>
+                
+                <div class="form-group">
+                    <label for="owner-email">Owner Email</label>
+                    <div class="input-icon-wrapper">
+                        <i class="fas fa-envelope input-icon"></i>
+                        <input type="email" id="owner-email" class="input-with-icon" placeholder="your@email.com" required>
+                    </div>
+                    <p class="prefilled-note" id="owner-email-note" style="display: none;">Auto-filled from Google account</p>
+                </div>
+                
+                <div class="form-group">
+                    <label for="owner-number">Owner Number</label>
+                    <div class="input-icon-wrapper">
+                        <i class="fas fa-phone input-icon"></i>
+                        <input type="tel" id="owner-number" class="input-with-icon" placeholder="Phone Number" required>
+                    </div>
+                </div>
+                
+                <div class="checkbox-group">
+                    <input type="checkbox" id="terms" required>
+                    <div class="checkbox-text">
+                        I agree to the <a href="#">Terms of Service</a> and <a href="#">Privacy Policy</a> for this site.
+                    </div>
+                </div>
+                
+                <button type="submit" class="btn">Start 7 Day Trial</button>
+                
+                <p class="footer-note">This site is protected by reCAPTCHA Enterprise and the Google <a href="#" style="color: var(--primary); text-decoration: none;">Privacy Policy</a> and <a href="#" style="color: var(--primary); text-decoration: none;">Terms of Service</a> apply.</p>
+            </form>
+        </div>
     </div>
+    
+    <script>
+        // DOM Elements
+        const step1Screen = document.getElementById('step-1-screen');
+        const step2Screen = document.getElementById('step-2-screen');
+        const step1Indicator = document.getElementById('step-1-indicator');
+        const step2Indicator = document.getElementById('step-2-indicator');
+        const toStep2Btn = document.getElementById('to-step-2-btn');
+        const googleSigninBtn = document.getElementById('google-signin-btn');
+        
+        // Password validation for step 1
+        toStep2Btn.addEventListener('click', function() {
+            const password = document.getElementById('password').value;
+            const confirmPassword = document.getElementById('confirm-password').value;
+            const email = document.getElementById('email').value;
+            
+            // Simple validation
+            if (!email) {
+                alert('Please enter your email address.');
+                return;
+            }
+            
+            if (!password) {
+                alert('Please choose a password.');
+                return;
+            }
+            
+            if (password !== confirmPassword) {
+                alert('Passwords do not match. Please try again.');
+                return;
+            }
+            
+            // Proceed to step 2
+            goToStep2();
+            
+            // Pre-fill email in step 2
+            document.getElementById('owner-email').value = email;
+        });
+        
+        // Google Sign In button click
+        googleSigninBtn.addEventListener('click', function() {
+            // In a real implementation, this would trigger the Google OAuth flow
+            // For this demo, we'll simulate a successful Google login
+            simulateGoogleLogin();
+        });
+        
+        // Function to simulate Google login (in a real app, this would be replaced with actual Google OAuth)
+        function simulateGoogleLogin() {
+            // Simulate data we would get from Google
+            const googleData = {
+                email: 'photographer@gmail.com',
+                name: 'John Photographer'
+            };
+            
+            // Pre-fill the step 2 form with Google data
+            const ownerNameField = document.getElementById('owner-name');
+            const ownerEmailField = document.getElementById('owner-email');
+            
+            ownerNameField.value = googleData.name;
+            ownerEmailField.value = googleData.email;
+            
+            // Add the prefilled class and show the notes
+            ownerNameField.classList.add('prefilled');
+            ownerEmailField.classList.add('prefilled');
+            
+            document.getElementById('owner-name-note').style.display = 'block';
+            document.getElementById('owner-email-note').style.display = 'block';
+            
+            // Skip to step 2
+            goToStep2();
+        }
+        
+        // Function to go to step 2
+        function goToStep2() {
+            // Update step indicators
+            step1Indicator.classList.remove('active');
+            step2Indicator.classList.add('active');
+            
+            // Show step 2 screen, hide step 1
+            step1Screen.classList.remove('active');
+            step2Screen.classList.add('active');
+        }
+        
+        // Form submission for step 2
+        document.getElementById('step-2-form').addEventListener('submit', function(event) {
+            event.preventDefault();
+            
+            // Validate required fields
+            const studioName = document.getElementById('studio-name').value;
+            const ownerName = document.getElementById('owner-name').value;
+            const ownerEmail = document.getElementById('owner-email').value;
+            const ownerNumber = document.getElementById('owner-number').value;
+            const termsChecked = document.getElementById('terms').checked;
+            
+            if (!studioName || !ownerName || !ownerEmail || !ownerNumber) {
+                alert('Please fill in all required fields.');
+                return;
+            }
+            
+            if (!termsChecked) {
+                alert('Please agree to the Terms of Service and Privacy Policy.');
+                return;
+            }
+            
+            // In a real application, this would submit the form data to your server
+            alert('Registration successful! Your 7-day trial has started.');
+        });
+    </script>
 </body>
 </html>
