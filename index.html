@@ -5,504 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SnapSelect - Streamline Your Photo Workflow</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <style>
-        :root {
-            --primary: #00a0e9;
-            --primary-light: #e0f5ff;
-            --accent: #ffa837;
-            --dark: #2d2d2d;
-            --gray: #555555;
-            --light-gray: #f8f9fa;
-            --border: #e0e0e0;
-            --white: #ffffff;
-        }
-        
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        }
-        
-        body {
-            color: var(--dark);
-            line-height: 1.6;
-        }
-        
-        .container {
-            width: 90%;
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 0 15px;
-        }
-        
-        /* Navigation */
-        header {
-            background-color: var(--white);
-            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-            position: fixed;
-            width: 100%;
-            z-index: 1000;
-            padding: 15px 0;
-        }
-        
-        nav {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        
-        .logo {
-            font-size: 28px;
-            font-weight: 700;
-            color: var(--primary);
-            text-decoration: none;
-            font-family: 'Arial', cursive;
-            letter-spacing: -0.5px;
-        }
-        
-        .logo span {
-            font-size: 18px;
-            color: var(--gray);
-            margin-left: 5px;
-        }
-        
-        .nav-links {
-            display: flex;
-            list-style: none;
-            align-items: center;
-        }
-        
-        .nav-links li {
-            margin: 0 15px;
-        }
-        
-        .nav-links a {
-            text-decoration: none;
-            color: var(--dark);
-            font-weight: 500;
-            transition: color 0.3s;
-            font-size: 16px;
-            position: relative;
-            padding: 5px 0;
-        }
-        
-        .nav-links a:hover {
-            color: var(--primary);
-        }
-        
-        .nav-links a.dropdown::after {
-            content: '▼';
-            font-size: 10px;
-            margin-left: 5px;
-            display: inline-block;
-            vertical-align: middle;
-        }
-        
-        .btn {
-            display: inline-block;
-            background-color: var(--accent);
-            color: var(--white);
-            padding: 12px 25px;
-            border-radius: 25px;
-            text-decoration: none;
-            font-weight: 600;
-            transition: background-color 0.3s;
-            border: none;
-            cursor: pointer;
-            white-space: nowrap;
-        }
-        
-        .btn:hover {
-            background-color: #f09b29;
-        }
-        
-        .btn-outline {
-            background-color: transparent;
-            border: 2px solid var(--accent);
-            color: var(--accent);
-            padding: 10px 25px;
-        }
-        
-        .btn-outline:hover {
-            background-color: var(--accent);
-            color: var(--white);
-        }
-        
-        .login-btn {
-            color: var(--dark);
-            font-weight: 600;
-            text-decoration: none;
-            margin-right: 20px;
-            transition: color 0.3s;
-        }
-        
-        .login-btn:hover {
-            color: var(--primary);
-        }
-        
-        /* Mobile menu */
-        .hamburger {
-            display: none;
-            cursor: pointer;
-            font-size: 24px;
-        }
-        
-        /* Hero Section */
-        .hero {
-            background-color: var(--primary-light);
-            padding: 150px 0 100px;
-            position: relative;
-            overflow: hidden;
-        }
-        
-        .hero-content {
-            display: flex;
-            flex-wrap: wrap;
-            align-items: center;
-            justify-content: space-between;
-        }
-        
-        .hero-text {
-            flex: 1;
-            max-width: 550px;
-            padding-right: 30px;
-        }
-        
-        .hero h1 {
-            font-size: 42px;
-            line-height: 1.2;
-            margin-bottom: 20px;
-        }
-        
-        .hero p {
-            font-size: 18px;
-            color: var(--gray);
-            margin-bottom: 30px;
-        }
-        
-        .hero-image {
-            flex: 1;
-            max-width: 500px;
-            text-align: center;
-        }
-        
-        .hero-image img {
-            max-width: 100%;
-            height: auto;
-            border-radius: 10px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
-        }
-        
-        /* Features */
-        .features {
-            padding: 100px 0;
-            background-color: var(--white);
-        }
-        
-        .section-title {
-            text-align: center;
-            margin-bottom: 60px;
-        }
-        
-        .section-title h2 {
-            font-size: 36px;
-            margin-bottom: 15px;
-        }
-        
-        .section-title p {
-            color: var(--gray);
-            max-width: 600px;
-            margin: 0 auto;
-        }
-        
-        .features-grid {
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: space-between;
-            gap: 30px;
-        }
-        
-        .feature-card {
-            flex: 1;
-            min-width: 300px;
-            background-color: var(--white);
-            border-radius: 10px;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.05);
-            padding: 30px;
-            transition: transform 0.3s, box-shadow 0.3s;
-            text-align: center;
-        }
-        
-        .feature-card:hover {
-            transform: translateY(-10px);
-            box-shadow: 0 15px 30px rgba(0,0,0,0.1);
-        }
-        
-        .feature-icon {
-            width: 80px;
-            height: 80px;
-            background-color: var(--primary-light);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin: 0 auto 20px;
-            font-size: 30px;
-            color: var(--primary);
-        }
-        
-        .feature-card h3 {
-            font-size: 22px;
-            margin-bottom: 15px;
-        }
-        
-        .feature-card p {
-            color: var(--gray);
-        }
-        
-        /* How It Works */
-        .how-it-works {
-            padding: 100px 0;
-            background-color: var(--light-gray);
-        }
-        
-        .steps {
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: space-between;
-            margin-top: 50px;
-        }
-        
-        .step {
-            flex: 1;
-            min-width: 250px;
-            text-align: center;
-            position: relative;
-            padding: 0 20px;
-        }
-        
-        .step-number {
-            width: 60px;
-            height: 60px;
-            background-color: var(--primary);
-            color: var(--white);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 24px;
-            font-weight: 700;
-            margin: 0 auto 20px;
-        }
-        
-        .step h3 {
-            font-size: 22px;
-            margin-bottom: 15px;
-        }
-        
-        .step p {
-            color: var(--gray);
-        }
-        
-        .step:not(:last-child)::after {
-            content: '';
-            position: absolute;
-            top: 30px;
-            right: -50px;
-            width: 100px;
-            height: 2px;
-            background-color: var(--border);
-            display: none;
-        }
-        
-        @media (min-width: 992px) {
-            .step:not(:last-child)::after {
-                display: block;
-            }
-        }
-        
-        /* Testimonials */
-        .testimonials {
-            padding: 100px 0;
-            background-color: var(--white);
-        }
-        
-        .testimonial {
-            max-width: 800px;
-            margin: 0 auto;
-            background-color: var(--white);
-            border-radius: 10px;
-            box-shadow: 0 5px 20px rgba(0,0,0,0.05);
-            padding: 40px;
-            text-align: center;
-        }
-        
-        .testimonial-image {
-            width: 80px;
-            height: 80px;
-            border-radius: 50%;
-            margin: 0 auto 20px;
-            overflow: hidden;
-            background-color: #ddd;
-        }
-        
-        .testimonial-image img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-        }
-        
-        .testimonial-text {
-            font-style: italic;
-            font-size: 18px;
-            color: var(--gray);
-            margin-bottom: 20px;
-            line-height: 1.8;
-        }
-        
-        .testimonial-author {
-            font-weight: 700;
-            color: var(--dark);
-        }
-        
-        .testimonial-role {
-            color: var(--gray);
-            font-size: 14px;
-        }
-        
-        /* Pricing */
-        .pricing {
-            padding: 100px 0;
-            background-color: var(--light-gray);
-        }
-        
-        .pricing-grid {
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: center;
-            gap: 30px;
-            margin-top: 50px;
-        }
-        
-        .pricing-card {
-            flex: 1;
-            min-width: 280px;
-            max-width: 350px;
-            background-color: var(--white);
-            border-radius: 10px;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.05);
-            padding: 40px 30px;
-            text-align: center;
-            transition: transform 0.3s, box-shadow 0.3s;
-        }
-        
-        .pricing-card:hover {
-            transform: translateY(-10px);
-            box-shadow: 0 15px 30px rgba(0,0,0,0.1);
-        }
-        
-        .pricing-card.featured {
-            border: 2px solid var(--primary);
-            transform: scale(1.05);
-        }
-        
-        .pricing-card.featured:hover {
-            transform: scale(1.05) translateY(-10px);
-        }
-        
-        .price-title {
-            font-size: 22px;
-            margin-bottom: 15px;
-        }
-        
-        .price {
-            font-size: 48px;
-            font-weight: 700;
-            margin-bottom: 5px;
-        }
-        
-        .price span {
-            font-size: 16px;
-            font-weight: 400;
-            color: var(--gray);
-        }
-        
-        .pricing-features {
-            list-style: none;
-            margin: 30px 0;
-            padding: 20px 0;
-            border-top: 1px solid var(--border);
-            border-bottom: 1px solid var(--border);
-        }
-        
-        .pricing-features li {
-            margin: 15px 0;
-            color: var(--gray);
-        }
-        
-        /* Media Queries */
-        @media (max-width: 991px) {
-            .nav-links {
-                display: none;
-                flex-direction: column;
-                position: absolute;
-                top: 80px;
-                left: 0;
-                width: 100%;
-                background-color: var(--white);
-                padding: 20px 0;
-                box-shadow: 0 5px 10px rgba(0,0,0,0.1);
-            }
-            
-            .nav-links.active {
-                display: flex;
-            }
-            
-            .nav-links li {
-                margin: 10px 0;
-                text-align: center;
-            }
-            
-            .hamburger {
-                display: block;
-            }
-            
-            .hero {
-                padding: 120px 0 80px;
-            }
-            
-            .hero-text, .hero-image {
-                max-width: 100%;
-                padding-right: 0;
-                margin-bottom: 40px;
-            }
-        }
-        
-        @media (max-width: 768px) {
-            .features-grid, .pricing-grid {
-                flex-direction: column;
-                align-items: center;
-            }
-            
-            .feature-card, .pricing-card {
-                max-width: 100%;
-                margin-bottom: 30px;
-            }
-            
-            .pricing-card.featured {
-                transform: none;
-            }
-            
-            .pricing-card.featured:hover {
-                transform: translateY(-10px);
-            }
-            
-            .step:not(:last-child) {
-                margin-bottom: 50px;
-            }
-        }
-    </style>
+    <link rel="stylesheet" href="assets/css/variables.css">
+    <link rel="stylesheet" href="assets/css/main.css">
+    <link rel="stylesheet" href="assets/css/responsive.css">
 </head>
 <body>
     <!-- Navigation Header -->
@@ -512,13 +17,11 @@
                 <a href="#" class="logo">SnapSelect</a>
                 <ul class="nav-links">
                     <li><a href="#" class="dropdown">Client Gallery</a></li>
-                 
                     <li><a href="#" class="dropdown">Studio</a></li>
-                 
                     <li><a href="#pricing">Pricing</a></li>
                 </ul>
                 <div class="right-nav">
-                    <a href="studiopanel-login.html" class="login-btn">Log In</a>
+                    <a href="pages/studiopanel-login.html" class="login-btn">Log In</a>
                     <a href="#" class="btn">Start now</a>
                 </div>
                 <div class="hamburger">
@@ -535,10 +38,10 @@
                 <div class="hero-text">
                     <h1>Streamline Your Photo Workflow with SnapSelect</h1>
                     <p>The platform where clients select their favorites, so you can focus on editing what matters.</p>
-                    <a href="freetrail.html" class="btn">Start Free Trial</a>
+                    <a href="pages/freetrail.html" class="btn">Start Free Trial</a>
                 </div>
                 <div class="hero-image">
-                    <img src="/api/placeholder/500/400" alt="Photographer and client reviewing photos">
+                    <img src="assets/images/hero-image.jpg" alt="Photographer and client reviewing photos">
                 </div>
             </div>
         </div>
@@ -686,22 +189,22 @@
                 </div>
             </div>
             
-            <div class="add-ons" style="margin-top: 60px; text-align: center;">
-                <h3 style="margin-bottom: 30px; font-size: 24px;">Add-on Options</h3>
-                <ul style="list-style: none; max-width: 600px; margin: 0 auto; text-align: left; display: inline-block;">
-                    <li style="margin: 10px 0; padding: 10px; background: var(--primary-light); border-radius: 8px;">
+            <div class="add-ons">
+                <h3>Add-on Options</h3>
+                <ul>
+                    <li>
                         <strong>Additional storage:</strong> ₹250 per 10GB
                     </li>
-                    <li style="margin: 10px 0; padding: 10px; background: var(--primary-light); border-radius: 8px;">
+                    <li>
                         <strong>Extended collection lifetime:</strong> ₹250 per collection per month
                     </li>
-                    <li style="margin: 10px 0; padding: 10px; background: var(--primary-light); border-radius: 8px;">
+                    <li>
                         <strong>Rush processing:</strong> ₹500 per collection
                     </li>
-                    <li style="margin: 10px 0; padding: 10px; background: var(--primary-light); border-radius: 8px;">
+                    <li>
                         <strong>Additional photographer account:</strong> ₹500 per month (Pro tier and above)
                     </li>
-                    <li style="margin: 10px 0; padding: 10px; background: var(--primary-light); border-radius: 8px;">
+                    <li>
                         <strong>Advanced photo editing tools:</strong> ₹750 per month
                     </li>
                 </ul>
@@ -710,77 +213,68 @@
     </section>
 
     <!-- Footer CTA -->
-    <section class="hero" style="padding: 80px 0;">
-        <div class="container" style="text-align: center;">
-            <h2 style="margin-bottom: 30px;">Ready to streamline your workflow?</h2>
+    <section class="cta-section">
+        <div class="container">
+            <h2>Ready to streamline your workflow?</h2>
             <a href="#" class="btn">Start now</a>
         </div>
     </section>
     
     <!-- Footer -->
-    <footer style="background-color: var(--dark); color: var(--white); padding: 60px 0 30px;">
+    <footer>
         <div class="container">
-            <div style="display: flex; flex-wrap: wrap; justify-content: space-between; margin-bottom: 40px;">
-                <div style="flex: 1; min-width: 200px; margin-bottom: 30px;">
-                    <h3 style="margin-bottom: 20px; font-size: 18px;">Product</h3>
-                    <ul style="list-style: none;">
-                        <li style="margin-bottom: 10px;"><a href="#" style="color: #aaa; text-decoration: none; transition: color 0.3s;">Features</a></li>
-                        <li style="margin-bottom: 10px;"><a href="#" style="color: #aaa; text-decoration: none; transition: color 0.3s;">Pricing</a></li>
-                        <li style="margin-bottom: 10px;"><a href="#" style="color: #aaa; text-decoration: none; transition: color 0.3s;">Integrations</a></li>
-                        <li style="margin-bottom: 10px;"><a href="#" style="color: #aaa; text-decoration: none; transition: color 0.3s;">Updates</a></li>
+            <div class="footer-content">
+                <div class="footer-column">
+                    <h3>Product</h3>
+                    <ul>
+                        <li><a href="#">Features</a></li>
+                        <li><a href="#">Pricing</a></li>
+                        <li><a href="#">Integrations</a></li>
+                        <li><a href="#">Updates</a></li>
                     </ul>
                 </div>
-                <div style="flex: 1; min-width: 200px; margin-bottom: 30px;">
-                    <h3 style="margin-bottom: 20px; font-size: 18px;">Resources</h3>
-                    <ul style="list-style: none;">
-                        <li style="margin-bottom: 10px;"><a href="#" style="color: #aaa; text-decoration: none; transition: color 0.3s;">Blog</a></li>
-                        <li style="margin-bottom: 10px;"><a href="#" style="color: #aaa; text-decoration: none; transition: color 0.3s;">Tutorials</a></li>
-                        <li style="margin-bottom: 10px;"><a href="#" style="color: #aaa; text-decoration: none; transition: color 0.3s;">Help Center</a></li>
-                        <li style="margin-bottom: 10px;"><a href="#" style="color: #aaa; text-decoration: none; transition: color 0.3s;">Community</a></li>
+                <div class="footer-column">
+                    <h3>Resources</h3>
+                    <ul>
+                        <li><a href="#">Blog</a></li>
+                        <li><a href="#">Tutorials</a></li>
+                        <li><a href="#">Help Center</a></li>
+                        <li><a href="#">Community</a></li>
                     </ul>
                 </div>
-                <div style="flex: 1; min-width: 200px; margin-bottom: 30px;">
-                    <h3 style="margin-bottom: 20px; font-size: 18px;">Company</h3>
-                    <ul style="list-style: none;">
-                        <li style="margin-bottom: 10px;"><a href="#" style="color: #aaa; text-decoration: none; transition: color 0.3s;">About Us</a></li>
-                        <li style="margin-bottom: 10px;"><a href="#" style="color: #aaa; text-decoration: none; transition: color 0.3s;">Careers</a></li>
-                        <li style="margin-bottom: 10px;"><a href="#" style="color: #aaa; text-decoration: none; transition: color 0.3s;">Contact</a></li>
-                        <li style="margin-bottom: 10px;"><a href="#" style="color: #aaa; text-decoration: none; transition: color 0.3s;">Partners</a></li>
+                <div class="footer-column">
+                    <h3>Company</h3>
+                    <ul>
+                        <li><a href="#">About Us</a></li>
+                        <li><a href="#">Careers</a></li>
+                        <li><a href="#">Contact</a></li>
+                        <li><a href="#">Partners</a></li>
                     </ul>
                 </div>
-                <div style="flex: 1; min-width: 200px; margin-bottom: 30px;">
-                    <h3 style="margin-bottom: 20px; font-size: 18px;">Legal</h3>
-                    <ul style="list-style: none;">
-                        <li style="margin-bottom: 10px;"><a href="#" style="color: #aaa; text-decoration: none; transition: color 0.3s;">Privacy Policy</a></li>
-                        <li style="margin-bottom: 10px;"><a href="#" style="color: #aaa; text-decoration: none; transition: color 0.3s;">Terms of Service</a></li>
-                        <li style="margin-bottom: 10px;"><a href="#" style="color: #aaa; text-decoration: none; transition: color 0.3s;">Cookie Policy</a></li>
-                        <li style="margin-bottom: 10px;"><a href="#" style="color: #aaa; text-decoration: none; transition: color 0.3s;">GDPR</a></li>
+                <div class="footer-column">
+                    <h3>Legal</h3>
+                    <ul>
+                        <li><a href="#">Privacy Policy</a></li>
+                        <li><a href="#">Terms of Service</a></li>
+                        <li><a href="#">Cookie Policy</a></li>
+                        <li><a href="#">GDPR</a></li>
                     </ul>
                 </div>
             </div>
-            <div style="text-align: center; padding-top: 30px; border-top: 1px solid #444;">
-                <p style="margin-bottom: 20px; color: #aaa;">Connect with us</p>
-                <div style="margin-bottom: 30px;">
-                    <a href="#" style="color: var(--white); margin: 0 10px; font-size: 20px;"><i class="fab fa-facebook"></i></a>
-                    <a href="#" style="color: var(--white); margin: 0 10px; font-size: 20px;"><i class="fab fa-twitter"></i></a>
-                    <a href="#" style="color: var(--white); margin: 0 10px; font-size: 20px;"><i class="fab fa-instagram"></i></a>
-                    <a href="#" style="color: var(--white); margin: 0 10px; font-size: 20px;"><i class="fab fa-linkedin"></i></a>
+            <div class="footer-bottom">
+                <p>Connect with us</p>
+                <div class="social-icons">
+                    <a href="#"><i class="fab fa-facebook"></i></a>
+                    <a href="#"><i class="fab fa-twitter"></i></a>
+                    <a href="#"><i class="fab fa-instagram"></i></a>
+                    <a href="#"><i class="fab fa-linkedin"></i></a>
                 </div>
-                <p style="color: #777; font-size: 14px;">&copy; 2025 SnapSelect. All rights reserved.</p>
+                <p class="copyright">&copy; 2025 SnapSelect. All rights reserved.</p>
             </div>
         </div>
     </footer>
 
-    <!-- JavaScript for mobile menu toggle -->
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const hamburger = document.querySelector('.hamburger');
-            const navLinks = document.querySelector('.nav-links');
-            
-            hamburger.addEventListener('click', function() {
-                navLinks.classList.toggle('active');
-            });
-        });
-    </script>
+    <!-- JavaScript -->
+    <script src="assets/js/main.js"></script>
 </body>
 </html>
