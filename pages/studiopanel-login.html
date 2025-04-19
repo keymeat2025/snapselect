@@ -3,42 +3,85 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Studio Panel Login - SnapSelect</title>
+    <title>studiopanel-login.html</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="../assets/css/variables.css">
-    <link rel="stylesheet" href="../assets/css/main.css">
-    <link rel="stylesheet" href="../assets/css/responsive.css">
     <style>
-        .login-container {
+        :root {
+            --primary: #00a0e9;
+            --primary-light: #e0f5ff;
+            --accent: #ffa837;
+            --dark: #2d2d2d;
+            --gray: #555555;
+            --light-gray: #f8f9fa;
+            --border: #e0e0e0;
+            --white: #ffffff;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background-color: var(--primary);
+            color: var(--dark);
+            line-height: 1.6;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
             min-height: 100vh;
+        }
+        
+        .logo {
+            font-size: 32px;
+            font-weight: 700;
+            color: var(--white);
+            text-decoration: none;
+            font-family: 'Arial', cursive;
+            letter-spacing: -0.5px;
+            margin-bottom: 20px;
+            display: inline-block;
+        }
+        
+        .logo-container {
             display: flex;
             align-items: center;
-            justify-content: center;
-            padding: 80px 20px;
-            background-color: var(--light-gray);
+            gap: 10px;
         }
         
-        .login-form {
-            max-width: 400px;
-            width: 100%;
+        .logo-icon {
+            font-size: 24px;
+            color: var(--white);
+        }
+        
+        .login-container {
             background-color: var(--white);
             border-radius: 10px;
-            box-shadow: 0 5px 20px rgba(0,0,0,0.05);
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
             padding: 40px;
+            width: 100%;
+            max-width: 500px;
+            margin: 0 auto;
         }
         
-        .login-logo {
-            text-align: center;
+        .login-title {
+            font-size: 28px;
+            color: var(--dark);
             margin-bottom: 30px;
+            text-align: center;
         }
         
         .form-group {
-            margin-bottom: 20px;
+            margin-bottom: 25px;
         }
         
         .form-group label {
             display: block;
             margin-bottom: 8px;
+            color: var(--dark);
             font-weight: 500;
         }
         
@@ -48,51 +91,118 @@
             border: 1px solid var(--border);
             border-radius: 5px;
             font-size: 16px;
+            transition: border-color 0.3s;
         }
         
-        .form-footer {
-            margin-top: 30px;
+        .form-group input:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+        
+        .forgot-link {
+            display: block;
+            text-align: right;
+            color: var(--primary);
+            text-decoration: none;
+            font-size: 14px;
+            margin-top: -5px;
+            margin-bottom: 20px;
+        }
+        
+        .forgot-link:hover {
+            text-decoration: underline;
+        }
+        
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            margin-bottom: 25px;
+        }
+        
+        .checkbox-group input {
+            margin-right: 10px;
+        }
+        
+        .btn {
+            display: block;
+            width: 100%;
+            background-color: var(--primary);
+            color: var(--white);
+            padding: 12px;
+            border-radius: 5px;
+            text-decoration: none;
+            font-weight: 600;
             text-align: center;
+            transition: background-color 0.3s;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
         }
         
-        .form-footer a {
+        .btn:hover {
+            background-color: #0086c4;
+        }
+        
+        .signup-message {
+            text-align: center;
+            margin-top: 30px;
+            color: var(--primary);
+        }
+        
+        .signup-link {
             color: var(--primary);
             text-decoration: none;
         }
         
-        .login-btn {
-            width: 100%;
-            margin-bottom: 20px;
+        .signup-link:hover {
+            text-decoration: underline;
+        }
+        
+        .footer {
+            margin-top: 40px;
+            color: var(--white);
+            font-size: 14px;
+            text-align: center;
         }
     </style>
 </head>
 <body>
+    <div class="logo-container">
+        <a href="#" class="logo">SnapSelect</a>
+        <i class="fas fa-camera logo-icon"></i>
+    </div>
+    
     <div class="login-container">
-        <div class="login-form">
-            <div class="login-logo">
-                <a href="../index.html" class="logo">SnapSelect</a>
-                <p>Studio Panel Login</p>
+        <h1 class="login-title">Studio Panel Login</h1>
+        
+        <form>
+            <div class="form-group">
+                <label for="email">Email</label>
+                <input type="email" id="email" placeholder="example@email.com" required>
             </div>
             
-            <form action="#" method="post">
-                <div class="form-group">
-                    <label for="email">Email</label>
-                    <input type="email" id="email" name="email" required>
-                </div>
-                
-                <div class="form-group">
-                    <label for="password">Password</label>
-                    <input type="password" id="password" name="password" required>
-                </div>
-                
-                <button type="submit" class="btn login-btn">Log In</button>
-                
-                <div class="form-footer">
-                    <p><a href="#">Forgot password?</a></p>
-                    <p>Don't have an account? <a href="../pages/freetrail.html">Sign up</a></p>
-                </div>
-            </form>
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input type="password" id="password" required>
+            </div>
+            
+            <a href="Reset Password.html" class="forgot-link">Forgot?</a>
+            
+            <div class="checkbox-group">
+                <input type="checkbox" id="remember" checked>
+                <label for="remember">Keep me logged in</label>
+            </div>
+            
+            <button type="submit" class="btn">Login</button>
+        </form>
+        
+        <div class="signup-message">
+            <p>Not using SnapSelect yet? <a href="#" class="signup-link">Try it for free!</a></p>
         </div>
+    </div>
+    
+    <div class="footer">
+        © 2009-2025 SnapSelect
     </div>
 </body>
 </html>
