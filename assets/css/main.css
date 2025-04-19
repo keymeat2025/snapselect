@@ -1,4 +1,23 @@
 /* Base Styles */
+<!-- CSS to add to your main.css file -->
+/* Logo styling */
+.logo {
+    display: flex;
+    align-items: center;
+}
+
+.logo-image {
+    height: 40px; /* Adjust based on your header height */
+    width: auto;
+    max-width: 100%;
+}
+
+/* For responsive design, you may want to adjust the logo size on smaller screens */
+@media (max-width: 768px) {
+    .logo-image {
+        height: 32px; /* Slightly smaller on mobile */
+    }
+}
 * {
     margin: 0;
     padding: 0;
