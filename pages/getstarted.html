@@ -495,7 +495,7 @@
             <i class="fas fa-camera logo-icon"></i>
         </div>
         
-        <h1 class="trial-headline">Start your free trial today.</h1>
+        <h1 class="trial-headline">Start your SnapSelect Journey today.</h1>
         <p class="trial-subheadline">Streamline your photo memories workflow with client happiness</p>
         
         <div class="testimonial">
@@ -562,6 +562,7 @@
                 </div>
                 
                 <button type="button" class="btn" id="to-step-2-btn">Continue</button>
+                
             </form>
         </div>
         
@@ -602,7 +603,12 @@
                     </div>
                 </div>
                 
-                <button type="button" class="btn" id="to-step-3-btn">Continue</button>
+                <!-- <button type="button" class="btn" id="to-step-3-btn">Continue</button> -->
+               
+                <div style="display: flex; gap: 15px;">
+                    <button type="button" class="btn" id="back-to-step-1-btn" style="background-color: var(--light-gray); color: var(--dark); border: 1px solid var(--border);">Back</button>
+                    <button type="button" class="btn" id="to-step-3-btn">Continue</button>
+                </div>
             </form>
         </div>
         
@@ -666,8 +672,11 @@
                     </div>
                 </div>
                 
-                <button type="submit" class="btn" id="start-trial-btn">Start</button>
-             
+                <!--<button type="submit" class="btn" id="start-trial-btn">Start</button>-->
+                 <div style="display: flex; gap: 15px;">
+                    <button type="button" class="btn" id="back-to-step-2-btn" style="background-color: var(--light-gray); color: var(--dark); border: 1px solid var(--border);">Back</button>
+                    <button type="submit" class="btn" id="start-trial-btn">Start</button>
+                </div>
                 
         </div>
     </div>
@@ -684,9 +693,12 @@
         const toStep3Btn = document.getElementById('to-step-3-btn');
         const googleSigninBtn = document.getElementById('google-signin-btn');
         const startTrialBtn = document.getElementById('start-trial-btn');
+        const backToStep1Btn = document.getElementById('back-to-step-1-btn');
+        const backToStep2Btn = document.getElementById('back-to-step-2-btn');
         
         // Keep track of selected tier
         let selectedTier = 'pro'; // Default to Pro tier
+
         
         // Password validation for step 1
         toStep2Btn.addEventListener('click', function() {
@@ -776,7 +788,27 @@
             
             // Proceed to step 3
             goToStep3();
+            // Back button functionality
+        backToStep1Btn.addEventListener('click', function() {
+            // Update step indicators
+            step2Indicator.classList.remove('active');
+            step1Indicator.classList.add('active');
+            
+            // Show step 1 screen, hide step 2
+            step2Screen.classList.remove('active');
+            step1Screen.classList.add('active');
         });
+        
+        backToStep2Btn.addEventListener('click', function() {
+            // Update step indicators
+            step3Indicator.classList.remove('active');
+            step2Indicator.classList.add('active');
+            
+            // Show step 2 screen, hide step 3
+            step3Screen.classList.remove('active');
+            step2Screen.classList.add('active');
+        });
+        
         
         // Function to go to step 3
         function goToStep3() {
