@@ -793,7 +793,12 @@
         }
         
         // Initialize tier selection
+        
         document.querySelectorAll('.tier-card').forEach(card => {
+            // Set data-tier attribute to match the tier name for consistency
+            const tierName = card.querySelector('.tier-name').textContent.toLowerCase();
+            card.setAttribute('data-tier', tierName);
+            
             card.addEventListener('click', function() {
                 const tier = this.getAttribute('data-tier');
                 selectTier(tier);
@@ -819,32 +824,27 @@
         
         // Update the start trial button text based on the selected tier
         function updateButtonText() {
-            let tierName = '';
-            let tierPrice = '';
+          
+            const selectedCard = document.querySelector('.tier-card.selected');
             
-            switch(selectedTier) {
-                case 'basic':
-                    tierName = 'Basic';
-                    tierPrice = '$19/month';
-                    break;
-                case 'pro':
-                    tierName = 'Professional';
-                    tierPrice = '$39/month';
-                    break;
-                case 'studio':
-                    tierName = 'Studio';
-                    tierPrice = '$79/month';
-                    break;
-            }
+            // Get the tier name from the selected card
+            const tierName = selectedCard.querySelector('.tier-name').textContent;
             
-            startTrialBtn.textContent = `Start 7 Day ${tierName} Trial (${tierPrice})`;
+            // Get the price from the selected card (without the period part)
+            const priceElement = selectedCard.querySelector('.tier-price');
+            const fullPrice = priceElement.textContent;
+            const tierPrice = fullPrice.substring(0, fullPrice.indexOf('<')); // Extract just the price part
+            
+            // Update the button text with the correct tier name and price
+            startTrialBtn.textContent = `Start your SnapSelect journey with ${tierName} for (${tierPrice})`;
         }
+        
         
         // Form submission for final step
         document.getElementById('step-3-form').addEventListener('submit', function(event) {
             event.preventDefault();
-            
-            // Validate terms checkbox
+             
+    // Validate terms checkbox
             const termsChecked = document.getElementById('terms').checked;
             
             if (!termsChecked) {
@@ -852,8 +852,12 @@
                 return;
             }
             
+            // Get the tier name from the selected card
+            const selectedCard = document.querySelector('.tier-card.selected');
+            const tierName = selectedCard.querySelector('.tier-name').textContent;
+            
             // In a real application, this would submit the form data to your server
-            alert(`Registration successful! Your 7-day trial for the ${selectedTier.charAt(0).toUpperCase() + selectedTier.slice(1)} plan has started.`);
+            alert(`Registration successful! Your SnapSelect journey started with ${tierName} plan.`);
         });
         
         // Pre-select the Pro tier by default
