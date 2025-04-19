@@ -3,140 +3,136 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Start Free Trial - SnapSelect</title>
+    <title>Free Trial - SnapSelect</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="../assets/css/variables.css">
     <link rel="stylesheet" href="../assets/css/main.css">
     <link rel="stylesheet" href="../assets/css/responsive.css">
-    <style>
-        .signup-container {
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 80px 20px;
-            background-color: var(--light-gray);
-        }
-        
-        .signup-form {
-            max-width: 500px;
-            width: 100%;
-            background-color: var(--white);
-            border-radius: 10px;
-            box-shadow: 0 5px 20px rgba(0,0,0,0.05);
-            padding: 40px;
-        }
-        
-        .signup-logo {
-            text-align: center;
-            margin-bottom: 30px;
-        }
-        
-        .form-group {
-            margin-bottom: 20px;
-        }
-        
-        .form-group label {
-            display: block;
-            margin-bottom: 8px;
-            font-weight: 500;
-        }
-        
-        .form-group input, .form-group select {
-            width: 100%;
-            padding: 12px 15px;
-            border: 1px solid var(--border);
-            border-radius: 5px;
-            font-size: 16px;
-        }
-        
-        .form-row {
-            display: flex;
-            gap: 15px;
-        }
-        
-        .form-row .form-group {
-            flex: 1;
-        }
-        
-        .form-footer {
-            margin-top: 30px;
-            text-align: center;
-        }
-        
-        .form-footer a {
-            color: var(--primary);
-            text-decoration: none;
-        }
-        
-        .signup-btn {
-            width: 100%;
-            margin-bottom: 20px;
-        }
-        
-        .terms {
-            font-size: 14px;
-            color: var(--gray);
-            text-align: center;
-            margin-top: 20px;
-        }
-    </style>
 </head>
 <body>
-    <div class="signup-container">
-        <div class="signup-form">
-            <div class="signup-logo">
+    <!-- Navigation Header -->
+    <header>
+        <div class="container">
+            <nav>
                 <a href="../index.html" class="logo">SnapSelect</a>
-                <p>Start Your Free 14-Day Trial</p>
+                <ul class="nav-links">
+                    <li><a href="#" class="dropdown">Client Gallery</a></li>
+                    <li><a href="#" class="dropdown">Studio</a></li>
+                    <li><a href="../index.html#pricing">Pricing</a></li>
+                </ul>
+                <div class="right-nav">
+                    <a href="studiopanel-login.html" class="login-btn">Log In</a>
+                    <a href="#" class="btn">Start now</a>
+                </div>
+                <div class="hamburger">
+                    <i class="fas fa-bars"></i>
+                </div>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Free Trial Content -->
+    <section class="hero" style="padding-bottom: 80px;">
+        <div class="container">
+            <div class="hero-content">
+                <div class="hero-text">
+                    <h1>Start Your Free Trial Today</h1>
+                    <p>Try SnapSelect for 14 days with no credit card required. Experience how our platform can streamline your photography workflow.</p>
+                </div>
             </div>
-            
-            <form action="#" method="post">
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="first-name">First Name</label>
-                        <input type="text" id="first-name" name="first-name" required>
+        </div>
+    </section>
+
+    <!-- Free Trial Form -->
+    <section style="padding: 50px 0 100px; background-color: var(--white);">
+        <div class="container">
+            <div style="max-width: 600px; margin: 0 auto; background-color: var(--white); border-radius: 10px; box-shadow: 0 5px 20px rgba(0,0,0,0.05); padding: 40px;">
+                <h2 style="text-align: center; margin-bottom: 30px;">Get Started</h2>
+                
+                <form action="#" method="post">
+                    <div style="margin-bottom: 20px;">
+                        <label for="name" style="display: block; margin-bottom: 8px; font-weight: 500;">Full Name</label>
+                        <input type="text" id="name" name="name" style="width: 100%; padding: 12px 15px; border: 1px solid var(--border); border-radius: 5px; font-size: 16px;" required>
                     </div>
                     
-                    <div class="form-group">
-                        <label for="last-name">Last Name</label>
-                        <input type="text" id="last-name" name="last-name" required>
+                    <div style="margin-bottom: 20px;">
+                        <label for="email" style="display: block; margin-bottom: 8px; font-weight: 500;">Email Address</label>
+                        <input type="email" id="email" name="email" style="width: 100%; padding: 12px 15px; border: 1px solid var(--border); border-radius: 5px; font-size: 16px;" required>
                     </div>
-                </div>
+                    
+                    <div style="margin-bottom: 20px;">
+                        <label for="plan" style="display: block; margin-bottom: 8px; font-weight: 500;">Select a Plan</label>
+                        <select id="plan" name="plan" style="width: 100%; padding: 12px 15px; border: 1px solid var(--border); border-radius: 5px; font-size: 16px; background-color: var(--white);" required>
+                            <option value="" disabled selected>Choose your plan</option>
+                            <option value="basic">Basic</option>
+                            <option value="pro">Pro</option>
+                            <option value="studio">Studio</option>
+                        </select>
+                    </div>
+                    
+                    <button type="submit" class="btn" style="width: 100%; margin-top: 10px;">Start Free Trial</button>
+                </form>
                 
-                <div class="form-group">
-                    <label for="email">Email</label>
-                    <input type="email" id="email" name="email" required>
-                </div>
-                
-                <div class="form-group">
-                    <label for="password">Password</label>
-                    <input type="password" id="password" name="password" required>
-                </div>
-                
-                <div class="form-group">
-                    <label for="confirm-password">Confirm Password</label>
-                    <input type="password" id="confirm-password" name="confirm-password" required>
-                </div>
-                
-                <div class="form-group">
-                    <label for="plan">Select a Plan</label>
-                    <select id="plan" name="plan" required>
-                        <option value="" disabled selected>Choose your plan</option>
-                        <option value="basic">Basic - ₹999/month</option>
-                        <option value="pro">Pro - ₹1,999/month</option>
-                        <option value="studio">Studio - ₹3,999/month</option>
-                    </select>
-                </div>
-                
-                <button type="submit" class="btn signup-btn">Start Free Trial</button>
-                
-                <p class="terms">By signing up, you agree to our <a href="#">Terms of Service</a> and <a href="#">Privacy Policy</a>. No credit card required for trial.</p>
-                
-                <div class="form-footer">
-                    <p>Already have an account? <a href="../pages/studiopanel-login.html">Log in</a></p>
-                </div>
-            </form>
+                <p style="text-align: center; margin-top: 20px; font-size: 14px; color: var(--gray);">By signing up, you agree to our <a href="#" style="color: var(--primary); text-decoration: none;">Terms of Service</a> and <a href="#" style="color: var(--primary); text-decoration: none;">Privacy Policy</a>.</p>
+            </div>
         </div>
-    </div>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-column">
+                    <h3>Product</h3>
+                    <ul>
+                        <li><a href="#">Features</a></li>
+                        <li><a href="#">Pricing</a></li>
+                        <li><a href="#">Integrations</a></li>
+                        <li><a href="#">Updates</a></li>
+                    </ul>
+                </div>
+                <div class="footer-column">
+                    <h3>Resources</h3>
+                    <ul>
+                        <li><a href="#">Blog</a></li>
+                        <li><a href="#">Tutorials</a></li>
+                        <li><a href="#">Help Center</a></li>
+                        <li><a href="#">Community</a></li>
+                    </ul>
+                </div>
+                <div class="footer-column">
+                    <h3>Company</h3>
+                    <ul>
+                        <li><a href="#">About Us</a></li>
+                        <li><a href="#">Careers</a></li>
+                        <li><a href="#">Contact</a></li>
+                        <li><a href="#">Partners</a></li>
+                    </ul>
+                </div>
+                <div class="footer-column">
+                    <h3>Legal</h3>
+                    <ul>
+                        <li><a href="#">Privacy Policy</a></li>
+                        <li><a href="#">Terms of Service</a></li>
+                        <li><a href="#">Cookie Policy</a></li>
+                        <li><a href="#">GDPR</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>Connect with us</p>
+                <div class="social-icons">
+                    <a href="#"><i class="fab fa-facebook"></i></a>
+                    <a href="#"><i class="fab fa-twitter"></i></a>
+                    <a href="#"><i class="fab fa-instagram"></i></a>
+                    <a href="#"><i class="fab fa-linkedin"></i></a>
+                </div>
+                <p class="copyright">&copy; 2025 SnapSelect. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- JavaScript -->
+    <script src="../assets/js/main.js"></script>
 </body>
 </html>
