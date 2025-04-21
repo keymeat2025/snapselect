@@ -146,7 +146,7 @@ document.addEventListener('DOMContentLoaded', () => {
   
   function showTutorialStep(index, steps) {
     if (index >= steps.length) {
-      alert('Tutorial completed! You're ready to start using Snap Select.');
+      alert('Tutorial completed! You are ready to start using Snap Select.');
       return;
     }
     
