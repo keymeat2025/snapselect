@@ -655,30 +655,42 @@ document.addEventListener('DOMContentLoaded', () => {
   // Event Listeners for new UI elements
   function setupEventListeners() {
     // Why assign client modal
-    whyAssignClient.addEventListener('click', () => {
-      whyAssignModal.classList.add('active');
-    });
+    if (whyAssignClient) {
+      whyAssignClient.addEventListener('click', () => {
+        whyAssignModal.classList.add('active');
+      });
+    }
     
-    closeWhyModal.addEventListener('click', () => {
-      whyAssignModal.classList.remove('active');
-    });
+    if (closeWhyModal) {
+      closeWhyModal.addEventListener('click', () => {
+        whyAssignModal.classList.remove('active');
+      });
+    }
     
-    gotItBtn.addEventListener('click', () => {
-      whyAssignModal.classList.remove('active');
-    });
+    if (gotItBtn) {
+      gotItBtn.addEventListener('click', () => {
+        whyAssignModal.classList.remove('active');
+      });
+    }
     
     // Help modal
-    showHelp.addEventListener('click', () => {
-      helpModal.classList.add('active');
-    });
+    if (showHelp) {
+      showHelp.addEventListener('click', () => {
+        helpModal.classList.add('active');
+      });
+    }
     
-    closeHelpModal.addEventListener('click', () => {
-      helpModal.classList.remove('active');
-    });
+    if (closeHelpModal) {
+      closeHelpModal.addEventListener('click', () => {
+        helpModal.classList.remove('active');
+      });
+    }
     
-    closeHelp.addEventListener('click', () => {
-      helpModal.classList.remove('active');
-    });
+    if (closeHelp) {
+      closeHelp.addEventListener('click', () => {
+        helpModal.classList.remove('active');
+      });
+    }
     
     // Change assignment button
     if (changeAssignment) {
@@ -707,53 +719,63 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   
   // Basic upload event listeners
-  browseBtn.addEventListener('click', () => {
-    fileInput.click();
-  });
+  if (browseBtn) {
+    browseBtn.addEventListener('click', () => {
+      fileInput.click();
+    });
+  }
   
-  fileInput.addEventListener('change', (e) => {
-    handleFiles(e.target.files);
-    fileInput.value = ''; // Reset input
-  });
+  if (fileInput) {
+    fileInput.addEventListener('change', (e) => {
+      handleFiles(e.target.files);
+      fileInput.value = ''; // Reset input
+    });
+  }
   
-  dropZone.addEventListener('dragover', (e) => {
-    e.preventDefault();
-    dropZone.classList.add('active');
-  });
-  
-  dropZone.addEventListener('dragleave', () => {
-    dropZone.classList.remove('active');
-  });
-  
-  dropZone.addEventListener('drop', (e) => {
-    e.preventDefault();
-    dropZone.classList.remove('active');
-    handleFiles(e.dataTransfer.files);
-  });
+  if (dropZone) {
+    dropZone.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      dropZone.classList.add('active');
+    });
+    
+    dropZone.addEventListener('dragleave', () => {
+      dropZone.classList.remove('active');
+    });
+    
+    dropZone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      dropZone.classList.remove('active');
+      handleFiles(e.dataTransfer.files);
+    });
+  }
   
   // Toggle advanced settings
-  advancedSettingsBtn.addEventListener('click', () => {
-    advancedSettings.classList.toggle('hidden');
-    advancedSettingsBtn.textContent = advancedSettings.classList.contains('hidden') 
-      ? 'Show advanced settings' 
-      : 'Hide advanced settings';
-  });
+  if (advancedSettingsBtn) {
+    advancedSettingsBtn.addEventListener('click', () => {
+      advancedSettings.classList.toggle('hidden');
+      advancedSettingsBtn.textContent = advancedSettings.classList.contains('hidden') 
+        ? 'Show advanced settings' 
+        : 'Hide advanced settings';
+    });
+  }
   
   // Handle collection selection
-  collectionSelect.addEventListener('change', () => {
-    if (collectionSelect.value === 'new') {
-      // Set client name in modal
-      if (currentAssignment) {
-        modalClientName.textContent = currentAssignment.clientName;
+  if (collectionSelect) {
+    collectionSelect.addEventListener('change', () => {
+      if (collectionSelect.value === 'new') {
+        // Set client name in modal
+        if (currentAssignment && modalClientName) {
+          modalClientName.textContent = currentAssignment.clientName;
+        }
+        
+        collectionModal.classList.add('active');
+        collectionName.focus();
       }
       
-      collectionModal.classList.add('active');
-      collectionName.focus();
-    }
-    
-    // Save session state when collection changes
-    saveSessionState();
-  });
+      // Save session state when collection changes
+      saveSessionState();
+    });
+  }
   
   // Network status listeners
   window.addEventListener('online', () => {
@@ -767,8 +789,6 @@ document.addEventListener('DOMContentLoaded', () => {
     
     setTimeout(() => {
       notification.classList.add('show');
-      
-      // Auto-remove notification after 5 seconds
       setTimeout(() => {
         notification.classList.remove('show');
         setTimeout(() => notification.remove(), 300);
@@ -792,8 +812,6 @@ document.addEventListener('DOMContentLoaded', () => {
     
     setTimeout(() => {
       notification.classList.add('show');
-      
-      // Auto-remove notification after 5 seconds
       setTimeout(() => {
         notification.classList.remove('show');
         setTimeout(() => notification.remove(), 300);
@@ -802,136 +820,127 @@ document.addEventListener('DOMContentLoaded', () => {
   });
   
   // Modal events
-  closeModal.addEventListener('click', () => {
-    collectionModal.classList.remove('active');
-    collectionSelect.value = '';
-  });
+  if (closeModal) {
+    closeModal.addEventListener('click', () => {
+      collectionModal.classList.remove('active');
+      collectionSelect.value = '';
+    });
+  }
   
-  cancelModal.addEventListener('click', () => {
-    collectionModal.classList.remove('active');
-    collectionSelect.value = '';
-  });
+  if (cancelModal) {
+    cancelModal.addEventListener('click', () => {
+      collectionModal.classList.remove('active');
+      collectionSelect.value = '';
+    });
+  }
   
-  saveCollection.addEventListener('click', () => {
-    if (!collectionName.value.trim()) {
-      collectionName.focus();
-      return;
-    }
-    
-    // Would send to API in real implementation
-    // Here we simulate collection creation with validation
-    const collectionExists = Array.from(collectionSelect.options).some(
-      option => option.textContent.toLowerCase() === collectionName.value.toLowerCase()
-    );
-    
-    if (collectionExists) {
-      alert(`A collection named "${collectionName.value}" already exists. Please choose a different name.`);
-      collectionName.focus();
-      return;
-    }
-    
-    // Simulate successful API response
-    alert(`Collection "${collectionName.value}" created successfully for client ${currentAssignment.clientName}!`);
-    
-    // Add to dropdown
-    const option = document.createElement('option');
-    option.value = 'new-' + Date.now(); // Temporary ID
-    option.textContent = collectionName.value;
-    collectionSelect.insertBefore(option, collectionSelect.options[2]);
-    collectionSelect.value = option.value;
-    
-    // Reset and close modal
-    collectionModal.classList.remove('active');
-    collectionName.value = '';
-    
-    // Update session state
-    saveSessionState();
-  });
+  if (saveCollection) {
+    saveCollection.addEventListener('click', () => {
+      if (!collectionName.value.trim()) {
+        collectionName.focus();
+        return;
+      }
+      
+      // Check for duplicates
+      const collectionExists = Array.from(collectionSelect.options).some(
+        option => option.textContent.toLowerCase() === collectionName.value.toLowerCase()
+      );
+      
+      if (collectionExists) {
+        alert(`A collection named "${collectionName.value}" already exists.`);
+        collectionName.focus();
+        return;
+      }
+      
+      // Success message
+      alert(`Collection "${collectionName.value}" created successfully!`);
+      
+      // Add to dropdown
+      const option = document.createElement('option');
+      option.value = 'new-' + Date.now();
+      option.textContent = collectionName.value;
+      collectionSelect.insertBefore(option, collectionSelect.options[2]);
+      collectionSelect.value = option.value;
+      
+      // Reset and close modal
+      collectionModal.classList.remove('active');
+      collectionName.value = '';
+      
+      // Update session state
+      saveSessionState();
+    });
+  }
   
   // Upload control buttons
-  pauseBtn.addEventListener('click', () => {
-    uploadPaused = !uploadPaused;
-    pauseBtn.textContent = uploadPaused ? 'Resume' : 'Pause';
-    
-    if (!uploadPaused) {
-      simulateUpload();
-    }
-    
-    // Update session state
-    saveSessionState();
-  });
+  if (pauseBtn) {
+    pauseBtn.addEventListener('click', () => {
+      uploadPaused = !uploadPaused;
+      pauseBtn.textContent = uploadPaused ? 'Resume' : 'Pause';
+      
+      if (!uploadPaused) {
+        simulateUpload();
+      }
+      
+      saveSessionState();
+    });
+  }
   
-  cancelBtn.addEventListener('click', () => {
-    if (confirm('Are you sure you want to cancel the upload? All progress will be lost.')) {
-      uploadCancelled = true;
+  if (cancelBtn) {
+    cancelBtn.addEventListener('click', () => {
+      if (confirm('Cancel upload? All progress will be lost.')) {
+        uploadCancelled = true;
+        files = [];
+        totalSize = 0;
+        uploadedSize = 0;
+        renderFileList();
+        progressArea.hidden = true;
+        
+        localStorage.removeItem('uploadSession');
+      }
+    });
+  }
+  
+  if (doneBtn) {
+    doneBtn.addEventListener('click', () => {
+      // Validate collection selection
+      if (files.length > 0 && !collectionSelect.value) {
+        alert('Please select or create a collection.');
+        collectionSelect.focus();
+        return;
+      }
+      
+      // Check for pending uploads
+      const pendingFiles = files.filter(f => f.status !== 'complete' && f.status !== 'error');
+      if (pendingFiles.length > 0 && !confirm(`${pendingFiles.length} files still uploading. Finish now?`)) {
+        return;
+      }
+      
+      // Handle client notification
+      if (notifyClient && notifyClient.checked) {
+        console.log(`Notifying client: ${currentAssignment.clientName}`);
+        console.log(`Message: ${notificationMessage ? notificationMessage.value : 'Your photos are ready!'}`);
+      }
+      
+      alert('Upload completed successfully!');
+      
+      // Reset state
       files = [];
       totalSize = 0;
       uploadedSize = 0;
-      renderFileList();
       progressArea.hidden = true;
       
-      // Clear session data
       localStorage.removeItem('uploadSession');
-    }
-  });
+    });
+  }
   
-  doneBtn.addEventListener('click', () => {
-    // Validate required fields before completion
-    if (files.length > 0 && !collectionSelect.value) {
-      alert('Please select or create a collection for your photos.');
-      collectionSelect.focus();
-      return;
-    }
-    
-    // Check if there are any files still uploading
-    const pendingFiles = files.filter(f => f.status !== 'complete' && f.status !== 'error');
-    if (pendingFiles.length > 0) {
-      const proceed = confirm(`There are still ${pendingFiles.length} files uploading. Are you sure you want to finish now?`);
-      if (!proceed) return;
-    }
-    
-    // Handle client notification if selected
-    const sendNotification = notifyClient.checked;
-    let notificationText = notificationMessage.value.trim();
-    
-    if (sendNotification) {
-      // In a real implementation, this would be sent to the API
-      console.log(`Sending notification to client: ${currentAssignment.clientName}`);
-      console.log(`Message: ${notificationText || 'Your photos have been uploaded and are ready for review.'}`);
-    }
-    
-    // Simulate API call to finalize upload
-    let message = 'Upload completed successfully!';
-    
-    if (sendNotification) {
-      message += ' Client has been notified.';
-    }
-    
-    alert(message);
-    
-    // Reset state
-    files = [];
-    totalSize = 0;
-    uploadedSize = 0;
-    progressArea.hidden = true;
-    
-    // Clear session data
-    localStorage.removeItem('uploadSession');
-    
-    // In a real implementation, we would redirect to the collection page
-    // window.location.href = 'collection.html?id=' + collectionSelect.value;
-  });
-  
-  // Handle window events for session persistence
+  // Window events for session persistence
   window.addEventListener('beforeunload', (e) => {
-    // If there's an active upload, warn before leaving
     if (files.length > 0 && files.some(f => f.status === 'uploading')) {
-      const message = 'You have uploads in progress. Are you sure you want to leave?';
+      const message = 'Upload in progress. Are you sure you want to leave?';
       e.returnValue = message;
       return message;
     }
     
-    // Save session state before unloading
     if (files.length > 0) {
       saveSessionState();
     }
