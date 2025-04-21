@@ -1,130 +1,63 @@
 // firebase-db.js
-// Database operations for SnapSelect
+// Firestore database functions for SnapSelect
 
-// Access Firebase services from firebase-config.js
+// Access Firestore from firebase-config.js
 const { db } = window.firebaseServices;
 
-// Get user profile
+// Get user profile data
 async function getUserProfile(userId) {
   try {
-    const doc = await db.collection('users').doc(userId).get();
-    if (doc.exists) {
-      return doc.data();
+    const docRef = await db.collection('users').doc(userId).get();
+    if (docRef.exists) {
+      return docRef.data();
     } else {
-      console.error("No user profile found");
+      console.log('No user profile found for ID:', userId);
       return null;
     }
   } catch (error) {
-    console.error("Error getting user profile:", error.message);
+    console.error('Error getting user profile:', error);
     throw error;
   }
 }
 
-// Update user profile
-async function updateUserProfile(userId, userData) {
+// Update user profile data
+async function updateUserProfile(userId, profileData) {
   try {
     await db.collection('users').doc(userId).update({
-      ...userData,
+      ...profileData,
       updatedAt: firebase.firestore.FieldValue.serverTimestamp()
     });
+    return true;
   } catch (error) {
-    console.error("Error updating profile:", error.message);
+    console.error('Error updating user profile:', error);
     throw error;
   }
 }
 
-// Update subscription tier
-async function updateSubscriptionTier(userId, tierName) {
+// Create a new gallery/collection for a client
+async function createClientGallery(userId, galleryData) {
   try {
-    await db.collection('users').doc(userId).update({
-      subscriptionTier: tierName,
-      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-    });
-  } catch (error) {
-    console.error("Error updating subscription:", error.message);
-    throw error;
-  }
-}
-
-// Create new client
-async function createClient(userId, clientData) {
-  try {
-    const clientRef = await db.collection('users').doc(userId).collection('clients').add({
-      ...clientData,
-      createdAt: firebase.firestore.FieldValue.serverTimestamp()
-    });
-    return clientRef.id;
-  } catch (error) {
-    console.error("Error creating client:", error.message);
-    throw error;
-  }
-}
-
-// Get user's clients
-async function getUserClients(userId) {
-  try {
-    const snapshot = await db.collection('users').doc(userId).collection('clients').get();
-    const clients = [];
-    snapshot.forEach(doc => {
-      clients.push({
-        id: doc.id,
-        ...doc.data()
-      });
-    });
-    return clients;
-  } catch (error) {
-    console.error("Error getting clients:", error.message);
-    throw error;
-  }
-}
-
-// Create gallery for client
-async function createGallery(userId, clientId, galleryData) {
-  try {
-    // Calculate expiration based on subscription tier
-    let expirationDays = 14; // default for Mini tier
-    
-    // Set expirations based on tier
-    switch(galleryData.tier.toLowerCase()) {
-      case 'mini':
-        expirationDays = 14;
-        break;
-      case 'basic':
-        expirationDays = 30;
-        break;
-      case 'medium':
-        expirationDays = 45;
-        break;
-      case 'mega':
-        expirationDays = 90;
-        break;
-    }
-    
-    const expiresAt = new Date();
-    expiresAt.setDate(expiresAt.getDate() + expirationDays);
-    
-    const galleryRef = await db.collection('users').doc(userId)
-      .collection('clients').doc(clientId)
+    const result = await db.collection('users').doc(userId)
       .collection('galleries').add({
         ...galleryData,
-        expiresAt: expiresAt,
-        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
       });
-      
-    return galleryRef.id;
+    return result.id;
   } catch (error) {
-    console.error("Error creating gallery:", error.message);
+    console.error('Error creating client gallery:', error);
     throw error;
   }
 }
 
-// Get client galleries
-async function getClientGalleries(userId, clientId) {
+// Get a list of all galleries for a user
+async function getUserGalleries(userId) {
   try {
     const snapshot = await db.collection('users').doc(userId)
-      .collection('clients').doc(clientId)
-      .collection('galleries').get();
-      
+      .collection('galleries')
+      .orderBy('createdAt', 'desc')
+      .get();
+    
     const galleries = [];
     snapshot.forEach(doc => {
       galleries.push({
@@ -132,31 +65,112 @@ async function getClientGalleries(userId, clientId) {
         ...doc.data()
       });
     });
+    
     return galleries;
   } catch (error) {
-    console.error("Error getting galleries:", error.message);
+    console.error('Error getting user galleries:', error);
     throw error;
   }
 }
 
-// Get gallery details
-async function getGalleryDetails(userId, clientId, galleryId) {
+// Get a specific gallery by ID
+async function getGallery(userId, galleryId) {
   try {
     const doc = await db.collection('users').doc(userId)
-      .collection('clients').doc(clientId)
       .collection('galleries').doc(galleryId).get();
-      
+    
     if (doc.exists) {
       return {
         id: doc.id,
         ...doc.data()
       };
     } else {
-      console.error("Gallery not found");
+      console.log('No gallery found with ID:', galleryId);
       return null;
     }
   } catch (error) {
-    console.error("Error getting gallery:", error.message);
+    console.error('Error getting gallery:', error);
+    throw error;
+  }
+}
+
+// Store photo metadata in a gallery
+async function addPhotoToGallery(userId, galleryId, photoData) {
+  try {
+    const result = await db.collection('users').doc(userId)
+      .collection('galleries').doc(galleryId)
+      .collection('photos').add({
+        ...photoData,
+        uploadedAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+    
+    // Also update the gallery's updatedAt time
+    await db.collection('users').doc(userId)
+      .collection('galleries').doc(galleryId).update({
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+        photoCount: firebase.firestore.FieldValue.increment(1)
+      });
+    
+    return result.id;
+  } catch (error) {
+    console.error('Error adding photo to gallery:', error);
+    throw error;
+  }
+}
+
+// Get all photos in a gallery
+async function getGalleryPhotos(userId, galleryId) {
+  try {
+    const snapshot = await db.collection('users').doc(userId)
+      .collection('galleries').doc(galleryId)
+      .collection('photos')
+      .orderBy('uploadedAt', 'desc')
+      .get();
+    
+    const photos = [];
+    snapshot.forEach(doc => {
+      photos.push({
+        id: doc.id,
+        ...doc.data()
+      });
+    });
+    
+    return photos;
+  } catch (error) {
+    console.error('Error getting gallery photos:', error);
+    throw error;
+  }
+}
+
+// Mark photos as selected by client
+async function updatePhotoSelections(userId, galleryId, photoId, isSelected) {
+  try {
+    await db.collection('users').doc(userId)
+      .collection('galleries').doc(galleryId)
+      .collection('photos').doc(photoId)
+      .update({
+        isSelected: isSelected,
+        selectedAt: isSelected ? firebase.firestore.FieldValue.serverTimestamp() : null
+      });
+    
+    // Update selection count in gallery document
+    if (isSelected) {
+      await db.collection('users').doc(userId)
+        .collection('galleries').doc(galleryId)
+        .update({
+          selectedCount: firebase.firestore.FieldValue.increment(1)
+        });
+    } else {
+      await db.collection('users').doc(userId)
+        .collection('galleries').doc(galleryId)
+        .update({
+          selectedCount: firebase.firestore.FieldValue.increment(-1)
+        });
+    }
+    
+    return true;
+  } catch (error) {
+    console.error('Error updating photo selection:', error);
     throw error;
   }
 }
@@ -165,10 +179,10 @@ async function getGalleryDetails(userId, clientId, galleryId) {
 window.firebaseDb = {
   getUserProfile,
   updateUserProfile,
-  updateSubscriptionTier,
-  createClient,
-  getUserClients,
-  createGallery,
-  getClientGalleries,
-  getGalleryDetails
+  createClientGallery,
+  getUserGalleries,
+  getGallery,
+  addPhotoToGallery,
+  getGalleryPhotos,
+  updatePhotoSelections
 };
