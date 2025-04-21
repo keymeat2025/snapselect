@@ -3,8 +3,8 @@
 
 // Access Firebase services from firebase-config.js
 //const { auth, db } = window.firebaseServices;
-const auth = window.firebaseServices.auth;
-const db = window.firebaseServices.db;
+const firebaseAuth = window.firebaseServices.auth;
+const firebaseDb = window.firebaseServices.db;
 
 // Authentication state observer
 function setupAuthObserver(onUserLoggedIn, onUserLoggedOut) {
