@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Upload Photos | Snap Select</title>
+    <link rel="stylesheet" href="../assets/css/common.css">
+    <link rel="stylesheet" href="../assets/css/upload.css">
+</head>
+<body>
+    <header class="header">
+        <div class="container">
+            <div class="logo">
+                <img src="../assets/img/logo.svg" alt="Snap Select" height="32">
+                <span class="logo-text">Snap Select</span>
+            </div>
+            <nav class="nav">
+                <ul class="nav-list">
+                    <li><a href="dashboard.html">Dashboard</a></li>
+                    <li><a href="collections.html">Collections</a></li>
+                    <li><a href="upload.html" class="active">Upload</a></li>
+                    <li><a href="client-management.html">Clients</a></li>
+                </ul>
+            </nav>
+            
+            <!-- Client Status Bar - Always visible across site -->
+            <div class="client-status-bar" id="clientStatusBar">
+                <div class="no-client-status" id="noClientStatus">
+                    <span>No client assigned</span>
+                    <a href="client-management.html" class="btn btn-sm primary">Assign Client</a>
+                </div>
+                <div class="active-client-status" id="activeClientStatus" hidden>
+                    <span class="status-label">Current client:</span>
+                    <span class="status-client" id="headerClientName">Client Name</span>
+                    <span class="status-days" id="headerDaysLeft">30 days left</span>
+                </div>
+            </div>
+            
+            <div class="user-menu">
+                <div class="avatar">JS</div>
+                <span class="username">John Studio</span>
+            </div>
+            <button class="menu-toggle" aria-label="Toggle menu">
+                <span></span><span></span><span></span>
+            </button>
+        </div>
+    </header>
+
+    <main class="container">
+        <!-- First-time user intro banner -->
+        <div class="intro-banner" id="firstTimeIntro">
+            <div class="intro-content">
+                <h2>Welcome to Snap Select!</h2>
+                <p>This is your upload page where you can add photos for your clients.</p>
+                <ol class="intro-steps">
+                    <li><span class="step-number">1</span> <span class="step-text">Create and assign a client</span></li>
+                    <li><span class="step-number">2</span> <span class="step-text">Upload photos to a collection</span></li>
+                    <li><span class="step-number">3</span> <span class="step-text">Share with your client</span></li>
+                </ol>
+                <button class="btn outline" id="dismissIntro">Got it</button>
+                <button class="btn primary" id="startTutorial">Show me how</button>
+            </div>
+            <button class="close-intro" id="closeIntro">×</button>
+        </div>
+
+        <div class="page-header">
+            <h1>Upload Photos</h1>
+            <p>Add photos to your collections for your assigned client</p>
+            <button class="help-btn" id="showHelp">
+                <svg viewBox="0 0 24 24" width="16" height="16">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+                    <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                </svg>
+                Help
+            </button>
+        </div>
+
+        <!-- Client Assignment Status -->
+        <div class="assignment-status" id="assignmentStatus">
+            <div class="no-client-assigned" id="noClientAssigned">
+                <div class="alert warning">
+                    <h3>No Client Assigned</h3>
+                    <p>You need to assign a client to your plan before uploading photos.</p>
+                    <div class="alert-actions">
+                        <a href="client-management.html" class="btn primary">Assign a Client</a>
+                        <button class="btn-text" id="whyAssignClient">Why do I need to assign a client?</button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="client-assigned" id="clientAssigned" hidden>
+                <div class="client-info-box">
+                    <div class="client-info-header">
+                        <h3>Assigned Client</h3>
+                        <span class="status active" id="clientStatus">Active</span>
+                    </div>
+                    <div class="client-info-content">
+                        <p><strong>Client:</strong> <span id="assignedClientName">Sarah Johnson</span></p>
+                        <p><strong>Assignment Date:</strong> <span id="assignmentDate">Apr 15, 2025</span></p>
+                        <p><strong>Expires:</strong> <span id="assignmentExpiry">May 15, 2025</span></p>
+                        <p class="verification-status" id="verificationStatus"><strong>Verification:</strong> <span class="verified">Verified</span></p>
+                    </div>
+                    <div class="client-info-footer">
+                        <span class="info-text">All uploads will be associated with this client until the assignment expires.</span>
+                        <button class="btn-text" id="changeAssignment">Change assignment</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="upload-container" id="uploadContainer">
+            <div class="auth-check" id="authCheck"></div>
+            <div class="subscription-check" id="subCheck"></div>
+            
+            <div class="dropzone" id="dropZone">
+                <svg viewBox="0 0 24 24" class="upload-icon">
+                    <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"></path>
+                </svg>
+                <h2>Drag & Drop Photos Here</h2>
+                <p>Or select files from your device</p>
+                <input type="file" id="fileInput" multiple accept="image/*" hidden>
+                <button class="btn primary" id="browseBtn">Browse Files</button>
+                <p class="dropzone-limits">Maximum 50MB per file, 500MB total</p>
+            </div>
+
+            <div class="upload-options">
+                <div class="collection-select">
+                    <div class="section-header">
+                        <h3>Add to Collection</h3>
+                        <button class="tooltip-trigger" data-tooltip="Collections help you organize photos for your client">
+                            <svg viewBox="0 0 24 24" width="16" height="16">
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <path d="M12 16v-4M12 8h.01"></path>
+                            </svg>
+                        </button>
+                    </div>
+                    <select id="collectionSelect" class="select">
+                        <option value="">Select collection</option>
+                        <option value="new">+ Create new collection</option>
+                    </select>
+                </div>
+                
+                <div class="upload-settings">
+                    <div class="section-header">
+                        <h3>Upload Settings</h3>
+                        <button class="tooltip-trigger" data-tooltip="Configure how your photos are processed">
+                            <svg viewBox="0 0 24 24" width="16" height="16">
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <path d="M12 16v-4M12 8h.01"></path>
+                            </svg>
+                        </button>
+                    </div>
+                    <div class="settings-group">
+                        <label class="checkbox">
+                            <input type="checkbox" checked id="preserveExif">
+                            <span>Preserve EXIF data</span>
+                        </label>
+                        <label class="checkbox">
+                            <input type="checkbox" checked id="autoOrganize">
+                            <span>Auto-organize by date</span>
+                        </label>
+                        <label class="checkbox">
+                            <input type="checkbox" checked id="generateThumbnails">
+                            <span>Generate thumbnails</span>
+                        </label>
+                        <label class="checkbox">
+                            <input type="checkbox" id="allowOffline">
+                            <span>Enable offline uploads</span>
+                        </label>
+                    </div>
+                    <div class="advanced-toggle">
+                        <button id="advancedSettingsBtn" class="btn-text">Show advanced settings</button>
+                    </div>
+                    <div id="advancedSettings" class="advanced-settings hidden">
+                        <div class="form-group">
+                            <label for="batchRename">Batch rename files</label>
+                            <input type="text" id="batchRename" class="input" placeholder="e.g., Wedding_{counter}">
+                            <p class="help-text">Use {counter}, {date}, {time} as placeholders</p>
+                        </div>
+                        <div class="form-group">
+                            <label for="compressionLevel">Compression level</label>
+                            <select id="compressionLevel" class="select">
+                                <option value="none">None (original quality)</option>
+                                <option value="low">Low (95% quality)</option>
+                                <option value="medium" selected>Medium (85% quality)</option>
+                                <option value="high">High (70% quality)</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="client-notification">
+                    <div class="section-header">
+                        <h3>Client Notification</h3>
+                        <button class="tooltip-trigger" data-tooltip="Notify your client when upload is complete">
+                            <svg viewBox="0 0 24 24" width="16" height="16">
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <path d="M12 16v-4M12 8h.01"></path>
+                            </svg>
+                        </button>
+                    </div>
+                    <div class="form-group">
+                        <label class="checkbox">
+                            <input type="checkbox" id="notifyClient">
+                            <span>Notify client when upload completes</span>
+                        </label>
+                    </div>
+                    <div class="form-group">
+                        <label for="notificationMessage">Custom message (optional)</label>
+                        <textarea id="notificationMessage" class="input textarea" placeholder="e.g., Your photos are ready for review!"></textarea>
+                    </div>
+                </div>
+            </div>
+
+            <div class="upload-progress" id="progressArea" hidden>
+                <div class="progress-header">
+                    <h3>Upload Progress</h3>
+                    <span class="progress-stats" id="progressStats">0/0 files • 0%</span>
+                </div>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressBar" style="width: 0%"></div>
+                </div>
+                <ul class="file-list" id="fileList"></ul>
+                <div class="progress-actions">
+                    <button class="btn outline" id="pauseBtn">Pause</button>
+                    <button class="btn danger outline" id="cancelBtn">Cancel</button>
+                    <button class="btn primary" id="doneBtn">Done</button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- New Collection Modal -->
+    <div class="modal" id="collectionModal">
+        <div class="modal-overlay"></div>
+        <div class="modal-container">
+            <div class="modal-header">
+                <h3>Create New Collection</h3>
+                <button class="close-btn" id="closeModal">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="collectionName">Collection Name *</label>
+                    <input type="text" id="collectionName" class="input" required>
+                </div>
+                <div class="form-group">
+                    <label for="collectionDesc">Description</label>
+                    <textarea id="collectionDesc" class="input textarea"></textarea>
+                </div>
+                <div class="form-group">
+                    <label class="checkbox">
+                        <input type="checkbox" id="privateCollection">
+                        <span>Make collection private</span>
+                    </label>
+                </div>
+                <div class="collection-client-info">
+                    <p>This collection will be created for your current client: <strong id="modalClientName">Sarah Johnson</strong></p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn outline" id="cancelModal">Cancel</button>
+                <button class="btn primary" id="saveCollection">Create Collection</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Why Assign Client Modal -->
+    <div class="modal" id="whyAssignModal">
+        <div class="modal-overlay"></div>
+        <div class="modal-container">
+            <div class="modal-header">
+                <h3>Why Assign a Client?</h3>
+                <button class="close-btn" id="closeWhyModal">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="explanation">
+                    <h4>One client at a time</h4>
+                    <p>Your Snap Select plan allows you to work with one client at a time. This helps us provide better organization and security for your photography business.</p>
+                    
+                    <h4>How it works:</h4>
+                    <ol>
+                        <li>Create a client profile in the Client Management section</li>
+                        <li>Assign your plan to that client</li>
+                        <li>Upload and manage photos for that client</li>
+                        <li>When you're ready to work with a different client, you can change your assignment</li>
+                    </ol>
+                    
+                    <h4>Benefits:</h4>
+                    <ul>
+                        <li>Keep your work organized by client</li>
+                        <li>Give clients access to only their photos</li>
+                        <li>Maintain clear separation between projects</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn primary" id="gotItBtn">Got it</button>
+                <a href="client-management.html" class="btn primary">Assign a Client Now</a>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Upload Recovery Alert -->
+    <div class="recovery-alert" id="recoveryAlert">
+        <div class="recovery-content">
+            <h3>Resume Previous Upload?</h3>
+            <p>We found an unfinished upload session for <strong id="recoveryClientName">Sarah Johnson</strong>. Would you like to resume where you left off?</p>
+            <div class="recovery-actions">
+                <button class="btn outline" id="discardRecovery">Discard</button>
+                <button class="btn primary" id="resumeUpload">Resume Upload</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Help Modal -->
+    <div class="modal wide-modal" id="helpModal">
+        <div class="modal-overlay"></div>
+        <div class="modal-container">
+            <div class="modal-header">
+                <h3>Upload Help</h3>
+                <button class="close-btn" id="closeHelpModal">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="help-content">
+                    <div class="help-section">
+                        <h4>Upload Process</h4>
+                        <div class="help-grid">
+                            <div class="help-item">
+                                <h5>1. Assign a Client</h5>
+                                <p>Before uploading, assign your plan to a client. This determines who will receive these photos.</p>
+                            </div>
+                            <div class="help-item">
+                                <h5>2. Select a Collection</h5>
+                                <p>Choose an existing collection or create a new one to organize your photos.</p>
+                            </div>
+                            <div class="help-item">
+                                <h5>3. Upload Photos</h5>
+                                <p>Drag and drop files or use the browse button to select photos from your device.</p>
+                            </div>
+                            <div class="help-item">
+                                <h5>4. Configure Settings</h5>
+                                <p>Set upload options like EXIF preservation, automatic organization, and client notifications.</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="help-section">
+                        <h4>Frequently Asked Questions</h4>
+                        <div class="faq-list">
+                            <div class="faq-item">
+                                <h5>Why can I only assign one client at a time?</h5>
+                                <p>Your current plan allows one active client assignment. This helps keep your work organized and ensures clarity for both you and your clients.</p>
+                            </div>
+                            <div class="faq-item">
+                                <h5>What happens if my client doesn't verify their account?</h5>
+                                <p>You can still upload photos, but the client won't be able to access them until they verify. You can send reminders from the Client Management page.</p>
+                            </div>
+                            <div class="faq-item">
+                                <h5>How do I change client assignments?</h5>
+                                <p>You can change assignments from the Client Management page. Note that there's a 7-day cooldown period between changes.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn primary" id="closeHelp">Got it</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="../assets/js/upload.js"></script>
+</body>
+</html>
