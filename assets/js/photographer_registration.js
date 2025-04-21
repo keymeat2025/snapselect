@@ -62,6 +62,29 @@ async function checkRegistrationComplete(userId) {
     }
 }
 
+// Test Firestore connection
+function testFirestoreConnection() {
+  const db = window.firebaseServices?.db;
+  if (db) {
+    console.log("Testing Firestore connection...");
+    db.collection('test').doc('test-doc').set({
+      test: 'This is a test',
+      timestamp: new Date()
+    })
+    .then(() => {
+      console.log("Firestore connection successful!");
+    })
+    .catch((error) => {
+      console.error("Firestore connection failed:", error);
+    });
+  } else {
+    console.error("Firestore not initialized");
+  }
+}
+
+// Call the test function after a short delay to ensure Firebase is initialized
+setTimeout(testFirestoreConnection, 2000);
+
 // Set up event listeners
 function setupFormListeners() {
     // Step 1 to Step 2
