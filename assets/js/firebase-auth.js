@@ -25,8 +25,9 @@ function initializeModule() {
     signOut,
     resetPassword,
     completeRegistration,
-    createUserProfile,
-    getCurrentUser
+    createPhotographerProfile,
+    getCurrentUser,
+    recordPayment
   };
   
   console.log("Firebase Auth module initialized successfully");
@@ -128,7 +129,7 @@ async function resetPassword(email) {
 }
 
 // Complete registration (create auth + profile)
-async function completeRegistration(email, password, studioData, subscriptionTier) {
+async function completeRegistration(email, password, studioData, transactionID) {
   if (!auth || !db) {
     throw new Error("Firebase services not initialized yet");
   }
@@ -137,16 +138,11 @@ async function completeRegistration(email, password, studioData, subscriptionTie
     // 1. Create the user account
     const user = await registerWithEmail(email, password);
     
-    // 2. Create user profile in Firestore
-    await createUserProfile(user.uid, {
-      email: email,
-      studioName: studioData.studioName,
-      ownerName: studioData.ownerName,
-      ownerEmail: studioData.ownerEmail,
-      ownerNumber: studioData.ownerNumber,
-      subscriptionTier: subscriptionTier,
-      createdAt: firebase.firestore.FieldValue.serverTimestamp()
-    });
+    // 2. Create photographer profile in Firestore
+    await createPhotographerProfile(user.uid, studioData);
+    
+    // 3. Record payment for registration
+    await recordPayment(2, transactionID);
     
     return user;
   } catch (error) {
@@ -155,16 +151,73 @@ async function completeRegistration(email, password, studioData, subscriptionTie
   }
 }
 
-// Create user profile in Firestore
-async function createUserProfile(userId, userData) {
+// Create photographer profile in Firestore
+async function createPhotographerProfile(userId, studioData) {
   if (!db) {
     throw new Error("Firestore not initialized yet");
   }
   
   try {
-    await db.collection('users').doc(userId).set(userData);
+    // Create main photographer document
+    await db.collection('photographer').doc('photographer_main').set({
+      studioName: studioData.studioName,
+      ownerName: studioData.ownerName,
+      ownerEmail: studioData.ownerEmail,
+      ownerNumber: studioData.ownerNumber,
+      studioAddress: studioData.studioAddress,
+      studioPincode: studioData.studioPincode,
+      registrationDate: firebase.firestore.FieldValue.serverTimestamp(),
+      uid: userId
+    });
+    
+    // Create initial subscription document
+    await db.collection('subscription').doc('subscription_current').set({
+      planType: 'free',
+      storageQuota: 1, // 1GB free storage
+      startDate: firebase.firestore.FieldValue.serverTimestamp(),
+      endDate: null, // No end date for free tier
+      autoRenew: false,
+      features: ['basic_uploads', 'limited_clients']
+    });
+    
+    return true;
   } catch (error) {
     console.error("Profile creation error:", error.message);
+    throw error;
+  }
+}
+
+// Record payment in Firestore
+async function recordPayment(amount, transactionID) {
+  if (!db) {
+    throw new Error("Firestore not initialized yet");
+  }
+  
+  try {
+    const timestamp = Date.now();
+    const paymentID = `pay_${timestamp}_razorpay`;
+    
+    // Calculate GST (18% of amount)
+    const gst = (amount * 0.18).toFixed(2);
+    const totalAmount = (parseFloat(amount) + parseFloat(gst)).toFixed(2);
+    
+    // Create payment document
+    await db.collection('payments').doc(paymentID).set({
+      amount: amount,
+      GST: gst,
+      totalAmount: totalAmount,
+      invoiceNumber: `INV-${timestamp}`,
+      transactionID: transactionID,
+      status: 'completed',
+      date: firebase.firestore.FieldValue.serverTimestamp(),
+      purpose: 'registration',
+      paymentMethod: 'razorpay',
+      receiptURL: null // Will be generated later
+    });
+    
+    return paymentID;
+  } catch (error) {
+    console.error("Payment recording error:", error.message);
     throw error;
   }
 }
