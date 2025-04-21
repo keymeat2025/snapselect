@@ -1,23 +1,43 @@
 // firebase-db.js
 // Firestore database functions for SnapSelect
 
-// Access Firestore from firebase-config.js
-const { db } = window.firebaseServices;
+// Initialize module with proper error handling
+let db;
 
 function initializeModule() {
-  if (typeof window.firebaseServices === 'undefined') {
+  if (typeof window.firebaseServices === 'undefined' || !window.firebaseServices.db) {
+    console.log("Firebase Firestore not available yet, retrying...");
     setTimeout(initializeModule, 100);
     return;
   }
   
   // Now you can safely use window.firebaseServices
-  const auth = window.firebaseServices.auth;
-  // rest of your code
+  db = window.firebaseServices.db;
+  
+  // Initialize the exported object after db is available
+  window.firebaseDb = {
+    getUserProfile,
+    updateUserProfile,
+    createClientGallery,
+    getUserGalleries,
+    getGallery,
+    addPhotoToGallery,
+    getGalleryPhotos,
+    updatePhotoSelections
+  };
+  
+  console.log("Firebase DB module initialized successfully");
 }
 
+// Start initialization
 initializeModule();
+
 // Get user profile data
 async function getUserProfile(userId) {
+  if (!db) {
+    throw new Error("Firestore not initialized yet");
+  }
+  
   try {
     const docRef = await db.collection('users').doc(userId).get();
     if (docRef.exists) {
@@ -34,6 +54,10 @@ async function getUserProfile(userId) {
 
 // Update user profile data
 async function updateUserProfile(userId, profileData) {
+  if (!db) {
+    throw new Error("Firestore not initialized yet");
+  }
+  
   try {
     await db.collection('users').doc(userId).update({
       ...profileData,
@@ -48,6 +72,10 @@ async function updateUserProfile(userId, profileData) {
 
 // Create a new gallery/collection for a client
 async function createClientGallery(userId, galleryData) {
+  if (!db) {
+    throw new Error("Firestore not initialized yet");
+  }
+  
   try {
     const result = await db.collection('users').doc(userId)
       .collection('galleries').add({
@@ -64,6 +92,10 @@ async function createClientGallery(userId, galleryData) {
 
 // Get a list of all galleries for a user
 async function getUserGalleries(userId) {
+  if (!db) {
+    throw new Error("Firestore not initialized yet");
+  }
+  
   try {
     const snapshot = await db.collection('users').doc(userId)
       .collection('galleries')
@@ -87,6 +119,10 @@ async function getUserGalleries(userId) {
 
 // Get a specific gallery by ID
 async function getGallery(userId, galleryId) {
+  if (!db) {
+    throw new Error("Firestore not initialized yet");
+  }
+  
   try {
     const doc = await db.collection('users').doc(userId)
       .collection('galleries').doc(galleryId).get();
@@ -108,6 +144,10 @@ async function getGallery(userId, galleryId) {
 
 // Store photo metadata in a gallery
 async function addPhotoToGallery(userId, galleryId, photoData) {
+  if (!db) {
+    throw new Error("Firestore not initialized yet");
+  }
+  
   try {
     const result = await db.collection('users').doc(userId)
       .collection('galleries').doc(galleryId)
@@ -132,6 +172,10 @@ async function addPhotoToGallery(userId, galleryId, photoData) {
 
 // Get all photos in a gallery
 async function getGalleryPhotos(userId, galleryId) {
+  if (!db) {
+    throw new Error("Firestore not initialized yet");
+  }
+  
   try {
     const snapshot = await db.collection('users').doc(userId)
       .collection('galleries').doc(galleryId)
@@ -156,6 +200,10 @@ async function getGalleryPhotos(userId, galleryId) {
 
 // Mark photos as selected by client
 async function updatePhotoSelections(userId, galleryId, photoId, isSelected) {
+  if (!db) {
+    throw new Error("Firestore not initialized yet");
+  }
+  
   try {
     await db.collection('users').doc(userId)
       .collection('galleries').doc(galleryId)
@@ -186,15 +234,3 @@ async function updatePhotoSelections(userId, galleryId, photoId, isSelected) {
     throw error;
   }
 }
-
-// Expose functions for use in other files
-window.firebaseDb = {
-  getUserProfile,
-  updateUserProfile,
-  createClientGallery,
-  getUserGalleries,
-  getGallery,
-  addPhotoToGallery,
-  getGalleryPhotos,
-  updatePhotoSelections
-};
