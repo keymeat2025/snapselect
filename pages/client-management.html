@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Client Management | Snap Select</title>
+    <link rel="stylesheet" href="../assets/css/common.css">
+    <link rel="stylesheet" href="../assets/css/clients.css">
+</head>
+<body>
+    <header class="header">
+        <div class="container">
+            <div class="logo">
+                <img src="../assets/img/logo.svg" alt="Snap Select" height="32">
+                <span class="logo-text">Snap Select</span>
+            </div>
+            <nav class="nav">
+                <ul class="nav-list">
+                    <li><a href="dashboard.html">Dashboard</a></li>
+                    <li><a href="collections.html">Collections</a></li>
+                    <li><a href="upload.html">Upload</a></li>
+                    <li><a href="client-management.html" class="active">Clients</a></li>
+                </ul>
+            </nav>
+            <div class="user-menu">
+                <div class="avatar">JS</div>
+                <span class="username">John Studio</span>
+            </div>
+            <button class="menu-toggle" aria-label="Toggle menu">
+                <span></span><span></span><span></span>
+            </button>
+        </div>
+    </header>
+
+    <main class="container">
+        <div class="page-header">
+            <div class="header-content">
+                <div>
+                    <h1>Client Management</h1>
+                    <p>Create and manage client profiles for your photo sessions</p>
+                </div>
+                <button class="btn primary" id="createClientBtn">Create New Client</button>
+            </div>
+            <div class="subscription-info">
+                <div class="plan-details">
+                    <span class="plan-name">Professional Plan</span>
+                    <span class="plan-limit">Current Assignment: <span id="currentAssignment">None</span></span>
+                </div>
+            </div>
+        </div>
+
+        <div class="client-filters">
+            <div class="search-box">
+                <input type="text" placeholder="Search clients..." id="searchClients">
+            </div>
+            <div class="filter-options">
+                <select id="statusFilter" class="select">
+                    <option value="all">All Statuses</option>
+                    <option value="active">Active</option>
+                    <option value="pending">Pending Verification</option>
+                    <option value="unverified">Unverified</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="alert info" id="assignmentAlert">
+            <p><strong>Note:</strong> Your current plan allows you to assign your uploads to one client at a time. 
+            Assignment changes are subject to a 7-day waiting period.</p>
+        </div>
+
+        <div class="clients-grid" id="clientsGrid">
+            <!-- Client cards will be added dynamically -->
+            <div class="client-card">
+                <div class="client-card-header">
+                    <h3>Sarah Johnson</h3>
+                    <span class="status active">Active</span>
+                </div>
+                <div class="client-card-body">
+                    <p><strong>Email:</strong> sarah@example.com</p>
+                    <p><strong>Phone:</strong> (555) 123-4567</p>
+                    <p><strong>Created:</strong> Apr 15, 2025</p>
+                    <p><strong>Verification:</strong> Verified</p>
+                </div>
+                <div class="client-card-footer">
+                    <button class="btn outline" disabled>Currently Assigned</button>
+                </div>
+            </div>
+
+            <div class="client-card">
+                <div class="client-card-header">
+                    <h3>Michael Smith</h3>
+                    <span class="status pending">Pending</span>
+                </div>
+                <div class="client-card-body">
+                    <p><strong>Email:</strong> mike@example.com</p>
+                    <p><strong>Phone:</strong> (555) 987-6543</p>
+                    <p><strong>Created:</strong> Apr 18, 2025</p>
+                    <p><strong>Verification:</strong> Pending (5 days left)</p>
+                </div>
+                <div class="client-card-footer">
+                    <button class="btn primary">Assign Plan</button>
+                    <button class="btn outline btn-icon">
+                        <svg viewBox="0 0 24 24" width="16" height="16"><path d="M12 5v14M5 12h14"></path></svg>
+                        Remind
+                    </button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- New Client Modal -->
+    <div class="modal" id="clientModal">
+        <div class="modal-overlay"></div>
+        <div class="modal-container">
+            <div class="modal-header">
+                <h3>Create New Client</h3>
+                <button class="close-btn" id="closeClientModal">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="clientName">Client Name *</label>
+                    <input type="text" id="clientName" class="input" required>
+                </div>
+                <div class="form-group">
+                    <label for="clientEmail">Email Address *</label>
+                    <input type="email" id="clientEmail" class="input" required>
+                </div>
+                <div class="form-group">
+                    <label for="clientPhone">Phone Number</label>
+                    <input type="tel" id="clientPhone" class="input">
+                </div>
+                <div class="form-group">
+                    <label class="checkbox">
+                        <input type="checkbox" id="createAccess" checked>
+                        <span>Create client portal access</span>
+                    </label>
+                </div>
+                <div class="form-group">
+                    <label class="checkbox">
+                        <input type="checkbox" id="assignNow">
+                        <span>Assign my plan to this client immediately</span>
+                    </label>
+                    <p class="help-text">Client will receive verification email. You can start uploading right away.</p>
+                </div>
+                <div class="compliance-notice">
+                    <p class="help-text">By adding a client, you confirm you have their consent to store their information in accordance with our <a href="#">Privacy Policy</a>.</p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn outline" id="cancelClientModal">Cancel</button>
+                <button class="btn primary" id="saveClient">Create Client</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Assignment Confirmation Modal -->
+    <div class="modal" id="assignmentModal">
+        <div class="modal-overlay"></div>
+        <div class="modal-container">
+            <div class="modal-header">
+                <h3>Confirm Client Assignment</h3>
+                <button class="close-btn" id="closeAssignModal">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="alert warning">
+                    <p><strong>Important:</strong> You are about to assign your plan to <span id="assignClientName">Client Name</span>.</p>
+                </div>
+                <p>This means:</p>
+                <ul class="modal-list">
+                    <li>All new uploads will be associated with this client</li>
+                    <li>You cannot change this assignment for 7 days</li>
+                    <li>Early reassignment may result in additional fees</li>
+                </ul>
+                <div class="form-group">
+                    <label class="checkbox">
+                        <input type="checkbox" id="confirmAssignment" required>
+                        <span>I understand and confirm this assignment</span>
+                    </label>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn outline" id="cancelAssignment">Cancel</button>
+                <button class="btn primary" id="confirmAssignmentBtn" disabled>Confirm Assignment</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="../assets/js/clients.js"></script>
+</body>
+</html>
