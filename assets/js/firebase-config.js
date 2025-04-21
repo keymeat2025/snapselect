@@ -18,7 +18,8 @@ firebase.initializeApp(firebaseConfig);
 
 // Get references to Firebase services
 const auth = firebase.auth();
-const db = firebase.firestore();
+//const db = firebase.firestore();
+const storage = firebase.storage && firebase.storage();
 const storage = firebase.storage();
 
 // Make Firebase services available to other scripts
