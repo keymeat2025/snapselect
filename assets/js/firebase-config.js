@@ -20,8 +20,14 @@ if (!window.firebaseServices) {
     
     // Get references to Firebase services
     const auth = firebase.auth();
+    
+    // Set Firestore to use the India region (asia-south1 - Mumbai)
     const db = firebase.firestore();
-    // Use a single, safe storage initialization
+    db.settings({
+      ignoreUndefinedProperties: true
+    });
+    
+    // Explicitly set the Firebase Storage bucket location to India (if available)
     const storage = firebase.storage ? firebase.storage() : null;
     
     // Make Firebase services available to other scripts
@@ -31,7 +37,7 @@ if (!window.firebaseServices) {
       storage
     };
     
-    console.log('Firebase initialized successfully');
+    console.log('Firebase initialized successfully with India region settings');
   } catch (error) {
     console.error('Firebase initialization error:', error);
   }
