@@ -2,7 +2,7 @@
 // Firestore database functions for SnapSelect
 
 // Initialize module with proper error handling
-let db;
+//let db;
 
 function initializeModule() {
   if (typeof window.firebaseServices === 'undefined' || !window.firebaseServices.db) {
@@ -12,7 +12,7 @@ function initializeModule() {
   }
   
   // Now you can safely use window.firebaseServices
-  db = window.firebaseServices.db;
+  const db = window.firebaseServices.db;
   
   // Initialize the exported object after db is available
   window.firebaseDb = {
