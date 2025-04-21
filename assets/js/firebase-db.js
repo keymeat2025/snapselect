@@ -4,6 +4,18 @@
 // Access Firestore from firebase-config.js
 const { db } = window.firebaseServices;
 
+function initializeModule() {
+  if (typeof window.firebaseServices === 'undefined') {
+    setTimeout(initializeModule, 100);
+    return;
+  }
+  
+  // Now you can safely use window.firebaseServices
+  const auth = window.firebaseServices.auth;
+  // rest of your code
+}
+
+initializeModule();
 // Get user profile data
 async function getUserProfile(userId) {
   try {
