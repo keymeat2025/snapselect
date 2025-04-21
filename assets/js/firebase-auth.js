@@ -6,6 +6,20 @@
 const firebaseAuth = window.firebaseServices.auth;
 const firebaseDb = window.firebaseServices.db;
 
+
+
+function initializeModule() {
+  if (typeof window.firebaseServices === 'undefined') {
+    setTimeout(initializeModule, 100);
+    return;
+  }
+  
+  // Now you can safely use window.firebaseServices
+  const auth = window.firebaseServices.auth;
+  // rest of your code
+}
+
+initializeModule();
 // Authentication state observer
 function setupAuthObserver(onUserLoggedIn, onUserLoggedOut) {
   auth.onAuthStateChanged(user => {
