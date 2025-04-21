@@ -3,364 +3,281 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SnapSelect</title>
+    <title>SnapSelect Login</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        :root {--primary:#00a0e9; --primary-light:#e0f5ff; --accent:#ffa837; --dark:#2d2d2d; --gray:#555; 
-               --light-gray:#f8f9fa; --border:#e0e0e0; --white:#fff; --success:#28a745; --success-light:#d4edda;}
-        * {margin:0; padding:0; box-sizing:border-box; font-family:'Segoe UI',sans-serif;}
-        body {background-color:var(--white); color:var(--dark); line-height:1.6; display:flex; min-height:100vh;}
-        .left-panel {flex:0.5; background-color:var(--primary-light); padding:60px 40px; display:flex; flex-direction:column;}
-        .right-panel {flex:1; padding:60px 40px; display:flex; flex-direction:column; justify-content:center;}
-        .logo {font-size:32px; font-weight:700; color:var(--primary); text-decoration:none; margin-bottom:60px;}
-        .logo-container {display:flex; align-items:center; gap:10px;}
-        .logo-icon {font-size:24px; color:var(--primary);}
-        .trial-headline {font-size:32px; color:var(--dark); margin-bottom:15px; font-weight:600;}
-        .testimonial {background-color:var(--white); padding:30px; border-radius:10px; margin:40px 0; box-shadow:0 5px 15px rgba(0,0,0,0.05);}
-        .steps {display:flex; margin-bottom:30px;}
-        .step {flex:1; text-align:center; position:relative;}
-        .step:not(:last-child):after {content:""; position:absolute; top:14px; left:60%; width:80%; height:2px; background-color:var(--border);}
-        .step.active:not(:last-child):after {background-color:var(--primary);}
-        .step-number {width:30px; height:30px; background-color:var(--white); border:2px solid var(--border); border-radius:50%; display:flex; align-items:center; justify-content:center; margin:0 auto 10px; color:var(--gray); font-weight:600;}
-        .step.active .step-number {background-color:var(--primary); border-color:var(--primary); color:var(--white);}
-        .step-label {font-size:14px; color:var(--gray); font-weight:500;}
-        .step.active .step-label {color:var(--primary); font-weight:600;}
-        .form-screen {display:none; opacity:0; transform:translateX(20px); transition:opacity 0.3s,transform 0.3s; position:absolute; width:calc(100% - 80px);}
-        .form-screen.active {display:block; opacity:1; transform:translateX(0); position:relative;}
-        .form-group {margin-bottom:25px;}
-        .form-group label {display:block; margin-bottom:8px; font-weight:500;}
-        .input-icon-wrapper {position:relative;}
-        .input-icon {position:absolute; left:15px; top:50%; transform:translateY(-50%); color:var(--gray);}
-        .form-group input {width:100%; padding:12px 15px; border:1px solid var(--border); border-radius:5px; font-size:16px; transition:border-color 0.3s;}
-        .input-with-icon {padding-left:45px !important;}
-        .btn {display:block; width:100%; background-color:var(--primary); color:var(--white); padding:15px; border-radius:5px; text-decoration:none; font-weight:600; text-align:center; border:none; cursor:pointer; font-size:16px; text-transform:uppercase; letter-spacing:1px; transition:all 0.3s;}
-        .btn:hover {background-color:#0082c0; transform:translateY(-2px);}
-        .btn-secondary {background-color:var(--light-gray); color:var(--dark); border:1px solid var(--border);}
-        .google-btn {display:flex; align-items:center; justify-content:center; width:100%; background-color:var(--white); color:var(--dark); padding:12px 15px; border-radius:5px; font-weight:500; text-align:center; border:1px solid var(--border); cursor:pointer; font-size:16px; margin-bottom:20px;}
-        .divider {position:relative; text-align:center; margin:20px 0 30px;}
-        .divider:before {content:""; position:absolute; top:50%; left:0; right:0; height:1px; background-color:var(--border);}
-        .divider span {position:relative; background-color:var(--white); padding:0 15px; color:var(--gray); font-size:14px;}
-        .payment-box {background-color:var(--white); border:2px solid var(--border); border-radius:10px; padding:30px; margin-bottom:30px; text-align:center;}
-        .payment-amount {font-size:48px; font-weight:700; color:var(--primary); margin-bottom:10px;}
-        .payment-text {font-size:18px; color:var(--dark); margin-bottom:5px; font-weight:500;}
-        .payment-note {font-size:14px; color:var(--gray); margin-bottom:20px;}
-        .benefit-item {display:flex; align-items:flex-start; margin-bottom:18px; padding-bottom:18px; border-bottom:1px solid var(--border);}
-        .benefit-item:last-child {border-bottom:none; padding-bottom:0; margin-bottom:0;}
-        .benefit-icon {flex:0 0 36px; width:36px; height:36px; background-color:var(--primary-light); border-radius:50%; display:flex; align-items:center; justify-content:center; margin-right:15px; color:var(--primary);}
-        .benefit-content {flex:1;}
-        .benefit-title {font-weight:600; margin-bottom:3px; color:var(--dark);}
-        .benefit-desc {color:var(--gray); font-size:14px;}
-        .trust-indicators {display:flex; justify-content:center; align-items:center; gap:30px; margin:25px 0;}
-        .trust-item {display:flex; align-items:center; font-size:14px; color:var(--gray);}
-        .trust-icon {color:var(--primary); margin-right:8px; font-size:16px;}
-        .checkbox-group {display:flex; align-items:flex-start; margin-bottom:25px;}
-        .checkbox-group input {margin-right:10px; margin-top:5px;}
-        .success-message {background-color:var(--success-light); border:1px solid var(--success); color:var(--success); padding:20px; border-radius:10px; text-align:center; margin-bottom:30px; display:none;}
-        .success-icon {font-size:48px; margin-bottom:15px; color:var(--success);}
-        .success-title {font-size:24px; font-weight:600; margin-bottom:10px;}
-        .success-text {font-size:16px; margin-bottom:15px;}
-        .notification-message {background-color:var(--primary-light); border:1px dashed var(--primary); color:var(--dark); padding:15px; border-radius:10px; margin-top:20px; display:none;}
-        .notification-title {font-weight:600; margin-bottom:5px; display:flex; align-items:center;}
-        .notification-icon {color:var(--primary); margin-right:8px;}
-        .registration-title {text-align:center; margin-bottom:25px; font-size:24px;}
-        .registration-subtitle {text-align:center; margin-bottom:30px; font-size:16px; color:var(--gray);}
-        .field-hint {color:var(--gray); font-size:12px; margin-top:5px;}
-        @media (max-width:992px) {
-            body {flex-direction:column;}
-            .left-panel, .right-panel {padding:40px 20px;}
-            .form-screen {width:calc(100% - 40px);}
-            .trust-indicators {flex-direction:column; gap:15px;}
+        :root {
+            --primary: #00a0e9;
+            --primary-light: #e0f5ff;
+            --accent: #ffa837;
+            --dark: #2d2d2d;
+            --gray: #555555;
+            --light-gray: #f8f9fa;
+            --border: #e0e0e0;
+            --white: #ffffff;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background-color: var(--primary);
+            color: var(--dark);
+            line-height: 1.6;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        
+        .logo {
+            font-size: 32px;
+            font-weight: 700;
+            color: var(--white);
+            text-decoration: none;
+            font-family: 'Arial', cursive;
+            letter-spacing: -0.5px;
+            margin-bottom: 20px;
+            display: inline-block;
+        }
+        
+        .logo-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .logo-icon {
+            font-size: 24px;
+            color: var(--white);
+        }
+        
+        .login-container {
+            background-color: var(--white);
+            border-radius: 10px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+            padding: 40px;
+            width: 100%;
+            max-width: 500px;
+            margin: 0 auto;
+        }
+        
+        .login-title {
+            font-size: 28px;
+            color: var(--dark);
+            margin-bottom: 30px;
+            text-align: center;
+        }
+        
+        .form-group {
+            margin-bottom: 25px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: var(--dark);
+            font-weight: 500;
+        }
+        
+        .form-group input {
+            width: 100%;
+            padding: 12px 15px;
+            border: 1px solid var(--border);
+            border-radius: 5px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+        
+        .form-group input:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+        
+        .forgot-link {
+            display: block;
+            text-align: right;
+            color: var(--primary);
+            text-decoration: none;
+            font-size: 14px;
+            margin-top: -5px;
+            margin-bottom: 20px;
+        }
+        
+        .forgot-link:hover {
+            text-decoration: underline;
+        }
+        
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            margin-bottom: 25px;
+        }
+        
+        .checkbox-group input {
+            margin-right: 10px;
+        }
+        
+        .btn {
+            display: block;
+            width: 100%;
+            background-color: var(--primary);
+            color: var(--white);
+            padding: 12px;
+            border-radius: 5px;
+            text-decoration: none;
+            font-weight: 600;
+            text-align: center;
+            transition: background-color 0.3s;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        
+        .btn:hover {
+            background-color: #0086c4;
+        }
+        
+        .btn-google {
+            background-color: #ffffff;
+            color: var(--dark);
+            border: 1px solid var(--border);
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .btn-google:hover {
+            background-color: #f8f8f8;
+        }
+        
+        .divider {
+            display: flex;
+            align-items: center;
+            margin: 25px 0;
+            color: var(--gray);
+            font-size: 14px;
+        }
+        
+        .divider::before,
+        .divider::after {
+            content: "";
+            flex: 1;
+            border-bottom: 1px solid var(--border);
+        }
+        
+        .divider::before {
+            margin-right: 15px;
+        }
+        
+        .divider::after {
+            margin-left: 15px;
+        }
+        
+        .signup-message {
+            text-align: center;
+            margin-top: 30px;
+            color: var(--primary);
+        }
+        
+        .signup-link {
+            color: var(--primary);
+            text-decoration: none;
+        }
+        
+        .signup-link:hover {
+            text-decoration: underline;
+        }
+        
+        .footer {
+            margin-top: 40px;
+            color: var(--white);
+            font-size: 14px;
+            text-align: center;
+        }
+        
+        .google-icon {
+            color: #4285F4;
+            font-size: 18px;
+        }
+
+        .error-message {
+            color: #e74c3c;
+            margin-top: 15px;
+            display: none;
+            text-align: center;
         }
     </style>
 </head>
 <body>
-    <div class="left-panel">
-        <div class="logo-container"><a href="#" class="logo">SnapSelect</a><i class="fas fa-camera logo-icon"></i></div>
-        <h1 class="trial-headline">Start your SnapSelect Journey today.</h1>
-        <p>Streamline your photo memories workflow with client happiness</p>
-        <div class="testimonial">
-            <p>"Since I found SnapSelect, my workflow has become incredibly efficient. I save hours on each project because clients select their favorites."</p>
-            <p><b>Magesh Madavan</b></p>
-            <p style="color:var(--gray);font-size:14px">SnapSelect user since 2023</p>
+    <div class="logo-container">
+        <a href="../index.html" class="logo">SnapSelect</a>
+        <i class="fas fa-camera logo-icon"></i>
+    </div>
+    
+    <div class="login-container">
+        <h1 class="login-title">Login</h1>
+        
+        <button type="button" id="google-signin-btn" class="btn btn-google">
+            <i class="fab fa-google google-icon"></i>
+            Continue with Gmail
+        </button>
+        
+        <div class="divider">OR</div>
+        
+        <form id="login-form">
+            <div class="form-group">
+                <label for="email">Email</label>
+                <input type="email" id="email" placeholder="example@email.com" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input type="password" id="password" required>
+            </div>
+            
+            <a href="Reset-Password.html" class="forgot-link">Forgot?</a>
+            
+            <div class="checkbox-group">
+                <input type="checkbox" id="remember" checked>
+                <label for="remember">Keep me logged in</label>
+            </div>
+            
+            <button type="submit" class="btn">Login</button>
+        </form>
+        
+        <div class="error-message" id="auth-error"></div>
+        
+        <div class="signup-message">
+            <p>Not using SnapSelect yet? <a href="photographer_registration.html" class="signup-link">Get Started!</a></p>
         </div>
     </div>
     
-    <div class="right-panel">
-        <div class="steps">
-            <div class="step active" id="step-1-indicator"><div class="step-number">1</div><div class="step-label">Account</div></div>
-            <div class="step" id="step-2-indicator"><div class="step-number">2</div><div class="step-label">Studio Info</div></div>
-            <div class="step" id="step-3-indicator"><div class="step-number">3</div><div class="step-label">Registration</div></div>
-        </div>
-        
-        <!-- Step 1: Account -->
-        <div class="form-screen active" id="step-1-screen">
-            <form id="step-1-form">
-                <button type="button" class="google-btn" id="google-signin-btn"><i class="fab fa-google" style="margin-right:10px"></i>Sign up with Google</button>
-                <div class="divider"><span>or sign up with email</span></div>
-                <div class="form-group">
-                    <label for="email">Email</label>
-                    <div class="input-icon-wrapper"><i class="fas fa-envelope input-icon"></i><input type="email" id="email" class="input-with-icon" placeholder="your@email.com" required></div>
-                </div>
-                <div class="form-group">
-                    <label for="password">Password</label>
-                    <div class="input-icon-wrapper"><i class="fas fa-lock input-icon"></i><input type="password" id="password" class="input-with-icon" placeholder="Choose a password" required></div>
-                </div>
-                <div class="form-group">
-                    <label for="confirm-password">Confirm Password</label>
-                    <div class="input-icon-wrapper"><i class="fas fa-lock input-icon"></i><input type="password" id="confirm-password" class="input-with-icon" placeholder="Confirm your password" required></div>
-                </div>
-                <button type="button" class="btn" id="to-step-2-btn">Continue</button>
-            </form>
-        </div>
-        
-        <!-- Step 2: Studio Info -->
-        <div class="form-screen" id="step-2-screen">
-            <form id="step-2-form">
-                <div class="form-group">
-                    <label for="studio-name">Studio Name</label>
-                    <div class="input-icon-wrapper"><i class="fas fa-camera input-icon"></i><input type="text" id="studio-name" class="input-with-icon" placeholder="Enter a Studio Name" required></div>
-                </div>
-                <div class="form-group">
-                    <label for="owner-name">Owner Name</label>
-                    <div class="input-icon-wrapper"><i class="fas fa-user input-icon"></i><input type="text" id="owner-name" class="input-with-icon" placeholder="Your Name" required></div>
-                </div>
-                <div class="form-group">
-                    <label for="owner-email">Owner Email</label>
-                    <div class="input-icon-wrapper"><i class="fas fa-envelope input-icon"></i><input type="email" id="owner-email" class="input-with-icon" placeholder="your@email.com" required></div>
-                </div>
-                <div class="form-group">
-                    <label for="owner-number">Owner Number</label>
-                    <div class="input-icon-wrapper"><i class="fas fa-phone input-icon"></i>
-                        <input type="tel" id="owner-number" class="input-with-icon" placeholder="10-digit Mobile Number" pattern="[6-9][0-9]{9}" maxlength="10" required>
-                    </div>
-                    <div class="field-hint">Indian mobile number starting with 6-9</div>
-                </div>
-                <h3 style="margin:20px 0 15px; font-size:18px;">India Location</h3>
-                <div class="form-group">
-                    <label for="studio-address">Studio Address</label>
-                    <div class="input-icon-wrapper"><i class="fas fa-map-marker-alt input-icon"></i>
-                        <input type="text" id="studio-address" class="input-with-icon" placeholder="Studio Full Address in India" required>
-                    </div>
-                </div>
-                <div class="form-group">
-                    <label for="studio-pincode">Pin Code</label>
-                    <div class="input-icon-wrapper"><i class="fas fa-map-pin input-icon"></i>
-                        <input type="text" id="studio-pincode" class="input-with-icon" placeholder="6-digit Pin Code" pattern="[1-9][0-9]{5}" maxlength="6" required>
-                    </div>
-                    <div class="field-hint">6-digit Indian PIN code</div>
-                </div>
-                <div style="display:flex; gap:15px">
-                    <button type="button" class="btn btn-secondary" id="back-to-step-1-btn">Back</button>
-                    <button type="button" class="btn" id="to-step-3-btn">Continue</button>
-                </div>
-            </form>
-        </div>
-        
-        <!-- Step 3: Registration Payment -->
-        <div class="form-screen" id="step-3-screen">
-            <div id="payment-screen">
-                <h3 class="registration-title">Complete Your Registration</h3>
-                <p class="registration-subtitle">Just ₹2 to unlock all features - choose your plan later</p>
-                
-                <!-- Benefits -->
-                <div style="margin-bottom:30px">
-                    <div class="benefit-item">
-                        <div class="benefit-icon"><i class="fas fa-sync-alt"></i></div>
-                        <div class="benefit-content">
-                            <div class="benefit-title">Seamless Payment Integration</div>
-                            <div class="benefit-desc">Verifies your payment methods for smooth future transactions</div>
-                        </div>
-                    </div>
-                    <div class="benefit-item">
-                        <div class="benefit-icon"><i class="fas fa-shield-alt"></i></div>
-                        <div class="benefit-content">
-                            <div class="benefit-title">Account Verification</div>
-                            <div class="benefit-desc">Confirms you're a legitimate business user, reducing fraud</div>
-                        </div>
-                    </div>
-                    <div class="benefit-item">
-                        <div class="benefit-icon"><i class="fas fa-bolt"></i></div>
-                        <div class="benefit-content">
-                            <div class="benefit-title">Faster Future Transactions</div>
-                            <div class="benefit-desc">Your payment details are securely stored for instant plan selection</div>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Payment Box -->
-                <div class="payment-box">
-                    <div class="payment-amount">₹2</div>
-                    <div class="payment-text">One-time registration fee</div>
-                    <div class="payment-note">Register now and explore all features</div>
-                    
-                    <div class="trust-indicators">
-                        <div class="trust-item"><i class="fas fa-lock trust-icon"></i><span>Secure Payment</span></div>
-                        <div class="trust-item"><i class="fas fa-shield-alt trust-icon"></i><span>100% Safe</span></div>
-                    </div>
-                    
-                    <div class="checkbox-group" style="justify-content:center">
-                        <input type="checkbox" id="terms" required>
-                        <div>I agree to the <a href="#" style="color:var(--primary);text-decoration:none">Terms of Service</a> and 
-                        <a href="#" style="color:var(--primary);text-decoration:none">Privacy Policy</a>.</div>
-                    </div>
-                    
-                    <div style="display:flex; gap:15px">
-                        <button type="button" class="btn btn-secondary" id="back-to-step-2-btn">Back</button>
-                        <button type="button" class="btn" id="make-payment-btn">
-                            <i class="fas fa-lock" style="margin-right:8px;"></i>Pay & Complete Registration
-                        </button>
-                    </div>
-                </div>
-                
-                <div style="text-align:center; color:var(--gray); font-size:14px; margin-top:15px">
-                    You'll be prompted to select a plan when you start using key features
-                </div>
-            </div>
-            
-            <!-- Success Screen (initially hidden) -->
-            <div id="success-screen" style="display:none; text-align:center">
-                <div class="success-message" style="display:block">
-                    <i class="fas fa-check-circle success-icon"></i>
-                    <div class="success-title">Registration Successful!</div>
-                    <div class="success-text">Your payment of ₹2 has been processed successfully.</div>
-                    <div>Your SnapSelect journey begins now!</div>
-                </div>
-                
-                <div class="notification-message" style="display:block">
-                    <div class="notification-title">
-                        <i class="fas fa-info-circle notification-icon"></i>
-                        <span>Important Information</span>
-                    </div>
-                    <p>You now have access to view all features. When you start using key features like uploading photos or creating galleries, you'll be prompted to select a subscription plan.</p>
-                </div>
-                
-                <button type="button" class="btn" style="max-width:250px; margin:30px auto 0">
-                    <i class="fas fa-tachometer-alt" style="margin-right:8px"></i>Go to Dashboard
-                </button>
-            </div>
-        </div>
+    <div class="footer">
+        © 2025 SnapSelect
     </div>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+   
     
-    <script>
-        // DOM Elements & Form data
-        const screens = document.querySelectorAll('.form-screen');
-        const indicators = document.querySelectorAll('.step');
-        let formData = {email:'', password:'', studioName:'', ownerName:'', ownerEmail:'', ownerNumber:'', studioAddress:'', studioPincode:''};
-        
-        // Navigation & validation functions
-        function goToStep(step) {
-            screens.forEach(s => s.classList.remove('active'));
-            indicators.forEach(i => i.classList.remove('active'));
-            screens[step-1].classList.add('active');
-            indicators[step-1].classList.add('active');
-        }
-        
-        function validateForm(formId, requiredFields) {
-            // Check required fields
-            if (requiredFields.some(id => !document.getElementById(id).value)) {
-                alert('Please fill in all required fields.');
-                return false;
-            }
-            
-            // India-specific validations
-            const pincode = document.getElementById('studio-pincode')?.value;
-            if (pincode && !/^[1-9][0-9]{5}$/.test(pincode)) {
-                alert('Please enter a valid 6-digit Indian PIN code.');
-                return false;
-            }
-            
-            const phone = document.getElementById('owner-number')?.value;
-            if (phone && !/^[6-9][0-9]{9}$/.test(phone)) {
-                alert('Please enter a valid 10-digit Indian mobile number starting with 6, 7, 8, or 9.');
-                return false;
-            }
-            
-            return true;
-        }
-        
-        function saveFormData() {
-            ['email', 'password'].forEach(field => formData[field] = document.getElementById(field).value);
-            ['studioName', 'ownerName', 'ownerEmail', 'ownerNumber', 'studioAddress', 'studioPincode'].forEach(field => {
-                const el = document.getElementById(field.replace(/([A-Z])/g, '-$1').toLowerCase());
-                if (el) formData[field] = el.value;
-            });
-        }
-        
-        function restoreFormData() {
-            document.getElementById('email').value = formData.email;
-            document.getElementById('password').value = formData.password;
-            document.getElementById('confirm-password').value = formData.password;
-            
-            ['studioName', 'ownerName', 'ownerEmail', 'ownerNumber', 'studioAddress', 'studioPincode'].forEach(field => {
-                const el = document.getElementById(field.replace(/([A-Z])/g, '-$1').toLowerCase());
-                if (el) el.value = formData[field];
-            });
-        }
-        
-        // Event Listeners
-        document.getElementById('to-step-2-btn').addEventListener('click', () => {
-            const email = document.getElementById('email').value;
-            const password = document.getElementById('password').value;
-            const confirmPassword = document.getElementById('confirm-password').value;
-            
-            if (!email || !password) {
-                alert('Please fill in all required fields.');
-                return;
-            }
-            
-            if (password !== confirmPassword) {
-                alert('Passwords do not match.');
-                return;
-            }
-            
-            saveFormData();
-            goToStep(2);
-            document.getElementById('owner-email').value = email;
-        });
-        
-        document.getElementById('to-step-3-btn').addEventListener('click', () => {
-            if (!validateForm('step-2-form', ['studio-name', 'owner-name', 'owner-email', 'owner-number', 'studio-address', 'studio-pincode'])) return;
-            saveFormData();
-            goToStep(3);
-        });
-        
-        document.getElementById('back-to-step-1-btn').addEventListener('click', () => {
-            saveFormData();
-            goToStep(1);
-        });
-        
-        document.getElementById('back-to-step-2-btn').addEventListener('click', () => goToStep(2));
-        
-        document.getElementById('google-signin-btn').addEventListener('click', () => {
-            formData.email = 'photographer@gmail.com';
-            formData.ownerName = 'John Photographer';
-            formData.ownerEmail = 'photographer@gmail.com';
-            formData.password = 'google-oauth';
-            goToStep(2);
-            document.getElementById('owner-name').value = formData.ownerName;
-            document.getElementById('owner-email').value = formData.ownerEmail;
-        });
-        
-        document.getElementById('make-payment-btn').addEventListener('click', function() {
-            if (!document.getElementById('terms').checked) {
-                alert('Please agree to the Terms of Service and Privacy Policy.');
-                return;
-            }
-            
-            this.innerHTML = '<i class="fas fa-spinner fa-spin" style="margin-right:8px;"></i>Processing...';
-            this.disabled = true;
-            
-            setTimeout(() => {
-                document.getElementById('payment-screen').style.display = 'none';
-                document.getElementById('success-screen').style.display = 'block';
-                document.getElementById('step-3-indicator').innerHTML = `
-                    <div class="step-number" style="background-color:var(--success);border-color:var(--success);">
-                        <i class="fas fa-check" style="color:white;"></i>
-                    </div>
-                    <div class="step-label" style="color:var(--success);">Completed</div>
-                `;
-            }, 1500);
-        });
-    </script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-storage-compat.js"></script>
+    
+    <!-- Firebase configuration and services -->
+    <script src="../assets/js/firebase-config.js"></script>
+    <script src="../assets/js/firebase-auth.js"></script>
+    <script src="../assets/js/firebase-db.js"></script>
+    
+    <!-- Login page specific script -->
+    <script src="../assets/js/login-page.js"></script>
 </body>
 </html>
