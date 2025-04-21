@@ -2,7 +2,9 @@
 // Authentication functions for SnapSelect
 
 // Access Firebase services from firebase-config.js
-const { auth, db } = window.firebaseServices;
+//const { auth, db } = window.firebaseServices;
+const auth = window.firebaseServices.auth;
+const db = window.firebaseServices.db;
 
 // Authentication state observer
 function setupAuthObserver(onUserLoggedIn, onUserLoggedOut) {
