@@ -1,10 +1,9 @@
+
 // firebase-config.js
-// Firebase initialization and configuration
+// Initialize Firebase for SnapSelect application
 
 // Your Firebase configuration
-// Replace these values with your actual Firebase project details
-
-// For Firebase JS SDK v7.20.0 and later, measurementId is optional
+// Replace these with your actual Firebase project config
 const firebaseConfig = {
   apiKey: "AIzaSyCAl15Yq8Y727PKknJNs0Q8UZbRRbcWkMo",
   authDomain: "snapselect01-eb74c.firebaseapp.com",
@@ -14,14 +13,19 @@ const firebaseConfig = {
   appId: "1:749450852067:web:8b1887075d607b3e91f7d6",
   measurementId: "G-J5XGE71VF6"
 };
-// Initialize Firebase
+// Initialize Firebase app
 firebase.initializeApp(firebaseConfig);
 
-// Export Firebase services for use in other files
+// Get references to Firebase services
 const auth = firebase.auth();
 const db = firebase.firestore();
 const storage = firebase.storage();
 
-// You can access these in other files through:
-// const { auth, db, storage } = window.firebaseServices;
-window.firebaseServices = { auth, db, storage };
+// Make Firebase services available to other scripts
+window.firebaseServices = {
+  auth,
+  db,
+  storage
+};
+
+console.log('Firebase initialized successfully');
