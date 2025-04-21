@@ -4,14 +4,400 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Upload Photos | Snap Select</title>
-    <link rel="stylesheet" href="../assets/css/common.css">
-    <link rel="stylesheet" href="/assets/css/upload.css">
+    
+    <!-- Inline critical CSS variables to ensure they're available -->
+    <style>
+        :root {
+            --radius: 6px;
+            --shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            --shadow-sm: 0 1px 4px rgba(0, 0, 0, 0.08);
+            --shadow-lg: 0 4px 12px rgba(0, 0, 0, 0.15);
+            --transition: all 0.2s ease;
+            
+            --gray-50: #f9fafb;
+            --gray-100: #f3f4f6;
+            --gray-200: #e5e7eb;
+            --gray-300: #d1d5db;
+            --gray-400: #9ca3af;
+            --gray-500: #6b7280;
+            --gray-600: #4b5563;
+            --gray-700: #374151;
+            --gray-800: #1f2937;
+            
+            --primary: #4f46e5;
+            --primary-50: #eff6ff;
+            --primary-dark: #3730a3;
+            
+            --success: #10b981;
+            --success-light: #d1fae5;
+            
+            --warning: #f59e0b;
+            --warning-light: #fef3c7;
+            --warning-dark: #d97706;
+            
+            --danger: #ef4444;
+            --danger-light: #fee2e2;
+        }
+
+        /* Minimal critical styling */
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            color: var(--gray-700);
+            line-height: 1.5;
+            margin: 0;
+            padding: 0;
+            background-color: #f8fafc;
+        }
+        
+        .container {
+            width: 100%;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 16px;
+        }
+        
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 8px 16px;
+            border-radius: var(--radius);
+            font-weight: 500;
+            cursor: pointer;
+            transition: var(--transition);
+            text-decoration: none;
+            border: 1px solid transparent;
+        }
+        
+        .btn.primary {
+            background-color: var(--primary);
+            color: white;
+        }
+        
+        .btn.outline {
+            background-color: transparent;
+            border-color: var(--gray-300);
+            color: var(--gray-700);
+        }
+        
+        .btn.danger {
+            background-color: var(--danger);
+            color: white;
+        }
+        
+        input, select, textarea {
+            padding: 8px 12px;
+            border: 1px solid var(--gray-300);
+            border-radius: var(--radius);
+            width: 100%;
+            font-size: 16px;
+        }
+        
+        .checkbox {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+        }
+        
+        .header {
+            background-color: white;
+            box-shadow: var(--shadow);
+            padding: 12px 0;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        
+        .header .container {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .logo-text {
+            font-weight: 600;
+            font-size: 18px;
+            color: var(--gray-800);
+        }
+        
+        .nav-list {
+            display: flex;
+            list-style: none;
+            margin: 0;
+            padding: 0;
+            gap: 24px;
+        }
+        
+        .nav-list a {
+            text-decoration: none;
+            color: var(--gray-600);
+            font-weight: 500;
+            transition: var(--transition);
+        }
+        
+        .nav-list a:hover {
+            color: var(--primary);
+        }
+        
+        .nav-list a.active {
+            color: var(--primary);
+        }
+        
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            z-index: 1000;
+            display: none;
+        }
+        
+        .modal.active {
+            display: block;
+        }
+        
+        .modal-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.5);
+        }
+        
+        .modal-container {
+            position: relative;
+            background-color: white;
+            border-radius: var(--radius);
+            max-width: 500px;
+            width: 90%;
+            margin: 80px auto;
+            z-index: 1001;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        
+        .modal-header {
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--gray-200);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .modal-body {
+            padding: 20px;
+        }
+        
+        .modal-footer {
+            padding: 16px 20px;
+            border-top: 1px solid var(--gray-200);
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+        }
+        
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: var(--gray-500);
+        }
+    </style>
+    
+    <!-- Inline critical upload styles -->
+    <style>
+        /* Upload specific styles */
+        .upload-container {
+          max-width: 900px;
+          margin: 0 auto;
+        }
+
+        /* Client Status Bar in Header */
+        .client-status-bar {
+          display: flex;
+          align-items: center;
+          background-color: var(--gray-50);
+          border-radius: 20px;
+          padding: 6px 12px;
+          margin-right: 16px;
+          border: 1px solid var(--gray-200);
+        }
+
+        .no-client-status {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          color: var(--gray-600);
+          font-size: 14px;
+        }
+
+        .active-client-status {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          font-size: 14px;
+        }
+
+        /* First-time user intro banner */
+        .intro-banner {
+          background-color: white;
+          border-radius: var(--radius);
+          box-shadow: var(--shadow);
+          margin-bottom: 24px;
+          position: relative;
+          border-left: 4px solid var(--primary);
+          overflow: hidden;
+        }
+
+        .intro-content {
+          padding: 20px;
+        }
+
+        .intro-steps {
+          list-style: none;
+          margin: 20px 0;
+          padding: 0;
+        }
+
+        .intro-steps li {
+          display: flex;
+          align-items: center;
+          margin-bottom: 12px;
+        }
+
+        .step-number {
+          background-color: var(--primary);
+          color: white;
+          width: 24px;
+          height: 24px;
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-weight: 600;
+          margin-right: 12px;
+        }
+
+        .close-intro {
+          position: absolute;
+          top: 12px;
+          right: 12px;
+          background: none;
+          border: none;
+          font-size: 24px;
+          color: var(--gray-400);
+          cursor: pointer;
+        }
+
+        /* Alert styles */
+        .alert {
+          padding: 16px;
+          border-radius: var(--radius);
+          margin-bottom: 16px;
+        }
+
+        .alert.warning {
+          background-color: var(--warning-light);
+          border-left: 4px solid var(--warning);
+        }
+
+        /* Dropzone */
+        .dropzone {
+          background-color: white;
+          border: 2px dashed var(--gray-200);
+          border-radius: var(--radius);
+          padding: 40px 20px;
+          text-align: center;
+          transition: all 0.2s ease;
+          margin-bottom: 24px;
+        }
+
+        .dropzone:hover, .dropzone.active {
+          border-color: var(--primary);
+          background-color: var(--primary-50);
+        }
+
+        .upload-icon {
+          width: 64px;
+          height: 64px;
+          stroke: var(--primary);
+          stroke-width: 2;
+          fill: none;
+          margin-bottom: 16px;
+        }
+
+        /* Upload Progress */
+        .progress-bar {
+          height: 8px;
+          background-color: var(--gray-100);
+          border-radius: 4px;
+          overflow: hidden;
+          margin-bottom: 20px;
+        }
+
+        .progress-fill {
+          height: 100%;
+          background-color: var(--primary);
+          transition: width 0.3s ease;
+        }
+
+        .file-list {
+          list-style: none;
+          margin-bottom: 20px;
+          max-height: 200px;
+          overflow-y: auto;
+        }
+
+        /* Status colors */
+        .status-pending { color: var(--gray-500); }
+        .status-uploading { color: var(--primary); }
+        .status-complete { color: var(--success); }
+        .status-error { color: var(--danger); }
+        
+        /* User menu */
+        .user-menu {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+        }
+        
+        .avatar {
+          width: 32px;
+          height: 32px;
+          border-radius: 50%;
+          background-color: var(--primary);
+          color: white;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-weight: 600;
+        }
+        
+        .username {
+          font-weight: 500;
+          color: var(--gray-700);
+        }
+    </style>
+
+    <!-- External CSS references - keep these as fallbacks -->
+    <link rel="stylesheet" href="./assets/css/common.css">
+    <link rel="stylesheet" href="./assets/css/upload.css">
 </head>
 <body>
     <header class="header">
         <div class="container">
             <div class="logo">
-                <img src="../assets/img/logo.svg" alt="Snap Select" height="32">
+                <img src="./assets/img/logo.svg" alt="Snap Select" height="32" onerror="this.onerror=null; this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIzMiIgaGVpZ2h0PSIzMiIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiM0ZjQ2ZTUiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIj48cGF0aCBkPSJNMjMgMTl2LTFhNCA0IDAgMCAwLTQtNGgtNiI+PC9wYXRoPjxwYXRoIGQ9Ik01IDE5di0xYTQgNCAwIDAgMS00LTRWOGE0IDQgMCAwIDEgNC00aDEzYTQgNCAwIDAgMSA0IDR2MWE0IDQgMCAwIDEtNCA0aC0yIj48L3BhdGg+PGNpcmNsZSBjeD0iOSIgY3k9IjEzIiByPSIyIj48L2NpcmNsZT48cGF0aCBkPSJNMTAgMTcuNXYyYTEuNSAxLjUgMCAwIDAgMy4wMDEgMHYtMiI+PC9wYXRoPjwvc3ZnPg=='">
                 <span class="logo-text">Snap Select</span>
             </div>
             <nav class="nav">
@@ -128,12 +514,6 @@
                 <div class="collection-select">
                     <div class="section-header">
                         <h3>Add to Collection</h3>
-                        <button class="tooltip-trigger" data-tooltip="Collections help you organize photos for your client">
-                            <svg viewBox="0 0 24 24" width="16" height="16">
-                                <circle cx="12" cy="12" r="10"></circle>
-                                <path d="M12 16v-4M12 8h.01"></path>
-                            </svg>
-                        </button>
                     </div>
                     <select id="collectionSelect" class="select">
                         <option value="">Select collection</option>
@@ -144,12 +524,6 @@
                 <div class="upload-settings">
                     <div class="section-header">
                         <h3>Upload Settings</h3>
-                        <button class="tooltip-trigger" data-tooltip="Configure how your photos are processed">
-                            <svg viewBox="0 0 24 24" width="16" height="16">
-                                <circle cx="12" cy="12" r="10"></circle>
-                                <path d="M12 16v-4M12 8h.01"></path>
-                            </svg>
-                        </button>
                     </div>
                     <div class="settings-group">
                         <label class="checkbox">
@@ -193,12 +567,6 @@
                 <div class="client-notification">
                     <div class="section-header">
                         <h3>Client Notification</h3>
-                        <button class="tooltip-trigger" data-tooltip="Notify your client when upload is complete">
-                            <svg viewBox="0 0 24 24" width="16" height="16">
-                                <circle cx="12" cy="12" r="10"></circle>
-                                <path d="M12 16v-4M12 8h.01"></path>
-                            </svg>
-                        </button>
                     </div>
                     <div class="form-group">
                         <label class="checkbox">
@@ -264,112 +632,97 @@
             </div>
         </div>
     </div>
-    
-    <!-- Why Assign Client Modal -->
-    <div class="modal" id="whyAssignModal">
-        <div class="modal-overlay"></div>
-        <div class="modal-container">
-            <div class="modal-header">
-                <h3>Why Assign a Client?</h3>
-                <button class="close-btn" id="closeWhyModal">×</button>
-            </div>
-            <div class="modal-body">
-                <div class="explanation">
-                    <h4>One client at a time</h4>
-                    <p>Your Snap Select plan allows you to work with one client at a time. This helps us provide better organization and security for your photography business.</p>
-                    
-                    <h4>How it works:</h4>
-                    <ol>
-                        <li>Create a client profile in the Client Management section</li>
-                        <li>Assign your plan to that client</li>
-                        <li>Upload and manage photos for that client</li>
-                        <li>When you're ready to work with a different client, you can change your assignment</li>
-                    </ol>
-                    
-                    <h4>Benefits:</h4>
-                    <ul>
-                        <li>Keep your work organized by client</li>
-                        <li>Give clients access to only their photos</li>
-                        <li>Maintain clear separation between projects</li>
-                    </ul>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button class="btn primary" id="gotItBtn">Got it</button>
-                <a href="client-management.html" class="btn primary">Assign a Client Now</a>
-            </div>
-        </div>
-    </div>
-    
-    <!-- Upload Recovery Alert -->
-    <div class="recovery-alert" id="recoveryAlert">
-        <div class="recovery-content">
-            <h3>Resume Previous Upload?</h3>
-            <p>We found an unfinished upload session for <strong id="recoveryClientName">Sarah Johnson</strong>. Would you like to resume where you left off?</p>
-            <div class="recovery-actions">
-                <button class="btn outline" id="discardRecovery">Discard</button>
-                <button class="btn primary" id="resumeUpload">Resume Upload</button>
-            </div>
-        </div>
-    </div>
-    
-    <!-- Help Modal -->
-    <div class="modal wide-modal" id="helpModal">
-        <div class="modal-overlay"></div>
-        <div class="modal-container">
-            <div class="modal-header">
-                <h3>Upload Help</h3>
-                <button class="close-btn" id="closeHelpModal">×</button>
-            </div>
-            <div class="modal-body">
-                <div class="help-content">
-                    <div class="help-section">
-                        <h4>Upload Process</h4>
-                        <div class="help-grid">
-                            <div class="help-item">
-                                <h5>1. Assign a Client</h5>
-                                <p>Before uploading, assign your plan to a client. This determines who will receive these photos.</p>
-                            </div>
-                            <div class="help-item">
-                                <h5>2. Select a Collection</h5>
-                                <p>Choose an existing collection or create a new one to organize your photos.</p>
-                            </div>
-                            <div class="help-item">
-                                <h5>3. Upload Photos</h5>
-                                <p>Drag and drop files or use the browse button to select photos from your device.</p>
-                            </div>
-                            <div class="help-item">
-                                <h5>4. Configure Settings</h5>
-                                <p>Set upload options like EXIF preservation, automatic organization, and client notifications.</p>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="help-section">
-                        <h4>Frequently Asked Questions</h4>
-                        <div class="faq-list">
-                            <div class="faq-item">
-                                <h5>Why can I only assign one client at a time?</h5>
-                                <p>Your current plan allows one active client assignment. This helps keep your work organized and ensures clarity for both you and your clients.</p>
-                            </div>
-                            <div class="faq-item">
-                                <h5>What happens if my client doesn't verify their account?</h5>
-                                <p>You can still upload photos, but the client won't be able to access them until they verify. You can send reminders from the Client Management page.</p>
-                            </div>
-                            <div class="faq-item">
-                                <h5>How do I change client assignments?</h5>
-                                <p>You can change assignments from the Client Management page. Note that there's a 7-day cooldown period between changes.</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button class="btn primary" id="closeHelp">Got it</button>
-            </div>
-        </div>
-    </div>
 
-    <script src="/assets/js/upload.js"></script>
+    <script>
+        // Simplified initialization script
+        document.addEventListener('DOMContentLoaded', () => {
+            // Display intro for first-time users
+            const firstTimeIntro = document.getElementById('firstTimeIntro');
+            const dismissIntro = document.getElementById('dismissIntro');
+            const closeIntro = document.getElementById('closeIntro');
+            const browseBtn = document.getElementById('browseBtn');
+            const fileInput = document.getElementById('fileInput');
+            const advancedSettingsBtn = document.getElementById('advancedSettingsBtn');
+            const advancedSettings = document.getElementById('advancedSettings');
+            const dropZone = document.getElementById('dropZone');
+            
+            // Close intro banner when dismissed
+            if (dismissIntro) {
+                dismissIntro.addEventListener('click', () => {
+                    firstTimeIntro.style.display = 'none';
+                });
+            }
+            
+            if (closeIntro) {
+                closeIntro.addEventListener('click', () => {
+                    firstTimeIntro.style.display = 'none';
+                });
+            }
+            
+            // Advanced settings toggle
+            if (advancedSettingsBtn) {
+                advancedSettingsBtn.addEventListener('click', () => {
+                    advancedSettings.classList.toggle('hidden');
+                    advancedSettingsBtn.textContent = advancedSettings.classList.contains('hidden') 
+                        ? 'Show advanced settings' 
+                        : 'Hide advanced settings';
+                });
+            }
+            
+            // Browse files button
+            if (browseBtn && fileInput) {
+                browseBtn.addEventListener('click', () => {
+                    fileInput.click();
+                });
+            }
+            
+            // Dropzone effects
+            if (dropZone) {
+                dropZone.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    dropZone.classList.add('active');
+                });
+                
+                dropZone.addEventListener('dragleave', () => {
+                    dropZone.classList.remove('active');
+                });
+                
+                dropZone.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    dropZone.classList.remove('active');
+                    // File handling would happen here
+                });
+            }
+            
+            // Modal handling
+            const modals = document.querySelectorAll('.modal');
+            const modalTriggers = document.querySelectorAll('[data-modal]');
+            const modalClosers = document.querySelectorAll('.close-btn, .modal-overlay');
+            
+            modalTriggers.forEach(trigger => {
+                trigger.addEventListener('click', () => {
+                    const modalId = trigger.getAttribute('data-modal');
+                    document.getElementById(modalId).classList.add('active');
+                });
+            });
+            
+            modalClosers.forEach(closer => {
+                closer.addEventListener('click', () => {
+                    const modal = closer.closest('.modal');
+                    if (modal) modal.classList.remove('active');
+                });
+            });
+            
+            // Initialize Why Assign Client modal link
+            const whyAssignClient = document.getElementById('whyAssignClient');
+            const whyAssignModal = document.getElementById('whyAssignModal');
+            
+            if (whyAssignClient && whyAssignModal) {
+                whyAssignClient.addEventListener('click', () => {
+                    whyAssignModal.classList.add('active');
+                });
+            }
+        });
+    </script>
 </body>
 </html>
