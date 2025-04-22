@@ -45,25 +45,52 @@ document.addEventListener('DOMContentLoaded', function() {
                 // Fetch additional user data if needed
                 try {
                     const db = window.firebaseServices.db;
-                    const docRef = await db.collection('photographer').doc('photographer_main').get();
+                    // Important: Query the document based on the current user's ID
+                    const querySnapshot = await db.collection('photographer')
+                        .where('uid', '==', user.uid)
+                        .limit(1)
+                        .get();
                     
-                    if (docRef.exists) {
-                        const userData = docRef.data();
+                    if (!querySnapshot.empty) {
+                        const userData = querySnapshot.docs[0].data();
                         // Update display name if available
                         if (userData.ownerName) {
                             userName.textContent = userData.ownerName.split(' ')[0];
                         }
+                    } else {
+                        // If no photographer profile found, use email
+                        userName.textContent = user.email.split('@')[0];
                     }
                 } catch (error) {
                     console.error("Error fetching user data:", error);
+                    // Fallback to email if there's an error
+                    userName.textContent = user.email.split('@')[0];
                 }
             },
             // User logged out
             function() {
                 console.log("User is logged out");
                 updateUIForGuest();
+                
+                // Force immediate UI update
+                setTimeout(() => {
+                    if (guestNav && userNav) {
+                        guestNav.style.display = 'block';
+                        userNav.style.display = 'none';
+                    }
+                }, 100);
             }
         );
+        
+        // Also check current auth state immediately
+        const auth = window.firebaseServices.auth;
+        if (auth) {
+            auth.onAuthStateChanged(user => {
+                if (!user) {
+                    updateUIForGuest();
+                }
+            });
+        }
     }
     
     // Update UI for logged in user
@@ -94,6 +121,10 @@ document.addEventListener('DOMContentLoaded', function() {
     function updateUIForGuest() {
         if (guestNav) guestNav.style.display = 'block';
         if (userNav) userNav.style.display = 'none';
+        
+        // Clear user data from UI
+        if (userName) userName.textContent = 'User';
+        if (userAvatar) userAvatar.src = 'assets/images/placeholder-avatar.jpg';
         
         // Close dropdown if open
         if (userDropdown) {
@@ -193,32 +224,56 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     // Perform the actual logout
-  
     async function performLogout() {
         if (!window.firebaseAuth) {
             throw new Error("Firebase Auth not initialized");
         }
         
         try {
+            // Clear any unsaved changes or local state if needed
+            clearLocalState();
+            
+            // Sign out from Firebase
             await window.firebaseAuth.signOut();
             
-            // For GitHub Pages, use relative path based on current location
-            const currentPath = window.location.pathname;
-            
-            if (currentPath.includes('/pages/')) {
-                // If we're in a pages subdirectory, go up one level
-                window.location.href = '../index.html';
-            } else {
-                // If we're at the root, just reload
-                window.location.reload();
+            // Close confirmation dialog
+            const confirmDialog = document.getElementById('logoutConfirm');
+            if (confirmDialog) {
+                confirmDialog.classList.remove('active');
             }
+            
+            // Update UI immediately before redirect
+            updateUIForGuest();
+            
+            // Redirect to home page
+            // For GitHub Pages, we need to use the relative path
+            const currentPath = window.location.pathname;
+            if (currentPath.includes('index.html') || currentPath === '/' || currentPath === '/snapselect/') {
+                // Force reload to reset state
+                window.location.reload();
+            } else {
+                // Use relative path for GitHub Pages
+                // If we're in a subdirectory, go up to the root
+                const pathParts = currentPath.split('/');
+                let redirectPath = '';
+                
+                // If we're in the 'pages' directory, go up one level
+                if (currentPath.includes('/pages/')) {
+                    redirectPath = '../index.html';
+                } else {
+                    // Otherwise, just use the root path
+                    redirectPath = 'index.html';
+                }
+                
+                window.location.href = redirectPath;
+            }
+            
+            return true;
         } catch (error) {
             console.error("Logout error:", error);
             throw error;
         }
     }
-            
-      
     
     // Clear any local state
     function clearLocalState() {
