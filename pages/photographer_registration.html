@@ -5,165 +5,380 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SnapSelect - Registration</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
     <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-storage.js"></script>
-    <!-- Firebase config -->
+    
+    <!-- Firebase Configuration -->
     <script src="../assets/js/firebase-config.js"></script>
     <script src="../assets/js/firebase-auth.js"></script>
-    <script src="../assets/js/firebase-db.js"></script>
     
-    <!-- Existing CSS remains the same -->
+    <!-- Existing Styles -->
     <style>
-        /* Previous CSS remains unchanged */
+        /* Previous CSS remains the same */
         .restricted-access {
             opacity: 0.5;
             pointer-events: none;
         }
+        .registration-warning {
+            background-color: #fff3cd;
+            color: #856404;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            display: none;
+        }
     </style>
 </head>
 <body>
-    <!-- Existing left-panel and other HTML remains the same -->
+    <div class="left-panel">
+        <div class="logo-container">
+            <a href="#" class="logo">SnapSelect</a>
+            <i class="fas fa-camera logo-icon"></i>
+        </div>
+        <h1 class="trial-headline">Start your SnapSelect Journey today.</h1>
+        <p>Streamline your photo memories workflow with client happiness</p>
+        <div class="testimonial">
+            <p class="testimonial-text">"Since I found SnapSelect, my workflow has become incredibly efficient. I save hours on each project because clients select their favorites."</p>
+            <p><b>Magesh Madavan</b></p>
+            <p style="color:var(--gray);font-size:14px">SnapSelect user since 2023</p>
+        </div>
+    </div>
     
     <div class="right-panel">
         <!-- Registration Stage Warning -->
-        <div id="registration-stage-warning" class="notification-message" style="display:none;">
-            <div class="notification-title">
-                <i class="fas fa-info-circle notification-icon"></i>
-                <span>Complete Your Registration</span>
-            </div>
-            <p id="stage-warning-text">Please complete all registration steps to access your full account.</p>
+        <div id="registration-warning" class="registration-warning">
+            Please complete all registration steps to access your full account.
         </div>
 
-        <!-- Rest of the existing HTML remains the same -->
+        <div class="steps">
+            <div class="step active" id="step-1-indicator">
+                <div class="step-number">1</div>
+                <div class="step-label">Account</div>
+            </div>
+            <div class="step" id="step-2-indicator">
+                <div class="step-number">2</div>
+                <div class="step-label">Studio Info</div>
+            </div>
+            <div class="step" id="step-3-indicator">
+                <div class="step-number">3</div>
+                <div class="step-label">Choose Plan</div>
+            </div>
+        </div>
+        
+        <div class="form-screen active" id="step-1-screen">
+            <form id="step-1-form">
+                <button type="button" class="google-btn" id="google-signin-btn">
+                    <i class="fab fa-google" style="margin-right:10px"></i>Sign up with Google
+                </button>
+                <div class="divider"><span>or sign up with email</span></div>
+                <div class="form-group">
+                    <label for="email">Email</label>
+                    <div class="input-icon-wrapper">
+                        <i class="fas fa-envelope input-icon"></i>
+                        <input type="email" id="email" class="input-with-icon" placeholder="your@email.com" required>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <div class="input-icon-wrapper">
+                        <i class="fas fa-lock input-icon"></i>
+                        <input type="password" id="password" class="input-with-icon" placeholder="Choose a password" required>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="confirm-password">Confirm Password</label>
+                    <div class="input-icon-wrapper">
+                        <i class="fas fa-lock input-icon"></i>
+                        <input type="password" id="confirm-password" class="input-with-icon" placeholder="Confirm your password" required>
+                    </div>
+                </div>
+                <div style="display:flex; gap:15px">
+                    <button type="button" class="btn" id="to-step-2-btn">Continue</button>
+                </div>
+            </form>
+        </div>
+        
+        <div class="form-screen" id="step-2-screen">
+            <form id="step-2-form">
+                <div class="form-group">
+                    <label for="studio-name">Studio Name</label>
+                    <div class="input-icon-wrapper">
+                        <i class="fas fa-camera input-icon"></i>
+                        <input type="text" id="studio-name" class="input-with-icon" placeholder="Enter a Studio Name" required>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="owner-name">Owner Name</label>
+                    <div class="input-icon-wrapper">
+                        <i class="fas fa-user input-icon"></i>
+                        <input type="text" id="owner-name" class="input-with-icon" placeholder="Your Name" required>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="owner-email">Owner Email</label>
+                    <div class="input-icon-wrapper">
+                        <i class="fas fa-envelope input-icon"></i>
+                        <input type="email" id="owner-email" class="input-with-icon" placeholder="your@email.com" required>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="owner-number">Owner Number</label>
+                    <div class="input-icon-wrapper">
+                        <i class="fas fa-phone input-icon"></i>
+                        <input type="tel" id="owner-number" class="input-with-icon" placeholder="Phone Number" required>
+                    </div>
+                </div>
+                <div style="display:flex; gap:15px">
+                    <button type="button" class="btn" id="back-to-step-1-btn" 
+                    style="background-color:var(--light-gray); color:var(--dark); border:1px solid var(--border)">Back</button>
+                    <button type="button" class="btn" id="to-step-3-btn">Continue</button>
+                </div>
+            </form>
+        </div>
+        
+        <div class="form-screen" id="step-3-screen">
+            <form id="step-3-form">
+                <h3 style="margin-bottom:20px; text-align:center">Select Your Plan</h3>
+                <div class="pricing-tiers" id="pricing-tiers"></div>
+                <div class="checkbox-group">
+                    <input type="checkbox" id="terms" required>
+                    <div>I agree to the <a href="#" style="color:var(--primary);text-decoration:none">Terms of Service</a> and 
+                    <a href="#" style="color:var(--primary);text-decoration:none">Privacy Policy</a>.</div>
+                </div>
+                <div style="display:flex; gap:15px">
+                    <button type="button" class="btn" id="back-to-step-2-btn" 
+                    style="background-color:var(--light-gray); color:var(--dark); border:1px solid var(--border)">Back</button>
+                    <button type="submit" class="btn" id="complete-registration-btn">Complete Registration</button>
+                </div>
+            </form>
+        </div>
     </div>
     
-    <!-- Updated Registration Script -->
-    <script src="../assets/js/photographer_registration.js"></script>
-    
-    <!-- Registration Stage Management Script -->
+    <!-- Firebase Authentication Scripts -->
+    <script src="../assets/js/firebase-config.js"></script>
+    <script src="../assets/js/firebase-auth.js"></script>
     <script>
-        document.addEventListener('DOMContentLoaded', async () => {
-            // Function to handle different registration stages
-            async function checkRegistrationStage() {
-                const user = window.firebaseAuth.getCurrentUser();
-                if (!user) return;
+        document.addEventListener('DOMContentLoaded', function() {
+            // Pricing tiers data (same as previous implementation)
+            const tiers = [
+                {name:'Mini', price:'INR 99', period:'/client', features:['Up to 150 photo uploads','3GB storage','14-days selection window'], popular:false},
+                {name:'Basic', price:'INR 399', period:'/client', features:['Up to 500 photo uploads','8GB storage','30-days selection window'], popular:false},
+                {name:'Medium', price:'INR 1,299', period:'/client', features:['Up to 1,000 photo uploads','25GB storage','45-days selection window'], popular:true},
+                {name:'Mega', price:'INR 2,999', period:'/client', features:['Unlimited photo uploads','100GB storage','90-days selection window'], popular:false}
+            ];
+            
+            // Generate pricing tiers
+            const tiersContainer = document.getElementById('pricing-tiers');
+            tiers.forEach(tier => {
+                const tierCard = document.createElement('div');
+                tierCard.className = `tier-card${tier.popular ? ' most-popular' : ''}`;
+                tierCard.setAttribute('data-tier', tier.name.toLowerCase());
+                
+                let featuresHTML = '';
+                tier.features.forEach(feature => {
+                    featuresHTML += `<div><i class="fas fa-check" style="color:var(--primary);margin-right:5px"></i>${feature}</div>`;
+                });
+                
+                tierCard.innerHTML = `
+                    <i class="fas fa-check-circle tier-check"></i>
+                    <div class="tier-name">${tier.name}</div>
+                    <div class="tier-price">${tier.price}<span style="font-size:14px;color:var(--gray);font-weight:normal">${tier.period}</span></div>
+                    ${featuresHTML}
+                `;
+                
+                tierCard.addEventListener('click', () => selectTier(tier.name.toLowerCase()));
+                tiersContainer.appendChild(tierCard);
+            });
 
-                try {
-                    const stage = await window.firebaseAuth.getRegistrationStage(user.uid);
-                    const registrationStages = {
-                        'initial': handleInitialStage,
-                        'google_auth': handleGoogleAuthStage,
-                        'studio_info': handleStudioInfoStage,
-                        'payment_complete': handlePaymentCompleteStage
-                    };
+            // Form data storage
+            let formData = {
+                email: '', 
+                password: '', 
+                studioName: '', 
+                ownerName: '', 
+                ownerEmail: '', 
+                ownerNumber: '', 
+                selectedTier: 'medium'
+            };
 
-                    const stageHandler = registrationStages[stage] || handleInitialStage;
-                    stageHandler();
-                } catch (error) {
-                    console.error('Registration stage check failed:', error);
+            // Navigation and Form Management
+            const screens = [
+                document.getElementById('step-1-screen'),
+                document.getElementById('step-2-screen'),
+                document.getElementById('step-3-screen')
+            ];
+            const indicators = [
+                document.getElementById('step-1-indicator'),
+                document.getElementById('step-2-indicator'),
+                document.getElementById('step-3-indicator')
+            ];
+
+            function goToStep(step) {
+                screens.forEach(s => s.classList.remove('active'));
+                indicators.forEach(i => i.classList.remove('active'));
+                screens[step-1].classList.add('active');
+                indicators[step-1].classList.add('active');
+            }
+
+            function selectTier(tierName) {
+                document.querySelectorAll('.tier-card').forEach(card => card.classList.remove('selected'));
+                document.querySelector(`.tier-card[data-tier="${tierName}"]`).classList.add('selected');
+                formData.selectedTier = tierName;
+            }
+
+            // Google Sign-In
+            document.getElementById('google-signin-btn').addEventListener('click', () => {
+                window.firebaseAuth.signInWithGoogle()
+                    .then(user => {
+                        // Pre-fill email from Google account
+                        formData.email = user.email;
+                        formData.ownerEmail = user.email;
+                        formData.ownerName = user.displayName || '';
+
+                        // Update form and move to step 2
+                        document.getElementById('owner-name').value = formData.ownerName;
+                        document.getElementById('owner-email').value = formData.ownerEmail;
+                        goToStep(2);
+                    })
+                    .catch(error => {
+                        console.error('Google Sign-In Error', error);
+                        alert('Google Sign-In Failed: ' + error.message);
+                    });
+            });
+
+            // Step 1 Validation
+            document.getElementById('to-step-2-btn').addEventListener('click', () => {
+                const email = document.getElementById('email').value.trim();
+                const password = document.getElementById('password').value;
+                const confirmPassword = document.getElementById('confirm-password').value;
+
+                if (!email) {
+                    alert('Please enter an email address');
+                    return;
                 }
-            }
 
-            function handleInitialStage() {
-                // Reset to first registration step
-                document.getElementById('step-1-screen').classList.add('active');
-                disableDashboardAccess();
-            }
+                if (password.length < 8) {
+                    alert('Password must be at least 8 characters long');
+                    return;
+                }
 
-            function handleGoogleAuthStage() {
-                // Move to studio info step
-                document.getElementById('step-1-screen').classList.remove('active');
-                document.getElementById('step-2-screen').classList.add('active');
-                updateStepIndicators(2);
-                disableDashboardAccess();
-                showRegistrationStageWarning('Complete your studio information');
-            }
+                if (password !== confirmPassword) {
+                    alert('Passwords do not match');
+                    return;
+                }
 
-            function handleStudioInfoStage() {
-                // Move to payment step
-                document.getElementById('step-2-screen').classList.remove('active');
-                document.getElementById('step-3-screen').classList.add('active');
-                updateStepIndicators(3);
-                disableDashboardAccess();
-                showRegistrationStageWarning('Complete your registration payment');
-            }
+                // Store form data
+                formData.email = email;
+                formData.password = password;
+                formData.ownerEmail = email;
 
-            function handlePaymentCompleteStage() {
-                // Full access granted
-                enableDashboardAccess();
-                hideRegistrationStageWarning();
-            }
+                // Move to next step
+                document.getElementById('owner-email').value = email;
+                goToStep(2);
+            });
 
-            function disableDashboardAccess() {
-                const dashboardElements = document.querySelectorAll('.dashboard-access');
-                dashboardElements.forEach(el => {
-                    el.classList.add('restricted-access');
-                    el.setAttribute('disabled', 'true');
-                });
-            }
+            // Step 2 Validation
+            document.getElementById('to-step-3-btn').addEventListener('click', () => {
+                const studioName = document.getElementById('studio-name').value.trim();
+                const ownerName = document.getElementById('owner-name').value.trim();
+                const ownerEmail = document.getElementById('owner-email').value.trim();
+                const ownerNumber = document.getElementById('owner-number').value.trim();
 
-            function enableDashboardAccess() {
-                const dashboardElements = document.querySelectorAll('.dashboard-access');
-                dashboardElements.forEach(el => {
-                    el.classList.remove('restricted-access');
-                    el.removeAttribute('disabled');
-                });
-            }
+                if (!studioName || !ownerName || !ownerEmail || !ownerNumber) {
+                    alert('Please fill in all fields');
+                    return;
+                }
 
-            function showRegistrationStageWarning(message) {
-                const warningEl = document.getElementById('registration-stage-warning');
-                const warningText = document.getElementById('stage-warning-text');
-                warningText.textContent = message;
-                warningEl.style.display = 'block';
-            }
+                // Store studio data
+                formData.studioName = studioName;
+                formData.ownerName = ownerName;
+                formData.ownerNumber = ownerNumber;
 
-            function hideRegistrationStageWarning() {
-                const warningEl = document.getElementById('registration-stage-warning');
-                warningEl.style.display = 'none';
-            }
+                // Move to next step
+                goToStep(3);
+                selectTier(formData.selectedTier);
+            });
 
-            function updateStepIndicators(stepNumber) {
-                // Update step indicators
-                for (let i = 1; i <= 3; i++) {
-                    const stepIndicator = document.getElementById(`step-${i}-indicator`);
-                    const stepScreen = document.getElementById(`step-${i}-screen`);
+            // Back Navigation
+            document.getElementById('back-to-step-1-btn').addEventListener('click', () => goToStep(1));
+            document.getElementById('back-to-step-2-btn').addEventListener('click', () => goToStep(2));
+
+            // Complete Registration
+            document.getElementById('complete-registration-btn').addEventListener('click', (event) => {
+                event.preventDefault();
+
+                // Validate terms
+                if (!document.getElementById('terms').checked) {
+                    alert('Please agree to the Terms of Service and Privacy Policy');
+                    return;
+                }
+
+                // Prepare registration data
+                const studioData = {
+                    studioName: formData.studioName,
+                    ownerName: formData.ownerName,
+                    ownerEmail: formData.ownerEmail,
+                    ownerNumber: formData.ownerNumber,
+                    selectedTier: formData.selectedTier
+                };
+
+                // Simulate transaction ID (replace with actual payment integration)
+                const transactionID = 'SNAP_' + Date.now();
+
+                // Complete registration
+                window.firebaseAuth.completeRegistration(
+                    formData.email, 
+                    formData.password,studioData, 
+                    transactionID
+                )
+                .then(user => {
+                    // Registration successful
+                    console.log('Registration Complete', user);
+                    alert(`Registration successful with ${formData.selectedTier} plan!`);
                     
-                    if (i <= stepNumber) {
-                        stepIndicator.classList.add('active');
-                    } else {
-                        stepIndicator.classList.remove('active');
-                    }
+                    // Redirect to dashboard or show success message
+                    window.location.href = '/dashboard.html';
+                })
+                .catch(error => {
+                    console.error('Registration Error', error);
+                    alert('Registration Failed: ' + error.message);
+                });
+            });
 
-                    if (i === stepNumber) {
-                        stepScreen.classList.add('active');
-                    } else {
-                        stepScreen.classList.remove('active');
-                    }
-                }
-            }
-
-            // Set up auth observer
+            // Authentication State Observer
             window.firebaseAuth.setupAuthObserver(
-                // User fully logged in
+                // Fully Logged In
                 (user) => {
-                    enableDashboardAccess();
-                    hideRegistrationStageWarning();
+                    console.log('User fully logged in', user);
+                    document.getElementById('registration-warning').style.display = 'none';
                 },
-                // User logged out
+                // Logged Out
                 () => {
-                    disableDashboardAccess();
+                    console.log('User logged out');
+                    document.getElementById('registration-warning').style.display = 'block';
                 },
-                // Partial registration
+                // Partial Registration
                 (user, stage) => {
-                    checkRegistrationStage();
+                    console.log('Partial registration', user, stage);
+                    document.getElementById('registration-warning').style.display = 'block';
+
+                    // Handle different registration stages
+                    switch(stage) {
+                        case window.firebaseAuth.REGISTRATION_STAGES.GOOGLE_AUTHENTICATED:
+                            goToStep(2);
+                            break;
+                        case window.firebaseAuth.REGISTRATION_STAGES.STUDIO_INFO_ENTERED:
+                            goToStep(3);
+                            break;
+                    }
                 }
             );
 
-            // Initial stage check
-            checkRegistrationStage();
+            // Initialize
+            selectTier('medium');
         });
     </script>
 </body>
