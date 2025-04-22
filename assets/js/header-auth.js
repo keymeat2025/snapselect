@@ -214,7 +214,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             
             // Redirect to home page
-            window.location.href = '/index.html';
+            window.location.href = '/snapselect/index.html';
             
             return true;
         } catch (error) {
