@@ -73,7 +73,8 @@ function setupAuthObserver() {
             // Reset login attempts on successful sign-in
             resetLoginAttempts();
             
-            window.location.href = 'studiopanel-dashboard.html';
+            //window.location.href = 'studiopanel-dashb.html';
+            window.location.href = 'index.html';
         },
         function() {
             // User is signed out, stay on login page
