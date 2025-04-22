@@ -4,6 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SnapSelect Login</title>
+    
+    <!-- Security headers -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <meta name="robots" content="noindex, nofollow">
+    
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         :root {
@@ -218,9 +225,7 @@
 </head>
 <body>
     <div class="logo-container">
-        
         <a href="/snapselect/index.html" class="logo">SnapSelect</a>
-     
         <i class="fas fa-camera logo-icon"></i>
     </div>
     
@@ -234,15 +239,31 @@
         
         <div class="divider">OR</div>
         
-        <form id="login-form">
+        <!-- Enhanced form with security attributes -->
+        <form id="login-form" autocomplete="off" novalidate>
             <div class="form-group">
                 <label for="email">Email</label>
-                <input type="email" id="email" placeholder="example@email.com" required>
+                <input type="email" 
+                       id="email" 
+                       name="email_field_login"
+                       placeholder="example@email.com" 
+                       autocomplete="off"
+                       autocorrect="off"
+                       autocapitalize="off"
+                       spellcheck="false"
+                       required>
             </div>
             
             <div class="form-group">
                 <label for="password">Password</label>
-                <input type="password" id="password" required>
+                <input type="password" 
+                       id="password" 
+                       name="password_field_login"
+                       autocomplete="new-password"
+                       autocorrect="off"
+                       autocapitalize="off"
+                       spellcheck="false"
+                       required>
             </div>
             
             <a href="Reset-Password.html" class="forgot-link">Forgot?</a>
@@ -270,14 +291,51 @@
     <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
-   
-    
     <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-storage-compat.js"></script>
     
     <!-- Firebase configuration and services -->
     <script src="../assets/js/firebase-config.js"></script>
     <script src="../assets/js/firebase-auth.js"></script>
     <script src="../assets/js/firebase-db.js"></script>
+    
+    <!-- Security enhancement script -->
+    <script>
+        // Clear form on page load
+        window.addEventListener('load', function() {
+            document.getElementById('email').value = '';
+            document.getElementById('password').value = '';
+            
+            // Prevent browser back button after logout
+            if (window.history && window.history.pushState) {
+                window.history.pushState('forward', null, './#forward');
+                window.onpopstate = function() {
+                    // Check if user came here after logout
+                    const wasLoggedOut = sessionStorage.getItem('loggedOut');
+                    if (wasLoggedOut) {
+                        sessionStorage.removeItem('loggedOut');
+                        // Clear form again
+                        document.getElementById('email').value = '';
+                        document.getElementById('password').value = '';
+                    }
+                };
+            }
+        });
+        
+        // Disable autocomplete on dynamically added fields
+        document.addEventListener('DOMContentLoaded', function() {
+            const form = document.getElementById('login-form');
+            const inputs = form.querySelectorAll('input');
+            
+            inputs.forEach(input => {
+                input.setAttribute('autocomplete', 'off');
+                
+                // Additional protection for password fields
+                if (input.type === 'password') {
+                    input.setAttribute('autocomplete', 'new-password');
+                }
+            });
+        });
+    </script>
     
     <!-- Login page specific script -->
     <script src="../assets/js/login-page.js"></script>
