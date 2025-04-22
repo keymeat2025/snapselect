@@ -400,3 +400,61 @@ function logUserSignOut() {
     // Non-critical error, continue with logout
   }
 }
+// Update the signOut function in firebase-auth.js
+async function signOut() {
+  if (!auth) {
+    throw new Error("Auth not initialized yet");
+  }
+  
+  try {
+    // Sign out from Firebase
+    await auth.signOut();
+    
+    // Clear all storage
+    clearAllStorage();
+    
+    // Clear browser history state
+    clearHistoryState();
+    
+    // Force redirect to prevent back navigation
+    window.location.replace('index.html');
+    
+  } catch (error) {
+    console.error("Sign out error:", error.message);
+    throw error;
+  }
+}
+
+function clearAllStorage() {
+  // Clear localStorage
+  localStorage.clear();
+  
+  // Clear sessionStorage
+  sessionStorage.clear();
+  
+  // Clear cookies (if any)
+  document.cookie.split(";").forEach(function(c) { 
+    document.cookie = c.replace(/^ +/, "")
+      .replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/"); 
+  });
+  
+  // Clear IndexedDB if used
+  if (window.indexedDB) {
+    try {
+      indexedDB.deleteDatabase('snapselect-db');
+    } catch (e) {
+      console.log("Error clearing IndexedDB:", e);
+    }
+  }
+}
+
+function clearHistoryState() {
+  // Replace current page in history
+  window.history.replaceState(null, '', window.location.href);
+  
+  // Try to prevent back navigation to protected pages
+  window.history.pushState(null, '', window.location.href);
+  window.onpopstate = function () {
+    window.history.go(1);
+  };
+}
