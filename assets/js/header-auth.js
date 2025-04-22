@@ -17,6 +17,9 @@ document.addEventListener('DOMContentLoaded', function() {
     // Set up header UI interactions
     setupHeaderInteractions();
     
+    // Set up secure navigation
+    setupSecureNavigation();
+    
     // Wait for Firebase to initialize
     function waitForFirebase() {
         if (typeof window.firebaseServices === 'undefined' || 
@@ -165,6 +168,49 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
     
+    // Set up secure navigation for dashboard and other protected pages
+    function setupSecureNavigation() {
+        // Apply to dashboard link in user dropdown
+        const dashboardLink = document.querySelector('.user-dropdown a[href*="dashboard"]');
+        if (dashboardLink) {
+            // Update the href to prevent direct access
+            dashboardLink.href = '#';
+            
+            // Add secure navigation
+            dashboardLink.addEventListener('click', navigateToDashboard);
+        }
+        
+        // Also handle any other dashboard links on the page
+        const allDashboardLinks = document.querySelectorAll('a[href*="dashboard"]');
+        allDashboardLinks.forEach(link => {
+            // Check if it's not the dropdown link (already handled)
+            if (!link.closest('.user-dropdown')) {
+                link.href = '#';
+                link.addEventListener('click', navigateToDashboard);
+            }
+        });
+    }
+    
+    // Function to authorize dashboard access
+    function navigateToDashboard(event) {
+        event.preventDefault();
+        
+        // Check if user is authenticated
+        const auth = window.firebaseServices?.auth;
+        const user = auth?.currentUser;
+        
+        if (user) {
+            // Set authorization flag for dashboard access
+            sessionStorage.setItem('authorizedAccess', 'true');
+            
+            // Navigate to dashboard
+            window.location.href = 'pages/studiopanel-dashboard.html';
+        } else {
+            // Redirect to login if not authenticated
+            window.location.href = 'pages/studiopanel-login.html';
+        }
+    }
+    
     // Show logout confirmation dialog
     function showLogoutConfirmation() {
         // Create confirmation dialog if it doesn't exist
@@ -282,6 +328,9 @@ document.addEventListener('DOMContentLoaded', function() {
         localStorage.removeItem('snapselect_preferences');
         localStorage.removeItem('snapselect_recent_galleries');
         localStorage.removeItem('snapselect_draft_uploads');
+        
+        // Clear all session storage
+        sessionStorage.clear();
         
         // Add any other client-side cleanup needed
         
