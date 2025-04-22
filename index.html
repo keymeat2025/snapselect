@@ -37,8 +37,11 @@
                                 <span class="user-name" id="userName">User</span>
                                 <i class="fas fa-chevron-down"></i>
                             </button>
+                         
+
                             <div class="user-dropdown" id="userDropdown">
-                                <a href="pages/studiopanel-dashboard.html">Dashboard</a>
+                                <!-- Change the dashboard link to use # instead of direct path -->
+                                <a href="#" id="dashboardNavLink">Dashboard</a>
                                 <a href="pages/account-settings.html">Account Settings</a>
                                 <a href="#" id="logoutBtn">Logout</a>
                             </div>
@@ -286,5 +289,31 @@
     
     <!-- Header authentication integration - Load last -->
     <script src="assets/js/header-auth.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Secure dashboard navigation
+            const dashboardNavLink = document.getElementById('dashboardNavLink');
+            if (dashboardNavLink) {
+                dashboardNavLink.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    
+                    // Check authentication
+                    const auth = window.firebaseServices?.auth;
+                    const user = auth?.currentUser;
+                    
+                    if (user) {
+                        // Set authorization flag
+                        sessionStorage.setItem('authorizedAccess', 'true');
+                        
+                        // Navigate to dashboard
+                        window.location.href = 'pages/studiopanel-dashboard.html';
+                    } else {
+                        // Redirect to login
+                        window.location.href = 'pages/studiopanel-login.html';
+                    }
+                });
+            }
+        });
+    </script>
 </body>
 </html>
