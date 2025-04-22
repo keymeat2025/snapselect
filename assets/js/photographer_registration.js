@@ -55,7 +55,7 @@ async function checkRegistrationComplete(userId) {
         const docRef = await db.collection('photographer').doc('photographer_main').get();
         if (docRef.exists && docRef.data().uid === userId) {
             // Registration is complete, redirect to dashboard
-            window.location.href = '/dashboard.html';
+            window.location.href = '../index.html';
         }
     } catch (error) {
         console.error('Error checking registration status:', error);
