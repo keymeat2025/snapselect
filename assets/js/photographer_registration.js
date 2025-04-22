@@ -1,288 +1,198 @@
-// registration.js
-// Handles the SnapSelect registration process
+// photographer_registration.js
+document.addEventListener('DOMContentLoaded', function() {
+    // Form Elements
+    const googleSigninBtn = document.getElementById('google-signin-btn');
+    const toStep2Btn = document.getElementById('to-step-2-btn');
+    const backToStep1Btn = document.getElementById('back-to-step-1-btn');
+    const toStep3Btn = document.getElementById('to-step-3-btn');
+    const backToStep2Btn = document.getElementById('back-to-step-2-btn');
+    const makePaymentBtn = document.getElementById('make-payment-btn');
+    const goToDashboardBtn = document.getElementById('go-to-dashboard-btn');
 
-// Form data storage
-let formData = {
-    email: '', 
-    password: '', 
-    studioName: '', 
-    ownerName: '', 
-    ownerEmail: '', 
-    ownerNumber: '',
-    studioAddress: '',
-    studioPincode: '',
-    registrationDate: null
-};
+    // Form Screens
+    const step1Screen = document.getElementById('step-1-screen');
+    const step2Screen = document.getElementById('step-2-screen');
+    const step3Screen = document.getElementById('step-3-screen');
 
-// DOM elements
-const screens = document.querySelectorAll('.form-screen');
-const indicators = document.querySelectorAll('.step');
+    // Step Indicators
+    const step1Indicator = document.getElementById('step-1-indicator');
+    const step2Indicator = document.getElementById('step-2-indicator');
+    const step3Indicator = document.getElementById('step-3-indicator');
 
-// Check if user is already logged in
-document.addEventListener('DOMContentLoaded', () => {
-    // Initialize event listeners
-    setupFormListeners();
-    
-    // Check authentication state
-    checkAuthState();
-});
-
-// Check authentication state
-function checkAuthState() {
-    if (window.firebaseAuth) {
-        window.firebaseAuth.setupAuthObserver(
-            (user) => {
-                // User is signed in
-                console.log('User is signed in:', user.email);
-                // Check if registration is complete and redirect if needed
-                checkRegistrationComplete(user.uid);
-            },
-            () => {
-                // User is signed out, stay on registration page
-                console.log('User is signed out');
-            }
-        );
-    } else {
-        // Firebase Auth not loaded yet, try again in a moment
-        setTimeout(checkAuthState, 500);
+    // Form Validation Helpers
+    function validateEmail(email) {
+        const re = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+        return re.test(String(email).toLowerCase());
     }
-}
 
-// Check if registration is complete
-async function checkRegistrationComplete(userId) {
-    try {
-        // Get photographer document
-        const docRef = await db.collection('photographer').doc('photographer_main').get();
-        if (docRef.exists && docRef.data().uid === userId) {
-            // Registration is complete, redirect to dashboard
-            window.location.href = '../index.html';
-        }
-    } catch (error) {
-        console.error('Error checking registration status:', error);
+    function validatePassword(password) {
+        return password.length >= 8;
     }
-}
 
-// Test Firestore connection
-function testFirestoreConnection() {
-  const db = window.firebaseServices?.db;
-  if (db) {
-    console.log("Testing Firestore connection...");
-    db.collection('test').doc('test-doc').set({
-      test: 'This is a test',
-      timestamp: new Date()
-    })
-    .then(() => {
-      console.log("Firestore connection successful!");
-    })
-    .catch((error) => {
-      console.error("Firestore connection failed:", error);
-    });
-  } else {
-    console.error("Firestore not initialized");
-  }
-}
+    // Google Sign In Handler
+    function handleGoogleSignIn() {
+        window.firebaseAuth.signInWithGoogle()
+            .then(user => {
+                console.log('Google Sign-In Successful', user);
+                // Move to Studio Info Step
+                step1Screen.classList.remove('active');
+                step2Screen.classList.add('active');
+                updateStepIndicators(2);
+            })
+            .catch(error => {
+                console.error('Google Sign-In Error', error);
+                alert('Google Sign-In Failed: ' + error.message);
+            });
+    }
 
-// Call the test function after a short delay to ensure Firebase is initialized
-setTimeout(testFirestoreConnection, 2000);
-
-// Set up event listeners
-function setupFormListeners() {
-    // Step 1 to Step 2
-    document.getElementById('to-step-2-btn').addEventListener('click', () => {
-        const email = document.getElementById('email').value;
+    // Step Navigation and Validation
+    function validateStep1() {
+        const email = document.getElementById('email').value.trim();
         const password = document.getElementById('password').value;
         const confirmPassword = document.getElementById('confirm-password').value;
-        
-        if (!email || !password) {
-            alert('Please fill in all required fields.');
-            return;
+
+        if (!validateEmail(email)) {
+            alert('Please enter a valid email address');
+            return false;
         }
-        
+
+        if (!validatePassword(password)) {
+            alert('Password must be at least 8 characters long');
+            return false;
+        }
+
         if (password !== confirmPassword) {
-            alert('Passwords do not match.');
+            alert('Passwords do not match');
+            return false;
+        }
+
+        // Move to next step
+        step1Screen.classList.remove('active');
+        step2Screen.classList.add('active');
+        updateStepIndicators(2);
+        return true;
+    }
+
+    function validateStep2() {
+        const studioName = document.getElementById('studio-name').value.trim();
+        const ownerName = document.getElementById('owner-name').value.trim();
+        const ownerEmail = document.getElementById('owner-email').value.trim();
+        const ownerNumber = document.getElementById('owner-number').value.trim();
+        const studioAddress = document.getElementById('studio-address').value.trim();
+        const studioPincode = document.getElementById('studio-pincode').value.trim();
+
+        // Basic validation checks
+        if (!studioName || !ownerName || !ownerEmail || !ownerNumber || !studioAddress || !studioPincode) {
+            alert('Please fill in all fields');
+            return false;
+        }
+
+        // Move to next step
+        step2Screen.classList.remove('active');
+        step3Screen.classList.add('active');
+        updateStepIndicators(3);
+        return true;
+    }
+
+    function completeRegistration() {
+        const termsCheckbox = document.getElementById('terms');
+        if (!termsCheckbox.checked) {
+            alert('Please agree to the Terms of Service and Privacy Policy');
             return;
         }
-        
-        formData.email = email;
-        formData.password = password;
-        
-        goToStep(2);
-        document.getElementById('owner-email').value = email;
-    });
-    
-    // Step 2 to Step 3
-    document.getElementById('to-step-3-btn').addEventListener('click', () => {
-        if (!validateForm('step-2-form', [
-            'studio-name', 
-            'owner-name', 
-            'owner-email', 
-            'owner-number', 
-            'studio-address', 
-            'studio-pincode'
-        ])) {
-            return;
+
+        const email = document.getElementById('email').value.trim();
+        const password = document.getElementById('password').value;
+        const studioData = {
+            studioName: document.getElementById('studio-name').value.trim(),
+            ownerName: document.getElementById('owner-name').value.trim(),
+            ownerEmail: document.getElementById('owner-email').value.trim(),
+            ownerNumber: document.getElementById('owner-number').value.trim(),
+            studioAddress: document.getElementById('studio-address').value.trim(),
+            studioPincode: document.getElementById('studio-pincode').value.trim()
+        };
+
+        // Simulate transaction ID (in real scenario, integrate with payment gateway)
+        const transactionID = 'SNAP_' + Date.now();
+
+        window.firebaseAuth.completeRegistration(email, password, studioData, transactionID)
+            .then(user => {
+                console.log('Registration Complete', user);
+                // Show success screen
+                document.getElementById('payment-screen').style.display = 'none';
+                document.getElementById('success-screen').style.display = 'block';
+            })
+            .catch(error => {
+                console.error('Registration Error', error);
+                alert('Registration Failed: ' + error.message);
+            });
+    }
+
+    // Step Indicator Update
+    function updateStepIndicators(activeStep) {
+        [step1Indicator, step2Indicator, step3Indicator].forEach((indicator, index) => {
+            if (index + 1 <= activeStep) {
+                indicator.classList.add('active');
+            } else {
+                indicator.classList.remove('active');
+            }
+        });
+    }
+
+    // Back Button Handlers
+    function backToStep1() {
+        step2Screen.classList.remove('active');
+        step1Screen.classList.add('active');
+        updateStepIndicators(1);
+    }
+
+    function backToStep2() {
+        step3Screen.classList.remove('active');
+        step2Screen.classList.add('active');
+        updateStepIndicators(2);
+    }
+
+    // Setup Authentication Observer
+    window.firebaseAuth.setupAuthObserver(
+        // Fully Logged In
+        (user) => {
+            console.log('User fully logged in', user);
+            // TODO: Redirect to dashboard or update UI
+        },
+        // Logged Out
+        () => {
+            console.log('User logged out');
+            // Reset registration form or show login screen
+        },
+        // Partial Registration
+        (user, stage) => {
+            console.log('Partial registration', user, stage);
+            // Handle different registration stages
+            switch(stage) {
+                case window.firebaseAuth.REGISTRATION_STAGES.GOOGLE_AUTHENTICATED:
+                    step1Screen.classList.remove('active');
+                    step2Screen.classList.add('active');
+                    updateStepIndicators(2);
+                    break;
+                case window.firebaseAuth.REGISTRATION_STAGES.STUDIO_INFO_ENTERED:
+                    step1Screen.classList.remove('active');
+                    step2Screen.classList.remove('active');
+                    step3Screen.classList.add('active');
+                    updateStepIndicators(3);
+                    break;
+            }
         }
-        
-        saveFormData();
-        goToStep(3);
-    });
-    
-    // Back buttons
-    document.getElementById('back-to-step-1-btn').addEventListener('click', () => goToStep(1));
-    document.getElementById('back-to-step-2-btn').addEventListener('click', () => goToStep(2));
-    
-    // Google Sign In
-    document.getElementById('google-signin-btn').addEventListener('click', handleGoogleSignIn);
-    
-    // Payment button
-    document.getElementById('make-payment-btn').addEventListener('click', handlePayment);
-    
-    // Dashboard button (after successful registration)
-    document.getElementById('go-to-dashboard-btn').addEventListener('click', () => {
+    );
+
+    // Event Listeners
+    if (googleSigninBtn) googleSigninBtn.addEventListener('click', handleGoogleSignIn);
+    if (toStep2Btn) toStep2Btn.addEventListener('click', validateStep1);
+    if (backToStep1Btn) backToStep1Btn.addEventListener('click', backToStep1);
+    if (toStep3Btn) toStep3Btn.addEventListener('click', validateStep2);
+    if (backToStep2Btn) backToStep2Btn.addEventListener('click', backToStep2);
+    if (makePaymentBtn) makePaymentBtn.addEventListener('click', completeRegistration);
+    if (goToDashboardBtn) goToDashboardBtn.addEventListener('click', () => {
+        // TODO: Implement dashboard navigation
         window.location.href = '/dashboard.html';
     });
-}
-
-// Navigate between steps
-function goToStep(step) {
-    screens.forEach(s => s.classList.remove('active'));
-    indicators.forEach(i => i.classList.remove('active'));
-    screens[step-1].classList.add('active');
-    indicators[step-1].classList.add('active');
-}
-
-// Validate form inputs
-function validateForm(formId, requiredFields) {
-    // Check required fields
-    if (requiredFields.some(id => !document.getElementById(id).value)) {
-        alert('Please fill in all required fields.');
-        return false;
-    }
-    
-    // India-specific validations
-    const pincode = document.getElementById('studio-pincode')?.value;
-    if (pincode && !/^[1-9][0-9]{5}$/.test(pincode)) {
-        alert('Please enter a valid 6-digit Indian PIN code.');
-        return false;
-    }
-    
-    const phone = document.getElementById('owner-number')?.value;
-    if (phone && !/^[6-9][0-9]{9}$/.test(phone)) {
-        alert('Please enter a valid 10-digit Indian mobile number starting with 6, 7, 8, or 9.');
-        return false;
-    }
-    
-    return true;
-}
-
-// Save form data
-function saveFormData() {
-    formData.studioName = document.getElementById('studio-name').value;
-    formData.ownerName = document.getElementById('owner-name').value;
-    formData.ownerEmail = document.getElementById('owner-email').value;
-    formData.ownerNumber = document.getElementById('owner-number').value;
-    formData.studioAddress = document.getElementById('studio-address').value;
-    formData.studioPincode = document.getElementById('studio-pincode').value;
-    formData.registrationDate = new Date();
-}
-
-// Handle Google sign-in
-async function handleGoogleSignIn() {
-    try {
-        if (!window.firebaseAuth) {
-            alert('Firebase authentication is not initialized yet. Please try again in a moment.');
-            return;
-        }
-        
-        const user = await window.firebaseAuth.signInWithGoogle();
-        
-        // Pre-fill form with Google account info
-        formData.email = user.email;
-        formData.password = 'google-auth'; // Just a placeholder
-        
-        // Extract name from email or displayName
-        if (user.displayName) {
-            formData.ownerName = user.displayName;
-        } else {
-            // If no display name, use email username part
-            formData.ownerName = user.email.split('@')[0];
-        }
-        
-        formData.ownerEmail = user.email;
-        
-        // Move to step 2 and pre-fill fields
-        goToStep(2);
-        document.getElementById('owner-name').value = formData.ownerName;
-        document.getElementById('owner-email').value = formData.ownerEmail;
-    } catch (error) {
-        console.error('Google sign-in error:', error);
-        alert(`Sign-in error: ${error.message}`);
-    }
-}
-
-// Handle payment and registration
-async function handlePayment() {
-    // Check terms agreement
-    if (!document.getElementById('terms').checked) {
-        alert('Please agree to the Terms of Service and Privacy Policy.');
-        return;
-    }
-    
-    // Show loading state
-    const payButton = document.getElementById('make-payment-btn');
-    payButton.innerHTML = '<i class="fas fa-spinner fa-spin" style="margin-right:8px;"></i>Processing...';
-    payButton.disabled = true;
-    
-    try {
-        // In a real implementation, this would integrate with Razorpay
-        // For now, we'll simulate a successful payment
-        
-        // Generate a mock transaction ID
-        const transactionID = 'txn_' + Date.now();
-        
-        // Wait for Firebase Auth to be ready
-        if (!window.firebaseAuth) {
-            setTimeout(() => {
-                alert('Firebase services are not ready. Please try again.');
-                payButton.innerHTML = '<i class="fas fa-lock" style="margin-right:8px;"></i>Pay & Complete Registration';
-                payButton.disabled = false;
-            }, 1000);
-            return;
-        }
-        
-        // Complete registration process with Firebase
-        await window.firebaseAuth.completeRegistration(
-            formData.email,
-            formData.password,
-            {
-                studioName: formData.studioName,
-                ownerName: formData.ownerName,
-                ownerEmail: formData.ownerEmail,
-                ownerNumber: formData.ownerNumber,
-                studioAddress: formData.studioAddress,
-                studioPincode: formData.studioPincode
-            },
-            transactionID
-        );
-        
-        // Show success UI
-        document.getElementById('payment-screen').style.display = 'none';
-        document.getElementById('success-screen').style.display = 'block';
-        
-        // Update step indicator to show completion
-        document.getElementById('step-3-indicator').innerHTML = `
-            <div class="step-number" style="background-color:var(--success);border-color:var(--success);">
-                <i class="fas fa-check" style="color:white;"></i>
-            </div>
-            <div class="step-label" style="color:var(--success);">Completed</div>
-        `;
-        
-    } catch (error) {
-        console.error('Registration error:', error);
-        alert(`Registration error: ${error.message}`);
-        
-        // Reset button state
-        payButton.innerHTML = '<i class="fas fa-lock" style="margin-right:8px;"></i>Pay & Complete Registration';
-        payButton.disabled = false;
-    }
-}
+});
