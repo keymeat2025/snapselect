@@ -45,11 +45,9 @@ function clearFormData() {
     
     if (emailField) {
         emailField.value = '';
-        emailField.setAttribute('value', '');
     }
     if (passwordField) {
         passwordField.value = '';
-        passwordField.setAttribute('value', '');
     }
     
     // Clear browser autocomplete storage
@@ -68,21 +66,12 @@ function setupFormSecurity() {
         // Disable form autocomplete
         form.setAttribute('autocomplete', 'off');
         
-        // Set unique names to prevent browser saving
-        const timestamp = Date.now();
-        emailField.setAttribute('name', `email_${timestamp}`);
-        passwordField.setAttribute('name', `password_${timestamp}`);
-        
-        // Additional security attributes
+        // Additional security attributes - don't change the name attribute
         emailField.setAttribute('autocomplete', 'off');
         emailField.setAttribute('autocorrect', 'off');
-        emailField.setAttribute('autocapitalize', 'off');
-        emailField.setAttribute('spellcheck', 'false');
         
         passwordField.setAttribute('autocomplete', 'new-password');
         passwordField.setAttribute('autocorrect', 'off');
-        passwordField.setAttribute('autocapitalize', 'off');
-        passwordField.setAttribute('spellcheck', 'false');
         
         // Clear fields on focus
         emailField.addEventListener('focus', function() {
@@ -98,8 +87,10 @@ function setupFormSecurity() {
         });
         
         // Add readonly initially to prevent autocomplete
-        emailField.setAttribute('readonly', true);
-        passwordField.setAttribute('readonly', true);
+        setTimeout(() => {
+            emailField.setAttribute('readonly', true);
+            passwordField.setAttribute('readonly', true);
+        }, 100);
         
         // Remove readonly after page load
         setTimeout(() => {
@@ -221,16 +212,20 @@ function resetLoginAttempts() {
 async function handleEmailLogin(event) {
     event.preventDefault();
     
-    // Clear any cached credentials
-    clearFormData();
-    
-    const email = document.getElementById('email').value;
+    const email = document.getElementById('email').value.trim();
     const password = document.getElementById('password').value;
     const errorElement = document.getElementById('auth-error');
     const rememberMe = document.getElementById('remember').checked;
     
     // Clear previous errors
     errorElement.style.display = 'none';
+    
+    // Basic email validation
+    if (!email || !email.includes('@')) {
+        errorElement.textContent = 'Invalid email address format.';
+        errorElement.style.display = 'block';
+        return;
+    }
     
     // Check if account is currently locked out
     const currentTime = new Date().getTime();
