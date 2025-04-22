@@ -8,15 +8,6 @@ let loginAttempts = 0;
 let lockoutUntil = 0;
 
 document.addEventListener('DOMContentLoaded', function() {
-    // Clear any stored form data
-    clearFormData();
-    
-    // Setup security enhancements
-    setupFormSecurity();
-    
-    // Setup navigation protection
-    setupNavigationProtection();
-    
     // Wait for Auth to initialize
     initializeAuth();
 });
@@ -37,105 +28,6 @@ function initializeAuth() {
     
     // Setup auth state observer
     setupAuthObserver();
-}
-
-function clearFormData() {
-    const emailField = document.getElementById('email');
-    const passwordField = document.getElementById('password');
-    
-    if (emailField) {
-        emailField.value = '';
-    }
-    if (passwordField) {
-        passwordField.value = '';
-    }
-    
-    // Clear browser autocomplete storage
-    if (window.localStorage) {
-        localStorage.removeItem('savedEmail');
-        localStorage.removeItem('savedPassword');
-    }
-}
-
-function setupFormSecurity() {
-    const form = document.getElementById('login-form');
-    const emailField = document.getElementById('email');
-    const passwordField = document.getElementById('password');
-    
-    if (form) {
-        // Disable form autocomplete
-        form.setAttribute('autocomplete', 'off');
-        
-        // Additional security attributes - don't change the name attribute
-        emailField.setAttribute('autocomplete', 'off');
-        emailField.setAttribute('autocorrect', 'off');
-        
-        passwordField.setAttribute('autocomplete', 'new-password');
-        passwordField.setAttribute('autocorrect', 'off');
-        
-        // Clear fields on focus
-        emailField.addEventListener('focus', function() {
-            if (this.hasAttribute('readonly')) {
-                this.removeAttribute('readonly');
-            }
-        });
-        
-        passwordField.addEventListener('focus', function() {
-            if (this.hasAttribute('readonly')) {
-                this.removeAttribute('readonly');
-            }
-        });
-        
-        // Add readonly initially to prevent autocomplete
-        setTimeout(() => {
-            emailField.setAttribute('readonly', true);
-            passwordField.setAttribute('readonly', true);
-        }, 100);
-        
-        // Remove readonly after page load
-        setTimeout(() => {
-            emailField.removeAttribute('readonly');
-            passwordField.removeAttribute('readonly');
-        }, 1000);
-    }
-}
-
-function setupNavigationProtection() {
-    // Clear browser history to prevent back navigation after logout
-    if (window.history && window.history.pushState) {
-        window.history.pushState(null, '', window.location.href);
-        window.onpopstate = function() {
-            window.history.pushState(null, '', window.location.href);
-            
-            // Check if user was logged out
-            const wasLoggedOut = sessionStorage.getItem('userLoggedOut');
-            if (wasLoggedOut) {
-                clearFormData();
-                sessionStorage.removeItem('userLoggedOut');
-                
-                // Show logout message
-                const errorElement = document.getElementById('auth-error');
-                if (errorElement) {
-                    errorElement.textContent = 'You have been successfully logged out.';
-                    errorElement.style.display = 'block';
-                    errorElement.style.color = '#28a745'; // Success color
-                    
-                    setTimeout(() => {
-                        errorElement.style.display = 'none';
-                        errorElement.style.color = ''; // Reset color
-                    }, 3000);
-                }
-            }
-        };
-    }
-    
-    // Disable page caching
-    window.addEventListener('pageshow', function(event) {
-        if (event.persisted) {
-            // Page was loaded from cache
-            clearFormData();
-        }
-    });
 }
 
 function checkForExistingLockout() {
@@ -181,22 +73,12 @@ function setupAuthObserver() {
             // Reset login attempts on successful sign-in
             resetLoginAttempts();
             
-            // Clear any saved form data before redirect
-            clearFormData();
-            
-            // Redirect based on user type
-            if (window.location.pathname.includes('/pages/')) {
-                window.location.replace('../index.html');
-            } else {
-                window.location.replace('index.html');
-            }
+            //window.location.href = 'studiopanel-dashb.html';
+            window.location.href = '../index.html';
         },
         function() {
             // User is signed out, stay on login page
             console.log('User is signed out');
-            
-            // Clear form data for security
-            clearFormData();
         }
     );
 }
@@ -212,20 +94,13 @@ function resetLoginAttempts() {
 async function handleEmailLogin(event) {
     event.preventDefault();
     
-    const email = document.getElementById('email').value.trim();
+    const email = document.getElementById('email').value;
     const password = document.getElementById('password').value;
     const errorElement = document.getElementById('auth-error');
     const rememberMe = document.getElementById('remember').checked;
     
     // Clear previous errors
     errorElement.style.display = 'none';
-    
-    // Basic email validation
-    if (!email || !email.includes('@')) {
-        errorElement.textContent = 'Invalid email address format.';
-        errorElement.style.display = 'block';
-        return;
-    }
     
     // Check if account is currently locked out
     const currentTime = new Date().getTime();
@@ -252,9 +127,6 @@ async function handleEmailLogin(event) {
         
         // Reset login attempts on success
         resetLoginAttempts();
-        
-        // Clear form data after successful login
-        clearFormData();
         
         // Redirect will happen automatically from the auth observer
     } catch (error) {
@@ -290,9 +162,6 @@ async function handleEmailLogin(event) {
         // Show error message
         errorElement.textContent = getAuthErrorMessage(error.code, error.message);
         errorElement.style.display = 'block';
-        
-        // Clear password field after error
-        document.getElementById('password').value = '';
     }
 }
 
@@ -318,9 +187,6 @@ async function handleGoogleLogin() {
         
         // Reset login attempts on success
         resetLoginAttempts();
-        
-        // Clear form data after successful login
-        clearFormData();
         
         // Redirect will happen automatically from the auth observer
     } catch (error) {
@@ -394,8 +260,3 @@ function getAuthErrorMessage(errorCode, errorMessage) {
             }
     }
 }
-
-// Clear form fields on window unload
-window.addEventListener('unload', function() {
-    clearFormData();
-});
