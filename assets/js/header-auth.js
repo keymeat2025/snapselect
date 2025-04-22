@@ -193,35 +193,32 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     // Perform the actual logout
+  
     async function performLogout() {
         if (!window.firebaseAuth) {
             throw new Error("Firebase Auth not initialized");
         }
         
         try {
-            // Clear any unsaved changes or local state if needed
-            clearLocalState();
-            
-            // Sign out from Firebase
             await window.firebaseAuth.signOut();
             
-            // The auth observer will handle UI updates automatically
+            // For GitHub Pages, use relative path based on current location
+            const currentPath = window.location.pathname;
             
-            // Close confirmation dialog
-            const confirmDialog = document.getElementById('logoutConfirm');
-            if (confirmDialog) {
-                confirmDialog.classList.remove('active');
+            if (currentPath.includes('/pages/')) {
+                // If we're in a pages subdirectory, go up one level
+                window.location.href = '../index.html';
+            } else {
+                // If we're at the root, just reload
+                window.location.reload();
             }
-            
-            // Redirect to home page
-            window.location.href = '/snapselect/index.html';
-            
-            return true;
         } catch (error) {
             console.error("Logout error:", error);
             throw error;
         }
     }
+            
+      
     
     // Clear any local state
     function clearLocalState() {
