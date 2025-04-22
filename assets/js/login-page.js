@@ -74,7 +74,7 @@ function setupAuthObserver() {
             resetLoginAttempts();
             
             //window.location.href = 'studiopanel-dashb.html';
-            window.location.href = 'index.html';
+            window.location.href = '../index.html';
         },
         function() {
             // User is signed out, stay on login page
