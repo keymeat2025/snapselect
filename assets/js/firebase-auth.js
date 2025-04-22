@@ -231,3 +231,172 @@ function getCurrentUser() {
   
   return auth.currentUser;
 }
+// Enhanced signOut function for firebase-auth.js
+// Add or update this in your existing firebase-auth.js file
+
+/**
+ * Enhanced sign out functionality with additional cleanup
+ * @param {Object} options - Logout options
+ * @param {boolean} options.redirect - Whether to redirect after logout
+ * @param {string} options.redirectUrl - URL to redirect to after logout
+ * @param {Function} options.onSuccess - Callback for successful logout
+ * @param {Function} options.onError - Callback for logout errors
+ * @param {boolean} options.clearCache - Whether to clear cache data
+ * @returns {Promise<void>}
+ */
+async function signOut(options = {}) {
+  if (!auth) {
+    throw new Error("Auth not initialized yet");
+  }
+  
+  // Default options
+  const defaultOptions = {
+    redirect: true,
+    redirectUrl: '/index.html',
+    clearCache: true,
+    onSuccess: null,
+    onError: null
+  };
+  
+  // Merge with defaults
+  const settings = { ...defaultOptions, ...options };
+  
+  try {
+    console.log("Starting logout process...");
+    
+    // 1. Clear any pending operations
+    await cancelPendingUploads();
+    
+    // 2. Sign out from Firebase Auth
+    await auth.signOut();
+    console.log("Firebase Auth sign-out successful");
+    
+    // 3. Clear application cache if requested
+    if (settings.clearCache) {
+      clearApplicationCache();
+    }
+    
+    // 4. Clear any persistent session data
+    clearSessionData();
+    
+    // 5. Update analytics if available
+    logUserSignOut();
+    
+    // 6. Call success callback if provided
+    if (typeof settings.onSuccess === 'function') {
+      settings.onSuccess();
+    }
+    
+    // 7. Redirect if requested
+    if (settings.redirect) {
+      console.log(`Redirecting to ${settings.redirectUrl}`);
+      window.location.href = settings.redirectUrl;
+    }
+  } catch (error) {
+    console.error("Sign out error:", error.message);
+    
+    // Call error callback if provided
+    if (typeof settings.onError === 'function') {
+      settings.onError(error);
+    }
+    
+    throw error;
+  }
+}
+
+/**
+ * Cancel any pending uploads or operations
+ * @returns {Promise<void>}
+ */
+async function cancelPendingUploads() {
+  try {
+    // Check if we have active uploads
+    const pendingUploads = sessionStorage.getItem('snapselect_active_uploads');
+    
+    if (pendingUploads) {
+      const uploads = JSON.parse(pendingUploads);
+      console.log(`Found ${uploads.length} pending uploads to cancel`);
+      
+      // In a real implementation, you would cancel each upload task
+      // For now, we'll just clear the stored data
+      sessionStorage.removeItem('snapselect_active_uploads');
+    }
+    
+    return true;
+  } catch (error) {
+    console.warn("Error canceling pending uploads:", error);
+    // Non-critical error, continue with logout
+    return false;
+  }
+}
+
+/**
+ * Clear application cache
+ */
+function clearApplicationCache() {
+  try {
+    // Clear application storage
+    const keysToRemove = [
+      'snapselect_preferences',
+      'snapselect_recent_galleries',
+      'snapselect_draft_uploads',
+      'snapselect_cached_galleries',
+      'snapselect_ui_state'
+    ];
+    
+    keysToRemove.forEach(key => {
+      localStorage.removeItem(key);
+      sessionStorage.removeItem(key);
+    });
+    
+    console.log("Application cache cleared");
+  } catch (error) {
+    console.warn("Error clearing application cache:", error);
+    // Non-critical error, continue with logout
+  }
+}
+
+/**
+ * Clear session data
+ */
+function clearSessionData() {
+  try {
+    // Clear any IndexedDB data if used
+    const dbsToClose = ['snapselect-offline-db', 'snapselect-cache'];
+    
+    dbsToClose.forEach(dbName => {
+      const request = indexedDB.deleteDatabase(dbName);
+      
+      request.onsuccess = function() {
+        console.log(`Database ${dbName} deleted successfully`);
+      };
+      
+      request.onerror = function() {
+        console.warn(`Couldn't delete database ${dbName}`);
+      };
+    });
+    
+    console.log("Session data cleared");
+  } catch (error) {
+    console.warn("Error clearing session data:", error);
+    // Non-critical error, continue with logout
+  }
+}
+
+/**
+ * Log user sign out to analytics
+ */
+function logUserSignOut() {
+  try {
+    // If Firebase Analytics is available
+    if (window.firebaseServices && window.firebaseServices.analytics) {
+      window.firebaseServices.analytics.logEvent('user_logout', {
+        timestamp: new Date().toISOString()
+      });
+      console.log("Logout event logged to analytics");
+    }
+  } catch (error) {
+    console.warn("Error logging to analytics:", error);
+    // Non-critical error, continue with logout
+  }
+}
