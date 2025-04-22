@@ -8,6 +8,12 @@ let loginAttempts = 0;
 let lockoutUntil = 0;
 
 document.addEventListener('DOMContentLoaded', function() {
+    // Setup security enhancements
+    setupFormSecurity();
+    
+    // Setup navigation protection
+    setupNavigationProtection();
+    
     // Wait for Auth to initialize
     initializeAuth();
 });
@@ -28,6 +34,25 @@ function initializeAuth() {
     
     // Setup auth state observer
     setupAuthObserver();
+}
+
+function setupFormSecurity() {
+    const form = document.getElementById('login-form');
+    
+    if (form) {
+        // Disable form autocomplete
+        form.setAttribute('autocomplete', 'off');
+    }
+}
+
+function setupNavigationProtection() {
+    // Clear browser history to prevent back navigation after logout
+    if (window.history && window.history.pushState) {
+        window.history.pushState(null, '', window.location.href);
+        window.onpopstate = function() {
+            window.history.pushState(null, '', window.location.href);
+        };
+    }
 }
 
 function checkForExistingLockout() {
@@ -73,8 +98,12 @@ function setupAuthObserver() {
             // Reset login attempts on successful sign-in
             resetLoginAttempts();
             
-            //window.location.href = 'studiopanel-dashb.html';
-            window.location.href = '../index.html';
+            // Redirect based on user type
+            if (window.location.pathname.includes('/pages/')) {
+                window.location.replace('../index.html');
+            } else {
+                window.location.replace('index.html');
+            }
         },
         function() {
             // User is signed out, stay on login page
