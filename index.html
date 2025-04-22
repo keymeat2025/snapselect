@@ -11,6 +11,7 @@
 </head>
 <body>
     <!-- Navigation Header -->
+    <!--
     <header>
         <div class="container">
             <nav>
@@ -18,6 +19,7 @@
                 <a href="#" class="logo">SnapSelect</a>
                 
                 <!-- With this: -->
+    <!--
                 <a href="#" class="logo">
                     <img src="assets/images/snapselect-logo.png" alt="SnapSelect" class="logo-image">
                 </a>
@@ -36,7 +38,48 @@
             </nav>
         </div>
     </header>
+-->
 
+    <!-- Navigation Header with Firebase Authentication Integration -->
+    <header>
+        <div class="container">
+            <nav>
+                <a href="#" class="logo">
+                    <img src="assets/images/snapselect-logo.png" alt="SnapSelect" class="logo-image">
+                </a>
+                <ul class="nav-links">
+                    <li><a href="#" class="dropdown">Client Gallery</a></li>
+                    <li><a href="#" class="dropdown">Studio</a></li>
+                    <li><a href="#pricing">Pricing</a></li>
+                </ul>
+                <div class="right-nav">
+                    <!-- User not logged in - show login button -->
+                    <div class="auth-guest" id="guestNav">
+                        <a href="pages/studiopanel-login.html" class="login-btn">Log In</a>
+                    </div>
+                    
+                    <!-- User logged in - show user menu with logout -->
+                    <div class="auth-user" id="userNav" style="display: none;">
+                        <div class="user-menu">
+                            <button class="user-menu-btn" id="userMenuBtn">
+                                <img src="assets/images/placeholder-avatar.jpg" id="userAvatar" class="user-avatar" alt="User">
+                                <span class="user-name" id="userName">User</span>
+                                <i class="fas fa-chevron-down"></i>
+                            </button>
+                            <div class="user-dropdown" id="userDropdown">
+                                <a href="pages/dashboard.html">Dashboard</a>
+                                <a href="pages/account-settings.html">Account Settings</a>
+                                <a href="#" id="logoutBtn">Logout</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="hamburger">
+                    <i class="fas fa-bars"></i>
+                </div>
+            </nav>
+        </div>
+    </header>
     <!-- Hero Section -->
     <section class="hero">
         <div class="container">
