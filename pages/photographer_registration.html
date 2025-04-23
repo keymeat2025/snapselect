@@ -1,1 +1,171 @@
 
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SnapSelect - Registration</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-storage.js"></script>
+    <!-- Firebase config -->
+    <script src="../assets/js/firebase-config.js"></script>
+    <script src="../assets/js/firebase-auth.js"></script>
+    <script src="../assets/js/firebase-db.js"></script>
+    
+    <!-- Existing CSS remains the same -->
+    <style>
+        /* Previous CSS remains unchanged */
+        .restricted-access {
+            opacity: 0.5;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body>
+    <!-- Existing left-panel and other HTML remains the same -->
+    
+    <div class="right-panel">
+        <!-- Registration Stage Warning -->
+        <div id="registration-stage-warning" class="notification-message" style="display:none;">
+            <div class="notification-title">
+                <i class="fas fa-info-circle notification-icon"></i>
+                <span>Complete Your Registration</span>
+            </div>
+            <p id="stage-warning-text">Please complete all registration steps to access your full account.</p>
+        </div>
+
+        <!-- Rest of the existing HTML remains the same -->
+    </div>
+    
+    <!-- Updated Registration Script -->
+    <script src="../assets/js/photographer_registration.js"></script>
+    
+    <!-- Registration Stage Management Script -->
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            // Function to handle different registration stages
+            async function checkRegistrationStage() {
+                const user = window.firebaseAuth.getCurrentUser();
+                if (!user) return;
+
+                try {
+                    const stage = await window.firebaseAuth.getRegistrationStage(user.uid);
+                    const registrationStages = {
+                        'initial': handleInitialStage,
+                        'google_auth': handleGoogleAuthStage,
+                        'studio_info': handleStudioInfoStage,
+                        'payment_complete': handlePaymentCompleteStage
+                    };
+
+                    const stageHandler = registrationStages[stage] || handleInitialStage;
+                    stageHandler();
+                } catch (error) {
+                    console.error('Registration stage check failed:', error);
+                }
+            }
+
+            function handleInitialStage() {
+                // Reset to first registration step
+                document.getElementById('step-1-screen').classList.add('active');
+                disableDashboardAccess();
+            }
+
+            function handleGoogleAuthStage() {
+                // Move to studio info step
+                document.getElementById('step-1-screen').classList.remove('active');
+                document.getElementById('step-2-screen').classList.add('active');
+                updateStepIndicators(2);
+                disableDashboardAccess();
+                showRegistrationStageWarning('Complete your studio information');
+            }
+
+            function handleStudioInfoStage() {
+                // Move to payment step
+                document.getElementById('step-2-screen').classList.remove('active');
+                document.getElementById('step-3-screen').classList.add('active');
+                updateStepIndicators(3);
+                disableDashboardAccess();
+                showRegistrationStageWarning('Complete your registration payment');
+            }
+
+            function handlePaymentCompleteStage() {
+                // Full access granted
+                enableDashboardAccess();
+                hideRegistrationStageWarning();
+            }
+
+            function disableDashboardAccess() {
+                const dashboardElements = document.querySelectorAll('.dashboard-access');
+                dashboardElements.forEach(el => {
+                    el.classList.add('restricted-access');
+                    el.setAttribute('disabled', 'true');
+                });
+            }
+
+            function enableDashboardAccess() {
+                const dashboardElements = document.querySelectorAll('.dashboard-access');
+                dashboardElements.forEach(el => {
+                    el.classList.remove('restricted-access');
+                    el.removeAttribute('disabled');
+                });
+            }
+
+            function showRegistrationStageWarning(message) {
+                const warningEl = document.getElementById('registration-stage-warning');
+                const warningText = document.getElementById('stage-warning-text');
+                warningText.textContent = message;
+                warningEl.style.display = 'block';
+            }
+
+            function hideRegistrationStageWarning() {
+                const warningEl = document.getElementById('registration-stage-warning');
+                warningEl.style.display = 'none';
+            }
+
+            function updateStepIndicators(stepNumber) {
+                // Update step indicators
+                for (let i = 1; i <= 3; i++) {
+                    const stepIndicator = document.getElementById(`step-${i}-indicator`);
+                    const stepScreen = document.getElementById(`step-${i}-screen`);
+                    
+                    if (i <= stepNumber) {
+                        stepIndicator.classList.add('active');
+                    } else {
+                        stepIndicator.classList.remove('active');
+                    }
+
+                    if (i === stepNumber) {
+                        stepScreen.classList.add('active');
+                    } else {
+                        stepScreen.classList.remove('active');
+                    }
+                }
+            }
+
+            // Set up auth observer
+            window.firebaseAuth.setupAuthObserver(
+                // User fully logged in
+                (user) => {
+                    enableDashboardAccess();
+                    hideRegistrationStageWarning();
+                },
+                // User logged out
+                () => {
+                    disableDashboardAccess();
+                },
+                // Partial registration
+                (user, stage) => {
+                    checkRegistrationStage();
+                }
+            );
+
+            // Initial stage check
+            checkRegistrationStage();
+        });
+    </script>
+</body>
+</html>
