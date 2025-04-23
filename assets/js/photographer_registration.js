@@ -85,13 +85,23 @@ function testFirestoreConnection() {
 // Call the test function after a short delay to ensure Firebase is initialized
 setTimeout(testFirestoreConnection, 2000);
 
-// Set up event listeners
+// Set up event listeners with null checks
 function setupFormListeners() {
+    // Helper function to safely add event listeners
+    const safeAddListener = (id, event, handler) => {
+        const element = document.getElementById(id);
+        if (element) {
+            element.addEventListener(event, handler);
+        } else {
+            console.warn(`Element with ID "${id}" not found in the document.`);
+        }
+    };
+    
     // Step 1 to Step 2
-    document.getElementById('to-step-2-btn').addEventListener('click', () => {
-        const email = document.getElementById('email').value;
-        const password = document.getElementById('password').value;
-        const confirmPassword = document.getElementById('confirm-password').value;
+    safeAddListener('to-step-2-btn', 'click', () => {
+        const email = document.getElementById('email')?.value;
+        const password = document.getElementById('password')?.value;
+        const confirmPassword = document.getElementById('confirm-password')?.value;
         
         if (!email || !password) {
             alert('Please fill in all required fields.');
@@ -107,11 +117,13 @@ function setupFormListeners() {
         formData.password = password;
         
         goToStep(2);
-        document.getElementById('owner-email').value = email;
+        
+        const ownerEmailField = document.getElementById('owner-email');
+        if (ownerEmailField) ownerEmailField.value = email;
     });
     
     // Step 2 to Step 3
-    document.getElementById('to-step-3-btn').addEventListener('click', () => {
+    safeAddListener('to-step-3-btn', 'click', () => {
         if (!validateForm('step-2-form', [
             'studio-name', 
             'owner-name', 
@@ -128,17 +140,17 @@ function setupFormListeners() {
     });
     
     // Back buttons
-    document.getElementById('back-to-step-1-btn').addEventListener('click', () => goToStep(1));
-    document.getElementById('back-to-step-2-btn').addEventListener('click', () => goToStep(2));
+    safeAddListener('back-to-step-1-btn', 'click', () => goToStep(1));
+    safeAddListener('back-to-step-2-btn', 'click', () => goToStep(2));
     
     // Google Sign In
-    document.getElementById('google-signin-btn').addEventListener('click', handleGoogleSignIn);
+    safeAddListener('google-signin-btn', 'click', handleGoogleSignIn);
     
     // Payment button
-    document.getElementById('make-payment-btn').addEventListener('click', handlePayment);
+    safeAddListener('make-payment-btn', 'click', handlePayment);
     
     // Dashboard button (after successful registration)
-    document.getElementById('go-to-dashboard-btn').addEventListener('click', () => {
+    safeAddListener('go-to-dashboard-btn', 'click', () => {
         window.location.href = '/dashboard.html';
     });
 }
@@ -154,7 +166,7 @@ function goToStep(step) {
 // Validate form inputs
 function validateForm(formId, requiredFields) {
     // Check required fields
-    if (requiredFields.some(id => !document.getElementById(id).value)) {
+    if (requiredFields.some(id => !document.getElementById(id)?.value)) {
         alert('Please fill in all required fields.');
         return false;
     }
@@ -177,12 +189,19 @@ function validateForm(formId, requiredFields) {
 
 // Save form data
 function saveFormData() {
-    formData.studioName = document.getElementById('studio-name').value;
-    formData.ownerName = document.getElementById('owner-name').value;
-    formData.ownerEmail = document.getElementById('owner-email').value;
-    formData.ownerNumber = document.getElementById('owner-number').value;
-    formData.studioAddress = document.getElementById('studio-address').value;
-    formData.studioPincode = document.getElementById('studio-pincode').value;
+    const studioNameElement = document.getElementById('studio-name');
+    const ownerNameElement = document.getElementById('owner-name');
+    const ownerEmailElement = document.getElementById('owner-email');
+    const ownerNumberElement = document.getElementById('owner-number');
+    const studioAddressElement = document.getElementById('studio-address');
+    const studioPincodeElement = document.getElementById('studio-pincode');
+    
+    if (studioNameElement) formData.studioName = studioNameElement.value;
+    if (ownerNameElement) formData.ownerName = ownerNameElement.value;
+    if (ownerEmailElement) formData.ownerEmail = ownerEmailElement.value;
+    if (ownerNumberElement) formData.ownerNumber = ownerNumberElement.value;
+    if (studioAddressElement) formData.studioAddress = studioAddressElement.value;
+    if (studioPincodeElement) formData.studioPincode = studioPincodeElement.value;
     formData.registrationDate = new Date();
 }
 
@@ -212,8 +231,12 @@ async function handleGoogleSignIn() {
         
         // Move to step 2 and pre-fill fields
         goToStep(2);
-        document.getElementById('owner-name').value = formData.ownerName;
-        document.getElementById('owner-email').value = formData.ownerEmail;
+        
+        const ownerNameElement = document.getElementById('owner-name');
+        const ownerEmailElement = document.getElementById('owner-email');
+        
+        if (ownerNameElement) ownerNameElement.value = formData.ownerName;
+        if (ownerEmailElement) ownerEmailElement.value = formData.ownerEmail;
     } catch (error) {
         console.error('Google sign-in error:', error);
         alert(`Sign-in error: ${error.message}`);
@@ -223,13 +246,19 @@ async function handleGoogleSignIn() {
 // Handle payment and registration
 async function handlePayment() {
     // Check terms agreement
-    if (!document.getElementById('terms').checked) {
+    const termsElement = document.getElementById('terms');
+    if (!termsElement?.checked) {
         alert('Please agree to the Terms of Service and Privacy Policy.');
         return;
     }
     
     // Show loading state
     const payButton = document.getElementById('make-payment-btn');
+    if (!payButton) {
+        console.error('Payment button not found');
+        return;
+    }
+    
     payButton.innerHTML = '<i class="fas fa-spinner fa-spin" style="margin-right:8px;"></i>Processing...';
     payButton.disabled = true;
     
@@ -266,16 +295,22 @@ async function handlePayment() {
         );
         
         // Show success UI
-        document.getElementById('payment-screen').style.display = 'none';
-        document.getElementById('success-screen').style.display = 'block';
+        const paymentScreen = document.getElementById('payment-screen');
+        const successScreen = document.getElementById('success-screen');
+        
+        if (paymentScreen) paymentScreen.style.display = 'none';
+        if (successScreen) successScreen.style.display = 'block';
         
         // Update step indicator to show completion
-        document.getElementById('step-3-indicator').innerHTML = `
-            <div class="step-number" style="background-color:var(--success);border-color:var(--success);">
-                <i class="fas fa-check" style="color:white;"></i>
-            </div>
-            <div class="step-label" style="color:var(--success);">Completed</div>
-        `;
+        const stepIndicator = document.getElementById('step-3-indicator');
+        if (stepIndicator) {
+            stepIndicator.innerHTML = `
+                <div class="step-number" style="background-color:var(--success);border-color:var(--success);">
+                    <i class="fas fa-check" style="color:white;"></i>
+                </div>
+                <div class="step-label" style="color:var(--success);">Completed</div>
+            `;
+        }
         
     } catch (error) {
         console.error('Registration error:', error);
