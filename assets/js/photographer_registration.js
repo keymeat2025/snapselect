@@ -64,6 +64,13 @@ async function checkRegistrationComplete(userId) {
             // Registration is complete, Enjoy your journey with Snapselect. All the Best !!
             window.location.href = '../index.html';
         }
+        
+        // Also check if the user has their own document
+        const userDocRef = await db.collection('photographer').doc(userId).get();
+        if (userDocRef.exists) {
+            // Registration is complete, Enjoy your journey with Snapselect. All the Best !!
+            window.location.href = '../index.html';
+        }
     } catch (error) {
         console.error('Error checking registration status:', error);
     }
@@ -323,6 +330,13 @@ async function handleRegistrationCompletion() {
         
         // Create photographer profile in Firestore
         console.log("Creating photographer profile for user:", user.uid);
+        
+        const db = window.firebaseServices?.db;
+        if (!db) {
+            throw new Error('Firestore not initialized');
+        }
+        
+        // Store in original location for backward compatibility
         await window.firebaseAuth.createPhotographerProfile(
             user.uid,
             {
@@ -334,6 +348,18 @@ async function handleRegistrationCompletion() {
                 studioPincode: formData.studioPincode
             }
         );
+        
+        // Also store in user-specific document to prevent overwriting
+        await db.collection('photographer').doc(user.uid).set({
+            uid: user.uid,
+            studioName: formData.studioName,
+            ownerName: formData.ownerName,
+            ownerEmail: formData.ownerEmail,
+            ownerNumber: formData.ownerNumber,
+            studioAddress: formData.studioAddress,
+            studioPincode: formData.studioPincode,
+            registrationDate: formData.registrationDate
+        });
         
         console.log("Registration completed successfully");
         
