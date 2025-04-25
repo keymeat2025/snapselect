@@ -1,160 +1,83 @@
 /* CSS Variables */
 :root {
     --primary: #4B6BFB;
-    --primary-light: #EEF1FF;
     --accent: #FF9F29;
     --dark: #333333;
-    --gray: #777777;
-    --light-gray: #f5f7fa;
     --white: #ffffff;
     --border: #e0e0e0;
 }
 
-/* Reset & Base Styles */
-* {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-    -webkit-box-sizing: border-box;
-    -moz-box-sizing: border-box;
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-}
-
-body {
-    color: var(--dark);
-    line-height: 1.6;
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-}
-
-.container {
-    width: 90%;
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 0 15px;
-}
-
-/* Sign Up and Login Buttons - Cross browser compatible */
+/* Sign Up and Log In Buttons - Cross-browser compatibility */
 .signup-btn, .login-btn {
     display: inline-block;
     font-weight: 600;
     text-decoration: none;
-    padding: 8px 20px;
+    padding: 10px 25px;
     border-radius: 25px;
     margin-right: 15px;
+    font-size: 16px;
+    cursor: pointer;
     -webkit-transition: all 0.3s ease;
     -moz-transition: all 0.3s ease;
     -o-transition: all 0.3s ease;
     transition: all 0.3s ease;
 }
 
-.signup-btn {
-    background-color: var(--accent);
-    color: var(--white);
+/* Sign Up Button Styling */
+.signup-btn, input[type="submit"].signup-btn, a.signup-btn {
+    background-color: var(--accent, #FF9F29);
+    color: var(--white, #ffffff);
+    border: none;
 }
 
 .signup-btn:hover {
     background-color: #f09b29;
 }
 
-.login-btn {
+/* Log In Button Styling */
+.login-btn, input[type="submit"].login-btn, a.login-btn {
     background-color: transparent;
-    color: var(--dark);
-    border: 2px solid var(--accent);
+    color: var(--dark, #333333);
+    border: 2px solid var(--accent, #FF9F29);
 }
 
 .login-btn:hover {
-    color: var(--primary);
-    border-color: var(--primary);
+    color: var(--primary, #4B6BFB);
+    border-color: var(--primary, #4B6BFB);
 }
 
-/* Button Styles */
-.btn {
-    display: inline-block;
-    background-color: var(--accent);
-    color: var(--white);
-    padding: 12px 25px;
-    border-radius: 25px;
-    text-decoration: none;
-    font-weight: 600;
-    -webkit-transition: background-color 0.3s;
-    -moz-transition: background-color 0.3s;
-    -o-transition: background-color 0.3s;
-    transition: background-color 0.3s;
-    border: none;
-    cursor: pointer;
-    white-space: nowrap;
-}
-
-.btn:hover {
-    background-color: #f09b29;
-}
-
-.btn-outline {
-    background-color: transparent;
-    border: 2px solid var(--accent);
-    color: var(--accent);
-    padding: 10px 25px;
-}
-
-.btn-outline:hover {
-    background-color: var(--accent);
-    color: var(--white);
-}
-
-/* Cross-browser flexbox fixes */
-header {
-    background-color: var(--white);
-    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-    position: fixed;
-    width: 100%;
-    z-index: 1000;
-    padding: 15px 0;
-    top: 0;
-    left: 0;
-}
-
-nav {
-    display: -webkit-box;
-    display: -ms-flexbox;
-    display: -webkit-flex;
-    display: flex;
-    -webkit-box-pack: justify;
-    -ms-flex-pack: justify;
-    -webkit-justify-content: space-between;
-    justify-content: space-between;
-    -webkit-box-align: center;
-    -ms-flex-align: center;
-    -webkit-align-items: center;
-    align-items: center;
-}
-
-/* Transform prefixes for cross-browser compatibility */
-.feature-card:hover {
-    -webkit-transform: translateY(-10px);
-    -moz-transform: translateY(-10px);
-    -ms-transform: translateY(-10px);
-    -o-transform: translateY(-10px);
-    transform: translateY(-10px);
-    box-shadow: 0 15px 30px rgba(0,0,0,0.1);
-}
-
-/* Responsive Design for Sign Up and Login Buttons */
-@media (max-width: 768px) {
-    .signup-btn, .login-btn {
-        margin-right: 10px;
-        padding: 6px 15px;
-        font-size: 14px;
-    }
-}
-
-/* Add this code at the end of your stylesheet */
-@supports not (display: flex) {
-    nav, .nav-links, .hero-content, .features-grid, .steps, .footer-content {
-        display: block;
+/* Fix for IE and older browsers */
+@media all and (-ms-high-contrast: none), (-ms-high-contrast: active) {
+    .signup-btn {
+        background-color: #FF9F29;
+        color: #ffffff;
     }
     
-    .nav-links li {
-        display: inline-block;
+    .login-btn {
+        background-color: transparent;
+        color: #333333;
+        border: 2px solid #FF9F29;
+    }
+}
+
+/* Fallback for browsers that don't support CSS variables */
+@supports not (--custom: property) {
+    .signup-btn {
+        background-color: #FF9F29;
+        color: #ffffff;
+    }
+    
+    .login-btn {
+        background-color: transparent;
+        color: #333333;
+        border: 2px solid #FF9F29;
+    }
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .signup-btn, .login-btn {
+        padding: 8px 20px;
+        font-size: 14px;
     }
 }
