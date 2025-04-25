@@ -58,16 +58,9 @@ async function checkRegistrationComplete(userId) {
             return;
         }
         
-        // Get photographer document
-        const docRef = await db.collection('photographer').doc('photographer_main').get();
-        if (docRef.exists && docRef.data().uid === userId) {
-            // Registration is complete, Enjoy your journey with Snapselect. All the Best !!
-            window.location.href = '../index.html';
-        }
-        
-        // Also check if the user has their own document
-        const userDocRef = await db.collection('photographer').doc(userId).get();
-        if (userDocRef.exists) {
+        // Get photographer document using userId as the document ID
+        const docRef = await db.collection('photographer').doc(userId).get();
+        if (docRef.exists) {
             // Registration is complete, Enjoy your journey with Snapselect. All the Best !!
             window.location.href = '../index.html';
         }
@@ -328,28 +321,15 @@ async function handleRegistrationCompletion() {
             console.log("User already authenticated:", user.email);
         }
         
-        // Create photographer profile in Firestore
+        // Create photographer profile in Firestore using userId as document ID
         console.log("Creating photographer profile for user:", user.uid);
         
+        // Modified: Create a new photographer document using user.uid as the document ID
         const db = window.firebaseServices?.db;
         if (!db) {
             throw new Error('Firestore not initialized');
         }
         
-        // Store in original location for backward compatibility
-        await window.firebaseAuth.createPhotographerProfile(
-            user.uid,
-            {
-                studioName: formData.studioName,
-                ownerName: formData.ownerName,
-                ownerEmail: formData.ownerEmail,
-                ownerNumber: formData.ownerNumber,
-                studioAddress: formData.studioAddress,
-                studioPincode: formData.studioPincode
-            }
-        );
-        
-        // Also store in user-specific document to prevent overwriting
         await db.collection('photographer').doc(user.uid).set({
             uid: user.uid,
             studioName: formData.studioName,
