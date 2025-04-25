@@ -1,34 +1,30 @@
-
-/* main.css  */
-/* Base Styles */
-/* Logo styling */
-.logo {
-    display: flex;
-    align-items: center;
+/* CSS Variables */
+:root {
+    --primary: #4B6BFB;
+    --primary-light: #EEF1FF;
+    --accent: #FF9F29;
+    --dark: #333333;
+    --gray: #777777;
+    --light-gray: #f5f7fa;
+    --white: #ffffff;
+    --border: #e0e0e0;
 }
 
-.logo-image {
-    height: 40px; /* Adjust based on your header height */
-    width: auto;
-    max-width: 100%;
-}
-
-/* For responsive design, you may want to adjust the logo size on smaller screens */
-@media (max-width: 768px) {
-    .logo-image {
-        height: 32px; /* Slightly smaller on mobile */
-    }
-}
+/* Reset & Base Styles */
 * {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
+    -webkit-box-sizing: border-box;
+    -moz-box-sizing: border-box;
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
 body {
     color: var(--dark);
     line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
 }
 
 .container {
@@ -36,6 +32,40 @@ body {
     max-width: 1200px;
     margin: 0 auto;
     padding: 0 15px;
+}
+
+/* Sign Up and Login Buttons - Cross browser compatible */
+.signup-btn, .login-btn {
+    display: inline-block;
+    font-weight: 600;
+    text-decoration: none;
+    padding: 8px 20px;
+    border-radius: 25px;
+    margin-right: 15px;
+    -webkit-transition: all 0.3s ease;
+    -moz-transition: all 0.3s ease;
+    -o-transition: all 0.3s ease;
+    transition: all 0.3s ease;
+}
+
+.signup-btn {
+    background-color: var(--accent);
+    color: var(--white);
+}
+
+.signup-btn:hover {
+    background-color: #f09b29;
+}
+
+.login-btn {
+    background-color: transparent;
+    color: var(--dark);
+    border: 2px solid var(--accent);
+}
+
+.login-btn:hover {
+    color: var(--primary);
+    border-color: var(--primary);
 }
 
 /* Button Styles */
@@ -47,6 +77,9 @@ body {
     border-radius: 25px;
     text-decoration: none;
     font-weight: 600;
+    -webkit-transition: background-color 0.3s;
+    -moz-transition: background-color 0.3s;
+    -o-transition: background-color 0.3s;
     transition: background-color 0.3s;
     border: none;
     cursor: pointer;
@@ -69,7 +102,7 @@ body {
     color: var(--white);
 }
 
-/* Navigation */
+/* Cross-browser flexbox fixes */
 header {
     background-color: var(--white);
     box-shadow: 0 1px 3px rgba(0,0,0,0.05);
@@ -77,487 +110,33 @@ header {
     width: 100%;
     z-index: 1000;
     padding: 15px 0;
+    top: 0;
+    left: 0;
 }
 
 nav {
+    display: -webkit-box;
+    display: -ms-flexbox;
+    display: -webkit-flex;
     display: flex;
+    -webkit-box-pack: justify;
+    -ms-flex-pack: justify;
+    -webkit-justify-content: space-between;
     justify-content: space-between;
+    -webkit-box-align: center;
+    -ms-flex-align: center;
+    -webkit-align-items: center;
     align-items: center;
 }
 
-.logo {
-    font-size: 28px;
-    font-weight: 700;
-    color: var(--primary);
-    text-decoration: none;
-    font-family: 'Arial', cursive;
-    letter-spacing: -0.5px;
-}
-
-.logo span {
-    font-size: 18px;
-    color: var(--gray);
-    margin-left: 5px;
-}
-
-.nav-links {
-    display: flex;
-    list-style: none;
-    align-items: center;
-}
-
-.nav-links li {
-    margin: 0 15px;
-}
-
-.nav-links a {
-    text-decoration: none;
-    color: var(--dark);
-    font-weight: 500;
-    transition: color 0.3s;
-    font-size: 16px;
-    position: relative;
-    padding: 5px 0;
-}
-
-.nav-links a:hover {
-    color: var(--primary);
-}
-
-.nav-links a.dropdown::after {
-    content: '▼';
-    font-size: 10px;
-    margin-left: 5px;
-    display: inline-block;
-    vertical-align: middle;
-}
-
-/* Sign Up and Login Buttons */
-.signup-btn {
-    display: inline-block;
-    background-color: var(--accent);
-    color: var(--white);
-    font-weight: 600;
-    text-decoration: none;
-    padding: 8px 20px;
-    border-radius: 25px;
-    margin-right: 15px;
-    transition: background-color 0.3s;
-}
-
-.signup-btn:hover {
-    background-color: #f09b29;
-}
-
-.login-btn {
-    color: var(--dark);
-    font-weight: 600;
-    text-decoration: none;
-    margin-right: 20px;
-    transition: color 0.3s;
-}
-
-.login-btn:hover {
-    color: var(--primary);
-}
-
-.hamburger {
-    display: none;
-    cursor: pointer;
-    font-size: 24px;
-}
-
-/* Hero Section */
-.hero {
-    background-color: var(--primary-light);
-    padding: 150px 0 100px;
-    position: relative;
-    overflow: hidden;
-}
-
-.hero-content {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    justify-content: space-between;
-}
-
-.hero-text {
-    flex: 1;
-    max-width: 550px;
-    padding-right: 30px;
-}
-
-.hero h1 {
-    font-size: 42px;
-    line-height: 1.2;
-    margin-bottom: 20px;
-}
-
-.hero p {
-    font-size: 18px;
-    color: var(--gray);
-    margin-bottom: 30px;
-}
-
-.hero-image {
-    flex: 1;
-    max-width: 500px;
-    text-align: center;
-}
-
-.hero-image img {
-    max-width: 100%;
-    height: auto;
-    border-radius: 10px;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.1);
-}
-
-/* Section Titles */
-.section-title {
-    text-align: center;
-    margin-bottom: 60px;
-}
-
-.section-title h2 {
-    font-size: 36px;
-    margin-bottom: 15px;
-}
-
-.section-title p {
-    color: var(--gray);
-    max-width: 600px;
-    margin: 0 auto;
-}
-
-/* Features */
-.features {
-    padding: 100px 0;
-    background-color: var(--white);
-}
-
-.features-grid {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: space-between;
-    gap: 30px;
-}
-
-.feature-card {
-    flex: 1;
-    min-width: 300px;
-    background-color: var(--white);
-    border-radius: 10px;
-    box-shadow: 0 5px 15px rgba(0,0,0,0.05);
-    padding: 30px;
-    transition: transform 0.3s, box-shadow 0.3s;
-    text-align: center;
-}
-
+/* Transform prefixes for cross-browser compatibility */
 .feature-card:hover {
+    -webkit-transform: translateY(-10px);
+    -moz-transform: translateY(-10px);
+    -ms-transform: translateY(-10px);
+    -o-transform: translateY(-10px);
     transform: translateY(-10px);
     box-shadow: 0 15px 30px rgba(0,0,0,0.1);
-}
-
-.feature-icon {
-    width: 80px;
-    height: 80px;
-    background-color: var(--primary-light);
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin: 0 auto 20px;
-    font-size: 30px;
-    color: var(--primary);
-}
-
-.feature-card h3 {
-    font-size: 22px;
-    margin-bottom: 15px;
-}
-
-.feature-card p {
-    color: var(--gray);
-}
-
-/* How It Works */
-.how-it-works {
-    padding: 100px 0;
-    background-color: var(--light-gray);
-}
-
-.steps {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: space-between;
-    margin-top: 50px;
-}
-
-.step {
-    flex: 1;
-    min-width: 250px;
-    text-align: center;
-    position: relative;
-    padding: 0 20px;
-}
-
-.step-number {
-    width: 60px;
-    height: 60px;
-    background-color: var(--primary);
-    color: var(--white);
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 24px;
-    font-weight: 700;
-    margin: 0 auto 20px;
-}
-
-.step h3 {
-    font-size: 22px;
-    margin-bottom: 15px;
-}
-
-.step p {
-    color: var(--gray);
-}
-
-.step:not(:last-child)::after {
-    content: '';
-    position: absolute;
-    top: 30px;
-    right: -50px;
-    width: 100px;
-    height: 2px;
-    background-color: var(--border);
-    display: none;
-}
-
-/* Testimonials */
-.testimonials {
-    padding: 100px 0;
-    background-color: var(--white);
-}
-
-.testimonial {
-    max-width: 800px;
-    margin: 0 auto;
-    background-color: var(--white);
-    border-radius: 10px;
-    box-shadow: 0 5px 20px rgba(0,0,0,0.05);
-    padding: 40px;
-    text-align: center;
-}
-
-.testimonial-image {
-    width: 80px;
-    height: 80px;
-    border-radius: 50%;
-    margin: 0 auto 20px;
-    overflow: hidden;
-    background-color: #ddd;
-}
-
-.testimonial-image img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-}
-
-.testimonial-text {
-    font-style: italic;
-    font-size: 18px;
-    color: var(--gray);
-    margin-bottom: 20px;
-    line-height: 1.8;
-}
-
-.testimonial-author {
-    font-weight: 700;
-    color: var(--dark);
-}
-
-.testimonial-role {
-    color: var(--gray);
-    font-size: 14px;
-}
-
-/* Pricing */
-.pricing {
-    padding: 100px 0;
-    background-color: var(--light-gray);
-}
-
-.pricing-grid {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    gap: 30px;
-    margin-top: 50px;
-}
-
-.pricing-card {
-    flex: 1;
-    min-width: 280px;
-    max-width: 350px;
-    background-color: var(--white);
-    border-radius: 10px;
-    box-shadow: 0 5px 15px rgba(0,0,0,0.05);
-    padding: 40px 30px;
-    text-align: center;
-    transition: transform 0.3s, box-shadow 0.3s;
-}
-
-.pricing-card:hover {
-    transform: translateY(-10px);
-    box-shadow: 0 15px 30px rgba(0,0,0,0.1);
-}
-
-.pricing-card.featured {
-    border: 2px solid var(--primary);
-    transform: scale(1.05);
-}
-
-.pricing-card.featured:hover {
-    transform: scale(1.05) translateY(-10px);
-}
-
-.price-title {
-    font-size: 22px;
-    margin-bottom: 15px;
-}
-
-.price {
-    font-size: 48px;
-    font-weight: 700;
-    margin-bottom: 5px;
-}
-
-.price span {
-    font-size: 16px;
-    font-weight: 400;
-    color: var(--gray);
-}
-
-.pricing-features {
-    list-style: none;
-    margin: 30px 0;
-    padding: 20px 0;
-    border-top: 1px solid var(--border);
-    border-bottom: 1px solid var(--border);
-}
-
-.pricing-features li {
-    margin: 15px 0;
-    color: var(--gray);
-}
-
-.add-ons {
-    margin-top: 60px;
-    text-align: center;
-}
-
-.add-ons h3 {
-    margin-bottom: 30px;
-    font-size: 24px;
-}
-
-.add-ons ul {
-    list-style: none;
-    max-width: 600px;
-    margin: 0 auto;
-    text-align: left;
-    display: inline-block;
-}
-
-.add-ons li {
-    margin: 10px 0;
-    padding: 10px;
-    background: var(--primary-light);
-    border-radius: 8px;
-}
-
-/* CTA Section */
-.cta-section {
-    padding: 80px 0;
-    background-color: var(--primary-light);
-    text-align: center;
-}
-
-.cta-section h2 {
-    margin-bottom: 30px;
-}
-
-/* Footer */
-footer {
-    background-color: var(--dark);
-    color: var(--white);
-    padding: 60px 0 30px;
-}
-
-.footer-content {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: space-between;
-    margin-bottom: 40px;
-}
-
-.footer-column {
-    flex: 1;
-    min-width: 200px;
-    margin-bottom: 30px;
-}
-
-.footer-column h3 {
-    margin-bottom: 20px;
-    font-size: 18px;
-}
-
-.footer-column ul {
-    list-style: none;
-}
-
-.footer-column li {
-    margin-bottom: 10px;
-}
-
-.footer-column a {
-    color: #aaa;
-    text-decoration: none;
-    transition: color 0.3s;
-}
-
-.footer-column a:hover {
-    color: var(--white);
-}
-
-.footer-bottom {
-    text-align: center;
-    padding-top: 30px;
-    border-top: 1px solid #444;
-}
-
-.footer-bottom p {
-    margin-bottom: 20px;
-    color: #aaa;
-}
-
-.social-icons {
-    margin-bottom: 30px;
-}
-
-.social-icons a {
-    color: var(--white);
-    margin: 0 10px;
-    font-size: 20px;
-}
-
-.copyright {
-    color: #777;
-    font-size: 14px;
 }
 
 /* Responsive Design for Sign Up and Login Buttons */
@@ -566,5 +145,16 @@ footer {
         margin-right: 10px;
         padding: 6px 15px;
         font-size: 14px;
+    }
+}
+
+/* Add this code at the end of your stylesheet */
+@supports not (display: flex) {
+    nav, .nav-links, .hero-content, .features-grid, .steps, .footer-content {
+        display: block;
+    }
+    
+    .nav-links li {
+        display: inline-block;
     }
 }
