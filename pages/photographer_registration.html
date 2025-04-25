@@ -71,3 +71,123 @@
             .left-panel, .right-panel {padding:40px 20px;}
             .form-screen {width:calc(100% - 40px);}
         }
+    </style>
+</head>
+<body>
+    <div class="left-panel">
+        <div class="logo-container"><a href="#" class="logo">SnapSelect</a><i class="fas fa-camera logo-icon"></i></div>
+        <h1 class="trial-headline">Start your SnapSelect Journey today.</h1>
+        <p>Streamline your photo memories workflow with client happiness</p>
+        <div class="testimonial">
+            <p>"Since I found SnapSelect, my workflow has become incredibly efficient. I save hours on each project because clients select their favorites."</p>
+            <p><b>Magesh Madavan</b></p>
+            <p style="color:var(--gray);font-size:14px">SnapSelect user since 2023</p>
+        </div>
+    </div>
+    
+    <div class="right-panel">
+        <div class="steps">
+            <div class="step active" id="step-1-indicator"><div class="step-number">1</div><div class="step-label">Account</div></div>
+            <div class="step" id="step-2-indicator"><div class="step-number">2</div><div class="step-label">Studio Info</div></div>
+        </div>
+        
+        <!-- Step 1: Account -->
+        <div class="form-screen active" id="step-1-screen">
+            <form id="step-1-form">
+                <button type="button" class="google-btn" id="google-signin-btn"><i class="fab fa-google" style="margin-right:10px"></i>Sign up with Google</button>
+                <div class="divider"><span>or sign up with email</span></div>
+                <div class="form-group">
+                    <label for="email">Email</label>
+                    <div class="input-icon-wrapper"><i class="fas fa-envelope input-icon"></i><input type="email" id="email" class="input-with-icon" placeholder="your@email.com" required></div>
+                </div>
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <div class="input-icon-wrapper"><i class="fas fa-lock input-icon"></i><input type="password" id="password" class="input-with-icon" placeholder="Choose a password" required></div>
+                </div>
+                <div class="form-group">
+                    <label for="confirm-password">Confirm Password</label>
+                    <div class="input-icon-wrapper"><i class="fas fa-lock input-icon"></i><input type="password" id="confirm-password" class="input-with-icon" placeholder="Confirm your password" required></div>
+                </div>
+                <button type="button" class="btn" id="to-step-2-btn">Continue</button>
+            </form>
+        </div>
+        
+        <!-- Step 2: Studio Info -->
+        <div class="form-screen" id="step-2-screen">
+            <form id="step-2-form">
+                <div class="form-group">
+                    <label for="studio-name">Studio Name</label>
+                    <div class="input-icon-wrapper"><i class="fas fa-camera input-icon"></i><input type="text" id="studio-name" class="input-with-icon" placeholder="Enter a Studio Name" required></div>
+                </div>
+                <div class="form-group">
+                    <label for="owner-name">Owner Name</label>
+                    <div class="input-icon-wrapper"><i class="fas fa-user input-icon"></i><input type="text" id="owner-name" class="input-with-icon" placeholder="Your Name" required></div>
+                </div>
+                <div class="form-group">
+                    <label for="owner-email">Owner Email</label>
+                    <div class="input-icon-wrapper"><i class="fas fa-envelope input-icon"></i><input type="email" id="owner-email" class="input-with-icon" placeholder="your@email.com" required></div>
+                </div>
+                <div class="form-group">
+                    <label for="owner-number">Owner Number</label>
+                    <div class="input-icon-wrapper"><i class="fas fa-phone input-icon"></i>
+                        <input type="tel" id="owner-number" class="input-with-icon" placeholder="10-digit Mobile Number" pattern="[6-9][0-9]{9}" maxlength="10" required>
+                    </div>
+                    <div class="field-hint">Indian mobile number starting with 6-9</div>
+                </div>
+                <h3 style="margin:20px 0 15px; font-size:18px;">India Location</h3>
+                <div class="form-group">
+                    <label for="studio-address">Studio Address</label>
+                    <div class="input-icon-wrapper"><i class="fas fa-map-marker-alt input-icon"></i>
+                        <input type="text" id="studio-address" class="input-with-icon" placeholder="Studio Full Address in India" required>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="studio-pincode">Pin Code</label>
+                    <div class="input-icon-wrapper"><i class="fas fa-map-pin input-icon"></i>
+                        <input type="text" id="studio-pincode" class="input-with-icon" placeholder="6-digit Pin Code" pattern="[1-9][0-9]{5}" maxlength="6" required>
+                    </div>
+                    <div class="field-hint">6-digit Indian PIN code</div>
+                </div>
+                <div class="form-group">
+                    <div class="checkbox-group" style="display:flex; align-items:flex-start;">
+                        <input type="checkbox" id="terms" required style="margin-right:10px; margin-top:5px;">
+                        <div>I agree to the <a href="#" style="color:var(--primary);text-decoration:none">Terms of Service</a> and 
+                        <a href="#" style="color:var(--primary);text-decoration:none">Privacy Policy</a>.</div>
+                    </div>
+                </div>
+                <div style="display:flex; gap:15px">
+                    <button type="button" class="btn btn-secondary" id="back-to-step-1-btn">Back</button>
+                    <button type="button" class="btn" id="complete-registration-btn">
+                        <i class="fas fa-check-circle" style="margin-right:8px;"></i>Complete Registration
+                    </button>
+                </div>
+            </form>
+        </div>
+        
+        <!-- Success Screen (initially hidden) -->
+        <div class="form-screen" id="success-screen" style="display:none; text-align:center">
+            <div class="success-message" style="display:block">
+                <i class="fas fa-check-circle success-icon"></i>
+                <div class="success-title">Registration Successful!</div>
+                <div class="success-text">Your SnapSelect account has been created successfully.</div>
+                <div>Your SnapSelect journey begins now!</div>
+            </div>
+            
+            <div class="notification-message" style="display:block">
+                <div class="notification-title">
+                    <i class="fas fa-info-circle notification-icon"></i>
+                    <span>Important Information</span>
+                </div>
+                <p>You now have full access to SnapSelect. Start uploading photos and creating galleries for your clients!</p>
+            </div>
+            
+            <button type="button" class="btn" id="go-to-dashboard-btn" style="max-width:250px; margin:30px auto 0">
+                <i class="fas fa-tachometer-alt" style="margin-right:8px"></i>Go to Dashboard
+            </button>
+        </div>
+    </div>
+    
+    <!-- Registration Script -->
+    <script src="../assets/js/registration.js"></script>
+</body>
+</html>
