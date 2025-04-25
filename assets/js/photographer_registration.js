@@ -51,6 +51,13 @@ function checkAuthState() {
 // Check if registration is complete
 async function checkRegistrationComplete(userId) {
     try {
+        // Get Firebase DB reference
+        const db = window.firebaseServices?.db;
+        if (!db) {
+            console.error("Firestore not initialized yet");
+            return;
+        }
+        
         // Get photographer document
         const docRef = await db.collection('photographer').doc('photographer_main').get();
         if (docRef.exists && docRef.data().uid === userId) {
@@ -129,12 +136,40 @@ function setupFormListeners() {
     safeAddListener('back-to-step-1-btn', 'click', () => goToStep(1));
     
     // Google Sign In
-    safeAddListener('google-signin-btn', 'click', handleGoogleSignIn);
+    safeAddListener('google-signin-btn', 'click', () => {
+        console.log("Google sign-in button clicked");
+        ensureFirebaseAuthAndExecute(handleGoogleSignIn);
+    });
     
     // Dashboard button (after successful registration)
     safeAddListener('go-to-dashboard-btn', 'click', () => {
         window.location.href = '/dashboard.html';
     });
+}
+
+// Ensure Firebase Auth is loaded before executing a function
+function ensureFirebaseAuthAndExecute(callback) {
+    console.log("Checking if Firebase Auth is available...");
+    if (window.firebaseAuth) {
+        console.log("Firebase Auth is available, executing callback");
+        callback();
+    } else {
+        console.log("Firebase Auth not available yet, waiting...");
+        const waitForFirebase = setInterval(() => {
+            if (window.firebaseAuth) {
+                clearInterval(waitForFirebase);
+                console.log("Firebase Auth is now available, executing callback");
+                callback();
+            }
+        }, 200);
+        
+        // Set a timeout to prevent infinite waiting
+        setTimeout(() => {
+            clearInterval(waitForFirebase);
+            console.error("Firebase Auth initialization timed out");
+            alert("Could not initialize Firebase authentication. Please try again or refresh the page.");
+        }, 10000);
+    }
 }
 
 // Navigate between steps
@@ -166,6 +201,13 @@ function validateForm(formId, requiredFields) {
         return false;
     }
     
+    // Check terms agreement
+    const termsElement = document.getElementById('terms');
+    if (termsElement && !termsElement.checked) {
+        alert('Please agree to the Terms of Service and Privacy Policy.');
+        return false;
+    }
+    
     return true;
 }
 
@@ -190,12 +232,16 @@ function saveFormData() {
 // Handle Google sign-in
 async function handleGoogleSignIn() {
     try {
+        console.log("Starting Google sign-in process");
         if (!window.firebaseAuth) {
+            console.error("Firebase Auth not available");
             alert('Firebase authentication is not initialized yet. Please try again in a moment.');
             return;
         }
         
+        console.log("Calling window.firebaseAuth.signInWithGoogle()");
         const user = await window.firebaseAuth.signInWithGoogle();
+        console.log("Google sign-in successful, user:", user.email);
         
         // Pre-fill form with Google account info
         formData.email = user.email;
@@ -251,13 +297,13 @@ async function handleRegistrationCompletion() {
     completeButton.disabled = true;
     
     try {
-        // Wait for Firebase Auth to be ready
+        // Ensure Firebase Auth is ready
         if (!window.firebaseAuth) {
-            setTimeout(() => {
-                alert('Firebase services are not ready. Please try again.');
-                completeButton.innerHTML = '<i class="fas fa-check-circle" style="margin-right:8px;"></i>Complete Registration';
-                completeButton.disabled = false;
-            }, 1000);
+            const errorMsg = 'Firebase services are not ready. Please try again.';
+            console.error(errorMsg);
+            alert(errorMsg);
+            completeButton.innerHTML = '<i class="fas fa-check-circle" style="margin-right:8px;"></i>Complete Registration';
+            completeButton.disabled = false;
             return;
         }
         
@@ -265,14 +311,18 @@ async function handleRegistrationCompletion() {
         let user = window.firebaseAuth.getCurrentUser();
         
         if (!user) {
+            console.log("No current user, creating new user with email/password");
             // Create new user with email/password
             user = await window.firebaseAuth.registerWithEmail(
                 formData.email,
                 formData.password
             );
+        } else {
+            console.log("User already authenticated:", user.email);
         }
         
         // Create photographer profile in Firestore
+        console.log("Creating photographer profile for user:", user.uid);
         await window.firebaseAuth.createPhotographerProfile(
             user.uid,
             {
@@ -285,12 +335,17 @@ async function handleRegistrationCompletion() {
             }
         );
         
+        console.log("Registration completed successfully");
+        
         // Show success UI
         const registrationScreen = document.getElementById('step-2-screen');
         const successScreen = document.getElementById('success-screen');
         
         if (registrationScreen) registrationScreen.style.display = 'none';
-        if (successScreen) successScreen.style.display = 'block';
+        if (successScreen) {
+            successScreen.style.display = 'block';
+            successScreen.classList.add('active');
+        }
         
         // Update step indicator to show completion
         const stepIndicator = document.getElementById('step-2-indicator');
