@@ -61,7 +61,7 @@ async function checkRegistrationComplete(userId) {
         // Get photographer document
         const docRef = await db.collection('photographer').doc('photographer_main').get();
         if (docRef.exists && docRef.data().uid === userId) {
-            // Registration is complete, redirect to dashboard
+            // Registration is complete, Enjoy your journey with Snapselect. All the Best !!
             window.location.href = '../index.html';
         }
     } catch (error) {
@@ -141,9 +141,9 @@ function setupFormListeners() {
         ensureFirebaseAuthAndExecute(handleGoogleSignIn);
     });
     
-    // Dashboard button (after successful registration)
+    // landing page button (after successful registration)
     safeAddListener('go-to-dashboard-btn', 'click', () => {
-        window.location.href = 'pages/studiopanel-dashboard.html';
+        window.location.href = '../index.html';
     });
 }
 
