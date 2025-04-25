@@ -143,7 +143,7 @@ function setupFormListeners() {
     
     // Dashboard button (after successful registration)
     safeAddListener('go-to-dashboard-btn', 'click', () => {
-        window.location.href = '/dashboard.html';
+        window.location.href = '/pages/studiopanel-dashboard.html';
     });
 }
 
