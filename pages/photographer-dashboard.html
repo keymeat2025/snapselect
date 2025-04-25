@@ -44,8 +44,8 @@ h1,h2,h3{margin-bottom:8px;color:var(--gray-900)}
 <span style="font-weight:600;font-size:18px;margin-left:8px">Snap Select</span>
 </div>
 <nav style="display:flex;gap:24px">
-<a href="studiopanel-dashboard.html" style="text-decoration:none;color:var(--gray-600)">Dashboard</a>
-<a href="collections.html" style="text-decoration:none;color:var(--gray-600)">Collections</a>
+<a href="photographer-dashboard.html" style="text-decoration:none;color:var(--gray-600)">Dashboard</a>
+<a href="albums.html" style="text-decoration:none;color:var(--gray-600)">albums</a>
 <a href="upload.html" style="text-decoration:none;color:var(--blue);font-weight:500">Upload</a>
 <a href="client-management.html" style="text-decoration:none;color:var(--gray-600)">Clients</a>
 </nav>
@@ -78,7 +78,7 @@ h1,h2,h3{margin-bottom:8px;color:var(--gray-900)}
 <div class="flex justify-between items-center" style="margin-bottom:16px">
 <div>
 <h1>Upload Photos</h1>
-<p>Add photos to your collections for your assigned client</p>
+<p>Add photos to your albums for your assigned client</p>
 </div>
 <button class="btn btn-outline" id="showHelp">
 <svg viewBox="0 0 24 24" width="16" height="16" style="margin-right:4px"><circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="2"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" fill="none" stroke="currentColor" stroke-width="2"></path><line x1="12" y1="17" x2="12.01" y2="17" stroke="currentColor" stroke-width="2"></line></svg>
@@ -126,7 +126,7 @@ Help
 <div class="grid grid-2">
 <div class="card">
 <h3>Add to Collection</h3>
-<select id="collectionSelect" style="margin-top:8px">
+<select id="albumselect" style="margin-top:8px">
 <option value="">Select collection</option>
 <option value="new">+ Create new collection</option>
 <option value="1">Wedding Photos</option>
@@ -231,7 +231,7 @@ const fileInput=document.getElementById('fileInput');
 const advancedSettingsBtn=document.getElementById('advancedSettingsBtn');
 const advancedSettings=document.getElementById('advancedSettings');
 const dropZone=document.getElementById('dropZone');
-const collectionSelect=document.getElementById('collectionSelect');
+const albumselect=document.getElementById('albumselect');
 const collectionModal=document.getElementById('collectionModal');
 const closeModal=document.getElementById('closeModal');
 const cancelModal=document.getElementById('cancelModal');
@@ -258,20 +258,20 @@ e.preventDefault();
 dropZone.classList.remove('active');
 });
 
-collectionSelect&&collectionSelect.addEventListener('change',()=>{
-if(collectionSelect.value==='new'){
+albumselect&&albumselect.addEventListener('change',()=>{
+if(albumselect.value==='new'){
 collectionModal.style.display='block';
 }
 });
 
 closeModal&&closeModal.addEventListener('click',()=>{
 collectionModal.style.display='none';
-collectionSelect.value='';
+albumselect.value='';
 });
 
 cancelModal&&cancelModal.addEventListener('click',()=>{
 collectionModal.style.display='none';
-collectionSelect.value='';
+albumselect.value='';
 });
 
 // Check for client assignment - simulated
