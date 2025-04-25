@@ -1,5 +1,4 @@
 /* Base Styles */
-<!-- CSS to add to your main.css file -->
 /* Logo styling */
 .logo {
     display: flex;
@@ -129,6 +128,23 @@ nav {
     margin-left: 5px;
     display: inline-block;
     vertical-align: middle;
+}
+
+/* Sign Up and Login Buttons */
+.signup-btn {
+    display: inline-block;
+    background-color: var(--accent);
+    color: var(--white);
+    font-weight: 600;
+    text-decoration: none;
+    padding: 8px 20px;
+    border-radius: 25px;
+    margin-right: 15px;
+    transition: background-color 0.3s;
+}
+
+.signup-btn:hover {
+    background-color: #f09b29;
 }
 
 .login-btn {
@@ -540,4 +556,13 @@ footer {
 .copyright {
     color: #777;
     font-size: 14px;
+}
+
+/* Responsive Design for Sign Up and Login Buttons */
+@media (max-width: 768px) {
+    .signup-btn, .login-btn {
+        margin-right: 10px;
+        padding: 6px 15px;
+        font-size: 14px;
+    }
 }
