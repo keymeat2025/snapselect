@@ -24,10 +24,8 @@ function initializeModule() {
     signInWithGoogle,
     signOut,
     resetPassword,
-    completeRegistration,
     createPhotographerProfile,
-    getCurrentUser,
-    recordPayment
+    getCurrentUser
   };
   
   console.log("Firebase Auth module initialized successfully");
@@ -128,29 +126,6 @@ async function resetPassword(email) {
   }
 }
 
-// Complete registration (create auth + profile)
-async function completeRegistration(email, password, studioData, transactionID) {
-  if (!auth || !db) {
-    throw new Error("Firebase services not initialized yet");
-  }
-  
-  try {
-    // 1. Create the user account
-    const user = await registerWithEmail(email, password);
-    
-    // 2. Create photographer profile in Firestore
-    await createPhotographerProfile(user.uid, studioData);
-    
-    // 3. Record payment for registration
-    await recordPayment(2, transactionID);
-    
-    return user;
-  } catch (error) {
-    console.error("Complete registration error:", error.message);
-    throw error;
-  }
-}
-
 // Create photographer profile in Firestore
 async function createPhotographerProfile(userId, studioData) {
   if (!db) {
@@ -187,41 +162,6 @@ async function createPhotographerProfile(userId, studioData) {
   }
 }
 
-// Record payment in Firestore
-async function recordPayment(amount, transactionID) {
-  if (!db) {
-    throw new Error("Firestore not initialized yet");
-  }
-  
-  try {
-    const timestamp = Date.now();
-    const paymentID = `pay_${timestamp}_razorpay`;
-    
-    // Calculate GST (18% of amount)
-    const gst = (amount * 0.18).toFixed(2);
-    const totalAmount = (parseFloat(amount) + parseFloat(gst)).toFixed(2);
-    
-    // Create payment document
-    await db.collection('payments').doc(paymentID).set({
-      amount: amount,
-      GST: gst,
-      totalAmount: totalAmount,
-      invoiceNumber: `INV-${timestamp}`,
-      transactionID: transactionID,
-      status: 'completed',
-      date: firebase.firestore.FieldValue.serverTimestamp(),
-      purpose: 'registration',
-      paymentMethod: 'razorpay',
-      receiptURL: null // Will be generated later
-    });
-    
-    return paymentID;
-  } catch (error) {
-    console.error("Payment recording error:", error.message);
-    throw error;
-  }
-}
-
 // Get current user
 function getCurrentUser() {
   if (!auth) {
@@ -231,19 +171,8 @@ function getCurrentUser() {
   
   return auth.currentUser;
 }
-// Enhanced signOut function for firebase-auth.js
-// Add or update this in your existing firebase-auth.js file
 
-/**
- * Enhanced sign out functionality with additional cleanup
- * @param {Object} options - Logout options
- * @param {boolean} options.redirect - Whether to redirect after logout
- * @param {string} options.redirectUrl - URL to redirect to after logout
- * @param {Function} options.onSuccess - Callback for successful logout
- * @param {Function} options.onError - Callback for logout errors
- * @param {boolean} options.clearCache - Whether to clear cache data
- * @returns {Promise<void>}
- */
+// Enhanced sign out functionality with additional cleanup
 async function signOut(options = {}) {
   if (!auth) {
     throw new Error("Auth not initialized yet");
@@ -398,30 +327,6 @@ function logUserSignOut() {
   } catch (error) {
     console.warn("Error logging to analytics:", error);
     // Non-critical error, continue with logout
-  }
-}
-// Update the signOut function in firebase-auth.js
-async function signOut() {
-  if (!auth) {
-    throw new Error("Auth not initialized yet");
-  }
-  
-  try {
-    // Sign out from Firebase
-    await auth.signOut();
-    
-    // Clear all storage
-    clearAllStorage();
-    
-    // Clear browser history state
-    clearHistoryState();
-    
-    // Force redirect to prevent back navigation
-    window.location.replace('index.html');
-    
-  } catch (error) {
-    console.error("Sign out error:", error.message);
-    throw error;
   }
 }
 
