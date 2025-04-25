@@ -1,4 +1,4 @@
-// registration.js
+// photographer_registration.js
 // Handles the SnapSelect registration process
 
 // Form data storage
@@ -122,32 +122,14 @@ function setupFormListeners() {
         if (ownerEmailField) ownerEmailField.value = email;
     });
     
-    // Step 2 to Step 3
-    safeAddListener('to-step-3-btn', 'click', () => {
-        if (!validateForm('step-2-form', [
-            'studio-name', 
-            'owner-name', 
-            'owner-email', 
-            'owner-number', 
-            'studio-address', 
-            'studio-pincode'
-        ])) {
-            return;
-        }
-        
-        saveFormData();
-        goToStep(3);
-    });
+    // Final step (complete registration)
+    safeAddListener('complete-registration-btn', 'click', handleRegistrationCompletion);
     
     // Back buttons
     safeAddListener('back-to-step-1-btn', 'click', () => goToStep(1));
-    safeAddListener('back-to-step-2-btn', 'click', () => goToStep(2));
     
     // Google Sign In
     safeAddListener('google-signin-btn', 'click', handleGoogleSignIn);
-    
-    // Payment button
-    safeAddListener('make-payment-btn', 'click', handlePayment);
     
     // Dashboard button (after successful registration)
     safeAddListener('go-to-dashboard-btn', 'click', () => {
@@ -243,46 +225,56 @@ async function handleGoogleSignIn() {
     }
 }
 
-// Handle payment and registration
-async function handlePayment() {
-    // Check terms agreement
-    const termsElement = document.getElementById('terms');
-    if (!termsElement?.checked) {
-        alert('Please agree to the Terms of Service and Privacy Policy.');
+// Handle registration completion
+async function handleRegistrationCompletion() {
+    if (!validateForm('step-2-form', [
+        'studio-name', 
+        'owner-name', 
+        'owner-email', 
+        'owner-number', 
+        'studio-address', 
+        'studio-pincode'
+    ])) {
         return;
     }
+    
+    saveFormData();
     
     // Show loading state
-    const payButton = document.getElementById('make-payment-btn');
-    if (!payButton) {
-        console.error('Payment button not found');
+    const completeButton = document.getElementById('complete-registration-btn');
+    if (!completeButton) {
+        console.error('Complete registration button not found');
         return;
     }
     
-    payButton.innerHTML = '<i class="fas fa-spinner fa-spin" style="margin-right:8px;"></i>Processing...';
-    payButton.disabled = true;
+    completeButton.innerHTML = '<i class="fas fa-spinner fa-spin" style="margin-right:8px;"></i>Processing...';
+    completeButton.disabled = true;
     
     try {
-        // In a real implementation, this would integrate with Razorpay
-        // For now, we'll simulate a successful payment
-        
-        // Generate a mock transaction ID
-        const transactionID = 'txn_' + Date.now();
-        
         // Wait for Firebase Auth to be ready
         if (!window.firebaseAuth) {
             setTimeout(() => {
                 alert('Firebase services are not ready. Please try again.');
-                payButton.innerHTML = '<i class="fas fa-lock" style="margin-right:8px;"></i>Pay & Complete Registration';
-                payButton.disabled = false;
+                completeButton.innerHTML = '<i class="fas fa-check-circle" style="margin-right:8px;"></i>Complete Registration';
+                completeButton.disabled = false;
             }, 1000);
             return;
         }
         
-        // Complete registration process with Firebase
-        await window.firebaseAuth.completeRegistration(
-            formData.email,
-            formData.password,
+        // Check if user is already authenticated via Google
+        let user = window.firebaseAuth.getCurrentUser();
+        
+        if (!user) {
+            // Create new user with email/password
+            user = await window.firebaseAuth.registerWithEmail(
+                formData.email,
+                formData.password
+            );
+        }
+        
+        // Create photographer profile in Firestore
+        await window.firebaseAuth.createPhotographerProfile(
+            user.uid,
             {
                 studioName: formData.studioName,
                 ownerName: formData.ownerName,
@@ -290,19 +282,18 @@ async function handlePayment() {
                 ownerNumber: formData.ownerNumber,
                 studioAddress: formData.studioAddress,
                 studioPincode: formData.studioPincode
-            },
-            transactionID
+            }
         );
         
         // Show success UI
-        const paymentScreen = document.getElementById('payment-screen');
+        const registrationScreen = document.getElementById('step-2-screen');
         const successScreen = document.getElementById('success-screen');
         
-        if (paymentScreen) paymentScreen.style.display = 'none';
+        if (registrationScreen) registrationScreen.style.display = 'none';
         if (successScreen) successScreen.style.display = 'block';
         
         // Update step indicator to show completion
-        const stepIndicator = document.getElementById('step-3-indicator');
+        const stepIndicator = document.getElementById('step-2-indicator');
         if (stepIndicator) {
             stepIndicator.innerHTML = `
                 <div class="step-number" style="background-color:var(--success);border-color:var(--success);">
@@ -317,7 +308,7 @@ async function handlePayment() {
         alert(`Registration error: ${error.message}`);
         
         // Reset button state
-        payButton.innerHTML = '<i class="fas fa-lock" style="margin-right:8px;"></i>Pay & Complete Registration';
-        payButton.disabled = false;
+        completeButton.innerHTML = '<i class="fas fa-check-circle" style="margin-right:8px;"></i>Complete Registration';
+        completeButton.disabled = false;
     }
 }
