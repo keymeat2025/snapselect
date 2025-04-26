@@ -1,4 +1,4 @@
-/* Dashboard Main Styles */
+/* Dashboard.css Main Styles */
 /* This file contains styles specific to the photographer dashboard */
 
 /* Authentication Check Overlay */
@@ -37,6 +37,7 @@
 .dashboard-main {
     padding: 2rem 0;
     min-height: calc(100vh - 80px - 60px); /* Viewport height minus header and footer */
+    background-color: var(--background-color);
 }
 
 /* Dashboard Header Section */
@@ -279,58 +280,6 @@
     background-color: var(--primary-dark);
 }
 
-.upload-preview {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
-    gap: 0.5rem;
-    margin-top: 1rem;
-}
-
-.preview-item {
-    position: relative;
-    width: 90px;
-    height: 90px;
-    border-radius: 4px;
-    overflow: hidden;
-}
-
-.preview-item img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-}
-
-.remove-preview {
-    position: absolute;
-    top: 5px;
-    right: 5px;
-    width: 20px;
-    height: 20px;
-    border-radius: 50%;
-    background-color: rgba(0, 0, 0, 0.5);
-    color: white;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    font-size: 0.7rem;
-    cursor: pointer;
-    transition: background-color 0.2s ease;
-}
-
-.remove-preview:hover {
-    background-color: rgba(0, 0, 0, 0.7);
-}
-
-.upload-progress {
-    margin-top: 1rem;
-}
-
-.progress-info {
-    display: flex;
-    justify-content: space-between;
-    margin-bottom: 0.5rem;
-}
-
 /* Form Actions */
 .form-actions {
     display: flex;
@@ -367,7 +316,78 @@
     border-color: var(--text-muted);
 }
 
-/* Help Modal Styles */
+/* Modal Styles */
+.modal {
+    display: none; /* Hidden by default */
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 2000; /* Ensure it's above everything */
+    overflow-y: auto;
+    padding: 2rem 1rem;
+    box-sizing: border-box;
+    align-items: center;
+    justify-content: center;
+}
+
+.modal.active {
+    display: flex; /* When active, display as flex for better centering */
+}
+
+.modal-content {
+    background-color: var(--card-background);
+    border-radius: 10px;
+    width: 100%;
+    max-width: 700px;
+    margin: 0 auto;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+    animation: fadeInUp 0.5s ease forwards;
+    position: relative; /* Ensure child elements are positioned relative to this */
+    max-height: 90vh; /* Prevent modal from being taller than viewport */
+    overflow-y: auto; /* Allow scrolling inside modal if content is too tall */
+}
+
+.modal-header {
+    padding: 1.5rem;
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    position: sticky; /* Keep header visible when scrolling */
+    top: 0;
+    background-color: var(--card-background);
+    z-index: 1;
+}
+
+.modal-header h2 {
+    margin: 0;
+    font-size: 1.5rem;
+    color: var(--heading-color);
+}
+
+.close-modal {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+    color: var(--text-muted);
+    transition: color 0.2s ease;
+    padding: 0.5rem;
+    line-height: 1;
+}
+
+.close-modal:hover {
+    color: var(--text-color);
+}
+
+.modal-body {
+    padding: 1.5rem;
+}
+
+/* Help Modal Specific Styles */
 .help-content {
     max-width: 800px;
 }
@@ -378,6 +398,7 @@
     margin-bottom: 1.5rem;
     border-bottom: 1px solid var(--border-color);
     padding-bottom: 0.5rem;
+    overflow-x: auto; /* Allow scrolling for many tabs */
 }
 
 .help-tab {
@@ -388,6 +409,7 @@
     color: var(--text-muted);
     cursor: pointer;
     transition: all 0.2s ease;
+    white-space: nowrap;
 }
 
 .help-tab:hover, .help-tab.active {
@@ -396,7 +418,12 @@
 }
 
 .help-panel {
+    display: none;
     animation: fadeIn 0.5s ease;
+}
+
+.help-panel.active {
+    display: block;
 }
 
 .help-panel h3 {
@@ -529,204 +556,6 @@
     z-index: 100;
     max-height: 400px;
     overflow-y: auto;
-}
-
-.notification-header {
-    padding: 1rem;
-    border-bottom: 1px solid var(--border-color);
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-.notification-header h3 {
-    margin: 0;
-    font-size: 1rem;
-}
-
-.mark-read-btn {
-    background: none;
-    border: none;
-    color: var(--primary-color);
-    font-size: 0.85rem;
-    cursor: pointer;
-}
-
-.notification-list {
-    padding: 0.5rem 0;
-}
-
-.notification-item {
-    padding: 0.8rem 1rem;
-    border-bottom: 1px solid var(--border-color);
-    transition: background-color 0.2s ease;
-}
-
-.notification-item:last-child {
-    border-bottom: none;
-}
-
-.notification-item:hover {
-    background-color: rgba(var(--primary-rgb), 0.05);
-}
-
-.notification-item.unread {
-    background-color: rgba(var(--primary-rgb), 0.05);
-}
-
-.notification-item.unread:before {
-    content: "";
-    display: block;
-    width: 8px;
-    height: 8px;
-    background-color: var(--primary-color);
-    border-radius: 50%;
-    position: absolute;
-    left: 10px;
-    top: 50%;
-    transform: translateY(-50%);
-}
-
-.notification-content {
-    margin-left: 20px;
-}
-
-.notification-title {
-    font-weight: 500;
-    color: var(--heading-color);
-    margin-bottom: 0.2rem;
-}
-
-.notification-time {
-    font-size: 0.75rem;
-    color: var(--text-muted);
-}
-
-.empty-notification {
-    padding: 1.5rem;
-    text-align: center;
-    color: var(--text-muted);
-}
-
-/* Footer */
-.dashboard-footer {
-    background-color: var(--card-background);
-    padding: 1rem 0;
-    border-top: 1px solid var(--border-color);
-}
-
-.footer-bottom {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 1rem;
-}
-
-.footer-links {
-    display: flex;
-    gap: 1.5rem;
-}
-
-.footer-links a {
-    color: var(--text-muted);
-    text-decoration: none;
-    font-size: 0.9rem;
-    transition: color 0.2s ease;
-}
-
-.footer-links a:hover {
-    color: var(--primary-color);
-}
-
-/* Animation Classes */
-.animate-in {
-    opacity: 0;
-    transform: translateY(20px);
-    animation: fadeInUp 0.5s ease forwards;
-}
-
-@keyframes fadeInUp {
-    from {
-        opacity: 0;
-        transform: translateY(20px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
-@keyframes fadeIn {
-    from {
-        opacity: 0;
-    }
-    to {
-        opacity: 1;
-    }
-}
-
-/* Responsive Adjustments */
-@media (max-width: 768px) {
-    .dashboard-header {
-        flex-direction: column;
-        align-items: flex-start;
-    }
-    
-    .dashboard-stats {
-        width: 100%;
-        justify-content: space-between;
-    }
-    
-    .stat-card {
-        min-width: 140px;
-        flex: 1;
-    }
-    
-    .action-btn.help {
-        margin-left: 0;
-    }
-    
-    .section-header {
-        flex-direction: column;
-        align-items: flex-start;
-    }
-    
-    .view-controls {
-        width: 100%;
-    }
-    
-    .search-container {
-        width: 100%;
-    }
-    
-    .form-row {
-        flex-direction: column;
-        gap: 1.5rem;
-    }
-    
-    .notification-dropdown {
-        width: 280px;
-        right: -120px;
-    }
-}
-
-/* Sample Card Only For Preview */
-.sample-card, .sample-row {
-    opacity: 0.7;
-}
-
-.sample-card:hover, .sample-row:hover {
-    opacity: 1;
-}
-
-.search-icon {
-    position: absolute;
-    left: 0.8rem;
-    top: 50%;
-    transform: translateY(-50%);
-    color: var(--text-muted);
-    font-size: 0.9rem;
 }
 
 /* Empty State */
@@ -955,101 +784,94 @@
     gap: 0.3rem;
 }
 
-/* Modal Styles */
-.modal {
-    display: none;
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-color: rgba(0, 0, 0, 0.5);
-    z-index: 1000;
-    overflow-y: auto;
-    padding: 2rem 1rem;
-    box-sizing: border-box;
-}
-
-.modal-content {
+/* Footer */
+.dashboard-footer {
     background-color: var(--card-background);
-    border-radius: 10px;
-    width: 100%;
-    max-width: 700px;
-    margin: 0 auto;
-    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
-    animation: fadeInUp 0.5s ease forwards;
+    padding: 1rem 0;
+    border-top: 1px solid var(--border-color);
 }
 
-.modal-header {
-    padding: 1.5rem;
-    border-bottom: 1px solid var(--border-color);
+.footer-bottom {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    flex-wrap: wrap;
+    gap: 1rem;
 }
 
-.modal-header h2 {
-    margin: 0;
-    font-size: 1.5rem;
-    color: var(--heading-color);
+.footer-links {
+    display: flex;
+    gap: 1.5rem;
 }
 
-.close-modal {
-    background: none;
-    border: none;
-    font-size: 1.5rem;
-    cursor: pointer;
+.footer-links a {
     color: var(--text-muted);
+    text-decoration: none;
+    font-size: 0.9rem;
     transition: color 0.2s ease;
 }
 
-.close-modal:hover {
-    color: var(--text-color);
+.footer-links a:hover {
+    color: var(--primary-color);
 }
 
-.modal-body {
-    padding: 1.5rem;
+/* Animation Classes */
+.animate-in {
+    opacity: 0;
+    transform: translateY(20px);
+    animation: fadeInUp 0.5s ease forwards;
 }
 
-/* Create Gallery Form */
-.form-group {
-    margin-bottom: 1.5rem;
+/* Prevent body scrolling when modal is open */
+body.modal-open {
+    overflow: hidden;
 }
 
-.form-row {
-    display: flex;
-    gap: 1rem;
-    margin-bottom: 1.5rem;
-}
-
-.form-group.half {
-    flex: 1;
-    margin-bottom: 0;
-}
-
-label {
-    display: block;
-    margin-bottom: 0.5rem;
-    color: var(--heading-color);
-    font-weight: 500;
-}
-
-input[type="text"],
-input[type="email"],
-input[type="password"],
-input[type="date"],
-input[type="number"] {
-    width: 100%;
-    padding: 0.8rem 1rem;
-    border-radius: 8px;
-    border: 1px solid var(--border-color);
-    background-color: var(--input-background);
-    color: var(--text-color);
-    font-size: 1rem;
-    transition: border-color 0.2s ease;
-}
-
-input:focus {
-    border-color: var(--primary-color);
-    outline: none;
+/* Responsive Adjustments */
+@media (max-width: 768px) {
+    .dashboard-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    
+    .dashboard-stats {
+        width: 100%;
+        justify-content: space-between;
+    }
+    
+    .stat-card {
+        min-width: 140px;
+        flex: 1;
+    }
+    
+    .action-btn.help {
+        margin-left: 0;
+    }
+    
+    .section-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    
+    .view-controls {
+        width: 100%;
+    }
+    
+    .search-container {
+        width: 100%;
+    }
+    
+    .form-row {
+        flex-direction: column;
+        gap: 1.5rem;
+    }
+    
+    .notification-dropdown {
+        width: 280px;
+        right: -120px;
+    }
+    
+    .modal-content {
+        max-width: 95%;
+    }
 }
