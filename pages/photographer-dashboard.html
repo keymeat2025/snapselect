@@ -23,7 +23,7 @@
         </div>
     </div>
 
-    <!-- Navigation Header -->
+    <!-- Navigation Header (Same as index but with active state for dashboard) -->
     <header>
         <div class="container">
             <nav>
@@ -58,7 +58,7 @@
                         <div class="user-menu">
                             <button class="user-menu-btn" id="userMenuBtn">
                                 <img src="../assets/images/placeholder-avatar.jpg" id="userAvatar" class="user-avatar" alt="User">
-                                <span class="user-name" id="userName">key meat</span>
+                                <span class="user-name" id="userName">User</span>
                                 <i class="fas fa-chevron-down"></i>
                             </button>
 
@@ -448,94 +448,5 @@
     <script src="../assets/js/gallery-manager.js"></script>
     <script src="../assets/js/uploader.js"></script>
     <script src="../assets/js/notifications.js"></script>
-    
-    <!-- Modal controller script -->
-    <script>
-    // Modal functionality
-    document.addEventListener('DOMContentLoaded', function() {
-        // Modal elements
-        const helpModal = document.getElementById('helpModal');
-        const helpBtn = document.getElementById('helpBtn');
-        const closeModalButtons = document.querySelectorAll('.close-modal');
-        const helpTabs = document.querySelectorAll('.help-tab');
-        const helpPanels = document.querySelectorAll('.help-panel');
-        
-        // Open modal when help button is clicked
-        if (helpBtn) {
-            helpBtn.addEventListener('click', function() {
-                openModal(helpModal);
-            });
-        }
-        
-        // Close modal when close button is clicked
-        closeModalButtons.forEach(button => {
-            button.addEventListener('click', function() {
-                const modal = this.closest('.modal');
-                closeModal(modal);
-            });
-        });
-        
-        // Close modal when clicking outside of modal content
-        window.addEventListener('click', function(event) {
-            if (event.target.classList.contains('modal')) {
-                closeModal(event.target);
-            }
-        });
-        
-        // Tab functionality in help modal
-        helpTabs.forEach(tab => {
-            tab.addEventListener('click', function() {
-                const tabId = this.getAttribute('data-tab');
-                
-                // Remove active class from all tabs and panels
-                helpTabs.forEach(t => t.classList.remove('active'));
-                helpPanels.forEach(p => {
-                    p.classList.remove('active');
-                    p.style.display = 'none';
-                });
-                
-                // Add active class to clicked tab and corresponding panel
-                this.classList.add('active');
-                const activePanel = document.getElementById(tabId + '-help');
-                if (activePanel) {
-                    activePanel.classList.add('active');
-                    activePanel.style.display = 'block';
-                }
-            });
-        });
-        
-        // Function to open modal
-        function openModal(modal) {
-            if (modal) {
-                modal.classList.add('active');
-                document.body.classList.add('modal-open');
-            }
-        }
-        
-        // Function to close modal
-        function closeModal(modal) {
-            if (modal) {
-                modal.classList.remove('active');
-                document.body.classList.remove('modal-open');
-            }
-        }
-        
-        // Footer help link should also open the help modal
-        const footerHelpLink = document.getElementById('footerHelpLink');
-        if (footerHelpLink && helpModal) {
-            footerHelpLink.addEventListener('click', function(e) {
-                e.preventDefault();
-                openModal(helpModal);
-            });
-        }
-        
-        // Ensure only one help panel is visible initially
-        if (helpPanels.length > 0) {
-            helpPanels.forEach(panel => panel.style.display = 'none');
-            helpPanels[0].style.display = 'block';
-            helpPanels[0].classList.add('active');
-        }
-    });
-    </script>
 </body>
 </html>
