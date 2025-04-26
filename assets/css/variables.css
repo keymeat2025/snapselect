@@ -1,10 +1,18 @@
 :root {
     --primary: #00a0e9;
+    --primary-color: #00a0e9; /* Add this */
     --primary-light: #e0f5ff;
+    --primary-rgb: 0, 160, 233; /* Add this for rgba usage */
     --accent: #ffa837;
     --dark: #2d2d2d;
+    --heading-color: #2d2d2d; /* Add this */
+    --text-color: #555555; /* Add this */
     --gray: #555555;
+    --text-muted: #777777; /* Add this */
     --light-gray: #f8f9fa;
+    --background-color: #f8f9fa; /* Add this */
     --border: #e0e0e0;
+    --border-color: #e0e0e0; /* Add this */
+    --card-background: #ffffff; /* Add this */
     --white: #ffffff;
 }
