@@ -33,6 +33,46 @@
     margin-bottom: 1rem;
 }
 
+/* Navigation and Header Styles */
+/* FIX: Added styling for the right-nav to properly align elements */
+.right-nav {
+    display: flex;
+    align-items: center;
+    height: 40px;
+}
+
+/* FIX: Updated notification-bell to align properly with user profile */
+.notification-bell {
+    position: relative;
+    margin-right: 1.5rem;
+    display: flex;
+    align-items: center;
+    height: 40px;
+}
+
+.notification-btn {
+    background: none;
+    border: none;
+    color: var(--text-color);
+    font-size: 1.2rem;
+    cursor: pointer;
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+/* FIX: Added auth-user styling to ensure consistent height and alignment */
+.auth-user {
+    display: flex;
+    align-items: center;
+    height: 40px;
+}
+
+.user-menu {
+    display: flex;
+    align-items: center;
+}
+
 /* Dashboard Main Layout */
 .dashboard-main {
     padding: 2rem 0;
@@ -487,21 +527,7 @@
     text-decoration: underline;
 }
 
-/* Notification Styles */
-.notification-bell {
-    position: relative;
-    margin-right: 1.5rem;
-}
-
-.notification-btn {
-    background: none;
-    border: none;
-    color: var(--text-color);
-    font-size: 1.2rem;
-    cursor: pointer;
-    position: relative;
-}
-
+/* Notification Styles (Updated) */
 .notification-badge {
     position: absolute;
     top: -5px;
