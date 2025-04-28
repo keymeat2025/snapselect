@@ -1,6 +1,6 @@
 /**
  * subscription-manager.js
- * Handles subscription plan management for SnapSelect
+ * Handles subscription plan management for SnapSelect with Razorpay integration
  */
 
 // Plan details and limits
@@ -123,7 +123,8 @@ function setupSubscriptionEvents() {
         });
     });
     
-    // Payment form submission
+    // Payment form submission - now handled by razorpay-integration.js
+    // We keep this for backwards compatibility
     const paymentForm = document.getElementById('paymentForm');
     if (paymentForm) {
         paymentForm.addEventListener('submit', function(e) {
@@ -138,19 +139,29 @@ function setupSubscriptionEvents() {
  */
 async function loadSubscriptionData() {
     try {
-        const user = window.firebaseServices.auth.currentUser;
+        const user = firebase.auth().currentUser;
         if (!user) {
             console.error('User not authenticated');
             return;
         }
         
-        // Get subscription data
-        const db = window.firebaseServices.db;
-        const subscriptionDoc = await db.collection('subscription').doc('subscription_current').get();
+        // First try to get from subscriptions collection (new format)
+        const db = firebase.firestore();
+        let subscriptionDoc = await db.collection('subscriptions').doc(user.uid).get();
+        
+        // If not found, try legacy format
+        if (!subscriptionDoc.exists) {
+            subscriptionDoc = await db.collection('subscription').doc('subscription_current').get();
+        }
         
         if (subscriptionDoc.exists) {
             const subscriptionData = subscriptionDoc.data();
             updateSubscriptionUI(subscriptionData);
+            
+            // Update storage usage based on subscription data
+            const storageUsed = subscriptionData.storageUsed || 0;
+            const storageLimit = subscriptionData.storageLimit || SUBSCRIPTION_PLANS[subscriptionData.planType].storageLimit;
+            updateStorageUsage(storageUsed, storageLimit);
         } else {
             // Default to lite plan if no subscription data exists
             updateSubscriptionUI({ planType: 'lite' });
@@ -390,62 +401,37 @@ function updateSelectedPlan(planName) {
 }
 
 /**
- * Process subscription upgrade
+ * Process subscription upgrade with Razorpay
  */
 async function processSubscriptionUpgrade() {
-    // Show loading state
-    const confirmButton = document.getElementById('confirmUpgradeBtn');
-    if (confirmButton) {
-        confirmButton.disabled = true;
-        confirmButton.textContent = 'Processing...';
+    // Get selected plan
+    const activeTab = document.querySelector('.plan-tab.active');
+    if (!activeTab) {
+        alert('Please select a plan');
+        return;
     }
     
-    try {
-        // Get selected plan
-        const activeTab = document.querySelector('.plan-tab.active');
-        if (!activeTab) {
-            throw new Error('No plan selected');
+    const planType = activeTab.getAttribute('data-plan');
+    const planDetails = SUBSCRIPTION_PLANS[planType];
+    
+    if (!planDetails) {
+        console.error('Invalid plan type:', planType);
+        alert('Invalid plan selected. Please try again.');
+        return;
+    }
+    
+    // Check if Razorpay integration is available
+    if (window.razorpayIntegration && window.razorpayIntegration.createRazorpayOrder) {
+        // Use Razorpay integration
+        try {
+            await window.razorpayIntegration.createRazorpayOrder(planType, planDetails.price);
+        } catch (error) {
+            console.error('Error creating Razorpay order:', error);
+            alert(`Error upgrading plan: ${error.message}`);
         }
-        
-        const planType = activeTab.getAttribute('data-plan');
-        
-        // Get user
-        const user = window.firebaseServices.auth.currentUser;
-        if (!user) {
-            throw new Error('User not authenticated');
-        }
-        
-        // In a real implementation, this would process payment through a payment processor
-        // For demo purposes, we'll simulate a successful payment
-        
-        // Update subscription in database
-        const db = window.firebaseServices.db;
-        await db.collection('subscription').doc('subscription_current').update({
-            planType: planType,
-            storageQuota: SUBSCRIPTION_PLANS[planType].storageLimit,
-            startDate: firebase.firestore.FieldValue.serverTimestamp(),
-            endDate: null, // Would be calculated in real implementation
-            autoRenew: true,
-            features: SUBSCRIPTION_PLANS[planType].features
-        });
-        
-        // Show success message
-        alert(`Successfully upgraded to ${SUBSCRIPTION_PLANS[planType].name} plan!`);
-        
-        // Close modal
-        closeUpgradePlanModal();
-        
-        // Reload subscription data
-        loadSubscriptionData();
-    } catch (error) {
-        console.error('Error upgrading subscription:', error);
-        alert(`Error upgrading plan: ${error.message}`);
-    } finally {
-        // Reset button state
-        if (confirmButton) {
-            confirmButton.disabled = false;
-            confirmButton.textContent = 'Upgrade Now';
-        }
+    } else {
+        // Fallback to legacy payment processing (should not happen after integration)
+        alert('Payment system is being upgraded. Please try again later.');
     }
 }
 
