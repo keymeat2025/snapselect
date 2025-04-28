@@ -452,6 +452,7 @@
                 </div>
             </div>
 
+ 
             <!-- Plan Upgrade Modal -->
             <div id="upgradePlanModal" class="modal">
                 <div class="modal-content">
@@ -462,35 +463,41 @@
                     <div class="modal-body">
                         <div class="plan-comparison">
                             <div class="plan-tabs">
+                                <button class="plan-tab" data-plan="lite">Lite</button>
                                 <button class="plan-tab" data-plan="mini">Mini</button>
                                 <button class="plan-tab active" data-plan="basic">Basic</button>
-                                <button class="plan-tab" data-plan="medium">Medium</button>
-                                <button class="plan-tab" data-plan="mega">Mega</button>
+                                <button class="plan-tab" data-plan="pro">Pro</button>
+                                <button class="plan-tab" data-plan="premium">Premium</button>
+                                <button class="plan-tab" data-plan="ultimate">Ultimate</button>
                             </div>
                             
                             <div class="current-vs-selected">
                                 <div class="plan-column current">
                                     <h3>Current Plan</h3>
-                                    <div class="plan-name" id="currentPlanDisplay">Free</div>
-                                    <div class="plan-price" id="currentPlanPrice">$0/month</div>
+                                    <div class="plan-name" id="currentPlanDisplay">Lite</div>
+                                    <div class="plan-price" id="currentPlanPrice">₹79/per client</div>
                                     <ul class="plan-features" id="currentPlanFeatures">
-                                        <li>1 GB Storage</li>
-                                        <li>3 Galleries</li>
+                                        <li>2 GB Storage</li>
+                                        <li>5 Galleries</li>
                                         <li>100 Photos per gallery</li>
-                                        <li>30-day expiration</li>
+                                        <li>7-day client selection window</li>
+                                        <li>Mobile-friendly Galleries</li>
+                                        <li>Client Favorites Feature</li>
                                     </ul>
                                 </div>
                                 <div class="plan-column selected">
                                     <h3>Selected Plan</h3>
                                     <div class="plan-name" id="selectedPlanDisplay">Basic</div>
-                                    <div class="plan-price" id="selectedPlanPrice">$19.99/month</div>
+                                    <div class="plan-price" id="selectedPlanPrice">₹399/per client</div>
                                     <ul class="plan-features" id="selectedPlanFeatures">
-                                        <li>8 GB Storage</li>
+                                        <li>15 GB Storage</li>
                                         <li>20 Galleries</li>
                                         <li>500 Photos per gallery</li>
-                                        <li>90-day expiration</li>
-                                        <li>Gallery customization</li>
-                                        <li>Priority support</li>
+                                        <li>30-day client selection window</li>
+                                        <li>Advanced uploads</li>
+                                        <li>Password protection</li>
+                                        <li>Custom branding</li>
+                                        <li>Basic Analytics</li>
                                     </ul>
                                 </div>
                             </div>
@@ -526,7 +533,6 @@
                     </div>
                 </div>
             </div>
-        </div>
     </main>
 
     <!-- Footer - Simplified version for dashboard -->
