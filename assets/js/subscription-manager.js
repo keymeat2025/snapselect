@@ -5,55 +5,71 @@
 
 // Plan details and limits
 const SUBSCRIPTION_PLANS = {
-    free: {
-        name: 'Free',
-        price: 0,
-        storageLimit: 1, // GB
-        galleryLimit: 3,
+    lite: {
+        name: 'Lite',
+        price: 79,
+        priceType: 'per client',
+        storageLimit: 2, // GB
+        galleryLimit: 5,
         photosPerGallery: 100,
-        maxClients: 5,
-        expiryDays: 30,
-        features: ['Basic uploads', 'Client selection', 'Basic sharing']
+        maxClients: 10,
+        expiryDays: 7,
+        features: ['Basic uploads', 'Client selection', 'Basic sharing', 'Mobile-friendly Galleries', 'Client Favorites Feature']
     },
     mini: {
         name: 'Mini',
-        price: 9.99,
-        storageLimit: 3, // GB
+        price: 149,
+        priceType: 'per client',
+        storageLimit: 5, // GB
         galleryLimit: 10,
-        photosPerGallery: 150,
-        maxClients: 15,
-        expiryDays: 60,
-        features: ['Advanced uploads', 'Client selection', 'Password protection', 'Download originals']
+        photosPerGallery: 200,
+        maxClients: 20,
+        expiryDays: 14,
+        features: ['Basic uploads', 'Client selection', 'Basic sharing', 'Mobile-friendly Galleries', 'Client Favorites Feature', 'Basic Gallery Customization']
     },
     basic: {
         name: 'Basic',
-        price: 19.99,
-        storageLimit: 8, // GB
+        price: 399,
+        priceType: 'per client',
+        storageLimit: 15, // GB
         galleryLimit: 20,
         photosPerGallery: 500,
-        maxClients: 30,
-        expiryDays: 90,
-        features: ['Advanced uploads', 'Client selection', 'Password protection', 'Download originals', 'Gallery customization']
+        maxClients: 40,
+        expiryDays: 30,
+        features: ['Advanced uploads', 'Client selection', 'Password protection', 'Mobile-friendly Galleries', 'Client Favorites Feature', 'Custom branding', 'Basic Analytics']
     },
-    medium: {
-        name: 'Medium',
-        price: 39.99,
+    pro: {
+        name: 'Pro',
+        price: 799,
+        priceType: 'per client',
         storageLimit: 25, // GB
-        galleryLimit: 50,
-        photosPerGallery: 1000,
-        maxClients: 75,
-        expiryDays: 180,
-        features: ['Advanced uploads', 'Client selection', 'Password protection', 'Download originals', 'Gallery customization', 'Priority support']
+        galleryLimit: 40,
+        photosPerGallery: 800,
+        maxClients: 60,
+        expiryDays: 45,
+        features: ['Advanced uploads', 'Client selection', 'Password protection', 'Mobile-friendly Galleries', 'Client Favorites Feature', 'Advanced Gallery Customization', 'Client Comments', 'Detailed Analytics']
     },
-    mega: {
-        name: 'Mega',
-        price: 69.99,
+    premium: {
+        name: 'Premium',
+        price: 1499,
+        priceType: 'per client',
+        storageLimit: 50, // GB
+        galleryLimit: 75,
+        photosPerGallery: 1200,
+        maxClients: 100,
+        expiryDays: 60,
+        features: ['Advanced uploads', 'Client selection', 'Password protection', 'Mobile-friendly Galleries', 'Client Favorites Feature', 'Complete Gallery Customization', 'Client Comments', 'Detailed Analytics', 'Priority Support']
+    },
+    ultimate: {
+        name: 'Ultimate',
+        price: 2999,
+        priceType: 'per client',
         storageLimit: 100, // GB
         galleryLimit: Infinity,
-        photosPerGallery: Infinity,
+        photosPerGallery: 2500,
         maxClients: Infinity,
-        expiryDays: 365,
-        features: ['Advanced uploads', 'Client selection', 'Password protection', 'Download originals', 'Gallery customization', 'Priority support', 'White labeling', 'API access']
+        expiryDays: 90,
+        features: ['Advanced uploads', 'Client selection', 'Password protection', 'Mobile-friendly Galleries', 'Client Favorites Feature', 'White-label Gallery Customization', 'Client Comments', 'Advanced Analytics', 'Priority Phone Support']
     }
 };
 
@@ -136,13 +152,13 @@ async function loadSubscriptionData() {
             const subscriptionData = subscriptionDoc.data();
             updateSubscriptionUI(subscriptionData);
         } else {
-            // Default to free plan if no subscription data exists
-            updateSubscriptionUI({ planType: 'free' });
+            // Default to lite plan if no subscription data exists
+            updateSubscriptionUI({ planType: 'lite' });
         }
     } catch (error) {
         console.error('Error loading subscription data:', error);
-        // Default to free plan on error
-        updateSubscriptionUI({ planType: 'free' });
+        // Default to lite plan on error
+        updateSubscriptionUI({ planType: 'lite' });
     }
 }
 
@@ -150,7 +166,7 @@ async function loadSubscriptionData() {
  * Update subscription UI based on subscription data
  */
 function updateSubscriptionUI(subscriptionData) {
-    const planType = subscriptionData.planType || 'free';
+    const planType = subscriptionData.planType || 'lite';
     const planDetails = SUBSCRIPTION_PLANS[planType];
     
     if (!planDetails) {
@@ -167,7 +183,7 @@ function updateSubscriptionUI(subscriptionData) {
     // Update plan price
     const currentPlanPrice = document.getElementById('currentPlanPrice');
     if (currentPlanPrice) {
-        currentPlanPrice.textContent = planDetails.price > 0 ? `$${planDetails.price}/month` : 'Free';
+        currentPlanPrice.textContent = `₹${planDetails.price}/${planDetails.priceType}`;
     }
     
     // Update current plan features
@@ -194,7 +210,7 @@ function updateSubscriptionUI(subscriptionData) {
         
         // Add expiry days
         const expiryItem = document.createElement('li');
-        expiryItem.textContent = `${planDetails.expiryDays}-day expiration`;
+        expiryItem.textContent = `${planDetails.expiryDays}-day client selection window`;
         currentPlanFeatures.appendChild(expiryItem);
         
         // Add other features
@@ -255,7 +271,7 @@ function updateGalleryUsage() {
     
     if (galleryUsageBar && galleryUsageText && currentPlanName) {
         const planType = currentPlanName.textContent.toLowerCase();
-        const planDetails = SUBSCRIPTION_PLANS[planType === 'free' ? 'free' : planType.toLowerCase()];
+        const planDetails = SUBSCRIPTION_PLANS[planType === 'lite' ? 'lite' : planType.toLowerCase()];
         
         if (!planDetails) return;
         
@@ -332,7 +348,7 @@ function updateSelectedPlan(planName) {
     }
     
     if (selectedPlanPrice) {
-        selectedPlanPrice.textContent = `$${planDetails.price}/month`;
+        selectedPlanPrice.textContent = `₹${planDetails.price}/${planDetails.priceType}`;
     }
     
     // Update plan features
@@ -359,7 +375,7 @@ function updateSelectedPlan(planName) {
         
         // Add expiry days
         const expiryItem = document.createElement('li');
-        expiryItem.textContent = `${planDetails.expiryDays}-day expiration`;
+        expiryItem.textContent = `${planDetails.expiryDays}-day client selection window`;
         selectedPlanFeatures.appendChild(expiryItem);
         
         // Add other features
