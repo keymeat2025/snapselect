@@ -1,0 +1,130 @@
+/**
+ * Add these styles to your dashboard.css or create a new file payment.css
+ * and include it in your photographer-dashboard.html
+ */
+
+/* Payment section styling */
+.payment-section {
+  margin-top: 2rem;
+  border-top: 1px solid var(--border-color);
+  padding-top: 1.5rem;
+}
+
+.payment-info {
+  color: var(--text-muted);
+  margin-bottom: 1.5rem;
+}
+
+.payment-options {
+  margin-bottom: 2rem;
+}
+
+.payment-option {
+  display: flex;
+  align-items: center;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 1rem;
+  transition: all 0.2s ease;
+}
+
+.payment-option:hover {
+  border-color: var(--color-primary-light);
+  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.1);
+}
+
+.payment-logo {
+  height: 40px;
+  margin-right: 1rem;
+}
+
+.payment-description {
+  flex: 1;
+}
+
+.payment-description p {
+  margin: 0 0 0.5rem;
+  font-weight: 500;
+}
+
+.payment-methods {
+  display: flex;
+  gap: 0.75rem;
+  color: var(--text-muted);
+}
+
+/* Alert styles for payment messages */
+.alert-success,
+.alert-danger {
+  padding: 1rem;
+  border-radius: 6px;
+  margin-bottom: 1.5rem;
+  display: flex;
+  align-items: center;
+}
+
+.alert-success {
+  background-color: rgba(52, 211, 153, 0.1);
+  border: 1px solid rgba(52, 211, 153, 0.2);
+  color: #058b5e;
+}
+
+.alert-danger {
+  background-color: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  color: #e53935;
+}
+
+.alert-success i,
+.alert-danger i {
+  margin-right: 0.5rem;
+  font-size: 1.25rem;
+}
+
+/* Razorpay button styling */
+#confirmUpgradeBtn {
+  min-width: 140px;
+  position: relative;
+}
+
+#confirmUpgradeBtn.loading {
+  padding-left: 2.5rem;
+}
+
+#confirmUpgradeBtn .fa-spinner {
+  margin-right: 0.5rem;
+}
+
+/* Media queries for responsive design */
+@media (max-width: 768px) {
+  .payment-option {
+    flex-direction: column;
+    text-align: center;
+  }
+  
+  .payment-logo {
+    margin-right: 0;
+    margin-bottom: 1rem;
+  }
+  
+  .payment-methods {
+    justify-content: center;
+  }
+}
+
+/* Animation for payment success/error messages */
+@keyframes slideDown {
+  from { 
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to { 
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.payment-success,
+.payment-error {
+  animation: slideDown 0.3s ease forwards;
+}
