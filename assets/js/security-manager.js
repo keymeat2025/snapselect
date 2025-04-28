@@ -1,6 +1,6 @@
 /**
  * security-manager.js
- * Enhanced security measures for SnapSelect
+ * Enhanced security measures for SnapSelect with Razorpay integration
  */
 
 // Initialize module
@@ -23,6 +23,9 @@ function initSecurityManager() {
     
     // Setup data sanitization
     setupDataSanitization();
+    
+    // Setup payment security
+    enhancePaymentSecurity();
     
     console.log('Security manager initialized');
 }
@@ -64,7 +67,7 @@ function validateGalleryForm() {
     const galleryName = document.getElementById('galleryName');
     const clientEmail = document.getElementById('clientEmail');
     const maxSelections = document.getElementById('maxSelections');
-    const expiryDate = document.getElementById('expiryDate');
+    const expiryDate = document.getElementById('galleryExpiryDate');
     
     let isValid = true;
     
@@ -119,68 +122,85 @@ function validateGalleryForm() {
  * Validate payment form
  */
 function validatePaymentForm() {
-    const cardNumber = document.getElementById('cardNumber');
-    const expiryDate = document.getElementById('expiryDate');
-    const cvv = document.getElementById('cvv');
-    const nameOnCard = document.getElementById('nameOnCard');
+    // For Razorpay integration, we don't need to validate card details directly
+    // Since Razorpay handles the payment UI, just validate that a plan is selected
     
-    let isValid = true;
-    
-    // Validate card number (required, numbers only, valid length)
-    if (!cardNumber || !cardNumber.value.trim()) {
-        showValidationError(cardNumber, 'Card number is required');
-        isValid = false;
-    } else if (!/^\d{16,19}$/.test(cardNumber.value.replace(/\s/g, ''))) {
-        showValidationError(cardNumber, 'Please enter a valid card number');
-        isValid = false;
-    } else {
-        clearValidationError(cardNumber);
+    const activeTab = document.querySelector('.plan-tab.active');
+    if (!activeTab) {
+        alert('Please select a plan to continue.');
+        return false;
     }
     
-    // Validate expiry date (required, MM/YY format)
-    if (!expiryDate || !expiryDate.value.trim()) {
-        showValidationError(expiryDate, 'Expiry date is required');
-        isValid = false;
-    } else if (!/^\d{2}\/\d{2}$/.test(expiryDate.value.trim())) {
-        showValidationError(expiryDate, 'Please use MM/YY format');
-        isValid = false;
-    } else {
-        const [month, year] = expiryDate.value.split('/');
-        const now = new Date();
-        const currentYear = now.getFullYear() % 100;
-        const currentMonth = now.getMonth() + 1;
-        
-        if (parseInt(year) < currentYear || (parseInt(year) === currentYear && parseInt(month) < currentMonth)) {
-            showValidationError(expiryDate, 'Card has expired');
-            isValid = false;
-        } else if (parseInt(month) < 1 || parseInt(month) > 12) {
-            showValidationError(expiryDate, 'Invalid month');
-            isValid = false;
-        } else {
-            clearValidationError(expiryDate);
-        }
+    // Check rate limiting for payment actions
+    if (window.rateLimiter && !window.rateLimiter.checkLimit('payment_create')) {
+        alert('Too many payment attempts. Please try again later.');
+        return false;
     }
     
-    // Validate CVV (required, 3-4 digits)
-    if (!cvv || !cvv.value.trim()) {
-        showValidationError(cvv, 'CVV is required');
-        isValid = false;
-    } else if (!/^\d{3,4}$/.test(cvv.value.trim())) {
-        showValidationError(cvv, 'CVV must be 3 or 4 digits');
-        isValid = false;
-    } else {
-        clearValidationError(cvv);
+    return true;
+}
+
+/**
+ * Validate order creation parameters
+ */
+function validateOrderCreation(planType, amount) {
+    // Validate plan type
+    if (!window.subscriptionManager || !window.subscriptionManager.SUBSCRIPTION_PLANS[planType]) {
+        return {
+            valid: false,
+            message: 'Invalid plan selected.'
+        };
     }
     
-    // Validate name on card (required)
-    if (!nameOnCard || !nameOnCard.value.trim()) {
-        showValidationError(nameOnCard, 'Name on card is required');
-        isValid = false;
-    } else {
-        clearValidationError(nameOnCard);
+    // Validate amount matches plan price
+    const expectedPrice = window.subscriptionManager.SUBSCRIPTION_PLANS[planType].price;
+    if (amount !== expectedPrice) {
+        return {
+            valid: false,
+            message: 'Price mismatch. Please refresh and try again.'
+        };
     }
     
-    return isValid;
+    // Check rate limiting
+    if (window.rateLimiter && !window.rateLimiter.checkLimit('payment_create')) {
+        return {
+            valid: false,
+            message: 'Too many payment attempts. Please try again later.'
+        };
+    }
+    
+    return { valid: true };
+}
+
+/**
+ * Validate payment verification parameters
+ */
+function validatePaymentVerification(orderId, paymentId, signature) {
+    // Basic validation
+    if (!orderId || !paymentId || !signature) {
+        return {
+            valid: false,
+            message: 'Missing payment details.'
+        };
+    }
+    
+    // Signature format validation (Razorpay signatures are hex strings)
+    if (!/^[a-f0-9]+$/i.test(signature)) {
+        return {
+            valid: false,
+            message: 'Invalid signature format.'
+        };
+    }
+    
+    // Check rate limiting
+    if (window.rateLimiter && !window.rateLimiter.checkLimit('payment_verify')) {
+        return {
+            valid: false,
+            message: 'Too many verification attempts. Please try again later.'
+        };
+    }
+    
+    return { valid: true };
 }
 
 /**
@@ -221,29 +241,6 @@ function clearValidationError(input) {
  * Setup live validation for form inputs
  */
 function setupLiveValidation() {
-    // Format card number input (add spaces)
-    const cardNumberInput = document.getElementById('cardNumber');
-    if (cardNumberInput) {
-        cardNumberInput.addEventListener('input', function() {
-            const value = this.value.replace(/\D/g, '');
-            const formattedValue = value.replace(/(\d{4})(?=\d)/g, '$1 ');
-            this.value = formattedValue;
-        });
-    }
-    
-    // Format expiry date input (add slash)
-    const expiryDateInput = document.getElementById('expiryDate');
-    if (expiryDateInput) {
-        expiryDateInput.addEventListener('input', function() {
-            const value = this.value.replace(/\D/g, '');
-            if (value.length > 2) {
-                this.value = value.substring(0, 2) + '/' + value.substring(2, 4);
-            } else {
-                this.value = value;
-            }
-        });
-    }
-    
     // Validate gallery name on input
     const galleryNameInput = document.getElementById('galleryName');
     if (galleryNameInput) {
@@ -288,6 +285,30 @@ function setupCSRFProtection() {
     
     // Add token to all fetch/XHR requests
     setupFetchInterceptor(csrfToken);
+}
+
+/**
+ * Enhance payment security
+ */
+function enhancePaymentSecurity() {
+    // Add specific protection for payment endpoints
+    const originalFetch = window.fetch;
+    window.fetch = function(url, options = {}) {
+        // Add additional headers for payment-related endpoints
+        if (url.includes('payment') || url.includes('razorpay')) {
+            options.headers = options.headers || {};
+            options.headers['X-Payment-Request'] = generateNonce();
+        }
+        
+        return originalFetch.call(this, url, options);
+    };
+}
+
+/**
+ * Generate a nonce for payment operations
+ */
+function generateNonce() {
+    return Date.now().toString(36) + Math.random().toString(36).substr(2);
 }
 
 /**
@@ -358,11 +379,16 @@ function setupRateLimiting() {
         gallery_create: { count: 0, limit: 5, resetTime: 60000 }, // 5 per minute
         photo_upload: { count: 0, limit: 100, resetTime: 60000 }, // 100 per minute
         client_invite: { count: 0, limit: 10, resetTime: 60000 }, // 10 per minute
-        api_request: { count: 0, limit: 50, resetTime: 60000 }    // 50 per minute
+        api_request: { count: 0, limit: 50, resetTime: 60000 },    // 50 per minute
+        payment_create: { count: 0, limit: 5, resetTime: 300000 },  // 5 per 5 minutes
+        payment_verify: { count: 0, limit: 10, resetTime: 300000 }, // 10 per 5 minutes
+        plan_change: { count: 0, limit: 3, resetTime: 3600000 }     // 3 per hour
     };
     
     // Store in window object for global access
     window.rateLimiter = {
+        actionLimits: actionLimits,
+        
         /**
          * Check if action is allowed
          * @param {string} action - Action type
@@ -491,6 +517,33 @@ function setupDataSanitization() {
                 .replace(/\.\./g, '') // Remove double dots
                 .replace(/[<>:"|?*]/g, '') // Remove other invalid chars
                 .trim();
+        },
+        
+        /**
+         * Sanitize payment data to prevent tampering
+         * @param {Object} data - Payment data to sanitize
+         * @returns {Object} - Sanitized payment data
+         */
+        sanitizePaymentData: function(data) {
+            if (!data) return {};
+            
+            const safeData = {};
+            
+            // Only allow specific fields
+            const allowedFields = ['planType', 'amount', 'orderId', 'paymentId', 'signature'];
+            
+            allowedFields.forEach(field => {
+                if (data[field] !== undefined) {
+                    // Sanitize string values
+                    if (typeof data[field] === 'string') {
+                        safeData[field] = this.sanitizeText(data[field]);
+                    } else {
+                        safeData[field] = data[field];
+                    }
+                }
+            });
+            
+            return safeData;
         }
     };
 }
@@ -499,8 +552,11 @@ function setupDataSanitization() {
 window.securityManager = {
     validateGalleryForm,
     validatePaymentForm,
+    validateOrderCreation,
+    validatePaymentVerification,
     sanitizeText: window.sanitizer ? window.sanitizer.sanitizeText : null,
     sanitizeHTML: window.sanitizer ? window.sanitizer.sanitizeHTML : null,
     sanitizeFileName: window.sanitizer ? window.sanitizer.sanitizeFileName : null,
+    sanitizePaymentData: window.sanitizer ? window.sanitizer.sanitizePaymentData : null,
     checkRateLimit: window.rateLimiter ? window.rateLimiter.checkLimit : null
 };
