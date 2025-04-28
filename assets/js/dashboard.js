@@ -242,7 +242,7 @@ function openCreateGalleryModal() {
     const modal = document.getElementById('createGalleryModal');
     if (modal) {
         // Set default expiry date to 30 days from now
-        const expiryDateInput = document.getElementById('expiryDate');
+        const expiryDateInput = document.getElementById('galleryExpiryDate');
         if (expiryDateInput) {
             const date = new Date();
             date.setDate(date.getDate() + 30);
