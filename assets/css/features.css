@@ -39,6 +39,7 @@
     border-radius: 16px;
     font-size: 0.8rem;
     font-weight: 600;
+    padding: 5px 12px;
 }
 
 .plan-details {
@@ -115,12 +116,14 @@
     cursor: pointer;
     font-size: 0.9rem;
     transition: all 0.2s ease;
+    font-weight: 600;
 }
 
 .plan-tab.active {
     background-color: var(--color-primary);
     color: white;
     border-color: var(--color-primary);
+    font-weight: 700;
 }
 
 .current-vs-selected {
@@ -150,9 +153,14 @@
 
 .plan-name {
     font-size: 1.5rem;
-    font-weight: 600;
+    font-weight: 700;
     text-align: center;
     margin-bottom: 0.5rem;
+    color: var(--color-primary);
+    background-color: rgba(var(--primary-rgb), 0.1);
+    padding: 5px 12px;
+    border-radius: 6px;
+    display: inline-block;
 }
 
 .plan-price {
