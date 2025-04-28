@@ -12,10 +12,14 @@
     <link rel="stylesheet" href="../assets/css/user-menu.css">
     <link rel="stylesheet" href="../assets/css/animations.css">
     <link rel="stylesheet" href="../assets/css/features.css">
+    <link rel="stylesheet" href="../assets/css/payment.css">
+
     <!-- Add Chart.js for analytics charts -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
     <!-- Add jsPDF for PDF exports -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+    <script src="../assets/js/razorpay-integration.js"></script>
 </head>
 <body>
     <!-- Authentication Check Overlay (shown if not authenticated) -->
@@ -453,6 +457,7 @@
             </div>
 
  
+
             <!-- Plan Upgrade Modal -->
             <div id="upgradePlanModal" class="modal">
                 <div class="modal-content">
@@ -478,7 +483,7 @@
                                     <div class="plan-price" id="currentPlanPrice">₹79/per client</div>
                                     <ul class="plan-features" id="currentPlanFeatures">
                                         <li>2 GB Storage</li>
-                                        <li>5 Galleries</li>
+                                        <li>1 Gallery</li>
                                         <li>100 Photos per gallery</li>
                                         <li>7-day client selection window</li>
                                         <li>Mobile-friendly Galleries</li>
@@ -491,7 +496,7 @@
                                     <div class="plan-price" id="selectedPlanPrice">₹399/per client</div>
                                     <ul class="plan-features" id="selectedPlanFeatures">
                                         <li>15 GB Storage</li>
-                                        <li>20 Galleries</li>
+                                        <li>1 Gallery</li>
                                         <li>500 Photos per gallery</li>
                                         <li>30-day client selection window</li>
                                         <li>Advanced uploads</li>
@@ -503,26 +508,30 @@
                             </div>
                             
                             <div class="payment-section">
-                                <h3>Payment Details</h3>
+                                <!-- Payment success/error messages will be inserted here -->
+                                <div class="payment-success alert-success" style="display: none;"></div>
+                                <div class="payment-error alert-danger" style="display: none;"></div>
+                                
+                                <h3>Complete Your Upgrade</h3>
+                                <p class="payment-info">Click the button below to proceed securely with Razorpay.</p>
+                                
                                 <form id="paymentForm">
-                                    <div class="form-group">
-                                        <label for="cardNumber">Card Number</label>
-                                        <input type="text" id="cardNumber" placeholder="1234 5678 9012 3456" maxlength="19">
-                                    </div>
-                                    <div class="form-row">
-                                        <div class="form-group half">
-                                            <label for="expiryDate">Expiry Date</label>
-                                            <input type="text" id="paymentExpiryDate" placeholder="MM/YY" maxlength="5">
+                                    <div class="payment-options">
+                                        <div class="payment-option">
+                                            <img src="../assets/images/payment-methods.png" alt="Payment Methods" class="payment-logo">
+                                            <div class="payment-description">
+                                                <p>Secure payment via Razorpay</p>
+                                                <div class="payment-methods">
+                                                    <i class="fas fa-credit-card"></i>
+                                                    <i class="fas fa-university"></i>
+                                                    <i class="fab fa-cc-visa"></i>
+                                                    <i class="fab fa-cc-mastercard"></i>
+                                                    <i class="fab fa-google-pay"></i>
+                                                </div>
+                                            </div>
                                         </div>
-                                        <div class="form-group half">
-                                            <label for="cvv">CVV</label>
-                                            <input type="text" id="cvv" placeholder="123" maxlength="3">
-                                        </div>
                                     </div>
-                                    <div class="form-group">
-                                        <label for="nameOnCard">Name on Card</label>
-                                        <input type="text" id="nameOnCard" placeholder="John Smith">
-                                    </div>
+                                    
                                     <div class="form-actions">
                                         <button type="button" class="btn secondary" id="cancelUpgradeBtn">Cancel</button>
                                         <button type="submit" class="btn primary" id="confirmUpgradeBtn">Upgrade Now</button>
