@@ -18,8 +18,8 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
     <!-- Add jsPDF for PDF exports -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <!-- Razorpay checkout script - only load the external library here -->
     <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
-    <script src="../assets/js/razorpay-integration.js"></script>
 </head>
 <body>
     <!-- Authentication Check Overlay (shown if not authenticated) -->
@@ -456,8 +456,6 @@
                 </div>
             </div>
 
- 
-
             <!-- Plan Upgrade Modal -->
             <div id="upgradePlanModal" class="modal">
                 <div class="modal-content">
@@ -542,6 +540,7 @@
                     </div>
                 </div>
             </div>
+        </div>
     </main>
 
     <!-- Footer - Simplified version for dashboard -->
@@ -558,11 +557,13 @@
         </div>
     </footer>
 
-    <!-- Firebase Scripts -->
+    <!-- Firebase Scripts - Updated with proper ordering -->
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js"></script>
+    <!-- Added the missing Firebase Functions module -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-functions-compat.js"></script>
     
     <!-- Your Firebase configuration and modules -->
     <script src="../assets/js/firebase-config.js"></script>
@@ -582,5 +583,8 @@
     <script src="../assets/js/security-manager.js"></script>
     <script src="../assets/js/gallery-template-manager.js"></script>
     <script src="../assets/js/analytics-manager.js"></script>
+    
+    <!-- Moved Razorpay integration script after Firebase initialization -->
+    <script src="../assets/js/razorpay-integration.js"></script>
 </body>
 </html>
