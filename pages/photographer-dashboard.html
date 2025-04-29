@@ -1,4 +1,4 @@
-<!DOCTYPE html photographer-dashboard.html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -11,15 +11,6 @@
     <link rel="stylesheet" href="../assets/css/responsive.css">
     <link rel="stylesheet" href="../assets/css/user-menu.css">
     <link rel="stylesheet" href="../assets/css/animations.css">
-    <link rel="stylesheet" href="../assets/css/features.css">
-    <link rel="stylesheet" href="../assets/css/payment.css">
-
-    <!-- Add Chart.js for analytics charts -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
-    <!-- Add jsPDF for PDF exports -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <!-- Razorpay checkout script - only load the external library here -->
-    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
 </head>
 <body>
     <!-- Authentication Check Overlay (shown if not authenticated) -->
@@ -73,7 +64,6 @@
 
                             <div class="user-dropdown" id="userDropdown">
                                 <a href="photographer-dashboard.html" class="active">Dashboard</a>
-                                <a href="analytics-dashboard.html">Analytics</a>
                                 <a href="account-settings.html">Account Settings</a>
                                 <a href="#" id="logoutBtn">Logout</a>
                             </div>
@@ -127,35 +117,6 @@
                 </div>
             </section>
 
-            <!-- Plan Information Section -->
-            <section class="plan-info animate-in" style="animation-delay: 0.25s;">
-                <div class="plan-card">
-                    <div class="plan-header">
-                        <h3>Current Plan: <span id="currentPlanName">Free</span></h3>
-                        <span class="plan-badge" id="planBadge">Free</span>
-                    </div>
-                    <div class="plan-details">
-                        <div class="plan-usage">
-                            <div class="usage-item">
-                                <span class="usage-label">Storage:</span>
-                                <div class="usage-bar">
-                                    <div class="usage-progress" id="storageUsageBar" style="width: 0%"></div>
-                                </div>
-                                <span class="usage-text" id="storageUsageText">0/1 GB</span>
-                            </div>
-                            <div class="usage-item">
-                                <span class="usage-label">Galleries:</span>
-                                <div class="usage-bar">
-                                    <div class="usage-progress" id="galleryUsageBar" style="width: 0%"></div>
-                                </div>
-                                <span class="usage-text" id="galleryUsageText">0/3</span>
-                            </div>
-                        </div>
-                        <button id="upgradePlanBtn" class="btn upgrade-btn">Upgrade Plan</button>
-                    </div>
-                </div>
-            </section>
-
             <!-- Quick Actions Bar -->
             <section class="quick-actions animate-in" style="animation-delay: 0.3s;">
                 <button id="createGalleryBtn" class="action-btn primary">
@@ -166,9 +127,6 @@
                 </button>
                 <button id="downloadSelectedBtn" class="action-btn">
                     <i class="fas fa-download"></i> Download Selected
-                </button>
-                <button id="viewAnalyticsBtn" class="action-btn">
-                    <i class="fas fa-chart-bar"></i> Analytics
                 </button>
                 <button id="helpBtn" class="action-btn help">
                     <i class="fas fa-question-circle"></i> Help
@@ -311,7 +269,7 @@
                                 </div>
                                 <div class="form-group half">
                                     <label for="expiryDate">Selection Deadline</label>
-                                    <input type="date" id="galleryExpiryDate" name="expiryDate">
+                                    <input type="date" id="expiryDate" name="expiryDate">
                                 </div>
                             </div>
                             <div class="form-group">
@@ -455,91 +413,6 @@
                     </div>
                 </div>
             </div>
-
-            <!-- Plan Upgrade Modal -->
-            <div id="upgradePlanModal" class="modal">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h2>Upgrade Your Plan</h2>
-                        <button class="close-modal">&times;</button>
-                    </div>
-                    <div class="modal-body">
-                        <div class="plan-comparison">
-                            <div class="plan-tabs">
-                                <button class="plan-tab" data-plan="lite">Lite</button>
-                                <button class="plan-tab" data-plan="mini">Mini</button>
-                                <button class="plan-tab active" data-plan="basic">Basic</button>
-                                <button class="plan-tab" data-plan="pro">Pro</button>
-                                <button class="plan-tab" data-plan="premium">Premium</button>
-                                <button class="plan-tab" data-plan="ultimate">Ultimate</button>
-                            </div>
-                            
-                            <div class="current-vs-selected">
-                                <div class="plan-column current">
-                                    <h3>Current Plan</h3>
-                                    <div class="plan-name" id="currentPlanDisplay">Lite</div>
-                                    <div class="plan-price" id="currentPlanPrice">₹79/per client</div>
-                                    <ul class="plan-features" id="currentPlanFeatures">
-                                        <li>2 GB Storage</li>
-                                        <li>1 Gallery</li>
-                                        <li>100 Photos per gallery</li>
-                                        <li>7-day client selection window</li>
-                                        <li>Mobile-friendly Galleries</li>
-                                        <li>Client Favorites Feature</li>
-                                    </ul>
-                                </div>
-                                <div class="plan-column selected">
-                                    <h3>Selected Plan</h3>
-                                    <div class="plan-name" id="selectedPlanDisplay">Basic</div>
-                                    <div class="plan-price" id="selectedPlanPrice">₹399/per client</div>
-                                    <ul class="plan-features" id="selectedPlanFeatures">
-                                        <li>15 GB Storage</li>
-                                        <li>1 Gallery</li>
-                                        <li>500 Photos per gallery</li>
-                                        <li>30-day client selection window</li>
-                                        <li>Advanced uploads</li>
-                                        <li>Password protection</li>
-                                        <li>Custom branding</li>
-                                        <li>Basic Analytics</li>
-                                    </ul>
-                                </div>
-                            </div>
-                            
-                            <div class="payment-section">
-                                <!-- Payment success/error messages will be inserted here -->
-                                <div class="payment-success alert-success" style="display: none;"></div>
-                                <div class="payment-error alert-danger" style="display: none;"></div>
-                                
-                                <h3>Complete Your Upgrade</h3>
-                                <p class="payment-info">Click the button below to proceed securely with Razorpay.</p>
-                                
-                                <form id="paymentForm">
-                                    <div class="payment-options">
-                                        <div class="payment-option">
-                                            <img src="../assets/images/payment-methods.png" alt="Payment Methods" class="payment-logo">
-                                            <div class="payment-description">
-                                                <p>Secure payment via Razorpay</p>
-                                                <div class="payment-methods">
-                                                    <i class="fas fa-credit-card"></i>
-                                                    <i class="fas fa-university"></i>
-                                                    <i class="fab fa-cc-visa"></i>
-                                                    <i class="fab fa-cc-mastercard"></i>
-                                                    <i class="fab fa-google-pay"></i>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    
-                                    <div class="form-actions">
-                                        <button type="button" class="btn secondary" id="cancelUpgradeBtn">Cancel</button>
-                                        <button type="submit" class="btn primary" id="confirmUpgradeBtn">Upgrade Now</button>
-                                    </div>
-                                </form>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
         </div>
     </main>
 
@@ -557,13 +430,11 @@
         </div>
     </footer>
 
-    <!-- Firebase Scripts - Updated with proper ordering -->
+    <!-- Firebase Scripts -->
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js"></script>
-    <!-- Added the missing Firebase Functions module -->
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-functions-compat.js"></script>
     
     <!-- Your Firebase configuration and modules -->
     <script src="../assets/js/firebase-config.js"></script>
@@ -577,14 +448,5 @@
     <script src="../assets/js/gallery-manager.js"></script>
     <script src="../assets/js/uploader.js"></script>
     <script src="../assets/js/notifications.js"></script>
-    
-    <!-- New Feature Scripts -->
-    <script src="../assets/js/subscription-manager.js"></script>
-    <script src="../assets/js/security-manager.js"></script>
-    <script src="../assets/js/gallery-template-manager.js"></script>
-    <script src="../assets/js/analytics-manager.js"></script>
-    
-    <!-- Moved Razorpay integration script after Firebase initialization -->
-    <script src="../assets/js/razorpay-integration.js"></script>
 </body>
 </html>
