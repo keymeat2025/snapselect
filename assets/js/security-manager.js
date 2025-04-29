@@ -298,6 +298,12 @@ function enhancePaymentSecurity() {
         if (url.includes('payment') || url.includes('razorpay')) {
             options.headers = options.headers || {};
             options.headers['X-Payment-Request'] = generateNonce();
+            
+            // Ensure asia-south1 region for payment-related cloud functions
+            if (url.includes('functions') && !url.includes('asia-south1')) {
+                // Modify URL to include asia-south1 region if not already present
+                url = url.replace(/\/functions\//, '/functions/asia-south1/');
+            }
         }
         
         return originalFetch.call(this, url, options);
