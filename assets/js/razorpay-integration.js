@@ -1,9 +1,53 @@
 /**
  * razorpay-integration.js - Handles Razorpay payment gateway integration for SnapSelect
  */
+
+// Global variable to ensure Firebase is initialized before using
+let firebaseInitialized = false;
+
+// Initialize module
 document.addEventListener('DOMContentLoaded', function() {
-    // Load Razorpay script if not available
+    // Check if Firebase is initialized
+    checkFirebaseInitialization();
+    
+    // Initialize Razorpay
+    initRazorpayIntegration();
+});
+
+/**
+ * Check if Firebase is properly initialized
+ */
+function checkFirebaseInitialization() {
+    // Try to detect Firebase initialization
+    if (typeof firebase !== 'undefined' && firebase.app && firebase.auth) {
+        console.log('Firebase detected, initialization looks good');
+        firebaseInitialized = true;
+    } else {
+        console.warn('Firebase not fully initialized yet, will check again');
+        
+        // Keep checking until Firebase is available (with a reasonable timeout)
+        let attempts = 0;
+        const initCheck = setInterval(() => {
+            attempts++;
+            if (typeof firebase !== 'undefined' && firebase.app && firebase.auth) {
+                console.log('Firebase initialized successfully after waiting');
+                firebaseInitialized = true;
+                clearInterval(initCheck);
+            } else if (attempts > 20) { // Stop after ~10 seconds
+                console.error('Firebase initialization timed out');
+                clearInterval(initCheck);
+            }
+        }, 500);
+    }
+}
+
+/**
+ * Initialize Razorpay integration
+ */
+function initRazorpayIntegration() {
+    // Check if Razorpay script is loaded
     if (typeof Razorpay === 'undefined') {
+        // Load Razorpay script
         const script = document.createElement('script');
         script.src = 'https://checkout.razorpay.com/v1/checkout.js';
         script.async = true;
@@ -12,24 +56,35 @@ document.addEventListener('DOMContentLoaded', function() {
     } else {
         setupRazorpayEventListeners();
     }
-});
+}
 
+/**
+ * Setup event listeners for Razorpay integration
+ */
 function setupRazorpayEventListeners() {
+    // Override the payment form submission
     const paymentForm = document.getElementById('paymentForm');
     const confirmUpgradeBtn = document.getElementById('confirmUpgradeBtn');
     
     if (paymentForm) {
         paymentForm.addEventListener('submit', function(e) {
             e.preventDefault();
-            if (window.securityManager?.validatePaymentForm && !window.securityManager.validatePaymentForm()) {
-                return;
+            
+            // Validate the form
+            if (window.securityManager && window.securityManager.validatePaymentForm) {
+                const isValid = window.securityManager.validatePaymentForm();
+                if (!isValid) {
+                    return;
+                }
             }
             
+            // Show loading state
             if (confirmUpgradeBtn) {
                 confirmUpgradeBtn.disabled = true;
                 confirmUpgradeBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
             }
             
+            // Get selected plan
             const activeTab = document.querySelector('.plan-tab.active');
             if (!activeTab) {
                 showPaymentError('No plan selected. Please select a plan to continue.');
@@ -39,67 +94,133 @@ function setupRazorpayEventListeners() {
             
             const planType = activeTab.getAttribute('data-plan');
             const planPrice = SUBSCRIPTION_PLANS[planType].price;
+            
+            // Create Razorpay order
             createRazorpayOrder(planType, planPrice);
         });
     }
+    
     console.log('Razorpay integration initialized');
 }
 
+/**
+ * Create a Razorpay order
+ */
 async function createRazorpayOrder(planType, amount) {
     try {
-        // Check for Firebase and functions availability
-        if (!firebase || typeof firebase.functions !== 'function') {
-            throw new Error('Payment system unavailable. Please refresh and try again.');
+        // Ensure Firebase is fully initialized
+        if (!firebaseInitialized) {
+            console.error('Firebase not initialized, checking again...');
+            
+            // One final check
+            if (typeof firebase === 'undefined' || !firebase.app || !firebase.auth) {
+                throw new Error('Payment system unavailable. Please refresh and try again.');
+            }
+            
+            firebaseInitialized = true;
         }
         
-        // Get functions instance with region fallback
+        // Check if user is authenticated
+        const currentUser = firebase.auth().currentUser;
+        if (!currentUser) {
+            console.error('User not authenticated');
+            throw new Error('Please login to continue with payment.');
+        }
+
+        // Get Firebase Functions instance
         let functionsInstance;
         try {
             functionsInstance = firebase.functions('asia-south1');
+            console.log('Using asia-south1 region for functions');
         } catch (err) {
-            console.warn('Falling back to default functions region');
+            console.warn('Region specification failed, using default functions', err);
             functionsInstance = firebase.functions();
         }
         
+        if (!functionsInstance || typeof functionsInstance.httpsCallable !== 'function') {
+            console.error('Firebase functions not properly initialized');
+            throw new Error('Payment system not available. Please try again later.');
+        }
+        
+        console.log('Creating Razorpay order for plan:', planType, 'amount:', amount);
+        
+        // Call the function to create order
         const createPaymentOrderFn = functionsInstance.httpsCallable('createPaymentOrder');
-        const result = await createPaymentOrderFn({ planType, amount });
+        const result = await createPaymentOrderFn({
+            planType: planType,
+            amount: amount
+        });
+        
+        console.log('Order creation result:', result);
+        
+        // Get order data from result
         const orderData = result.data;
         
-        if (!orderData?.orderId) {
+        if (!orderData || !orderData.orderId) {
             throw new Error('Failed to create order. Please try again.');
         }
         
+        // Open Razorpay checkout
         openRazorpayCheckout(orderData.orderId, amount, planType);
     } catch (error) {
         console.error('Error creating Razorpay order:', error);
-        showPaymentError(error.code?.startsWith('functions/') 
-            ? `Payment service error: ${error.message}. Please try again later.` 
-            : `Failed to create order: ${error.message}`);
+        showPaymentError(error.message || 'Failed to create order');
         resetButton();
     }
 }
 
+/**
+ * Open Razorpay checkout
+ */
 function openRazorpayCheckout(orderId, amount, planType) {
     try {
-        const userName = document.getElementById('userName')?.textContent || '';
+        // Get user information
+        const userName = document.getElementById('userName') ? document.getElementById('userName').textContent : '';
         const userEmail = getUserEmail();
         
+        // Configure Razorpay options
         const options = {
             key: 'rzp_test_EF3W5mVXB1Q3li',
-            amount: amount * 100,
+            amount: amount * 100, // Convert to paise
             currency: 'INR',
             name: 'SnapSelect',
             description: `Upgrade to ${SUBSCRIPTION_PLANS[planType].name} Plan`,
             order_id: orderId,
-            handler: response => handleRazorpaySuccess(response, planType, amount),
-            prefill: { name: userName, email: userEmail },
-            notes: { planType },
-            theme: { color: '#6366f1' },
-            modal: { ondismiss: resetButton }
+            handler: function(response) {
+                // Handle successful payment
+                handleRazorpaySuccess(response, planType, amount);
+            },
+            prefill: {
+                name: userName,
+                email: userEmail
+            },
+            notes: {
+                planType: planType
+            },
+            theme: {
+                color: '#6366f1'
+            },
+            modal: {
+                ondismiss: function() {
+                    console.log('Checkout form closed');
+                    resetButton();
+                }
+            }
         };
         
-        new Razorpay(options).open();
-        window.analyticsManager?.trackEvent?.('checkout_started', { planType, amount });
+        // Initialize Razorpay checkout
+        const razorpayCheckout = new Razorpay(options);
+        
+        // Open checkout
+        razorpayCheckout.open();
+        
+        // Track analytics event
+        if (window.analyticsManager && window.analyticsManager.trackEvent) {
+            window.analyticsManager.trackEvent('checkout_started', {
+                planType: planType,
+                amount: amount
+            });
+        }
     } catch (error) {
         console.error('Error opening Razorpay checkout:', error);
         showPaymentError(`Failed to open checkout: ${error.message}`);
@@ -107,14 +228,19 @@ function openRazorpayCheckout(orderId, amount, planType) {
     }
 }
 
+/**
+ * Handle successful Razorpay payment
+ */
 async function handleRazorpaySuccess(response, planType, amount) {
     try {
+        // Show processing state
         const confirmButton = document.getElementById('confirmUpgradeBtn');
         if (confirmButton) {
             confirmButton.disabled = true;
             confirmButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Verifying payment...';
         }
         
+        // Get Firebase Functions instance
         let functionsInstance;
         try {
             functionsInstance = firebase.functions('asia-south1');
@@ -122,40 +248,71 @@ async function handleRazorpaySuccess(response, planType, amount) {
             functionsInstance = firebase.functions();
         }
         
+        // Verify payment signature
         const verifyPaymentFn = functionsInstance.httpsCallable('verifyPayment');
+        
+        console.log('Verifying payment:', {
+            orderId: response.razorpay_order_id,
+            paymentId: response.razorpay_payment_id
+        });
+        
         const verificationResult = await verifyPaymentFn({
             orderId: response.razorpay_order_id,
             paymentId: response.razorpay_payment_id,
             signature: response.razorpay_signature
         });
         
-        if (!verificationResult.data?.success) {
+        const verificationData = verificationResult.data;
+        
+        if (!verificationData || !verificationData.success) {
             throw new Error('Payment verification failed. Please contact support.');
         }
         
-        window.analyticsManager?.trackEvent?.('payment_success', {
-            planType, amount, paymentId: response.razorpay_payment_id
-        });
+        console.log('Payment verified successfully:', verificationData);
         
+        // Track analytics event
+        if (window.analyticsManager && window.analyticsManager.trackEvent) {
+            window.analyticsManager.trackEvent('payment_success', {
+                planType: planType,
+                amount: amount,
+                paymentId: response.razorpay_payment_id
+            });
+        }
+        
+        // Show success message
         showPaymentSuccess(planType);
         
+        // Close modal after delay
         setTimeout(() => {
             closeUpgradePlanModal();
-            if (window.subscriptionManager?.loadSubscriptionData) {
+            
+            // Reload subscription data
+            if (window.subscriptionManager && window.subscriptionManager.loadSubscriptionData) {
                 window.subscriptionManager.loadSubscriptionData();
             } else {
-                setTimeout(() => window.location.reload(), 1000);
+                // Fallback: reload page after delay
+                setTimeout(() => {
+                    window.location.reload();
+                }, 1000);
             }
         }, 2000);
     } catch (error) {
         console.error('Error verifying Razorpay payment:', error);
-        showPaymentError(error.code?.startsWith('functions/') 
-            ? `Payment verification error: ${error.message}. Please contact support.` 
-            : `Failed to verify payment: ${error.message}`);
+        
+        // Check for specific Firebase errors
+        if (error.code && error.code.startsWith('functions/')) {
+            showPaymentError(`Payment verification error: ${error.message}. Please contact support.`);
+        } else {
+            showPaymentError(`Failed to verify payment: ${error.message}`);
+        }
+        
         resetButton();
     }
 }
 
+/**
+ * Reset payment button
+ */
 function resetButton() {
     const confirmButton = document.getElementById('confirmUpgradeBtn');
     if (confirmButton) {
@@ -164,7 +321,11 @@ function resetButton() {
     }
 }
 
+/**
+ * Show payment error message
+ */
 function showPaymentError(message) {
+    // Check if error element exists, create if not
     let errorElement = document.querySelector('.payment-error');
     
     if (!errorElement) {
@@ -175,17 +336,27 @@ function showPaymentError(message) {
         if (paymentSection) {
             paymentSection.insertBefore(errorElement, paymentSection.firstChild);
         } else {
+            // Fallback - use alert
             alert(`Error: ${message}`);
             return;
         }
     }
     
+    // Set error message and show
     errorElement.textContent = message;
     errorElement.style.display = 'block';
-    setTimeout(() => errorElement.style.display = 'none', 5000);
+    
+    // Auto-hide after 5 seconds
+    setTimeout(() => {
+        errorElement.style.display = 'none';
+    }, 5000);
 }
 
+/**
+ * Show payment success message
+ */
 function showPaymentSuccess(planType) {
+    // Create success element if not exists
     let successElement = document.querySelector('.payment-success');
     
     if (!successElement) {
@@ -196,11 +367,13 @@ function showPaymentSuccess(planType) {
         if (paymentSection) {
             paymentSection.insertBefore(successElement, paymentSection.firstChild);
         } else {
+            // Fallback - use alert
             alert(`Payment successful! Your account has been upgraded to ${SUBSCRIPTION_PLANS[planType].name} plan.`);
             return;
         }
     }
     
+    // Set success message and show
     successElement.innerHTML = `
         <i class="fas fa-check-circle"></i> 
         Payment successful! Your account has been upgraded to 
@@ -209,11 +382,20 @@ function showPaymentSuccess(planType) {
     successElement.style.display = 'block';
 }
 
+/**
+ * Get user email from various sources
+ */
 function getUserEmail() {
-    return firebase.auth()?.currentUser?.email || localStorage.getItem('userEmail') || '';
+    // Try to get from auth
+    if (firebase.auth && firebase.auth().currentUser) {
+        return firebase.auth().currentUser.email || '';
+    }
+    
+    // Fallback to localStorage
+    return localStorage.getItem('userEmail') || '';
 }
 
-// Make functions available globally
+// Make Razorpay integration available globally
 window.razorpayIntegration = {
     createRazorpayOrder,
     openRazorpayCheckout,
