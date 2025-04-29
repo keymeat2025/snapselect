@@ -111,9 +111,15 @@ async function createRazorpayOrder(planType, amount) {
             throw new Error('Please log in to continue');
         }
         
-        // Explicitly use the asia-south1 region
-        const functionsInstance = firebase.app().functions('asia-south1');
-        console.log('Using asia-south1 region for functions');
+        // Get functions from the correct region
+        let functionsInstance;
+        try {
+            functionsInstance = firebase.functions('asia-south1');
+            console.log('Using asia-south1 region for functions');
+        } catch (err) {
+            console.warn('Region specification failed, using default functions', err);
+            functionsInstance = firebase.functions();
+        }
         
         console.log('Creating Razorpay order for plan:', planType, 'amount:', amount);
         
@@ -184,9 +190,13 @@ async function handleRazorpaySuccess(response, planType, amount) {
             confirmButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Verifying payment...';
         }
         
-        // Explicitly use the asia-south1 region
-        const functionsInstance = firebase.app().functions('asia-south1');
-        console.log('Using asia-south1 region for payment verification');
+        // Get functions instance
+        let functionsInstance;
+        try {
+            functionsInstance = firebase.functions('asia-south1');
+        } catch (err) {
+            functionsInstance = firebase.functions();
+        }
         
         console.log('Verifying payment:', {
             orderId: response.razorpay_order_id,
