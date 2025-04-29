@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!DOCTYPE html photographer-dashboard.html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -11,6 +11,15 @@
     <link rel="stylesheet" href="../assets/css/responsive.css">
     <link rel="stylesheet" href="../assets/css/user-menu.css">
     <link rel="stylesheet" href="../assets/css/animations.css">
+    <link rel="stylesheet" href="../assets/css/features.css">
+    <link rel="stylesheet" href="../assets/css/payment.css">
+
+    <!-- Add Chart.js for analytics charts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <!-- Add jsPDF for PDF exports -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+    <script src="../assets/js/razorpay-integration.js"></script>
 </head>
 <body>
     <!-- Authentication Check Overlay (shown if not authenticated) -->
@@ -64,6 +73,7 @@
 
                             <div class="user-dropdown" id="userDropdown">
                                 <a href="photographer-dashboard.html" class="active">Dashboard</a>
+                                <a href="analytics-dashboard.html">Analytics</a>
                                 <a href="account-settings.html">Account Settings</a>
                                 <a href="#" id="logoutBtn">Logout</a>
                             </div>
@@ -117,6 +127,35 @@
                 </div>
             </section>
 
+            <!-- Plan Information Section -->
+            <section class="plan-info animate-in" style="animation-delay: 0.25s;">
+                <div class="plan-card">
+                    <div class="plan-header">
+                        <h3>Current Plan: <span id="currentPlanName">Free</span></h3>
+                        <span class="plan-badge" id="planBadge">Free</span>
+                    </div>
+                    <div class="plan-details">
+                        <div class="plan-usage">
+                            <div class="usage-item">
+                                <span class="usage-label">Storage:</span>
+                                <div class="usage-bar">
+                                    <div class="usage-progress" id="storageUsageBar" style="width: 0%"></div>
+                                </div>
+                                <span class="usage-text" id="storageUsageText">0/1 GB</span>
+                            </div>
+                            <div class="usage-item">
+                                <span class="usage-label">Galleries:</span>
+                                <div class="usage-bar">
+                                    <div class="usage-progress" id="galleryUsageBar" style="width: 0%"></div>
+                                </div>
+                                <span class="usage-text" id="galleryUsageText">0/3</span>
+                            </div>
+                        </div>
+                        <button id="upgradePlanBtn" class="btn upgrade-btn">Upgrade Plan</button>
+                    </div>
+                </div>
+            </section>
+
             <!-- Quick Actions Bar -->
             <section class="quick-actions animate-in" style="animation-delay: 0.3s;">
                 <button id="createGalleryBtn" class="action-btn primary">
@@ -127,6 +166,9 @@
                 </button>
                 <button id="downloadSelectedBtn" class="action-btn">
                     <i class="fas fa-download"></i> Download Selected
+                </button>
+                <button id="viewAnalyticsBtn" class="action-btn">
+                    <i class="fas fa-chart-bar"></i> Analytics
                 </button>
                 <button id="helpBtn" class="action-btn help">
                     <i class="fas fa-question-circle"></i> Help
@@ -246,229 +288,67 @@
             </section>
 
             <!-- Create Gallery Modal -->
-           
             <div id="createGalleryModal" class="modal">
-              <div class="modal-content">
-                <span class="close-modal">&times;</span>
-                <div class="modal-steps">
-                  <div class="step active" data-step="1">1. Choose Plan</div>
-                  <div class="step" data-step="2">2. Gallery Details</div>
-                  <div class="step" data-step="3">3. Payment</div>
-                  <div class="step" data-step="4">4. Upload Photos</div>
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h2>Create New Gallery</h2>
+                        <button class="close-modal">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        <form id="createGalleryForm">
+                            <div class="form-group">
+                                <label for="galleryName">Gallery Name*</label>
+                                <input type="text" id="galleryName" name="galleryName" required placeholder="e.g., Johnson Wedding">
+                            </div>
+                            <div class="form-group">
+                                <label for="clientEmail">Client Email*</label>
+                                <input type="email" id="clientEmail" name="clientEmail" required placeholder="client@example.com">
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group half">
+                                    <label for="maxSelections">Maximum Selections</label>
+                                    <input type="number" id="maxSelections" name="maxSelections" min="1" value="50">
+                                </div>
+                                <div class="form-group half">
+                                    <label for="expiryDate">Selection Deadline</label>
+                                    <input type="date" id="galleryExpiryDate" name="expiryDate">
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label for="galleryPassword">Password Protection (Optional)</label>
+                                <input type="text" id="galleryPassword" name="galleryPassword" placeholder="Leave blank for no password">
+                            </div>
+                            <div class="form-group">
+                                <label>Upload Photos</label>
+                                <div class="upload-zone" id="uploadZone">
+                                    <i class="fas fa-cloud-upload-alt"></i>
+                                    <p>Drag & drop photos here or</p>
+                                    <button type="button" class="browse-btn" id="browseFilesBtn">Browse Files</button>
+                                    <input type="file" id="fileInput" multiple accept="image/*" style="display: none;">
+                                    <p class="upload-note">Maximum 50 photos for initial upload. You can add more later.</p>
+                                </div>
+                                <div id="uploadPreview" class="upload-preview">
+                                    <!-- Upload previews will be displayed here -->
+                                </div>
+                                <div id="uploadProgress" class="upload-progress" style="display: none;">
+                                    <div class="progress-info">
+                                        <span id="uploadStatus">Uploading...</span>
+                                        <span id="uploadPercentage">0%</span>
+                                    </div>
+                                    <div class="progress-bar">
+                                        <div class="progress" id="uploadProgressBar" style="width: 0%"></div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="form-actions">
+                                <button type="button" class="btn secondary" id="cancelCreateBtn">Cancel</button>
+                                <button type="submit" class="btn primary" id="submitCreateBtn">Create Gallery</button>
+                            </div>
+                        </form>
+                    </div>
                 </div>
-                
-                <!-- Step 1: Plan Selection -->
-                <div class="modal-step-content active" id="step1">
-                  <h2>Select a Plan</h2>
-                  <div class="plans-container">
-                    <div class="plan-card" data-plan="lite">
-                      <h3>Lite</h3>
-                      <div class="price">₹79/client</div>
-                      <ul class="plan-features">
-                        <li>Up to 100 photos</li>
-                        <li>2GB storage</li>
-                        <li>7 days selection window</li>
-                      </ul>
-                      <button class="btn btn-select-plan" data-plan="lite" data-price="79">Select</button>
-                    </div>
-                    
-                    <div class="plan-card" data-plan="mini">
-                      <h3>Mini</h3>
-                      <div class="price">₹149/client</div>
-                      <ul class="plan-features">
-                        <li>Up to 200 photos</li>
-                        <li>5GB storage</li>
-                        <li>14 days selection window</li>
-                      </ul>
-                      <button class="btn btn-select-plan" data-plan="mini" data-price="149">Select</button>
-                    </div>
-                    
-                    <div class="plan-card recommended" data-plan="basic">
-                      <div class="recommended-badge">Popular</div>
-                      <h3>Basic</h3>
-                      <div class="price">₹399/client</div>
-                      <ul class="plan-features">
-                        <li>Up to 500 photos</li>
-                        <li>15GB storage</li>
-                        <li>30 days selection window</li>
-                        <li>Custom branding</li>
-                      </ul>
-                      <button class="btn btn-select-plan" data-plan="basic" data-price="399">Select</button>
-                    </div>
-                    
-                    <div class="plan-card" data-plan="pro">
-                      <h3>Pro</h3>
-                      <div class="price">₹799/client</div>
-                      <ul class="plan-features">
-                        <li>Up to 800 photos</li>
-                        <li>25GB storage</li>
-                        <li>45 days selection window</li>
-                        <li>Client comments</li>
-                      </ul>
-                      <button class="btn btn-select-plan" data-plan="pro" data-price="799">Select</button>
-                    </div>
-                  </div>
-                  
-                  <div class="more-plans">
-                    <a href="#" id="showMorePlans">View Premium and Ultimate plans</a> or 
-                    <a href="/comparison.html" target="_blank">See full comparison</a>
-                  </div>
-                  
-                  <div class="plan-details-extra" id="premiumPlans" style="display: none;">
-                    <div class="plan-card" data-plan="premium">
-                      <h3>Premium</h3>
-                      <div class="price">₹1,499/client</div>
-                      <ul class="plan-features">
-                        <li>Up to 1,200 photos</li>
-                        <li>50GB storage</li>
-                        <li>60 days selection window</li>
-                        <li>Complete customization</li>
-                        <li>Priority support</li>
-                      </ul>
-                      <button class="btn btn-select-plan" data-plan="premium" data-price="1499">Select</button>
-                    </div>
-                    
-                    <div class="plan-card" data-plan="ultimate">
-                      <h3>Ultimate</h3>
-                      <div class="price">₹2,999/client</div>
-                      <ul class="plan-features">
-                        <li>Up to 2,500 photos</li>
-                        <li>100GB storage</li>
-                        <li>90 days selection window</li>
-                        <li>White-label service</li>
-                        <li>Priority phone support</li>
-                      </ul>
-                      <button class="btn btn-select-plan" data-plan="ultimate" data-price="2999">Select</button>
-                    </div>
-                  </div>
-                </div>
-                
-                <!-- Step 2: Gallery Details -->
-                <div class="modal-step-content" id="step2">
-                  <h2>Gallery Details</h2>
-                  <form id="galleryDetailsForm">
-                    <div class="form-group">
-                      <label for="galleryName">Gallery Name*</label>
-                      <input type="text" id="galleryName" required placeholder="e.g., Smith Wedding">
-                    </div>
-                    <div class="form-group">
-                      <label for="clientEmail">Client Email (optional)</label>
-                      <input type="email" id="clientEmail" placeholder="client@example.com">
-                    </div>
-                    <div class="form-group">
-                      <label for="galleryExpiry">Gallery Expiry</label>
-                      <div class="expiry-info">Based on selected plan: <span id="expiryDate">30 days</span></div>
-                    </div>
-                    <div class="form-group">
-                      <label for="selectedPlan">Selected Plan</label>
-                      <div class="selected-plan-info">
-                        <span id="selectedPlanName">Basic</span> - 
-                        <span id="selectedPlanPrice">₹399</span>
-                        <a href="#" id="changePlan">(Change)</a>
-                      </div>
-                    </div>
-                    <div class="buttons-row">
-                      <button type="button" class="btn btn-secondary back-btn">Back</button>
-                      <button type="button" class="btn btn-primary continue-btn">Continue to Payment</button>
-                    </div>
-                  </form>
-                </div>
-                
-                <!-- Step 3: Payment -->
-                <div class="modal-step-content" id="step3">
-                  <h2>Payment</h2>
-                  <div class="payment-summary">
-                    <h3>Order Summary</h3>
-                    <div class="summary-line">
-                      <span>Plan:</span>
-                      <span id="summaryPlanName">Basic</span>
-                    </div>
-                    <div class="summary-line">
-                      <span>Gallery:</span>
-                      <span id="summaryGalleryName">Smith Wedding</span>
-                    </div>
-                    <div class="summary-line total">
-                      <span>Total:</span>
-                      <span id="summaryTotal">₹399</span>
-                    </div>
-                  </div>
-                  
-                  <form id="paymentForm">
-                    <h3>Payment Method</h3>
-                    <div class="saved-payments" id="savedPaymentMethods">
-                      <div class="saved-payment-method">
-                        <input type="radio" name="paymentMethod" id="savedCard1" value="savedCard1" checked>
-                        <label for="savedCard1">
-                          <i class="fas fa-credit-card"></i> XXXX XXXX XXXX 4242 (expires 12/25)
-                        </label>
-                      </div>
-                    </div>
-                    
-                    <div class="add-new-payment">
-                      <input type="radio" name="paymentMethod" id="newCard" value="newCard">
-                      <label for="newCard">Add new payment method</label>
-                      
-                      <div class="new-card-form" id="newCardForm" style="display: none;">
-                        <div class="form-group">
-                          <label for="cardNumber">Card Number</label>
-                          <input type="text" id="cardNumber" placeholder="XXXX XXXX XXXX XXXX">
-                        </div>
-                        <div class="form-row">
-                          <div class="form-group half">
-                            <label for="expiryDate">Expiry Date</label>
-                            <input type="text" id="expiryDate" placeholder="MM/YY">
-                          </div>
-                          <div class="form-group half">
-                            <label for="cvv">CVV</label>
-                            <input type="text" id="cvv" placeholder="XXX">
-                          </div>
-                        </div>
-                        <div class="form-group">
-                          <label for="nameOnCard">Name on Card</label>
-                          <input type="text" id="nameOnCard">
-                        </div>
-                      </div>
-                    </div>
-                    
-                    <div class="coupon-section">
-                      <div class="coupon-toggle">
-                        <a href="#" id="showCouponField">Have a coupon code?</a>
-                      </div>
-                      <div class="coupon-field" id="couponField" style="display: none;">
-                        <div class="form-group">
-                          <input type="text" id="couponCode" placeholder="Enter coupon code">
-                          <button type="button" class="btn btn-small" id="applyCoupon">Apply</button>
-                        </div>
-                      </div>
-                    </div>
-                    
-                    <div class="buttons-row">
-                      <button type="button" class="btn btn-secondary back-btn">Back</button>
-                      <button type="button" class="btn btn-primary" id="makePayment">Complete Payment</button>
-                    </div>
-                  </form>
-                </div>
-                
-                <!-- Step 4: Success -->
-                <div class="modal-step-content" id="step4">
-                  <div class="success-message">
-                    <i class="fas fa-check-circle"></i>
-                    <h2>Payment Successful!</h2>
-                    <p>Your gallery has been created and is ready for photo uploads.</p>
-                  </div>
-                  
-                  <div class="upload-instructions">
-                    <h3>Next: Upload Photos</h3>
-                    <p>You can upload up to <span id="photoLimit">500</span> photos to this gallery.</p>
-                  </div>
-                  
-                  <div class="buttons-row">
-                    <button type="button" class="btn btn-secondary" id="backToDashboard">Back to Dashboard</button>
-                    <button type="button" class="btn btn-primary" id="startUpload">Upload Photos Now</button>
-                  </div>
-                </div>
-              </div>
             </div>
+
             <!-- Help Modal -->
             <div id="helpModal" class="modal">
                 <div class="modal-content help-content">
@@ -575,7 +455,93 @@
                     </div>
                 </div>
             </div>
-        </div>
+
+ 
+
+            <!-- Plan Upgrade Modal -->
+            <div id="upgradePlanModal" class="modal">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h2>Upgrade Your Plan</h2>
+                        <button class="close-modal">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="plan-comparison">
+                            <div class="plan-tabs">
+                                <button class="plan-tab" data-plan="lite">Lite</button>
+                                <button class="plan-tab" data-plan="mini">Mini</button>
+                                <button class="plan-tab active" data-plan="basic">Basic</button>
+                                <button class="plan-tab" data-plan="pro">Pro</button>
+                                <button class="plan-tab" data-plan="premium">Premium</button>
+                                <button class="plan-tab" data-plan="ultimate">Ultimate</button>
+                            </div>
+                            
+                            <div class="current-vs-selected">
+                                <div class="plan-column current">
+                                    <h3>Current Plan</h3>
+                                    <div class="plan-name" id="currentPlanDisplay">Lite</div>
+                                    <div class="plan-price" id="currentPlanPrice">₹79/per client</div>
+                                    <ul class="plan-features" id="currentPlanFeatures">
+                                        <li>2 GB Storage</li>
+                                        <li>1 Gallery</li>
+                                        <li>100 Photos per gallery</li>
+                                        <li>7-day client selection window</li>
+                                        <li>Mobile-friendly Galleries</li>
+                                        <li>Client Favorites Feature</li>
+                                    </ul>
+                                </div>
+                                <div class="plan-column selected">
+                                    <h3>Selected Plan</h3>
+                                    <div class="plan-name" id="selectedPlanDisplay">Basic</div>
+                                    <div class="plan-price" id="selectedPlanPrice">₹399/per client</div>
+                                    <ul class="plan-features" id="selectedPlanFeatures">
+                                        <li>15 GB Storage</li>
+                                        <li>1 Gallery</li>
+                                        <li>500 Photos per gallery</li>
+                                        <li>30-day client selection window</li>
+                                        <li>Advanced uploads</li>
+                                        <li>Password protection</li>
+                                        <li>Custom branding</li>
+                                        <li>Basic Analytics</li>
+                                    </ul>
+                                </div>
+                            </div>
+                            
+                            <div class="payment-section">
+                                <!-- Payment success/error messages will be inserted here -->
+                                <div class="payment-success alert-success" style="display: none;"></div>
+                                <div class="payment-error alert-danger" style="display: none;"></div>
+                                
+                                <h3>Complete Your Upgrade</h3>
+                                <p class="payment-info">Click the button below to proceed securely with Razorpay.</p>
+                                
+                                <form id="paymentForm">
+                                    <div class="payment-options">
+                                        <div class="payment-option">
+                                            <img src="../assets/images/payment-methods.png" alt="Payment Methods" class="payment-logo">
+                                            <div class="payment-description">
+                                                <p>Secure payment via Razorpay</p>
+                                                <div class="payment-methods">
+                                                    <i class="fas fa-credit-card"></i>
+                                                    <i class="fas fa-university"></i>
+                                                    <i class="fab fa-cc-visa"></i>
+                                                    <i class="fab fa-cc-mastercard"></i>
+                                                    <i class="fab fa-google-pay"></i>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="form-actions">
+                                        <button type="button" class="btn secondary" id="cancelUpgradeBtn">Cancel</button>
+                                        <button type="submit" class="btn primary" id="confirmUpgradeBtn">Upgrade Now</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
     </main>
 
     <!-- Footer - Simplified version for dashboard -->
@@ -610,5 +576,11 @@
     <script src="../assets/js/gallery-manager.js"></script>
     <script src="../assets/js/uploader.js"></script>
     <script src="../assets/js/notifications.js"></script>
+    
+    <!-- New Feature Scripts -->
+    <script src="../assets/js/subscription-manager.js"></script>
+    <script src="../assets/js/security-manager.js"></script>
+    <script src="../assets/js/gallery-template-manager.js"></script>
+    <script src="../assets/js/analytics-manager.js"></script>
 </body>
 </html>
