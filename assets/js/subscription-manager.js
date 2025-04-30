@@ -89,7 +89,7 @@ let subscriptionData = null;
  */
 function initSubscriptionManager() {
   // Check if user is logged in
-  firebase.auth().onAuthStateChanged(user => {
+  window.firebaseServices.auth.onAuthStateChanged(user => {
     if (user) {
       currentUser = user;
       loadUserSubscription();
@@ -205,7 +205,7 @@ function hideUpgradeModal() {
 }
 
 /**
- * Update plan display in the modal
+ * Update plan display in the modal - IMPORTANT: This function is used by razorpay-integration.js
  */
 function updatePlanDisplay(planType) {
   const planDetails = SUBSCRIPTION_PLANS[planType];
@@ -451,10 +451,15 @@ document.addEventListener('DOMContentLoaded', function() {
   initSubscriptionManager();
 });
 
-// Export functions for use in other modules
+// Make functions available globally
 window.subscriptionManager = {
+  updatePlanDisplay,
   refreshSubscription: loadUserSubscription,
   getPlanDetails: (planType) => SUBSCRIPTION_PLANS[planType] || null,
   getCurrentPlan: () => currentPlan,
-  showUpgradeModal: showUpgradeModal
+  showUpgradeModal: showUpgradeModal,
+  hideUpgradeModal: hideUpgradeModal
 };
+
+// Make subscription plans available globally
+window.SUBSCRIPTION_PLANS = SUBSCRIPTION_PLANS;
