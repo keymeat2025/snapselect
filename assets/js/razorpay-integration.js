@@ -6,9 +6,6 @@ let currentPlan = null;
 let firebaseFunctions = null;
 
 // Firebase configuration - Replace with your actual Firebase project details
-
-
-// For Firebase JS SDK v7.20.0 and later, measurementId is optional
 const firebaseConfig = {
   apiKey: "AIzaSyCAl15Yq8Y727PKknJNs0Q8UZbRRbcWkMo",
   authDomain: "snapselect01-eb74c.firebaseapp.com",
@@ -79,7 +76,7 @@ function initRazorpayIntegration() {
 function initializeFirebase() {
   try {
     // Check if Firebase is already initialized
-    if (typeof firebase !== 'undefined' && firebase.apps && firebase.apps.length > 0) {
+    if (firebase.apps && firebase.apps.length > 0) {
       console.log('Firebase already initialized');
       return firebase.app();
     }
@@ -97,17 +94,25 @@ function initializeFirebase() {
 // Initialize Firebase Functions with India region
 function initFirebaseFunctions() {
   try {
-    // Check if firebase is available
-    if (typeof firebase !== 'undefined' && firebase.app) {
-      // Set India region for Firebase Functions
-      if (typeof firebase.functions === 'function') {
-        firebaseFunctions = firebase.functions();
+    // Check if firebase is available and properly initialized
+    if (firebase.apps && firebase.apps.length > 0) {
+      // Use a try-catch to safely check for the functions module
+      try {
+        // For Firebase v9+ modular SDK, this might need adjustment
+        // First, make sure the functions module is loaded
+        if (typeof firebase.functions === 'undefined') {
+          console.error('Firebase Functions module is not loaded');
+          loadFirebaseFunctionsSDK();
+          return;
+        }
+        
+        // Create the functions instance
+        firebaseFunctions = firebase.app().functions();
         // Set the region to asia-south1 (Mumbai) for India
         firebaseFunctions.useRegion('asia-south1');
         console.log('Firebase Functions initialized with India region');
-      } else {
-        console.error('Firebase Functions SDK is not loaded properly');
-        // Try to load Firebase Functions SDK if it's not available
+      } catch (error) {
+        console.error('Error accessing Firebase Functions:', error);
         loadFirebaseFunctionsSDK();
       }
     } else {
@@ -128,13 +133,31 @@ function loadFirebaseFunctionsSDK() {
       return;
     }
     
-    // Create script element
+    // Create script element for Firebase Functions
     const script = document.createElement('script');
-    script.src = 'https://www.gstatic.com/firebasejs/9.6.0/firebase-functions.js';
+    
+    // Check which version of Firebase we're using
+    if (typeof firebase !== 'undefined' && firebase.SDK_VERSION) {
+      // Extract major version
+      const majorVersion = parseInt(firebase.SDK_VERSION.split('.')[0]);
+      
+      // Use appropriate script URL based on version
+      if (majorVersion >= 9) {
+        // For v9+ (modular API)
+        script.src = 'https://www.gstatic.com/firebasejs/9.6.0/firebase-functions-compat.js';
+      } else {
+        // For v8 and below (namespaced API)
+        script.src = 'https://www.gstatic.com/firebasejs/8.10.0/firebase-functions.js';
+      }
+    } else {
+      // Default to v8 if version cannot be determined
+      script.src = 'https://www.gstatic.com/firebasejs/8.10.0/firebase-functions.js';
+    }
+    
     script.onload = function() {
       console.log('Firebase Functions SDK loaded successfully');
       // Try to initialize Firebase Functions again
-      initFirebaseFunctions();
+      setTimeout(initFirebaseFunctions, 1000);
     };
     script.onerror = function() {
       console.error('Failed to load Firebase Functions SDK');
@@ -145,39 +168,6 @@ function loadFirebaseFunctionsSDK() {
   } catch (error) {
     console.error('Error loading Firebase Functions SDK:', error);
   }
-}
-
-// Update plan display in the UI
-function updatePlanDisplay(planType) {
-  const planDetails = SUBSCRIPTION_PLANS[planType];
-  if (!planDetails) return;
-
-  // Update selected plan display
-  document.getElementById('selectedPlanDisplay').textContent = planDetails.name;
-  document.getElementById('selectedPlanPrice').textContent = `₹${planDetails.price}/${planDetails.priceType}`;
-
-  // Update features list
-  const featuresList = document.getElementById('selectedPlanFeatures');
-  featuresList.innerHTML = '';
-  planDetails.features.forEach(feature => {
-    const li = document.createElement('li');
-    li.textContent = feature;
-    featuresList.appendChild(li);
-  });
-
-  // Update current plan display
-  const currentPlanDetails = SUBSCRIPTION_PLANS[currentPlan.toLowerCase()] || SUBSCRIPTION_PLANS.lite;
-  document.getElementById('currentPlanDisplay').textContent = currentPlanDetails.name;
-  document.getElementById('currentPlanPrice').textContent = `₹${currentPlanDetails.price}/${currentPlanDetails.priceType}`;
-
-  // Update current plan features
-  const currentFeaturesList = document.getElementById('currentPlanFeatures');
-  currentFeaturesList.innerHTML = '';
-  currentPlanDetails.features.forEach(feature => {
-    const li = document.createElement('li');
-    li.textContent = feature;
-    currentFeaturesList.appendChild(li);
-  });
 }
 
 // Process payment through Razorpay
@@ -196,6 +186,9 @@ async function processPayment(planType) {
     if (!firebaseFunctions) {
       // Try to initialize Firebase Functions again
       initFirebaseFunctions();
+      
+      // Wait a bit for initialization
+      await new Promise(resolve => setTimeout(resolve, 1000));
       
       // If still not available, throw error
       if (!firebaseFunctions) {
@@ -262,6 +255,9 @@ async function verifyPayment(orderId, paymentId, signature) {
     if (!firebaseFunctions) {
       // Try to initialize Firebase Functions again
       initFirebaseFunctions();
+      
+      // Wait a bit for initialization
+      await new Promise(resolve => setTimeout(resolve, 1000));
       
       // If still not available, throw error
       if (!firebaseFunctions) {
