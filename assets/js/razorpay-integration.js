@@ -3,9 +3,30 @@
 // Global variables
 let selectedPlan = null;
 let currentPlan = null;
+let firebaseFunctions = null;
+
+// Firebase configuration - Replace with your actual Firebase project details
+
+
+// For Firebase JS SDK v7.20.0 and later, measurementId is optional
+const firebaseConfig = {
+  apiKey: "AIzaSyCAl15Yq8Y727PKknJNs0Q8UZbRRbcWkMo",
+  authDomain: "snapselect01-eb74c.firebaseapp.com",
+  projectId: "snapselect01-eb74c",
+  storageBucket: "snapselect01-eb74c.firebasestorage.app",
+  messagingSenderId: "749450852067",
+  appId: "1:749450852067:web:8b1887075d607b3e91f7d6",
+  measurementId: "G-J5XGE71VF6"
+};
 
 // Initialize Razorpay integration
 function initRazorpayIntegration() {
+  // Initialize Firebase app if not already initialized
+  initializeFirebase();
+  
+  // Initialize Firebase Functions with India region
+  initFirebaseFunctions();
+
   // Event listener for plan tabs
   document.querySelectorAll('.plan-tab').forEach(tab => {
     tab.addEventListener('click', function() {
@@ -54,6 +75,78 @@ function initRazorpayIntegration() {
   });
 }
 
+// Initialize Firebase
+function initializeFirebase() {
+  try {
+    // Check if Firebase is already initialized
+    if (typeof firebase !== 'undefined' && firebase.apps && firebase.apps.length > 0) {
+      console.log('Firebase already initialized');
+      return firebase.app();
+    }
+    
+    // Initialize Firebase
+    const app = firebase.initializeApp(firebaseConfig);
+    console.log('Firebase initialized successfully');
+    return app;
+  } catch (error) {
+    console.error('Error initializing Firebase:', error);
+    return null;
+  }
+}
+
+// Initialize Firebase Functions with India region
+function initFirebaseFunctions() {
+  try {
+    // Check if firebase is available
+    if (typeof firebase !== 'undefined' && firebase.app) {
+      // Set India region for Firebase Functions
+      if (typeof firebase.functions === 'function') {
+        firebaseFunctions = firebase.functions();
+        // Set the region to asia-south1 (Mumbai) for India
+        firebaseFunctions.useRegion('asia-south1');
+        console.log('Firebase Functions initialized with India region');
+      } else {
+        console.error('Firebase Functions SDK is not loaded properly');
+        // Try to load Firebase Functions SDK if it's not available
+        loadFirebaseFunctionsSDK();
+      }
+    } else {
+      console.error('Firebase is not initialized properly');
+      // Try to initialize Firebase
+      initializeFirebase();
+    }
+  } catch (error) {
+    console.error('Error initializing Firebase Functions:', error);
+  }
+}
+
+// Load Firebase Functions SDK dynamically if not available
+function loadFirebaseFunctionsSDK() {
+  try {
+    // Check if the script is already loaded
+    if (document.querySelector('script[src*="firebase-functions"]')) {
+      return;
+    }
+    
+    // Create script element
+    const script = document.createElement('script');
+    script.src = 'https://www.gstatic.com/firebasejs/9.6.0/firebase-functions.js';
+    script.onload = function() {
+      console.log('Firebase Functions SDK loaded successfully');
+      // Try to initialize Firebase Functions again
+      initFirebaseFunctions();
+    };
+    script.onerror = function() {
+      console.error('Failed to load Firebase Functions SDK');
+    };
+    
+    // Append to head
+    document.head.appendChild(script);
+  } catch (error) {
+    console.error('Error loading Firebase Functions SDK:', error);
+  }
+}
+
 // Update plan display in the UI
 function updatePlanDisplay(planType) {
   const planDetails = SUBSCRIPTION_PLANS[planType];
@@ -99,11 +192,24 @@ async function processPayment(planType) {
       throw new Error('Invalid plan selected');
     }
     
+    // Check if Firebase Functions is available
+    if (!firebaseFunctions) {
+      // Try to initialize Firebase Functions again
+      initFirebaseFunctions();
+      
+      // If still not available, throw error
+      if (!firebaseFunctions) {
+        throw new Error('Payment service is not available at the moment. Please try again later.');
+      }
+    }
+    
     // Create payment order via Firebase function
-    const createPaymentOrder = firebase.functions().httpsCallable('createPaymentOrder');
+    const createPaymentOrder = firebaseFunctions.httpsCallable('createPaymentOrder');
     const result = await createPaymentOrder({
       planType: planType,
-      amount: planDetails.price
+      amount: planDetails.price,
+      currency: 'INR', // Explicitly set currency to INR for India
+      timezone: 'Asia/Kolkata' // Set timezone for India
     });
     
     if (!result.data || !result.data.orderId) {
@@ -152,11 +258,23 @@ async function verifyPayment(orderId, paymentId, signature) {
   try {
     showPaymentProgress('Verifying payment...');
     
-    const verifyPaymentFunc = firebase.functions().httpsCallable('verifyPayment');
+    // Check if Firebase Functions is available
+    if (!firebaseFunctions) {
+      // Try to initialize Firebase Functions again
+      initFirebaseFunctions();
+      
+      // If still not available, throw error
+      if (!firebaseFunctions) {
+        throw new Error('Verification service is not available at the moment. Please contact support.');
+      }
+    }
+    
+    const verifyPaymentFunc = firebaseFunctions.httpsCallable('verifyPayment');
     const result = await verifyPaymentFunc({
       orderId: orderId,
       paymentId: paymentId,
-      signature: signature
+      signature: signature,
+      timezone: 'Asia/Kolkata' // Set timezone for India
     });
     
     if (result.data && result.data.success) {
@@ -203,10 +321,28 @@ async function refreshSubscriptionData() {
       
       // Update gallery usage
       updateGalleryUsage(subData.galleryLimit || 3);
+      
+      // Format date in Indian format (DD/MM/YYYY)
+      if (subData.expiryDate) {
+        const expiryDate = subData.expiryDate.toDate ? subData.expiryDate.toDate() : new Date(subData.expiryDate);
+        const formattedDate = formatDateInIndianFormat(expiryDate);
+        document.getElementById('subscriptionExpiryDate').textContent = formattedDate;
+      }
     }
   } catch (error) {
     console.error('Error refreshing subscription data:', error);
   }
+}
+
+// Format date in Indian format (DD/MM/YYYY)
+function formatDateInIndianFormat(date) {
+  if (!date || !(date instanceof Date)) return '';
+  
+  const day = String(date.getDate()).padStart(2, '0');
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const year = date.getFullYear();
+  
+  return `${day}/${month}/${year}`;
 }
 
 // Show payment progress message
