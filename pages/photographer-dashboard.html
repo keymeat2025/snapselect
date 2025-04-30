@@ -15,11 +15,16 @@
     <link rel="stylesheet" href="../assets/css/payment.css">
 
     <!-- Add Chart.js for analytics charts -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <!-- Not needed for basic Razorpay mock implementation -->
+    <!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script> -->
+    
     <!-- Add jsPDF for PDF exports -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <!-- Not needed for basic Razorpay mock implementation -->
+    <!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script> -->
+    
+    <!-- Load Razorpay checkout script and our integration -->
     <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
-    <script src="../assets/js/razorpay-integration.js"></script>
+    <script src="../assets/js/razorpay-mock.js"></script> <!-- Changed to our mock implementation -->
 </head>
 <body>
     <!-- Authentication Check Overlay (shown if not authenticated) -->
@@ -176,6 +181,7 @@
             </section>
 
             <!-- Gallery Management Section -->
+            <!-- Only needed for UI, not for Razorpay testing, but we'll keep it for context -->
             <section class="galleries-section animate-in" style="animation-delay: 0.4s;">
                 <div class="section-header">
                     <h2>Client Galleries</h2>
@@ -288,6 +294,8 @@
             </section>
 
             <!-- Create Gallery Modal -->
+            <!-- Not needed for Razorpay testing, commenting out -->
+            <!-- 
             <div id="createGalleryModal" class="modal">
                 <div class="modal-content">
                     <div class="modal-header">
@@ -328,7 +336,6 @@
                                     <p class="upload-note">Maximum 50 photos for initial upload. You can add more later.</p>
                                 </div>
                                 <div id="uploadPreview" class="upload-preview">
-                                    <!-- Upload previews will be displayed here -->
                                 </div>
                                 <div id="uploadProgress" class="upload-progress" style="display: none;">
                                     <div class="progress-info">
@@ -348,8 +355,11 @@
                     </div>
                 </div>
             </div>
+            -->
 
             <!-- Help Modal -->
+            <!-- Not needed for Razorpay testing, commenting out -->
+            <!--
             <div id="helpModal" class="modal">
                 <div class="modal-content help-content">
                     <div class="modal-header">
@@ -455,10 +465,9 @@
                     </div>
                 </div>
             </div>
+            -->
 
- 
-
-        <!-- Plan Upgrade Modal -->
+            <!-- Plan Upgrade Modal - KEEP THIS! It's essential for Razorpay testing -->
             <div id="upgradePlanModal" class="modal">
                 <div class="modal-content">
                     <div class="modal-header">
@@ -468,15 +477,12 @@
                     <div class="modal-body">
                         <div class="plan-comparison">
                             <div class="plan-tabs">
-                                <button class="plan-tab" data-plan="lite">Lite</button>
-                                <button class="plan-tab" data-plan="mini">Mini</button>
-                                <button class="plan-tab active" data-plan="basic">Basic</button>
+                                <button class="plan-tab" data-plan="basic">Basic</button>
                                 <button class="plan-tab" data-plan="pro">Pro</button>
                                 <button class="plan-tab" data-plan="premium">Premium</button>
-                                <button class="plan-tab" data-plan="ultimate">Ultimate</button>
                             </div>
                             
-                            <div class="current-vs-selected">
+                            <div id="planDetailsSection" class="current-vs-selected">
                                 <div class="plan-column current">
                                     <h3>Current Plan</h3>
                                     <div class="plan-name" id="currentPlanDisplay">Free</div>
@@ -490,17 +496,15 @@
                                 </div>
                                 <div class="plan-column selected">
                                     <h3>Selected Plan</h3>
-                                    <div class="plan-name" id="selectedPlanDisplay">Basic</div>
-                                    <div class="plan-price" id="selectedPlanPrice">₹399/per client</div>
-                                    <ul class="plan-features" id="selectedPlanFeatures">
+                                    <div class="plan-name" id="selectedPlanName">Basic</div>
+                                    <div class="plan-price" id="selectedPlanPrice">₹499</div>
+                                    <ul class="plan-features" id="planFeaturesList">
                                         <li>15 GB Storage</li>
-                                        <li>1 Gallery</li>
+                                        <li>10 Galleries</li>
                                         <li>500 Photos per gallery</li>
                                         <li>30-day client selection window</li>
                                         <li>Advanced uploads</li>
                                         <li>Password protection</li>
-                                        <li>Custom branding</li>
-                                        <li>Basic Analytics</li>
                                     </ul>
                                 </div>
                             </div>
@@ -540,6 +544,7 @@
                     </div>
                 </div>
             </div>
+        </div>
     </main>
 
     <!-- Footer - Simplified version for dashboard -->
@@ -556,29 +561,118 @@
         </div>
     </footer>
 
-    <!-- Firebase Scripts -->
+    <!-- Firebase Scripts - commenting out since we're using mocks -->
+    <!-- 
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js"></script>
     
-    <!-- Your Firebase configuration and modules -->
     <script src="../assets/js/firebase-config.js"></script>
     <script src="../assets/js/firebase-auth.js"></script>
     <script src="../assets/js/firebase-db.js"></script>
     <script src="../assets/js/firebase-storage.js"></script>
+    -->
     
-    <!-- Dashboard specific JavaScript -->
+    <!-- Mock Firebase and authentication for development -->
+    <script>
+        // Simple mock to prevent authentication overlay from showing
+        document.addEventListener('DOMContentLoaded', function() {
+            // Hide auth overlay since we're just testing Razorpay
+            const authOverlay = document.getElementById('authCheckOverlay');
+            if (authOverlay) {
+                authOverlay.style.display = 'none';
+            }
+            
+            // Add user name for testing
+            const userNameElement = document.getElementById('userName');
+            if (userNameElement) {
+                userNameElement.textContent = 'Test User';
+            }
+            
+            // Store email in localStorage for Razorpay mock
+            localStorage.setItem('userEmail', 'test.user@example.com');
+            
+            // Initialize Razorpay integration
+            if (typeof initRazorpayIntegration === 'function') {
+                initRazorpayIntegration();
+            } else {
+                console.error('Razorpay integration script not loaded properly');
+            }
+        });
+    </script>
+    
+    <!-- Minimal Dashboard JavaScript for Razorpay testing -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Toggle user dropdown menu
+            const userMenuBtn = document.getElementById('userMenuBtn');
+            const userDropdown = document.getElementById('userDropdown');
+            
+            if (userMenuBtn && userDropdown) {
+                userMenuBtn.addEventListener('click', function() {
+                    userDropdown.classList.toggle('show');
+                });
+            }
+            
+            // Toggle notifications dropdown
+            const notificationBtn = document.getElementById('notificationBtn');
+            const notificationDropdown = document.getElementById('notificationDropdown');
+            
+            if (notificationBtn && notificationDropdown) {
+                notificationBtn.addEventListener('click', function() {
+                    notificationDropdown.classList.toggle('show');
+                });
+            }
+            
+            // Close dropdowns when clicking outside
+            window.addEventListener('click', function(event) {
+                if (userDropdown && userMenuBtn && !userMenuBtn.contains(event.target)) {
+                    userDropdown.classList.remove('show');
+                }
+                
+                if (notificationDropdown && notificationBtn && !notificationBtn.contains(event.target)) {
+                    notificationDropdown.classList.remove('show');
+                }
+            });
+            
+            // Focus on Razorpay testing - make sure the upgrade button works
+            const upgradePlanBtn = document.getElementById('upgradePlanBtn');
+            const upgradePlanModal = document.getElementById('upgradePlanModal');
+            const closeModalBtn = document.querySelector('#upgradePlanModal .close-modal');
+            
+            if (upgradePlanBtn && upgradePlanModal) {
+                upgradePlanBtn.addEventListener('click', function() {
+                    upgradePlanModal.style.display = 'block';
+                    
+                    // Select default plan (Basic)
+                    const basicPlanTab = document.querySelector('.plan-tab[data-plan="basic"]');
+                    if (basicPlanTab) {
+                        basicPlanTab.click();
+                    }
+                });
+            }
+            
+            if (closeModalBtn && upgradePlanModal) {
+                closeModalBtn.addEventListener('click', function() {
+                    upgradePlanModal.style.display = 'none';
+                });
+            }
+        });
+    </script>
+    
+    <!-- The only JS we really need is the Razorpay mock implementation -->
+    <!-- Other scripts are commented out as they're not needed for testing the payment flow -->
+    <!--
     <script src="../assets/js/dashboard.js"></script>
     <script src="../assets/js/dashboard-auth.js"></script>
     <script src="../assets/js/gallery-manager.js"></script>
     <script src="../assets/js/uploader.js"></script>
     <script src="../assets/js/notifications.js"></script>
-    
-    <!-- New Feature Scripts -->
     <script src="../assets/js/subscription-manager.js"></script>
     <script src="../assets/js/security-manager.js"></script>
     <script src="../assets/js/gallery-template-manager.js"></script>
     <script src="../assets/js/analytics-manager.js"></script>
+    -->
 </body>
 </html>
