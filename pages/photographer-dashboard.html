@@ -96,73 +96,6 @@
             color: #ccc;
             margin-bottom: 15px;
         }
-        
-        /* Notification styles */
-        .notification-item {
-            padding: 12px;
-            border-bottom: 1px solid #eee;
-            position: relative;
-            transition: all 0.3s ease;
-        }
-        
-        .notification-item.unread {
-            background-color: #f0f7ff;
-        }
-        
-        .notification-item:hover {
-            background-color: #f5f5f5;
-        }
-        
-        .notification-content {
-            padding-left: 30px;
-            position: relative;
-        }
-        
-        .notification-icon {
-            position: absolute;
-            left: 0;
-            top: 2px;
-            width: 24px;
-            height: 24px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border-radius: 50%;
-            background-color: #4A90E2;
-            color: white;
-            font-size: 12px;
-        }
-        
-        .notification-type-subscription .notification-icon {
-            background-color: #28a745;
-        }
-        
-        .notification-title {
-            font-weight: 600;
-            margin-bottom: 3px;
-            font-size: 14px;
-        }
-        
-        .notification-message {
-            color: #666;
-            font-size: 13px;
-            margin-bottom: 5px;
-        }
-        
-        .notification-time {
-            font-size: 11px;
-            color: #999;
-        }
-        
-        .notification-badge.bump {
-            animation: notification-bump 0.5s ease-in-out;
-        }
-        
-        @keyframes notification-bump {
-            0% { transform: scale(1); }
-            50% { transform: scale(1.5); }
-            100% { transform: scale(1); }
-        }
     </style>
 </head>
 <body>
@@ -203,7 +136,7 @@
                             </div>
                             <div class="notification-list" id="notificationList">
                                 <!-- Notifications will be populated dynamically -->
-                                <div class="empty-notification" id="emptyNotification">No new notifications</div>
+                                <div class="empty-notification">No new notifications</div>
                             </div>
                         </div>
                     </div>
@@ -553,7 +486,7 @@
         </div>
     </footer>
 
-    <!-- Embedded Mock Razorpay Implementation with Notification System -->
+    <!-- Embedded Mock Razorpay Implementation -->
     <script>
         // Store email in localStorage for Razorpay mock
         localStorage.setItem('userEmail', 'test.user@example.com');
@@ -580,253 +513,343 @@
         // Global variables
         let selectedPlan = null;
         let currentPlan = 'Free';
-        let notificationCount = 0;
-        let notifications = [];
 
-        // Notification System Functions
-        function createNotification(type, title, message) {
-            // Create notification object
-            const notification = {
-                id: 'notif_' + Date.now(),
-                type: type,
-                title: title,
-                message: message,
-                timestamp: new Date(),
-                read: false
-            };
-            
-            // Add to notifications array
-            notifications.unshift(notification);
-            
-            // Update UI
-            updateNotificationUI();
-            
-            // If we have Firebase, also save to database
-            saveNotificationToDatabase(notification);
-            
-            return notification;
-        }
-        
-        function updateNotificationUI() {
-            const notificationList = document.getElementById('notificationList');
-            const notificationCount = document.getElementById('notificationCount');
-            const emptyNotification = document.getElementById('emptyNotification');
-            
-            if (!notificationList || !notificationCount) return;
-            
-            // Count unread notifications
-            const unreadCount = notifications.filter(n => !n.read).length;
-            
-            // Update badge
-            notificationCount.textContent = unreadCount;
-            notificationCount.style.display = unreadCount > 0 ? 'flex' : 'none';
-            
-            // Add bump animation
-            if (unreadCount > 0) {
-                notificationCount.classList.add('bump');
-                setTimeout(() => {
-                    notificationCount.classList.remove('bump');
-                }, 500);
-            }
-            
-            // Update notification list
-            if (notifications.length === 0) {
-                // Show empty state
-                if (emptyNotification) {
-                    emptyNotification.style.display = 'block';
-                }
-            } else {
-                // Hide empty state and show notifications
-                if (emptyNotification) {
-                    emptyNotification.style.display = 'none';
-                }
-                
-                // Clear existing notifications
-                while (notificationList.firstChild) {
-                    if (notificationList.firstChild === emptyNotification) {
-                        break;
-                    }
-                    notificationList.removeChild(notificationList.firstChild);
-                }
-                
-                // Add notifications
-                notifications.forEach(notification => {
-                    const notificationElement = createNotificationElement(notification);
-                    notificationList.insertBefore(notificationElement, emptyNotification);
-                });
-            }
-        }
-        
-        function createNotificationElement(notification) {
-            const element = document.createElement('div');
-            element.classList.add('notification-item');
-            element.dataset.id = notification.id;
-            
-            if (!notification.read) {
-                element.classList.add('unread');
-            }
-            
-            element.classList.add('notification-type-' + notification.type);
-            
-            // Format timestamp
-            const timeFormatted = formatTimestamp(notification.timestamp);
-            
-            element.innerHTML = `
-                <div class="notification-content">
-                    <div class="notification-icon">
-                        ${getNotificationIcon(notification.type)}
-                    </div>
-                    <div class="notification-title">${notification.title}</div>
-                    <div class="notification-message">${notification.message}</div>
-                    <div class="notification-time">${timeFormatted}</div>
-                </div>
-            `;
-            
-            // Add click event to mark as read
-            element.addEventListener('click', () => {
-                markNotificationAsRead(notification.id);
-            });
-            
-            return element;
-        }
-        
-        function getNotificationIcon(type) {
-            switch (type) {
-                case 'subscription':
-                    return '<i class="fas fa-crown"></i>';
-                case 'payment':
-                    return '<i class="fas fa-credit-card"></i>';
-                case 'system':
-                    return '<i class="fas fa-bell"></i>';
-                default:
-                    return '<i class="fas fa-bell"></i>';
-            }
-        }
-        
-        function formatTimestamp(timestamp) {
-            // Simple time formatter
-            const now = new Date();
-            const diff = Math.floor((now - timestamp) / 1000); // seconds
-            
-            if (diff < 60) {
-                return 'Just now';
-            } else if (diff < 3600) {
-                const minutes = Math.floor(diff / 60);
-                return `${minutes} minute${minutes > 1 ? 's' : ''} ago`;
-            } else if (diff < 86400) {
-                const hours = Math.floor(diff / 3600);
-                return `${hours} hour${hours > 1 ? 's' : ''} ago`;
-            } else {
-                const days = Math.floor(diff / 86400);
-                return `${days} day${days > 1 ? 's' : ''} ago`;
-            }
-        }
-        
-        function markNotificationAsRead(id) {
-            // Find notification by id
-            const notification = notifications.find(n => n.id === id);
-            if (notification) {
-                notification.read = true;
-                
-                // Update UI
-                updateNotificationUI();
-                
-                // If we have Firebase, also update database
-                updateNotificationInDatabase(notification);
-            }
-        }
-        
-        function markAllNotificationsAsRead() {
-            // Mark all as read
-            notifications.forEach(notification => {
-                notification.read = true;
-            });
-            
-            // Update UI
-            updateNotificationUI();
-            
-            // If we have Firebase, also update database
-            updateAllNotificationsInDatabase();
-        }
-        
-        // Set up mark all read button
+        // Simple mock to prevent authentication overlay from showing
         document.addEventListener('DOMContentLoaded', function() {
-            const markAllReadBtn = document.getElementById('markAllReadBtn');
-            if (markAllReadBtn) {
-                markAllReadBtn.addEventListener('click', function() {
-                    markAllNotificationsAsRead();
+            // Hide auth overlay since we're just testing Razorpay
+     
+
+            const authOverlay = document.getElementById('authCheckOverlay');
+            if (window.firebaseServices && window.firebaseServices.auth) {
+                window.firebaseServices.auth.onAuthStateChanged(function(user) {
+                    if (authOverlay) {
+                        if (user) {
+                            // User is signed in, hide overlay
+                            authOverlay.style.display = 'none';
+                        } else {
+                            // Not signed in, show overlay
+                            authOverlay.style.display = 'flex';
+                        }
+                    }
                 });
+            } else {
+                // Firebase not available, show overlay
+                if (authOverlay) {
+                    authOverlay.style.display = 'flex';
+                }
+            }
+            
+        
+           // Handle Firebase auth state changes
+            const userNameElement = document.getElementById('userName');
+            const avatarPlaceholder = document.querySelector('.avatar-placeholder');
+            
+            // Check if Firebase is available
+            if (window.firebaseServices && window.firebaseServices.auth) {
+                // Listen for auth state changes
+                window.firebaseServices.auth.onAuthStateChanged(function(user) {
+                    if (user) {
+                        // User is signed in
+                        // Show user info in header
+                        if (userNameElement) {
+                            const displayName = user.displayName || user.email || 'User';
+                            userNameElement.textContent = displayName;
+                            
+                            // Update avatar placeholder with first letter
+                            if (avatarPlaceholder) {
+                                avatarPlaceholder.textContent = displayName.charAt(0).toUpperCase();
+                            }
+                        }
+                    } else {
+                        // User is signed out
+                        if (userNameElement) {
+                            userNameElement.textContent = 'User';
+                            if (avatarPlaceholder) {
+                                avatarPlaceholder.textContent = 'U';
+                            }
+                        }
+                    }
+                });
+            }
+            
+            // Toggle user dropdown menu
+            const userMenuBtn = document.getElementById('userMenuBtn');
+            const userDropdown = document.getElementById('userDropdown');
+            
+            if (userMenuBtn && userDropdown) {
+                userMenuBtn.addEventListener('click', function() {
+                    userDropdown.classList.toggle('show');
+                });
+            }
+            
+            // Toggle notifications dropdown
+            const notificationBtn = document.getElementById('notificationBtn');
+            const notificationDropdown = document.getElementById('notificationDropdown');
+            
+            if (notificationBtn && notificationDropdown) {
+                notificationBtn.addEventListener('click', function() {
+                    notificationDropdown.classList.toggle('show');
+                });
+            }
+            
+            // Close dropdowns when clicking outside
+            window.addEventListener('click', function(event) {
+                if (userDropdown && userMenuBtn && !userMenuBtn.contains(event.target)) {
+                    userDropdown.classList.remove('show');
+                }
+                
+                if (notificationDropdown && notificationBtn && !notificationBtn.contains(event.target)) {
+                    notificationDropdown.classList.remove('show');
+                }
+            });
+            
+            // DOM elements for Razorpay
+            const upgradePlanBtn = document.getElementById('upgradePlanBtn');
+            const upgradePlanModal = document.getElementById('upgradePlanModal');
+            const closeModalBtn = document.querySelector('#upgradePlanModal .close-modal');
+            const planTabs = document.querySelectorAll('.plan-tab');
+            const selectedPlanNameEl = document.getElementById('selectedPlanName');
+            const selectedPlanPriceEl = document.getElementById('selectedPlanPrice');
+            const planFeaturesListEl = document.getElementById('planFeaturesList');
+            const confirmUpgradeBtn = document.getElementById('confirmUpgradeBtn');
+            const cancelUpgradeBtn = document.getElementById('cancelUpgradeBtn');
+            const currentPlanNameEl = document.getElementById('currentPlanName');
+            const mockRazorpayModal = document.getElementById('mockRazorpayModal');
+            const razorpayPlanNameEl = document.getElementById('razorpayPlanName');
+            const razorpayAmountEl = document.getElementById('razorpayAmount');
+            const razorpayOrderIdEl = document.getElementById('razorpayOrderId');
+            const razorpayCancelBtn = document.getElementById('razorpayCancelBtn');
+            const razorpayPayBtn = document.getElementById('razorpayPayBtn');
+            const paymentSuccessEl = document.querySelector('.payment-success');
+            const paymentErrorEl = document.querySelector('.payment-error');
+            
+            // Update plan display
+            function updatePlanDisplay(planType) {
+                const plan = SUBSCRIPTION_PLANS[planType];
+                if (!plan) return;
+                
+                // Update plan name and price
+                if (selectedPlanNameEl) selectedPlanNameEl.textContent = plan.name;
+                if (selectedPlanPriceEl) selectedPlanPriceEl.textContent = `₹${plan.price}`;
+                
+                // Update features list
+                if (planFeaturesListEl) {
+                    planFeaturesListEl.innerHTML = '';
+                    plan.features.forEach(feature => {
+                        const li = document.createElement('li');
+                        li.textContent = feature;
+                        planFeaturesListEl.appendChild(li);
+                    });
+                }
+            }
+
+            // Show payment progress
+            function showPaymentProgress(message) {
+                if (paymentSuccessEl) paymentSuccessEl.style.display = 'none';
+                if (paymentErrorEl) paymentErrorEl.style.display = 'none';
+                
+                if (confirmUpgradeBtn) {
+                    confirmUpgradeBtn.disabled = true;
+                    confirmUpgradeBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+                }
+            }
+
+            // Show payment success
+            function showPaymentSuccess(message) {
+                if (paymentSuccessEl) {
+                    paymentSuccessEl.textContent = message;
+                    paymentSuccessEl.style.display = 'block';
+                }
+                
+                if (paymentErrorEl) {
+                    paymentErrorEl.style.display = 'none';
+                }
+                
+                if (confirmUpgradeBtn) {
+                    confirmUpgradeBtn.disabled = false;
+                    confirmUpgradeBtn.innerHTML = 'Upgrade Complete!';
+                }
+            }
+
+            // Show payment error
+            function showPaymentError(message) {
+                if (paymentErrorEl) {
+                    paymentErrorEl.textContent = message;
+                    paymentErrorEl.style.display = 'block';
+                }
+                
+                if (paymentSuccessEl) {
+                    paymentSuccessEl.style.display = 'none';
+                }
+                
+                if (confirmUpgradeBtn) {
+                    confirmUpgradeBtn.disabled = false;
+                    confirmUpgradeBtn.innerHTML = 'Try Again';
+                }
+            }
+
+            // Reset payment buttons
+            function resetPaymentButtons() {
+                if (confirmUpgradeBtn) {
+                    confirmUpgradeBtn.disabled = false;
+                    confirmUpgradeBtn.innerHTML = 'Upgrade Now';
+                }
+            }
+
+            // Process payment
+            async function processPayment(planType) {
+                try {
+                    // Show loading state
+                    showPaymentProgress('Processing your request...');
+                    
+                    // Check if plan type exists
+                    if (!SUBSCRIPTION_PLANS || !SUBSCRIPTION_PLANS[planType]) {
+                        throw new Error(`Invalid plan selected: ${planType}`);
+                    }
+                    
+                    // Get plan details
+                    const plan = SUBSCRIPTION_PLANS[planType];
+                    
+                    // Create mock order ID
+                    const mockOrderId = 'order_mock_' + Date.now();
+                    
+                    // Show mock Razorpay modal
+                    if (razorpayPlanNameEl) razorpayPlanNameEl.textContent = `${plan.name} Plan`;
+                    if (razorpayAmountEl) razorpayAmountEl.textContent = `₹${plan.price}`;
+                    if (razorpayOrderIdEl) razorpayOrderIdEl.textContent = mockOrderId;
+                    
+                    // Display the modal after a short delay to simulate network request
+                    setTimeout(() => {
+                        if (mockRazorpayModal) mockRazorpayModal.style.display = 'flex';
+                        resetPaymentButtons();
+                    }, 1000);
+                    
+                } catch (error) {
+                    console.error('Payment process error:', error);
+                    showPaymentError(`Payment failed: ${error.message}`);
+                    setTimeout(resetPaymentButtons, 3000);
+                }
+            }
+
+            // Verify payment
+            async function verifyPayment(orderId) {
+                try {
+                    showPaymentProgress('Verifying payment...');
+                    
+                    // Simulate API call delay
+                    setTimeout(() => {
+                        // Payment successful
+                        showPaymentSuccess(`Payment successful! Your subscription has been upgraded to ${selectedPlan}.`);
+                        
+                        // Update UI after a short delay
+                        setTimeout(() => {
+                            if (upgradePlanModal) upgradePlanModal.style.display = 'none';
+                            
+                            // Update current plan
+                            if (currentPlanNameEl) currentPlanNameEl.textContent = SUBSCRIPTION_PLANS[selectedPlan].name;
+                            
+                            // Update plan badge
+                            const planBadge = document.getElementById('planBadge');
+                            if (planBadge) planBadge.textContent = SUBSCRIPTION_PLANS[selectedPlan].name;
+                            
+                            currentPlan = SUBSCRIPTION_PLANS[selectedPlan].name;
+                        }, 2000);
+                    }, 1500);
+                    
+                } catch (error) {
+                    console.error('Payment verification error:', error);
+                    showPaymentError(`Payment verification failed: ${error.message}`);
+                    setTimeout(resetPaymentButtons, 3000);
+                }
+            }
+
+            // Plan tabs click
+            planTabs.forEach(tab => {
+                tab.addEventListener('click', function() {
+                    // Remove active class from all tabs
+                    planTabs.forEach(t => t.classList.remove('active'));
+                    // Add active class to clicked tab
+                    this.classList.add('active');
+                    
+                    // Update selected plan
+                    selectedPlan = this.getAttribute('data-plan');
+                    updatePlanDisplay(selectedPlan);
+                });
+            });
+
+            // Upgrade button click - shows the modal
+            if (upgradePlanBtn) {
+                upgradePlanBtn.addEventListener('click', function() {
+                    if (upgradePlanModal) {
+                        upgradePlanModal.style.display = 'block';
+                        
+                        // Set default selected plan (Basic)
+                        const basicPlanTab = document.querySelector('.plan-tab[data-plan="basic"]');
+                        if (basicPlanTab) {
+                            basicPlanTab.click();
+                        }
+                    }
+                });
+            }
+
+            // Close button click - hides the modal
+            if (closeModalBtn) {
+                closeModalBtn.addEventListener('click', function() {
+                    if (upgradePlanModal) {
+                        upgradePlanModal.style.display = 'none';
+                    }
+                });
+            }
+
+            // Cancel button click - hides the modal
+            if (cancelUpgradeBtn) {
+                cancelUpgradeBtn.addEventListener('click', function() {
+                    if (upgradePlanModal) {
+                        upgradePlanModal.style.display = 'none';
+                    }
+                });
+            }
+
+            // Confirm upgrade button click - starts payment process
+            if (confirmUpgradeBtn) {
+                confirmUpgradeBtn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    if (selectedPlan) {
+                        processPayment(selectedPlan);
+                    }
+                });
+            }
+
+            // Razorpay modal cancel button
+            if (razorpayCancelBtn) {
+                razorpayCancelBtn.addEventListener('click', function() {
+                    mockRazorpayModal.style.display = 'none';
+                    resetPaymentButtons();
+                });
+            }
+
+            // Razorpay modal pay button
+            if (razorpayPayBtn) {
+                razorpayPayBtn.addEventListener('click', function() {
+                    mockRazorpayModal.style.display = 'none';
+                    const orderId = razorpayOrderIdEl.textContent;
+                    verifyPayment(orderId);
+                });
+            }
+            
+            // Set default selected plan on load
+            if (document.querySelector('.plan-tab[data-plan="basic"]')) {
+                document.querySelector('.plan-tab[data-plan="basic"]').click();
             }
         });
-        }
-        
-        // Firebase integration for notifications
-        function saveNotificationToDatabase(notification) {
-            if (window.firebaseServices && window.firebaseServices.firestore) {
-                const currentUser = window.firebaseServices.auth.currentUser;
-                if (currentUser) {
-                    window.firebaseServices.firestore.collection('users')
-                        .doc(currentUser.uid)
-                        .collection('notifications')
-                        .doc(notification.id)
-                        .set(notification)
-                        .catch(error => console.error('Error saving notification:', error));
-                }
-            }
-        }
-        
-        function updateNotificationInDatabase(notification) {
-            if (window.firebaseServices && window.firebaseServices.firestore) {
-                const currentUser = window.firebaseServices.auth.currentUser;
-                if (currentUser) {
-                    window.firebaseServices.firestore.collection('users')
-                        .doc(currentUser.uid)
-                        .collection('notifications')
-                        .doc(notification.id)
-                        .update({ read: true })
-                        .catch(error => console.error('Error updating notification:', error));
-                }
-            }
-        }
-        
-        function updateAllNotificationsInDatabase() {
-            if (window.firebaseServices && window.firebaseServices.firestore) {
-                const currentUser = window.firebaseServices.auth.currentUser;
-                if (currentUser) {
-                    const batch = window.firebaseServices.firestore.batch();
-                    notifications.forEach(notification => {
-                        const notificationRef = window.firebaseServices.firestore
-                            .collection('users')
-                            .doc(currentUser.uid)
-                            .collection('notifications')
-                            .doc(notification.id);
-                        batch.update(notificationRef, { read: true });
-                    });
-                    batch.commit().catch(error => console.error('Error updating notifications:', error));
-                }
-            }
-        }
-        
-        function loadNotificationsFromDatabase() {
-            if (window.firebaseServices && window.firebaseServices.firestore) {
-                const currentUser = window.firebaseServices.auth.currentUser;
-                if (currentUser) {
-                    window.firebaseServices.firestore.collection('users')
-                        .doc(currentUser.uid)
-                        .collection('notifications')
-                        .orderBy('timestamp', 'desc')
-                        .limit(10)
-                        .get()
-                        .then(snapshot => {
-                            notifications = [];
-                            snapshot.forEach(doc => {
-                                const notification = doc.data();
-                                notification.timestamp = notification.timestamp.toDate();
-                                notifications.push(notification);
-                            });
-                            updateNotificationUI();
-                        })
-                        .catch(error => console.error('Error loading notifications:', error));
-                }
-            }
-        }
+    </script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    
+    <script src="../assets/js/firebase-config.js"></script>
+    <script src="../assets/js/firebase-auth.js"></script>
+    <script src="../assets/js/firebase-db.js"></script>
+    <script src="../assets/js/header-auth.js"></script>
+</body>
+</html>
