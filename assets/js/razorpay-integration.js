@@ -94,31 +94,14 @@ function initializeFirebase() {
 // Initialize Firebase Functions with India region
 function initFirebaseFunctions() {
   try {
-    // Check if firebase is available and properly initialized
-    if (firebase.apps && firebase.apps.length > 0) {
-      // Use a try-catch to safely check for the functions module
-      try {
-        // For Firebase v9+ modular SDK, this might need adjustment
-        // First, make sure the functions module is loaded
-        if (typeof firebase.functions === 'undefined') {
-          console.error('Firebase Functions module is not loaded');
-          loadFirebaseFunctionsSDK();
-          return;
-        }
-        
-        // Create the functions instance
-        firebaseFunctions = firebase.app().functions();
-        // Set the region to asia-south1 (Mumbai) for India
-        firebaseFunctions.useRegion('asia-south1');
-        console.log('Firebase Functions initialized with India region');
-      } catch (error) {
-        console.error('Error accessing Firebase Functions:', error);
-        loadFirebaseFunctionsSDK();
-      }
+    // Check if firebase services are available
+    if (window.firebaseServices && window.firebaseServices.functions) {
+      firebaseFunctions = window.firebaseServices.functions;
+      console.log('Firebase Functions initialized with India region');
     } else {
-      console.error('Firebase is not initialized properly');
-      // Try to initialize Firebase
-      initializeFirebase();
+      console.error('Firebase Functions not available');
+      // Try to load Firebase Functions SDK if it's not available
+      loadFirebaseFunctionsSDK();
     }
   } catch (error) {
     console.error('Error initializing Firebase Functions:', error);
