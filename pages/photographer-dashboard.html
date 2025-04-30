@@ -795,38 +795,7 @@
                 }
             }
 
-            // Verify payment
-            <!--
-            async function verifyPayment(orderId) {
-                try {
-                    showPaymentProgress('Verifying payment...');
-                    
-                    // Simulate API call delay
-                    setTimeout(() => {
-                        // Payment successful
-                        showPaymentSuccess(`Payment successful! Your subscription has been upgraded to ${selectedPlan}.`);
-                        
-                        // Update UI after a short delay
-                        setTimeout(() => {
-                            if (upgradePlanModal) upgradePlanModal.style.display = 'none';
-                            
-                            // Update current plan
-                            if (currentPlanNameEl) currentPlanNameEl.textContent = SUBSCRIPTION_PLANS[selectedPlan].name;
-                            
-                            // Update plan badge
-                            const planBadge = document.getElementById('planBadge');
-                            if (planBadge) planBadge.textContent = SUBSCRIPTION_PLANS[selectedPlan].name;
-                            
-                            currentPlan = SUBSCRIPTION_PLANS[selectedPlan].name;
-                        }, 2000);
-                    }, 1500);
-                    
-                } catch (error) {
-                    console.error('Payment verification error:', error);
-                    showPaymentError(`Payment verification failed: ${error.message}`);
-                    setTimeout(resetPaymentButtons, 3000);
-                }
-            }   -->
+
                         // Verify payment
             async function verifyPayment(orderId, paymentId, signature) {
                 try {
