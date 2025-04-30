@@ -1,4 +1,4 @@
-// razorpay-integration.js - Client-side integration for Razorpay
+// razorpay-mock.js - Simplified mock implementation for Razorpay
 
 // Define subscription plans if they don't exist
 window.SUBSCRIPTION_PLANS = window.SUBSCRIPTION_PLANS || {
@@ -53,6 +53,13 @@ window.subscriptionManager = window.subscriptionManager || {
     // This function would typically fetch updated subscription data from your backend
     console.log('Refreshing subscription data...');
     
+    // MOCK: Update UI with selected plan
+    const currentPlanElement = document.getElementById('currentPlanName');
+    if (currentPlanElement) {
+      currentPlanElement.textContent = selectedPlan || 'Free';
+    }
+    
+    /* Real implementation for future use
     // Check if Firebase Auth is available
     if (window.firebaseServices && window.firebaseServices.auth) {
       const user = window.firebaseServices.auth.currentUser;
@@ -65,10 +72,12 @@ window.subscriptionManager = window.subscriptionManager || {
         }
       }
     }
+    */
   }
 };
 
 // Initialize Firebase services if they don't exist
+/* Real implementation for future use
 window.firebaseServices = window.firebaseServices || {
   functions: null,
   auth: null,
@@ -94,10 +103,110 @@ window.firebaseServices = window.firebaseServices || {
     }
   }
 };
+*/
+
+// MOCK: Create mock Firebase services
+window.firebaseServices = window.firebaseServices || {
+  functions: {
+    httpsCallable: function(functionName) {
+      return async function(data) {
+        console.log(`Mock Firebase Function called: ${functionName}`, data);
+        
+        // Simulate network delay
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        if (functionName === 'createPaymentOrder') {
+          return {
+            data: {
+              orderId: 'mock_order_' + Date.now(),
+              amount: data.amount,
+              currency: data.currency || 'INR'
+            }
+          };
+        } else if (functionName === 'verifyPayment') {
+          return {
+            data: {
+              success: true,
+              planType: selectedPlan,
+              message: 'Payment verified successfully'
+            }
+          };
+        }
+        
+        return { data: {} };
+      };
+    }
+  },
+  auth: {
+    currentUser: {
+      uid: 'mock_user_id',
+      email: 'mock_user@example.com'
+    }
+  },
+  
+  init: function() {
+    console.log('Initializing Mock Firebase services...');
+  }
+};
 
 // Global variables
 let selectedPlan = null;
 let currentPlan = null;
+
+// MOCK: Create mock Razorpay object if not available
+if (typeof Razorpay === 'undefined') {
+  window.Razorpay = function(options) {
+    this.options = options;
+    
+    this.open = function() {
+      console.log('Mock Razorpay checkout opened with options:', this.options);
+      
+      // Show mock payment UI (you can create a simple modal for this)
+      showMockRazorpayModal(this.options);
+    };
+  };
+}
+
+// MOCK: Show mock Razorpay modal
+function showMockRazorpayModal(options) {
+  // Create a simple modal to simulate Razorpay checkout
+  const modalHtml = `
+    <div id="mockRazorpayModal" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: flex; justify-content: center; align-items: center; z-index: 9999;">
+      <div style="background: white; padding: 20px; border-radius: 5px; max-width: 400px; width: 100%;">
+        <h3>Mock Razorpay Checkout</h3>
+        <p>Plan: ${options.description}</p>
+        <p>Amount: ${options.currency} ${options.amount/100}</p>
+        <p>Order ID: ${options.order_id}</p>
+        <div style="display: flex; justify-content: space-between; margin-top: 20px;">
+          <button id="mockPaymentCancel" style="padding: 8px 16px; background: #f1f1f1; border: none; border-radius: 4px; cursor: pointer;">Cancel</button>
+          <button id="mockPaymentSuccess" style="padding: 8px 16px; background: #4A90E2; color: white; border: none; border-radius: 4px; cursor: pointer;">Pay Now</button>
+        </div>
+      </div>
+    </div>
+  `;
+  
+  // Append modal to body
+  const modalContainer = document.createElement('div');
+  modalContainer.innerHTML = modalHtml;
+  document.body.appendChild(modalContainer);
+  
+  // Add event listeners
+  document.getElementById('mockPaymentCancel').addEventListener('click', function() {
+    document.body.removeChild(modalContainer);
+    options.modal.ondismiss();
+  });
+  
+  document.getElementById('mockPaymentSuccess').addEventListener('click', function() {
+    document.body.removeChild(modalContainer);
+    
+    // Call the handler with mock payment data
+    options.handler({
+      razorpay_order_id: options.order_id,
+      razorpay_payment_id: 'mock_payment_' + Date.now(),
+      razorpay_signature: 'mock_signature_' + Date.now()
+    });
+  });
+}
 
 // Initialize Razorpay integration
 function initRazorpayIntegration() {
@@ -251,12 +360,12 @@ async function processPayment(planType) {
 // Helper function to get user name
 function getUserName() {
   const userNameElement = document.getElementById('userName');
-  return userNameElement ? userNameElement.textContent : '';
+  return userNameElement ? userNameElement.textContent : 'Mock User';
 }
 
 // Helper function to get user email
 function getUserEmail() {
-  return localStorage.getItem('userEmail') || '';
+  return localStorage.getItem('userEmail') || 'mock_user@example.com';
 }
 
 // Verify payment with Firebase function
