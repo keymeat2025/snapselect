@@ -23,7 +23,7 @@
     <!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script> -->
     
     <!-- Remove real Razorpay script since we're using a mock -->
-    <!-- <script src="https://checkout.razorpay.com/v1/checkout.js"></script> -->
+    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
     <!-- <script src="../assets/js/razorpay-mock.js"></script> -->
     
     <style>
@@ -451,7 +451,7 @@
                 </div>
             </div>
             
-            <!-- Mock Razorpay Modal - Add this section -->
+            <!-- Mock Razorpay Modal - Add this section 
             <div id="mockRazorpayModal" class="mock-razorpay-modal">
                 <div class="mock-razorpay-content">
                     <div class="mock-razorpay-header">
@@ -468,7 +468,7 @@
                         <button id="razorpayPayBtn" class="btn btn-primary">Pay Now</button>
                     </div>
                 </div>
-            </div>
+            </div> -->
         </div>
     </main>
 
@@ -697,6 +697,7 @@
             }
 
             // Process payment
+            <!--
             async function processPayment(planType) {
                 try {
                     // Show loading state
@@ -730,8 +731,72 @@
                     setTimeout(resetPaymentButtons, 3000);
                 }
             }
+                                  -->
+            // Process payment
+            async function processPayment(planType) {
+                try {
+                    // Show loading state
+                    showPaymentProgress('Processing your request...');
+                    
+                    // Check if plan type exists
+                    if (!SUBSCRIPTION_PLANS || !SUBSCRIPTION_PLANS[planType]) {
+                        throw new Error(`Invalid plan selected: ${planType}`);
+                    }
+                    
+                    // Get plan details
+                    const plan = SUBSCRIPTION_PLANS[planType];
+                    
+                    // Call the Firebase function to create order
+                    const createPaymentOrder = window.firebaseServices.functions.httpsCallable('createPaymentOrder');
+                    const orderResponse = await createPaymentOrder({
+                        planType: planType,
+                        amount: plan.price
+                    });
+                    
+                    // Get order data from response
+                    const orderData = orderResponse.data;
+                    
+                    // Configure Razorpay options
+                    const options = {
+                        key: 'rzp_test_EF3W5mVXB1Q3li', // Replace with your key
+                        amount: orderData.amount * 100, // Razorpay expects amount in paise
+                        currency: orderData.currency,
+                        name: 'SnapSelect',
+                        description: `${plan.name} Plan Subscription`,
+                        order_id: orderData.orderId,
+                        handler: function(response) {
+                            // After payment is complete, verify the payment
+                            verifyPayment(
+                                orderData.orderId,
+                                response.razorpay_payment_id,
+                                response.razorpay_signature
+                            );
+                        },
+                        prefill: {
+                            name: document.getElementById('userName').textContent,
+                            email: localStorage.getItem('userEmail') || '',
+                        },
+                        theme: {
+                            color: '#4A90E2'
+                        }
+                    };
+                    
+                    // Open Razorpay checkout
+                    const razorpay = new Razorpay(options);
+                    razorpay.open();
+                    
+                    // Reset buttons after opening Razorpay checkout
+                    resetPaymentButtons();
+                    
+                } catch (error) {
+                    console.error('Payment process error:', error);
+                    showPaymentError(`Payment failed: ${error.message}`);
+                    setTimeout(resetPaymentButtons, 3000);
+                }
+            }
 
             // Verify payment
+            <!--
             async function verifyPayment(orderId) {
                 try {
                     showPaymentProgress('Verifying payment...');
@@ -755,6 +820,49 @@
                             currentPlan = SUBSCRIPTION_PLANS[selectedPlan].name;
                         }, 2000);
                     }, 1500);
+                    
+                } catch (error) {
+                    console.error('Payment verification error:', error);
+                    showPaymentError(`Payment verification failed: ${error.message}`);
+                    setTimeout(resetPaymentButtons, 3000);
+                }
+            }   -->
+                        // Verify payment
+            async function verifyPayment(orderId, paymentId, signature) {
+                try {
+                    showPaymentProgress('Verifying payment...');
+                    
+                    // Call the Firebase function to verify payment
+                    const verifyPaymentFunction = window.firebaseServices.functions.httpsCallable('verifyPayment');
+                    const verifyResponse = await verifyPaymentFunction({
+                        orderId: orderId,
+                        paymentId: paymentId,
+                        signature: signature
+                    });
+                    
+                    // Check response
+                    const responseData = verifyResponse.data;
+                    
+                    if (responseData.success) {
+                        // Payment successful
+                        showPaymentSuccess(`Payment successful! Your subscription has been upgraded to ${selectedPlan}.`);
+                        
+                        // Update UI after a short delay
+                        setTimeout(() => {
+                            if (upgradePlanModal) upgradePlanModal.style.display = 'none';
+                            
+                            // Update current plan
+                            if (currentPlanNameEl) currentPlanNameEl.textContent = SUBSCRIPTION_PLANS[selectedPlan].name;
+                            
+                            // Update plan badge
+                            const planBadge = document.getElementById('planBadge');
+                            if (planBadge) planBadge.textContent = SUBSCRIPTION_PLANS[selectedPlan].name;
+                            
+                            currentPlan = SUBSCRIPTION_PLANS[selectedPlan].name;
+                        }, 2000);
+                    } else {
+                        throw new Error('Payment verification failed');
+                    }
                     
                 } catch (error) {
                     console.error('Payment verification error:', error);
@@ -821,7 +929,7 @@
             }
 
             // Razorpay modal cancel button
-            if (razorpayCancelBtn) {
+            <!--if (razorpayCancelBtn) {
                 razorpayCancelBtn.addEventListener('click', function() {
                     mockRazorpayModal.style.display = 'none';
                     resetPaymentButtons();
@@ -841,12 +949,15 @@
             if (document.querySelector('.plan-tab[data-plan="basic"]')) {
                 document.querySelector('.plan-tab[data-plan="basic"]').click();
             }
-        });
+        }); -->
     </script>
+ 
+    
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
-    
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-functions-compat.js"></script>
+        
     <script src="../assets/js/firebase-config.js"></script>
     <script src="../assets/js/firebase-auth.js"></script>
     <script src="../assets/js/firebase-db.js"></script>
