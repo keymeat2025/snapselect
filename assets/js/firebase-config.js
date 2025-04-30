@@ -11,6 +11,21 @@ const firebaseConfig = {
   measurementId: "G-J5XGE71VF6"
 };
 
+
+// Initialize Firebase
+const firebaseApp = firebase.initializeApp(firebaseConfig);
+
+// Create a global services object
+window.firebaseServices = {
+  auth: firebase.auth(),
+  firestore: firebase.firestore(),
+  functions: firebase.functions()
+};
+
+// Set the correct region for Firebase Functions
+window.firebaseServices.functions.useRegion(firebaseConfig.functionsRegion || 'asia-south1');
+
+/*
 // Initialize Firebase app if not already initialized
 if (!window.firebaseServices) {
   try {
@@ -130,3 +145,4 @@ if (!window.firebaseServices) {
     console.error('Firebase initialization error:', error);
   }
 }
+*/
