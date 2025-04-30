@@ -1,449 +1,334 @@
-/**
- * Razorpay Integration for SnapSelect
- * This file handles the client-side integration with Razorpay payment gateway
- * and communicates with Firebase Cloud Functions for payment processing.
- */
+// razorpay-integration.js - Client-side integration for Razorpay
 
-// Wait for DOM content to be loaded
-document.addEventListener('DOMContentLoaded', function() {
-    // Get references to the upgrade plan button and modal
-    const upgradePlanBtn = document.getElementById('upgradePlanBtn');
-    const upgradePlanModal = document.getElementById('upgradePlanModal');
-    const confirmUpgradeBtn = document.getElementById('confirmUpgradeBtn');
-    const cancelUpgradeBtn = document.getElementById('cancelUpgradeBtn');
-    const closeModalBtns = document.querySelectorAll('.close-modal');
-    
-    // Plan selection tabs
-    const planTabs = document.querySelectorAll('.plan-tab');
-    
-    // Payment success/error message containers
-    const paymentSuccessDiv = document.querySelector('.payment-success');
-    const paymentErrorDiv = document.querySelector('.payment-error');
-    
-    // Current selected plan data
-    let selectedPlan = {
-        type: 'basic',
-        name: 'Basic',
-        price: 399,
-        features: []
-    };
-    
-    // Plan data - should match the plans in your Firebase function
-    const SUBSCRIPTION_PLANS = {
-        lite: {
-            name: 'Lite',
-            price: 79,
-            priceType: 'per client',
-            storageLimit: 2, // GB
-            galleryLimit: 1,
-            photosPerGallery: 100,
-            maxClients: 1,
-            expiryDays: 7,
-            features: ['Basic uploads', 'Client selection', 'Basic sharing', 'Mobile-friendly Galleries', 'Client Favorites Feature']
-        },
-        mini: {
-            name: 'Mini',
-            price: 149,
-            priceType: 'per client',
-            storageLimit: 5, // GB
-            galleryLimit: 11,
-            photosPerGallery: 200,
-            maxClients: 1,
-            expiryDays: 14,
-            features: ['Basic uploads', 'Client selection', 'Basic sharing', 'Mobile-friendly Galleries', 'Client Favorites Feature', 'Basic Gallery Customization']
-        },
-        basic: {
-            name: 'Basic',
-            price: 399,
-            priceType: 'per client',
-            storageLimit: 15, // GB
-            galleryLimit: 1,
-            photosPerGallery: 500,
-            maxClients: 1,
-            expiryDays: 30,
-            features: ['Advanced uploads', 'Client selection', 'Password protection', 'Mobile-friendly Galleries', 'Client Favorites Feature', 'Custom branding', 'Basic Analytics']
-        },
-        pro: {
-            name: 'Pro',
-            price: 799,
-            priceType: 'per client',
-            storageLimit: 25, // GB
-            galleryLimit: 1,
-            photosPerGallery: 800,
-            maxClients: 1,
-            expiryDays: 45,
-            features: ['Advanced uploads', 'Client selection', 'Password protection', 'Mobile-friendly Galleries', 'Client Favorites Feature', 'Advanced Gallery Customization', 'Client Comments', 'Detailed Analytics']
-        },
-        premium: {
-            name: 'Premium',
-            price: 1499,
-            priceType: 'per client',
-            storageLimit: 50, // GB
-            galleryLimit: 1,
-            photosPerGallery: 1200,
-            maxClients: 1,
-            expiryDays: 60,
-            features: ['Advanced uploads', 'Client selection', 'Password protection', 'Mobile-friendly Galleries', 'Client Favorites Feature', 'Complete Gallery Customization', 'Client Comments', 'Detailed Analytics', 'Priority Support']
-        },
-        ultimate: {
-            name: 'Ultimate',
-            price: 2999,
-            priceType: 'per client',
-            storageLimit: 100, // GB
-            galleryLimit: 2,
-            photosPerGallery: 1250,
-            maxClients: 1,
-            expiryDays: 90,
-            features: ['Advanced uploads', 'Client selection', 'Password protection', 'Mobile-friendly Galleries', 'Client Favorites Feature', 'White-label Gallery Customization', 'Client Comments', 'Advanced Analytics', 'Priority Phone Support']
-        }
-    };
+// Global variables
+let selectedPlan = null;
+let currentPlan = null;
 
-    // Open upgrade plan modal when upgrade button is clicked
-    if (upgradePlanBtn) {
-        upgradePlanBtn.addEventListener('click', function() {
-            // Initialize with the current plan from user data
-            initializeUpgradeModal();
-            upgradePlanModal.style.display = 'flex';
-        });
-    }
-
-    // Close modal when cancel button is clicked
-    if (cancelUpgradeBtn) {
-        cancelUpgradeBtn.addEventListener('click', function() {
-            upgradePlanModal.style.display = 'none';
-            // Clear any payment messages
-            clearPaymentMessages();
-        });
-    }
-
-    // Close modal when X button is clicked
-    closeModalBtns.forEach(function(btn) {
-        btn.addEventListener('click', function() {
-            const modal = btn.closest('.modal');
-            if (modal) {
-                modal.style.display = 'none';
-                // Clear any payment messages
-                clearPaymentMessages();
-            }
-        });
+// Initialize Razorpay integration
+function initRazorpayIntegration() {
+  // Event listener for plan tabs
+  document.querySelectorAll('.plan-tab').forEach(tab => {
+    tab.addEventListener('click', function() {
+      // Remove active class from all tabs
+      document.querySelectorAll('.plan-tab').forEach(t => t.classList.remove('active'));
+      // Add active class to clicked tab
+      this.classList.add('active');
+      
+      // Update selected plan
+      selectedPlan = this.getAttribute('data-plan');
+      updatePlanDisplay(selectedPlan);
     });
+  });
 
-    // Plan tab selection
-    if (planTabs) {
-        planTabs.forEach(function(tab) {
-            tab.addEventListener('click', function() {
-                // Remove active class from all tabs
-                planTabs.forEach(t => t.classList.remove('active'));
-                // Add active class to clicked tab
-                tab.classList.add('active');
-                
-                // Update selected plan
-                const planType = tab.getAttribute('data-plan');
-                updateSelectedPlan(planType);
-            });
-        });
+  // Event listener for upgrade button
+  document.getElementById('upgradePlanBtn').addEventListener('click', function() {
+    // Get current plan from the UI
+    currentPlan = document.getElementById('currentPlanName').textContent;
+    
+    // Show upgrade modal
+    const modal = document.getElementById('upgradePlanModal');
+    modal.style.display = 'block';
+    
+    // Set default selected plan (Basic)
+    document.querySelector('.plan-tab[data-plan="basic"]').click();
+  });
+
+  // Event listener for confirm upgrade button
+  document.getElementById('confirmUpgradeBtn').addEventListener('click', function(e) {
+    e.preventDefault();
+    if (selectedPlan) {
+      processPayment(selectedPlan);
     }
+  });
 
-    // Initialize upgrade modal with user data and current plan
-    function initializeUpgradeModal() {
-        // Get current user data from Firebase Auth
-        const user = firebase.auth().currentUser;
-        if (!user) {
-            console.error('User not authenticated');
-            return;
+  // Event listener for cancel button
+  document.getElementById('cancelUpgradeBtn').addEventListener('click', function() {
+    const modal = document.getElementById('upgradePlanModal');
+    modal.style.display = 'none';
+  });
+
+  // Event listener for modal close button
+  document.querySelector('#upgradePlanModal .close-modal').addEventListener('click', function() {
+    const modal = document.getElementById('upgradePlanModal');
+    modal.style.display = 'none';
+  });
+}
+
+// Update plan display in the UI
+function updatePlanDisplay(planType) {
+  const planDetails = SUBSCRIPTION_PLANS[planType];
+  if (!planDetails) return;
+
+  // Update selected plan display
+  document.getElementById('selectedPlanDisplay').textContent = planDetails.name;
+  document.getElementById('selectedPlanPrice').textContent = `₹${planDetails.price}/${planDetails.priceType}`;
+
+  // Update features list
+  const featuresList = document.getElementById('selectedPlanFeatures');
+  featuresList.innerHTML = '';
+  planDetails.features.forEach(feature => {
+    const li = document.createElement('li');
+    li.textContent = feature;
+    featuresList.appendChild(li);
+  });
+
+  // Update current plan display
+  const currentPlanDetails = SUBSCRIPTION_PLANS[currentPlan.toLowerCase()] || SUBSCRIPTION_PLANS.lite;
+  document.getElementById('currentPlanDisplay').textContent = currentPlanDetails.name;
+  document.getElementById('currentPlanPrice').textContent = `₹${currentPlanDetails.price}/${currentPlanDetails.priceType}`;
+
+  // Update current plan features
+  const currentFeaturesList = document.getElementById('currentPlanFeatures');
+  currentFeaturesList.innerHTML = '';
+  currentPlanDetails.features.forEach(feature => {
+    const li = document.createElement('li');
+    li.textContent = feature;
+    currentFeaturesList.appendChild(li);
+  });
+}
+
+// Process payment through Razorpay
+async function processPayment(planType) {
+  try {
+    // Show loading state
+    showPaymentProgress('Processing your request...');
+    
+    // Get plan details
+    const planDetails = SUBSCRIPTION_PLANS[planType];
+    if (!planDetails) {
+      throw new Error('Invalid plan selected');
+    }
+    
+    // Create payment order via Firebase function
+    const createPaymentOrder = firebase.functions().httpsCallable('createPaymentOrder');
+    const result = await createPaymentOrder({
+      planType: planType,
+      amount: planDetails.price
+    });
+    
+    if (!result.data || !result.data.orderId) {
+      throw new Error('Failed to create payment order');
+    }
+    
+    // Initialize Razorpay checkout
+    const options = {
+      key: 'rzp_test_EF3W5mVXB1Q3li', // Replace with your Razorpay key
+      amount: result.data.amount * 100, // Amount is in paisa
+      currency: result.data.currency || 'INR',
+      name: 'SnapSelect',
+      description: `Upgrade to ${planDetails.name} Plan`,
+      image: '../assets/images/snapselect-logo.png',
+      order_id: result.data.orderId,
+      handler: function(response) {
+        // Handle successful payment
+        verifyPayment(response.razorpay_order_id, response.razorpay_payment_id, response.razorpay_signature);
+      },
+      prefill: {
+        name: document.getElementById('userName').textContent,
+        email: localStorage.getItem('userEmail') || ''
+      },
+      theme: {
+        color: '#4A90E2'
+      },
+      modal: {
+        ondismiss: function() {
+          hidePaymentProgress();
         }
+      }
+    };
+    
+    const rzp = new Razorpay(options);
+    rzp.open();
+    
+  } catch (error) {
+    console.error('Payment process error:', error);
+    showPaymentError(`Payment failed: ${error.message}`);
+    setTimeout(hidePaymentProgress, 3000);
+  }
+}
 
-        // Get user's current plan from Firestore
-        firebase.firestore().collection('users').doc(user.uid).get()
-            .then(doc => {
-                if (doc.exists) {
-                    const userData = doc.data();
-                    const currentPlanType = userData.currentPlan || 'lite';
-                    
-                    // Set current plan display
-                    const currentPlan = SUBSCRIPTION_PLANS[currentPlanType] || SUBSCRIPTION_PLANS.lite;
-                    document.getElementById('currentPlanDisplay').textContent = currentPlan.name;
-                    document.getElementById('currentPlanPrice').textContent = `₹${currentPlan.price}/${currentPlan.priceType}`;
-                    
-                    // Populate current plan features
-                    const currentPlanFeaturesList = document.getElementById('currentPlanFeatures');
-                    if (currentPlanFeaturesList) {
-                        currentPlanFeaturesList.innerHTML = '';
-                        currentPlan.features.forEach(feature => {
-                            const li = document.createElement('li');
-                            li.textContent = feature;
-                            currentPlanFeaturesList.appendChild(li);
-                        });
-                    }
-                    
-                    // Find the right tab to activate (default to basic if coming from free)
-                    const initialPlanType = currentPlanType === 'lite' ? 'basic' : getNextPlanType(currentPlanType);
-                    
-                    // Reset all tabs
-                    planTabs.forEach(t => t.classList.remove('active'));
-                    
-                    // Set the active tab
-                    const activeTab = document.querySelector(`.plan-tab[data-plan="${initialPlanType}"]`);
-                    if (activeTab) {
-                        activeTab.classList.add('active');
-                    }
-                    
-                    // Update selected plan display
-                    updateSelectedPlan(initialPlanType);
-                } else {
-                    console.error('User document not found');
-                    // Default to showing the basic plan
-                    updateSelectedPlan('basic');
-                }
-            })
-            .catch(error => {
-                console.error('Error getting user data:', error);
-                // Default to showing the basic plan
-                updateSelectedPlan('basic');
-            });
+// Verify payment with Firebase function
+async function verifyPayment(orderId, paymentId, signature) {
+  try {
+    showPaymentProgress('Verifying payment...');
+    
+    const verifyPaymentFunc = firebase.functions().httpsCallable('verifyPayment');
+    const result = await verifyPaymentFunc({
+      orderId: orderId,
+      paymentId: paymentId,
+      signature: signature
+    });
+    
+    if (result.data && result.data.success) {
+      // Payment successful
+      showPaymentSuccess(`Payment successful! Your subscription has been upgraded to ${result.data.planType}.`);
+      
+      // Update UI
+      setTimeout(() => {
+        document.getElementById('upgradePlanModal').style.display = 'none';
+        // Refresh user subscription data
+        refreshSubscriptionData();
+      }, 2000);
+    } else {
+      throw new Error('Payment verification failed');
     }
+  } catch (error) {
+    console.error('Payment verification error:', error);
+    showPaymentError(`Payment verification failed: ${error.message}`);
+  } finally {
+    setTimeout(hidePaymentProgress, 3000);
+  }
+}
 
-    // Update the selected plan display
-    function updateSelectedPlan(planType) {
-        const plan = SUBSCRIPTION_PLANS[planType];
-        if (!plan) {
-            console.error('Invalid plan type:', planType);
-            return;
-        }
-        
-        // Update selected plan data
-        selectedPlan = {
-            type: planType,
-            name: plan.name,
-            price: plan.price,
-            features: plan.features
-        };
-        
-        // Update UI with selected plan details
-        document.getElementById('selectedPlanDisplay').textContent = plan.name;
-        document.getElementById('selectedPlanPrice').textContent = `₹${plan.price}/${plan.priceType}`;
-        
-        // Update features list
-        const selectedPlanFeaturesList = document.getElementById('selectedPlanFeatures');
-        if (selectedPlanFeaturesList) {
-            selectedPlanFeaturesList.innerHTML = '';
-            plan.features.forEach(feature => {
-                const li = document.createElement('li');
-                li.textContent = feature;
-                selectedPlanFeaturesList.appendChild(li);
-            });
-        }
+// Refresh subscription data from Firestore
+async function refreshSubscriptionData() {
+  try {
+    // Get user ID
+    const user = firebase.auth().currentUser;
+    if (!user) return;
+    
+    // Get subscription data
+    const db = firebase.firestore();
+    const subscriptionDoc = await db.collection('subscriptions').doc(user.uid).get();
+    
+    if (subscriptionDoc.exists) {
+      const subData = subscriptionDoc.data();
+      
+      // Update UI with new plan data
+      document.getElementById('currentPlanName').textContent = subData.planType || 'Free';
+      document.getElementById('planBadge').textContent = SUBSCRIPTION_PLANS[subData.planType]?.name || 'Free';
+      
+      // Update storage usage
+      updateStorageUsage(subData.storageLimit || 1);
+      
+      // Update gallery usage
+      updateGalleryUsage(subData.galleryLimit || 3);
     }
+  } catch (error) {
+    console.error('Error refreshing subscription data:', error);
+  }
+}
 
-    // Get the next higher plan type
-    function getNextPlanType(currentPlanType) {
-        const planOrder = ['lite', 'mini', 'basic', 'pro', 'premium', 'ultimate'];
-        const currentIndex = planOrder.indexOf(currentPlanType);
-        
-        if (currentIndex === -1 || currentIndex === planOrder.length - 1) {
-            return 'basic'; // Default to basic if current plan not found or already at highest
-        }
-        
-        return planOrder[currentIndex + 1];
-    }
+// Show payment progress message
+function showPaymentProgress(message) {
+  document.querySelector('.payment-success').style.display = 'none';
+  document.querySelector('.payment-error').style.display = 'none';
+  
+  const confirmBtn = document.getElementById('confirmUpgradeBtn');
+  confirmBtn.disabled = true;
+  confirmBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+}
 
-    // Clear payment success/error messages
-    function clearPaymentMessages() {
-        if (paymentSuccessDiv) paymentSuccessDiv.style.display = 'none';
-        if (paymentErrorDiv) paymentErrorDiv.style.display = 'none';
-    }
+// Show payment success message
+function showPaymentSuccess(message) {
+  const successEl = document.querySelector('.payment-success');
+  successEl.textContent = message;
+  successEl.style.display = 'block';
+  
+  document.querySelector('.payment-error').style.display = 'none';
+  
+  const confirmBtn = document.getElementById('confirmUpgradeBtn');
+  confirmBtn.disabled = false;
+  confirmBtn.innerHTML = 'Upgrade Complete!';
+}
 
-    // Show payment success message
-    function showPaymentSuccess(message) {
-        if (paymentSuccessDiv) {
-            paymentSuccessDiv.textContent = message;
-            paymentSuccessDiv.style.display = 'block';
-            
-            // Scroll to message if needed
-            paymentSuccessDiv.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        }
-    }
+// Show payment error message
+function showPaymentError(message) {
+  const errorEl = document.querySelector('.payment-error');
+  errorEl.textContent = message;
+  errorEl.style.display = 'block';
+  
+  document.querySelector('.payment-success').style.display = 'none';
+  
+  const confirmBtn = document.getElementById('confirmUpgradeBtn');
+  confirmBtn.disabled = false;
+  confirmBtn.innerHTML = 'Try Again';
+}
 
-    // Show payment error message
-    function showPaymentError(message) {
-        if (paymentErrorDiv) {
-            paymentErrorDiv.textContent = message;
-            paymentErrorDiv.style.display = 'block';
-            
-            // Scroll to message if needed
-            paymentErrorDiv.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        }
-    }
+// Hide payment progress
+function hidePaymentProgress() {
+  const confirmBtn = document.getElementById('confirmUpgradeBtn');
+  confirmBtn.disabled = false;
+  confirmBtn.innerHTML = 'Upgrade Now';
+}
 
-    // Process payment when confirm upgrade button is clicked
-    if (confirmUpgradeBtn) {
-        confirmUpgradeBtn.addEventListener('click', function(e) {
-            e.preventDefault();
-            
-            // Clear any previous messages
-            clearPaymentMessages();
-            
-            // Get current user
-            const user = firebase.auth().currentUser;
-            if (!user) {
-                showPaymentError('You must be logged in to upgrade your plan.');
-                return;
-            }
-            
-            // Disable button to prevent multiple clicks
-            confirmUpgradeBtn.disabled = true;
-            confirmUpgradeBtn.textContent = 'Processing...';
-            
-            // Create order using Firebase function
-            createRazorpayOrder(selectedPlan.type, selectedPlan.price, user)
-                .then(orderData => {
-                    // If order created successfully, open Razorpay checkout
-                    openRazorpayCheckout(orderData, user);
-                })
-                .catch(error => {
-                    console.error('Error creating order:', error);
-                    showPaymentError('Failed to create payment order. Please try again.');
-                    
-                    // Re-enable button
-                    confirmUpgradeBtn.disabled = false;
-                    confirmUpgradeBtn.textContent = 'Upgrade Now';
-                });
-        });
-    }
+// Update storage usage display
+function updateStorageUsage(limit) {
+  const storage = parseFloat(document.getElementById('storageUsed').textContent);
+  const usagePercent = Math.min((storage / (limit * 1000)) * 100, 100);
+  
+  document.getElementById('storageUsageBar').style.width = `${usagePercent}%`;
+  document.getElementById('storageUsageText').textContent = `${storage}/${limit} GB`;
+}
 
-    // Create Razorpay order using Firebase function
-    function createRazorpayOrder(planType, amount, user) {
-        // Get Firebase functions instance
-        const createPaymentOrderFn = firebase.functions().httpsCallable('createPaymentOrder');
-        
-        // Call the function with plan details
-        return createPaymentOrderFn({
-            planType: planType,
-            amount: amount
-        })
-        .then(result => {
-            // Return order data from function result
-            return result.data;
-        });
-    }
+// Update gallery usage display
+function updateGalleryUsage(limit) {
+  const galleries = parseInt(document.getElementById('activeGalleriesCount').textContent);
+  const usagePercent = Math.min((galleries / limit) * 100, 100);
+  
+  document.getElementById('galleryUsageBar').style.width = `${usagePercent}%`;
+  document.getElementById('galleryUsageText').textContent = `${galleries}/${limit}`;
+}
 
-    // Open Razorpay checkout with order details
-    function openRazorpayCheckout(orderData, user) {
-        // Configure Razorpay options
-        const options = {
-            key: 'rzp_test_EF3W5mVXB1Q3li', // Your Razorpay Key ID
-            amount: orderData.amount * 100, // Amount in smallest currency unit (paise)
-            currency: orderData.currency || 'INR',
-            name: 'SnapSelect',
-            description: `Upgrade to ${selectedPlan.name} Plan`,
-            order_id: orderData.orderId,
-            image: '../assets/images/snapselect-logo.png', // Your logo
-            prefill: {
-                name: user.displayName || '',
-                email: user.email || '',
-                contact: '' // You can fetch this from user profile if available
-            },
-            notes: {
-                userId: user.uid,
-                planType: selectedPlan.type
-            },
-            theme: {
-                color: '#6366f1' // Your brand color
-            },
-            modal: {
-                ondismiss: function() {
-                    // Handle modal dismiss
-                    console.log('Checkout form closed');
-                    confirmUpgradeBtn.disabled = false;
-                    confirmUpgradeBtn.textContent = 'Upgrade Now';
-                }
-            },
-            handler: function(response) {
-                // This function executes when payment is successful
-                handlePaymentSuccess(response, orderData);
-            }
-        };
+// Subscription plans data (matching the server-side data)
+const SUBSCRIPTION_PLANS = {
+  lite: {
+    name: 'Lite',
+    price: 79,
+    priceType: 'per client',
+    storageLimit: 2, // GB
+    galleryLimit: 1,
+    photosPerGallery: 100,
+    features: ['Basic uploads', 'Client selection', 'Basic sharing', 'Mobile-friendly Galleries', 'Client Favorites Feature']
+  },
+  mini: {
+    name: 'Mini',
+    price: 149,
+    priceType: 'per client',
+    storageLimit: 5, // GB
+    galleryLimit: 1,
+    photosPerGallery: 200,
+    features: ['Basic uploads', 'Client selection', 'Basic sharing', 'Mobile-friendly Galleries', 'Client Favorites Feature', 'Basic Gallery Customization']
+  },
+  basic: {
+    name: 'Basic',
+    price: 399,
+    priceType: 'per client',
+    storageLimit: 15, // GB
+    galleryLimit: 1,
+    photosPerGallery: 500,
+    features: ['Advanced uploads', 'Client selection', 'Password protection', 'Mobile-friendly Galleries', 'Client Favorites Feature', 'Custom branding', 'Basic Analytics']
+  },
+  pro: {
+    name: 'Pro',
+    price: 799,
+    priceType: 'per client',
+    storageLimit: 25, // GB
+    galleryLimit: 1,
+    photosPerGallery: 800,
+    features: ['Advanced uploads', 'Client selection', 'Password protection', 'Mobile-friendly Galleries', 'Client Favorites Feature', 'Advanced Gallery Customization', 'Client Comments', 'Detailed Analytics']
+  },
+  premium: {
+    name: 'Premium',
+    price: 1499,
+    priceType: 'per client',
+    storageLimit: 50, // GB
+    galleryLimit: 1,
+    photosPerGallery: 1200,
+    features: ['Advanced uploads', 'Client selection', 'Password protection', 'Mobile-friendly Galleries', 'Client Favorites Feature', 'Complete Gallery Customization', 'Client Comments', 'Detailed Analytics', 'Priority Support']
+  },
+  ultimate: {
+    name: 'Ultimate',
+    price: 2999,
+    priceType: 'per client',
+    storageLimit: 100, // GB
+    galleryLimit: 2,
+    photosPerGallery: 1250,
+    features: ['Advanced uploads', 'Client selection', 'Password protection', 'Mobile-friendly Galleries', 'Client Favorites Feature', 'White-label Gallery Customization', 'Client Comments', 'Advanced Analytics', 'Priority Phone Support']
+  }
+};
 
-        // Initialize Razorpay checkout
-        const rzp = new Razorpay(options);
-        
-        // Open checkout modal
-        rzp.open();
-        
-        // Handle checkout errors
-        rzp.on('payment.failed', function(response) {
-            console.error('Payment failed:', response.error);
-            handlePaymentFailure(response.error);
-        });
-    }
-
-    // Handle successful payment
-    function handlePaymentSuccess(response, orderData) {
-        console.log('Payment successful:', response);
-        
-        // Show processing message
-        showPaymentSuccess('Payment successful! Verifying your payment...');
-        
-        // Call Firebase function to verify payment
-        const verifyPaymentFn = firebase.functions().httpsCallable('verifyPayment');
-        
-        verifyPaymentFn({
-            orderId: response.razorpay_order_id,
-            paymentId: response.razorpay_payment_id,
-            signature: response.razorpay_signature
-        })
-        .then(result => {
-            if (result.data && result.data.success) {
-                // Payment verified successfully
-                handleVerificationSuccess(result.data);
-            } else {
-                // Verification failed
-                throw new Error('Payment verification failed');
-            }
-        })
-        .catch(error => {
-            console.error('Verification error:', error);
-            showPaymentError('Payment verification failed. Please contact support if your account was charged.');
-            
-            // Re-enable button
-            confirmUpgradeBtn.disabled = false;
-            confirmUpgradeBtn.textContent = 'Upgrade Now';
-        });
-    }
-
-    // Handle payment verification success
-    function handleVerificationSuccess(data) {
-        console.log('Verification successful:', data);
-        
-        // Show success message
-        showPaymentSuccess(`Payment verified successfully! Your account has been upgraded to ${data.planType || selectedPlan.name} plan.`);
-        
-        // Disable upgrade button
-        confirmUpgradeBtn.disabled = true;
-        confirmUpgradeBtn.textContent = 'Upgraded!';
-        
-        // Reload user data after short delay
-        setTimeout(() => {
-            // Refresh page to reflect new plan (or update UI without refresh)
-            window.location.reload();
-        }, 3000);
-    }
-
-    // Handle payment failure
-    function handlePaymentFailure(error) {
-        // Show error message
-        showPaymentError(`Payment failed: ${error.description || error.reason || 'Unknown error'}`);
-        
-        // Re-enable button
-        confirmUpgradeBtn.disabled = false;
-        confirmUpgradeBtn.textContent = 'Upgrade Now';
-    }
-
-    // Helper function to format currency
-    function formatCurrency(amount) {
-        return new Intl.NumberFormat('en-IN', {
-            style: 'currency',
-            currency: 'INR'
-        }).format(amount);
-    }
+// Initialize when document is ready
+document.addEventListener('DOMContentLoaded', function() {
+  initRazorpayIntegration();
 });
