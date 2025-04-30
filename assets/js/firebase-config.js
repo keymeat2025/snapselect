@@ -1,6 +1,5 @@
 // firebase-config.js
 // Initialize Firebase for SnapSelect application
-
 // Your Firebase configuration
 const firebaseConfig = {
   apiKey: "AIzaSyCAl15Yq8Y727PKknJNs0Q8UZbRRbcWkMo",
@@ -23,11 +22,22 @@ if (!window.firebaseServices) {
     const db = firebase.firestore();
     const storage = firebase.storage ? firebase.storage() : null;
     
+    // Initialize Functions with region if available
+    let functions = null;
+    if (typeof firebase.functions === 'function') {
+      functions = firebase.functions();
+      // Set India region
+      if (typeof functions.useRegion === 'function') {
+        functions = functions.useRegion('asia-south1');
+      }
+    }
+    
     // Make Firebase services available to other scripts
     window.firebaseServices = {
       auth,
       db,
-      storage
+      storage,
+      functions
     };
     
     console.log('Firebase initialized successfully');
