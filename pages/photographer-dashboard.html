@@ -517,24 +517,59 @@
         // Simple mock to prevent authentication overlay from showing
         document.addEventListener('DOMContentLoaded', function() {
             // Hide auth overlay since we're just testing Razorpay
+     
+
             const authOverlay = document.getElementById('authCheckOverlay');
-            if (authOverlay) {
-                authOverlay.style.display = 'none';
+            if (window.firebaseServices && window.firebaseServices.auth) {
+                window.firebaseServices.auth.onAuthStateChanged(function(user) {
+                    if (authOverlay) {
+                        if (user) {
+                            // User is signed in, hide overlay
+                            authOverlay.style.display = 'none';
+                        } else {
+                            // Not signed in, show overlay
+                            authOverlay.style.display = 'flex';
+                        }
+                    }
+                });
+            } else {
+                // Firebase not available, show overlay
+                if (authOverlay) {
+                    authOverlay.style.display = 'flex';
+                }
             }
             
-            // Add user name for testing
+        
+           // Handle Firebase auth state changes
             const userNameElement = document.getElementById('userName');
             const avatarPlaceholder = document.querySelector('.avatar-placeholder');
-            if (userNameElement) {
-                // Try to get user data from localStorage
-                const userData = JSON.parse(localStorage.getItem('userData') || '{}');
-                const userName = userData.name || localStorage.getItem('userName') || 'User';
-                userNameElement.textContent = userName;
-                
-                // Update avatar placeholder with first letter of user's name
-                if (avatarPlaceholder) {
-                    avatarPlaceholder.textContent = userName.charAt(0).toUpperCase();
-                }
+            
+            // Check if Firebase is available
+            if (window.firebaseServices && window.firebaseServices.auth) {
+                // Listen for auth state changes
+                window.firebaseServices.auth.onAuthStateChanged(function(user) {
+                    if (user) {
+                        // User is signed in
+                        // Show user info in header
+                        if (userNameElement) {
+                            const displayName = user.displayName || user.email || 'User';
+                            userNameElement.textContent = displayName;
+                            
+                            // Update avatar placeholder with first letter
+                            if (avatarPlaceholder) {
+                                avatarPlaceholder.textContent = displayName.charAt(0).toUpperCase();
+                            }
+                        }
+                    } else {
+                        // User is signed out
+                        if (userNameElement) {
+                            userNameElement.textContent = 'User';
+                            if (avatarPlaceholder) {
+                                avatarPlaceholder.textContent = 'U';
+                            }
+                        }
+                    }
+                });
             }
             
             // Toggle user dropdown menu
@@ -808,5 +843,13 @@
             }
         });
     </script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    
+    <script src="../assets/js/firebase-config.js"></script>
+    <script src="../assets/js/firebase-auth.js"></script>
+    <script src="../assets/js/firebase-db.js"></script>
+    <script src="../assets/js/header-auth.js"></script>
 </body>
 </html>
