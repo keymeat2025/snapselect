@@ -732,7 +732,7 @@
                 }
             }
                                   */
-            // Process payment
+           // Process payment
             async function processPayment(planType) {
                 try {
                     // Show loading state
@@ -747,7 +747,11 @@
                     const plan = SUBSCRIPTION_PLANS[planType];
                     
                     // Call the Firebase function to create order
+                    // Make sure we're using the correctly configured functions object that has the proper region
                     const createPaymentOrder = window.firebaseServices.functions.httpsCallable('createPaymentOrder');
+                    
+                    console.log("Calling createPaymentOrder function in the asia-south1 region");
+                    
                     const orderResponse = await createPaymentOrder({
                         planType: planType,
                         amount: plan.price
@@ -795,14 +799,15 @@
                 }
             }
 
-
-                        // Verify payment
             async function verifyPayment(orderId, paymentId, signature) {
                 try {
                     showPaymentProgress('Verifying payment...');
                     
                     // Call the Firebase function to verify payment
                     const verifyPaymentFunction = window.firebaseServices.functions.httpsCallable('verifyPayment');
+                    
+                    console.log("Calling verifyPayment function in the asia-south1 region");
+                    
                     const verifyResponse = await verifyPaymentFunction({
                         orderId: orderId,
                         paymentId: paymentId,
