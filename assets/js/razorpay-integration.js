@@ -1,11 +1,109 @@
 // razorpay-integration.js - Client-side integration for Razorpay
 
+// Define subscription plans if they don't exist
+window.SUBSCRIPTION_PLANS = window.SUBSCRIPTION_PLANS || {
+  basic: {
+    name: 'Basic',
+    price: 499,
+    features: ['Basic feature 1', 'Basic feature 2']
+  },
+  pro: {
+    name: 'Pro',
+    price: 999,
+    features: ['Pro feature 1', 'Pro feature 2', 'Pro feature 3']
+  },
+  premium: {
+    name: 'Premium',
+    price: 1999,
+    features: ['All Pro features', 'Premium feature 1', 'Premium feature 2']
+  }
+};
+
+// Create subscription manager if it doesn't exist
+window.subscriptionManager = window.subscriptionManager || {
+  updatePlanDisplay: function(planType) {
+    // Find plan details section in the modal
+    const planDetailsSection = document.getElementById('planDetailsSection');
+    if (!planDetailsSection) return;
+    
+    // Get plan details
+    const plan = window.SUBSCRIPTION_PLANS[planType];
+    if (!plan) return;
+    
+    // Update plan name and price
+    const planNameElement = document.getElementById('selectedPlanName');
+    const planPriceElement = document.getElementById('selectedPlanPrice');
+    
+    if (planNameElement) planNameElement.textContent = plan.name;
+    if (planPriceElement) planPriceElement.textContent = `₹${plan.price}`;
+    
+    // Update features list
+    const featuresList = document.getElementById('planFeaturesList');
+    if (featuresList) {
+      featuresList.innerHTML = '';
+      plan.features.forEach(feature => {
+        const li = document.createElement('li');
+        li.innerHTML = `<i class="fas fa-check"></i> ${feature}`;
+        featuresList.appendChild(li);
+      });
+    }
+  },
+  
+  refreshSubscriptionData: function() {
+    // This function would typically fetch updated subscription data from your backend
+    console.log('Refreshing subscription data...');
+    
+    // Check if Firebase Auth is available
+    if (window.firebaseServices && window.firebaseServices.auth) {
+      const user = window.firebaseServices.auth.currentUser;
+      if (user) {
+        // Here you would typically fetch user subscription data
+        // For now, we'll just update the UI with a placeholder
+        const currentPlanElement = document.getElementById('currentPlanName');
+        if (currentPlanElement) {
+          currentPlanElement.textContent = selectedPlan || 'Free';
+        }
+      }
+    }
+  }
+};
+
+// Initialize Firebase services if they don't exist
+window.firebaseServices = window.firebaseServices || {
+  functions: null,
+  auth: null,
+  
+  // Initialize Firebase
+  init: function() {
+    console.log('Initializing Firebase services...');
+    // Check if Firebase SDK is loaded
+    if (typeof firebase !== 'undefined') {
+      try {
+        // Initialize Firebase functions
+        this.functions = firebase.functions();
+        
+        // Initialize Firebase auth
+        this.auth = firebase.auth();
+        
+        console.log('Firebase services initialized successfully');
+      } catch (error) {
+        console.error('Error initializing Firebase:', error);
+      }
+    } else {
+      console.error('Firebase SDK not loaded. Make sure to include Firebase scripts before this script.');
+    }
+  }
+};
+
 // Global variables
 let selectedPlan = null;
 let currentPlan = null;
 
 // Initialize Razorpay integration
 function initRazorpayIntegration() {
+  // Initialize Firebase services
+  window.firebaseServices.init();
+  
   // Event listener for plan tabs
   document.querySelectorAll('.plan-tab').forEach(tab => {
     tab.addEventListener('click', function() {
@@ -21,37 +119,59 @@ function initRazorpayIntegration() {
   });
 
   // Event listener for upgrade button
-  document.getElementById('upgradePlanBtn').addEventListener('click', function() {
-    // Get current plan from the UI
-    currentPlan = document.getElementById('currentPlanName').textContent;
-    
-    // Show upgrade modal
-    const modal = document.getElementById('upgradePlanModal');
-    modal.style.display = 'block';
-    
-    // Set default selected plan (Basic)
-    document.querySelector('.plan-tab[data-plan="basic"]').click();
-  });
+  const upgradePlanBtn = document.getElementById('upgradePlanBtn');
+  if (upgradePlanBtn) {
+    upgradePlanBtn.addEventListener('click', function() {
+      // Get current plan from the UI
+      const currentPlanElement = document.getElementById('currentPlanName');
+      currentPlan = currentPlanElement ? currentPlanElement.textContent : 'Free';
+      
+      // Show upgrade modal
+      const modal = document.getElementById('upgradePlanModal');
+      if (modal) {
+        modal.style.display = 'block';
+        
+        // Set default selected plan (Basic)
+        const basicPlanTab = document.querySelector('.plan-tab[data-plan="basic"]');
+        if (basicPlanTab) {
+          basicPlanTab.click();
+        }
+      }
+    });
+  }
 
   // Event listener for confirm upgrade button
-  document.getElementById('confirmUpgradeBtn').addEventListener('click', function(e) {
-    e.preventDefault();
-    if (selectedPlan) {
-      processPayment(selectedPlan);
-    }
-  });
+  const confirmUpgradeBtn = document.getElementById('confirmUpgradeBtn');
+  if (confirmUpgradeBtn) {
+    confirmUpgradeBtn.addEventListener('click', function(e) {
+      e.preventDefault();
+      if (selectedPlan) {
+        processPayment(selectedPlan);
+      }
+    });
+  }
 
   // Event listener for cancel button
-  document.getElementById('cancelUpgradeBtn').addEventListener('click', function() {
-    const modal = document.getElementById('upgradePlanModal');
-    modal.style.display = 'none';
-  });
+  const cancelUpgradeBtn = document.getElementById('cancelUpgradeBtn');
+  if (cancelUpgradeBtn) {
+    cancelUpgradeBtn.addEventListener('click', function() {
+      const modal = document.getElementById('upgradePlanModal');
+      if (modal) {
+        modal.style.display = 'none';
+      }
+    });
+  }
 
   // Event listener for modal close button
-  document.querySelector('#upgradePlanModal .close-modal').addEventListener('click', function() {
-    const modal = document.getElementById('upgradePlanModal');
-    modal.style.display = 'none';
-  });
+  const closeModalBtn = document.querySelector('#upgradePlanModal .close-modal');
+  if (closeModalBtn) {
+    closeModalBtn.addEventListener('click', function() {
+      const modal = document.getElementById('upgradePlanModal');
+      if (modal) {
+        modal.style.display = 'none';
+      }
+    });
+  }
 }
 
 // Process payment through Razorpay
@@ -60,20 +180,21 @@ async function processPayment(planType) {
     // Show loading state
     showPaymentProgress('Processing your request...');
     
-    // Get plan details using global SUBSCRIPTION_PLANS object
-    const planDetails = window.SUBSCRIPTION_PLANS[planType];
-    if (!planDetails) {
-      throw new Error('Invalid plan selected');
+    // Check if plan type exists
+    if (!window.SUBSCRIPTION_PLANS || !window.SUBSCRIPTION_PLANS[planType]) {
+      throw new Error(`Invalid plan selected: ${planType}`);
     }
     
-    // Get Firebase Functions from window.firebaseServices
-    const functions = window.firebaseServices.functions;
-    if (!functions) {
+    // Get plan details using global SUBSCRIPTION_PLANS object
+    const planDetails = window.SUBSCRIPTION_PLANS[planType];
+    
+    // Check if Firebase Functions are available
+    if (!window.firebaseServices || !window.firebaseServices.functions) {
       throw new Error('Payment service is not available at the moment. Please try again later.');
     }
     
     // Create payment order via Firebase function
-    const createPaymentOrder = functions.httpsCallable('createPaymentOrder');
+    const createPaymentOrder = window.firebaseServices.functions.httpsCallable('createPaymentOrder');
     const result = await createPaymentOrder({
       planType: planType,
       amount: planDetails.price,
@@ -83,6 +204,11 @@ async function processPayment(planType) {
     
     if (!result.data || !result.data.orderId) {
       throw new Error('Failed to create payment order');
+    }
+    
+    // Check if Razorpay is available
+    if (typeof Razorpay === 'undefined') {
+      throw new Error('Razorpay SDK not loaded. Please refresh the page and try again.');
     }
     
     // Initialize Razorpay checkout
@@ -99,8 +225,8 @@ async function processPayment(planType) {
         verifyPayment(response.razorpay_order_id, response.razorpay_payment_id, response.razorpay_signature);
       },
       prefill: {
-        name: document.getElementById('userName').textContent,
-        email: localStorage.getItem('userEmail') || ''
+        name: getUserName(),
+        email: getUserEmail()
       },
       theme: {
         color: '#4A90E2'
@@ -122,18 +248,28 @@ async function processPayment(planType) {
   }
 }
 
+// Helper function to get user name
+function getUserName() {
+  const userNameElement = document.getElementById('userName');
+  return userNameElement ? userNameElement.textContent : '';
+}
+
+// Helper function to get user email
+function getUserEmail() {
+  return localStorage.getItem('userEmail') || '';
+}
+
 // Verify payment with Firebase function
 async function verifyPayment(orderId, paymentId, signature) {
   try {
     showPaymentProgress('Verifying payment...');
     
-    // Get Firebase Functions from window.firebaseServices
-    const functions = window.firebaseServices.functions;
-    if (!functions) {
+    // Check if Firebase Functions are available
+    if (!window.firebaseServices || !window.firebaseServices.functions) {
       throw new Error('Verification service is not available at the moment. Please contact support.');
     }
     
-    const verifyPaymentFunc = functions.httpsCallable('verifyPayment');
+    const verifyPaymentFunc = window.firebaseServices.functions.httpsCallable('verifyPayment');
     const result = await verifyPaymentFunc({
       orderId: orderId,
       paymentId: paymentId,
@@ -147,7 +283,10 @@ async function verifyPayment(orderId, paymentId, signature) {
       
       // Update UI
       setTimeout(() => {
-        document.getElementById('upgradePlanModal').style.display = 'none';
+        const modal = document.getElementById('upgradePlanModal');
+        if (modal) {
+          modal.style.display = 'none';
+        }
         // Refresh user subscription data
         window.subscriptionManager.refreshSubscriptionData();
       }, 2000);
@@ -164,45 +303,66 @@ async function verifyPayment(orderId, paymentId, signature) {
 
 // Show payment progress message
 function showPaymentProgress(message) {
-  document.querySelector('.payment-success').style.display = 'none';
-  document.querySelector('.payment-error').style.display = 'none';
+  const successElement = document.querySelector('.payment-success');
+  const errorElement = document.querySelector('.payment-error');
+  
+  if (successElement) successElement.style.display = 'none';
+  if (errorElement) errorElement.style.display = 'none';
   
   const confirmBtn = document.getElementById('confirmUpgradeBtn');
-  confirmBtn.disabled = true;
-  confirmBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+  if (confirmBtn) {
+    confirmBtn.disabled = true;
+    confirmBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+  }
 }
 
 // Show payment success message
 function showPaymentSuccess(message) {
   const successEl = document.querySelector('.payment-success');
-  successEl.textContent = message;
-  successEl.style.display = 'block';
+  if (successEl) {
+    successEl.textContent = message;
+    successEl.style.display = 'block';
+  }
   
-  document.querySelector('.payment-error').style.display = 'none';
+  const errorEl = document.querySelector('.payment-error');
+  if (errorEl) {
+    errorEl.style.display = 'none';
+  }
   
   const confirmBtn = document.getElementById('confirmUpgradeBtn');
-  confirmBtn.disabled = false;
-  confirmBtn.innerHTML = 'Upgrade Complete!';
+  if (confirmBtn) {
+    confirmBtn.disabled = false;
+    confirmBtn.innerHTML = 'Upgrade Complete!';
+  }
 }
 
 // Show payment error message
 function showPaymentError(message) {
   const errorEl = document.querySelector('.payment-error');
-  errorEl.textContent = message;
-  errorEl.style.display = 'block';
+  if (errorEl) {
+    errorEl.textContent = message;
+    errorEl.style.display = 'block';
+  }
   
-  document.querySelector('.payment-success').style.display = 'none';
+  const successEl = document.querySelector('.payment-success');
+  if (successEl) {
+    successEl.style.display = 'none';
+  }
   
   const confirmBtn = document.getElementById('confirmUpgradeBtn');
-  confirmBtn.disabled = false;
-  confirmBtn.innerHTML = 'Try Again';
+  if (confirmBtn) {
+    confirmBtn.disabled = false;
+    confirmBtn.innerHTML = 'Try Again';
+  }
 }
 
 // Hide payment progress
 function hidePaymentProgress() {
   const confirmBtn = document.getElementById('confirmUpgradeBtn');
-  confirmBtn.disabled = false;
-  confirmBtn.innerHTML = 'Upgrade Now';
+  if (confirmBtn) {
+    confirmBtn.disabled = false;
+    confirmBtn.innerHTML = 'Upgrade Now';
+  }
 }
 
 // Initialize when document is ready
