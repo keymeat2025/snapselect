@@ -40,6 +40,91 @@ if (!window.firebaseServices) {
       functions
     };
     
+    // Create a global SUBSCRIPTION_PLANS object to be shared across files
+    window.SUBSCRIPTION_PLANS = {
+      lite: {
+        name: 'Lite',
+        price: 79,
+        priceType: 'per client',
+        storageLimit: 2, // GB
+        galleryLimit: 1,
+        photosPerGallery: 100,
+        maxClients: 1,
+        expiryDays: 7,
+        features: ['Basic uploads', 'Client selection', 'Basic sharing', 'Mobile-friendly Galleries', 'Client Favorites Feature']
+      },
+      mini: {
+        name: 'Mini',
+        price: 149,
+        priceType: 'per client',
+        storageLimit: 5, // GB
+        galleryLimit: 1,
+        photosPerGallery: 200,
+        maxClients: 1,
+        expiryDays: 14,
+        features: ['Basic uploads', 'Client selection', 'Basic sharing', 'Mobile-friendly Galleries', 'Client Favorites Feature', 'Basic Gallery Customization']
+      },
+      basic: {
+        name: 'Basic',
+        price: 399,
+        priceType: 'per client',
+        storageLimit: 15, // GB
+        galleryLimit: 1,
+        photosPerGallery: 500,
+        maxClients: 1,
+        expiryDays: 30,
+        features: ['Advanced uploads', 'Client selection', 'Password protection', 'Mobile-friendly Galleries', 'Client Favorites Feature', 'Custom branding', 'Basic Analytics']
+      },
+      pro: {
+        name: 'Pro',
+        price: 799,
+        priceType: 'per client',
+        storageLimit: 25, // GB
+        galleryLimit: 1,
+        photosPerGallery: 800,
+        maxClients: 1,
+        expiryDays: 45,
+        features: ['Advanced uploads', 'Client selection', 'Password protection', 'Mobile-friendly Galleries', 'Client Favorites Feature', 'Advanced Gallery Customization', 'Client Comments', 'Detailed Analytics']
+      },
+      premium: {
+        name: 'Premium',
+        price: 1499,
+        priceType: 'per client',
+        storageLimit: 50, // GB
+        galleryLimit: 1,
+        photosPerGallery: 1200,
+        maxClients: 1,
+        expiryDays: 60,
+        features: ['Advanced uploads', 'Client selection', 'Password protection', 'Mobile-friendly Galleries', 'Client Favorites Feature', 'Complete Gallery Customization', 'Client Comments', 'Detailed Analytics', 'Priority Support']
+      },
+      ultimate: {
+        name: 'Ultimate',
+        price: 2999,
+        priceType: 'per client',
+        storageLimit: 100, // GB
+        galleryLimit: 2,
+        photosPerGallery: 1250,
+        maxClients: 1,
+        expiryDays: 90,
+        features: ['Advanced uploads', 'Client selection', 'Password protection', 'Mobile-friendly Galleries', 'Client Favorites Feature', 'White-label Gallery Customization', 'Client Comments', 'Advanced Analytics', 'Priority Phone Support']
+      }
+    };
+    
+    // Storage quotas and upload limits for firebase-storage.js
+    window.STORAGE_QUOTAS = {
+      mini: 3,
+      basic: 8,
+      medium: 25,
+      mega: 100
+    };
+    
+    window.UPLOAD_LIMITS = {
+      mini: 150,
+      basic: 500,
+      medium: 1000,
+      mega: Infinity // Unlimited for Mega plan
+    };
+    
     console.log('Firebase initialized successfully');
   } catch (error) {
     console.error('Firebase initialization error:', error);
