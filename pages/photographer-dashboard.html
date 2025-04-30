@@ -733,6 +733,7 @@
             }
                                   */
             // Process payment
+        
             async function processPayment(planType) {
                 try {
                     // Show loading state
@@ -746,8 +747,13 @@
                     // Get plan details
                     const plan = SUBSCRIPTION_PLANS[planType];
                     
-                    // Call the Firebase function to create order
-                    const createPaymentOrder = window.firebaseServices.functions.httpsCallable('createPaymentOrder');
+                    // Set the region for Firebase functions
+                    const functions = firebase.app().functions("asia-south1");
+                    
+                    // Ensure the function is called with POST method
+                    const createPaymentOrder = functions.httpsCallable('createPaymentOrder');
+                    
+                    // Call the Firebase function with the correct method
                     const orderResponse = await createPaymentOrder({
                         planType: planType,
                         amount: plan.price
@@ -766,11 +772,38 @@
                         order_id: orderData.orderId,
                         handler: function(response) {
                             // After payment is complete, verify the payment
-                            verifyPayment(
-                                orderData.orderId,
-                                response.razorpay_payment_id,
-                                response.razorpay_signature
-                            );
+                            // Also use the same functions instance for verification
+                            const verifyPaymentFunction = functions.httpsCallable('verifyPayment');
+                            verifyPaymentFunction({
+                                orderId: orderData.orderId,
+                                paymentId: response.razorpay_payment_id,
+                                signature: response.razorpay_signature
+                            }).then(verifyResponse => {
+                                const responseData = verifyResponse.data;
+                                if (responseData.success) {
+                                    showPaymentSuccess(`Payment successful! Your subscription has been upgraded to ${selectedPlan}.`);
+                                    
+                                    // Update UI after a short delay
+                                    setTimeout(() => {
+                                        if (upgradePlanModal) upgradePlanModal.style.display = 'none';
+                                        
+                                        // Update current plan
+                                        if (currentPlanNameEl) currentPlanNameEl.textContent = SUBSCRIPTION_PLANS[selectedPlan].name;
+                                        
+                                        // Update plan badge
+                                        const planBadge = document.getElementById('planBadge');
+                                        if (planBadge) planBadge.textContent = SUBSCRIPTION_PLANS[selectedPlan].name;
+                                        
+                                        currentPlan = SUBSCRIPTION_PLANS[selectedPlan].name;
+                                    }, 2000);
+                                } else {
+                                    throw new Error('Payment verification failed');
+                                }
+                            }).catch(error => {
+                                console.error('Payment verification error:', error);
+                                showPaymentError(`Payment verification failed: ${error.message}`);
+                                setTimeout(resetPaymentButtons, 3000);
+                            });
                         },
                         prefill: {
                             name: document.getElementById('userName').textContent,
@@ -794,7 +827,6 @@
                     setTimeout(resetPaymentButtons, 3000);
                 }
             }
-
 
                         // Verify payment
             async function verifyPayment(orderId, paymentId, signature) {
