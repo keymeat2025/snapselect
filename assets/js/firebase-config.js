@@ -25,7 +25,7 @@ window.firebaseServices = {
 // Set the correct region for Firebase Functions
 window.firebaseServices.functions.useRegion(firebaseConfig.functionsRegion || 'asia-south1');
 
-/*
+
 // Initialize Firebase app if not already initialized
 if (!window.firebaseServices) {
   try {
@@ -145,4 +145,4 @@ if (!window.firebaseServices) {
     console.error('Firebase initialization error:', error);
   }
 }
-*/
+
