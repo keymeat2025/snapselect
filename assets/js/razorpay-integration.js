@@ -3,27 +3,9 @@
 // Global variables
 let selectedPlan = null;
 let currentPlan = null;
-let firebaseFunctions = null;
-
-// Firebase configuration - Replace with your actual Firebase project details
-const firebaseConfig = {
-  apiKey: "AIzaSyCAl15Yq8Y727PKknJNs0Q8UZbRRbcWkMo",
-  authDomain: "snapselect01-eb74c.firebaseapp.com",
-  projectId: "snapselect01-eb74c",
-  storageBucket: "snapselect01-eb74c.firebasestorage.app",
-  messagingSenderId: "749450852067",
-  appId: "1:749450852067:web:8b1887075d607b3e91f7d6",
-  measurementId: "G-J5XGE71VF6"
-};
 
 // Initialize Razorpay integration
 function initRazorpayIntegration() {
-  // Initialize Firebase app if not already initialized
-  initializeFirebase();
-  
-  // Initialize Firebase Functions with India region
-  initFirebaseFunctions();
-
   // Event listener for plan tabs
   document.querySelectorAll('.plan-tab').forEach(tab => {
     tab.addEventListener('click', function() {
@@ -34,7 +16,7 @@ function initRazorpayIntegration() {
       
       // Update selected plan
       selectedPlan = this.getAttribute('data-plan');
-      updatePlanDisplay(selectedPlan);
+      window.subscriptionManager.updatePlanDisplay(selectedPlan);
     });
   });
 
@@ -72,115 +54,26 @@ function initRazorpayIntegration() {
   });
 }
 
-// Initialize Firebase
-function initializeFirebase() {
-  try {
-    // Check if Firebase is already initialized
-    if (firebase.apps && firebase.apps.length > 0) {
-      console.log('Firebase already initialized');
-      return firebase.app();
-    }
-    
-    // Initialize Firebase
-    const app = firebase.initializeApp(firebaseConfig);
-    console.log('Firebase initialized successfully');
-    return app;
-  } catch (error) {
-    console.error('Error initializing Firebase:', error);
-    return null;
-  }
-}
-
-// Initialize Firebase Functions with India region
-function initFirebaseFunctions() {
-  try {
-    // Check if firebase services are available
-    if (window.firebaseServices && window.firebaseServices.functions) {
-      firebaseFunctions = window.firebaseServices.functions;
-      console.log('Firebase Functions initialized with India region');
-    } else {
-      console.error('Firebase Functions not available');
-      // Try to load Firebase Functions SDK if it's not available
-      loadFirebaseFunctionsSDK();
-    }
-  } catch (error) {
-    console.error('Error initializing Firebase Functions:', error);
-  }
-}
-
-// Load Firebase Functions SDK dynamically if not available
-function loadFirebaseFunctionsSDK() {
-  try {
-    // Check if the script is already loaded
-    if (document.querySelector('script[src*="firebase-functions"]')) {
-      return;
-    }
-    
-    // Create script element for Firebase Functions
-    const script = document.createElement('script');
-    
-    // Check which version of Firebase we're using
-    if (typeof firebase !== 'undefined' && firebase.SDK_VERSION) {
-      // Extract major version
-      const majorVersion = parseInt(firebase.SDK_VERSION.split('.')[0]);
-      
-      // Use appropriate script URL based on version
-      if (majorVersion >= 9) {
-        // For v9+ (modular API)
-        script.src = 'https://www.gstatic.com/firebasejs/9.6.0/firebase-functions-compat.js';
-      } else {
-        // For v8 and below (namespaced API)
-        script.src = 'https://www.gstatic.com/firebasejs/8.10.0/firebase-functions.js';
-      }
-    } else {
-      // Default to v8 if version cannot be determined
-      script.src = 'https://www.gstatic.com/firebasejs/8.10.0/firebase-functions.js';
-    }
-    
-    script.onload = function() {
-      console.log('Firebase Functions SDK loaded successfully');
-      // Try to initialize Firebase Functions again
-      setTimeout(initFirebaseFunctions, 1000);
-    };
-    script.onerror = function() {
-      console.error('Failed to load Firebase Functions SDK');
-    };
-    
-    // Append to head
-    document.head.appendChild(script);
-  } catch (error) {
-    console.error('Error loading Firebase Functions SDK:', error);
-  }
-}
-
 // Process payment through Razorpay
 async function processPayment(planType) {
   try {
     // Show loading state
     showPaymentProgress('Processing your request...');
     
-    // Get plan details
-    const planDetails = SUBSCRIPTION_PLANS[planType];
+    // Get plan details using global SUBSCRIPTION_PLANS object
+    const planDetails = window.SUBSCRIPTION_PLANS[planType];
     if (!planDetails) {
       throw new Error('Invalid plan selected');
     }
     
-    // Check if Firebase Functions is available
-    if (!firebaseFunctions) {
-      // Try to initialize Firebase Functions again
-      initFirebaseFunctions();
-      
-      // Wait a bit for initialization
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // If still not available, throw error
-      if (!firebaseFunctions) {
-        throw new Error('Payment service is not available at the moment. Please try again later.');
-      }
+    // Get Firebase Functions from window.firebaseServices
+    const functions = window.firebaseServices.functions;
+    if (!functions) {
+      throw new Error('Payment service is not available at the moment. Please try again later.');
     }
     
     // Create payment order via Firebase function
-    const createPaymentOrder = firebaseFunctions.httpsCallable('createPaymentOrder');
+    const createPaymentOrder = functions.httpsCallable('createPaymentOrder');
     const result = await createPaymentOrder({
       planType: planType,
       amount: planDetails.price,
@@ -234,21 +127,13 @@ async function verifyPayment(orderId, paymentId, signature) {
   try {
     showPaymentProgress('Verifying payment...');
     
-    // Check if Firebase Functions is available
-    if (!firebaseFunctions) {
-      // Try to initialize Firebase Functions again
-      initFirebaseFunctions();
-      
-      // Wait a bit for initialization
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // If still not available, throw error
-      if (!firebaseFunctions) {
-        throw new Error('Verification service is not available at the moment. Please contact support.');
-      }
+    // Get Firebase Functions from window.firebaseServices
+    const functions = window.firebaseServices.functions;
+    if (!functions) {
+      throw new Error('Verification service is not available at the moment. Please contact support.');
     }
     
-    const verifyPaymentFunc = firebaseFunctions.httpsCallable('verifyPayment');
+    const verifyPaymentFunc = functions.httpsCallable('verifyPayment');
     const result = await verifyPaymentFunc({
       orderId: orderId,
       paymentId: paymentId,
@@ -264,7 +149,7 @@ async function verifyPayment(orderId, paymentId, signature) {
       setTimeout(() => {
         document.getElementById('upgradePlanModal').style.display = 'none';
         // Refresh user subscription data
-        refreshSubscriptionData();
+        window.subscriptionManager.refreshSubscriptionData();
       }, 2000);
     } else {
       throw new Error('Payment verification failed');
@@ -275,53 +160,6 @@ async function verifyPayment(orderId, paymentId, signature) {
   } finally {
     setTimeout(hidePaymentProgress, 3000);
   }
-}
-
-// Refresh subscription data from Firestore
-async function refreshSubscriptionData() {
-  try {
-    // Get user ID
-    const user = firebase.auth().currentUser;
-    if (!user) return;
-    
-    // Get subscription data
-    const db = firebase.firestore();
-    const subscriptionDoc = await db.collection('subscriptions').doc(user.uid).get();
-    
-    if (subscriptionDoc.exists) {
-      const subData = subscriptionDoc.data();
-      
-      // Update UI with new plan data
-      document.getElementById('currentPlanName').textContent = subData.planType || 'Free';
-      document.getElementById('planBadge').textContent = SUBSCRIPTION_PLANS[subData.planType]?.name || 'Free';
-      
-      // Update storage usage
-      updateStorageUsage(subData.storageLimit || 1);
-      
-      // Update gallery usage
-      updateGalleryUsage(subData.galleryLimit || 3);
-      
-      // Format date in Indian format (DD/MM/YYYY)
-      if (subData.expiryDate) {
-        const expiryDate = subData.expiryDate.toDate ? subData.expiryDate.toDate() : new Date(subData.expiryDate);
-        const formattedDate = formatDateInIndianFormat(expiryDate);
-        document.getElementById('subscriptionExpiryDate').textContent = formattedDate;
-      }
-    }
-  } catch (error) {
-    console.error('Error refreshing subscription data:', error);
-  }
-}
-
-// Format date in Indian format (DD/MM/YYYY)
-function formatDateInIndianFormat(date) {
-  if (!date || !(date instanceof Date)) return '';
-  
-  const day = String(date.getDate()).padStart(2, '0');
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const year = date.getFullYear();
-  
-  return `${day}/${month}/${year}`;
 }
 
 // Show payment progress message
@@ -366,82 +204,6 @@ function hidePaymentProgress() {
   confirmBtn.disabled = false;
   confirmBtn.innerHTML = 'Upgrade Now';
 }
-
-// Update storage usage display
-function updateStorageUsage(limit) {
-  const storage = parseFloat(document.getElementById('storageUsed').textContent);
-  const usagePercent = Math.min((storage / (limit * 1000)) * 100, 100);
-  
-  document.getElementById('storageUsageBar').style.width = `${usagePercent}%`;
-  document.getElementById('storageUsageText').textContent = `${storage}/${limit} GB`;
-}
-
-// Update gallery usage display
-function updateGalleryUsage(limit) {
-  const galleries = parseInt(document.getElementById('activeGalleriesCount').textContent);
-  const usagePercent = Math.min((galleries / limit) * 100, 100);
-  
-  document.getElementById('galleryUsageBar').style.width = `${usagePercent}%`;
-  document.getElementById('galleryUsageText').textContent = `${galleries}/${limit}`;
-}
-
-// Subscription plans data (matching the server-side data)
-const SUBSCRIPTION_PLANS = {
-  lite: {
-    name: 'Lite',
-    price: 79,
-    priceType: 'per client',
-    storageLimit: 2, // GB
-    galleryLimit: 1,
-    photosPerGallery: 100,
-    features: ['Basic uploads', 'Client selection', 'Basic sharing', 'Mobile-friendly Galleries', 'Client Favorites Feature']
-  },
-  mini: {
-    name: 'Mini',
-    price: 149,
-    priceType: 'per client',
-    storageLimit: 5, // GB
-    galleryLimit: 1,
-    photosPerGallery: 200,
-    features: ['Basic uploads', 'Client selection', 'Basic sharing', 'Mobile-friendly Galleries', 'Client Favorites Feature', 'Basic Gallery Customization']
-  },
-  basic: {
-    name: 'Basic',
-    price: 399,
-    priceType: 'per client',
-    storageLimit: 15, // GB
-    galleryLimit: 1,
-    photosPerGallery: 500,
-    features: ['Advanced uploads', 'Client selection', 'Password protection', 'Mobile-friendly Galleries', 'Client Favorites Feature', 'Custom branding', 'Basic Analytics']
-  },
-  pro: {
-    name: 'Pro',
-    price: 799,
-    priceType: 'per client',
-    storageLimit: 25, // GB
-    galleryLimit: 1,
-    photosPerGallery: 800,
-    features: ['Advanced uploads', 'Client selection', 'Password protection', 'Mobile-friendly Galleries', 'Client Favorites Feature', 'Advanced Gallery Customization', 'Client Comments', 'Detailed Analytics']
-  },
-  premium: {
-    name: 'Premium',
-    price: 1499,
-    priceType: 'per client',
-    storageLimit: 50, // GB
-    galleryLimit: 1,
-    photosPerGallery: 1200,
-    features: ['Advanced uploads', 'Client selection', 'Password protection', 'Mobile-friendly Galleries', 'Client Favorites Feature', 'Complete Gallery Customization', 'Client Comments', 'Detailed Analytics', 'Priority Support']
-  },
-  ultimate: {
-    name: 'Ultimate',
-    price: 2999,
-    priceType: 'per client',
-    storageLimit: 100, // GB
-    galleryLimit: 2,
-    photosPerGallery: 1250,
-    features: ['Advanced uploads', 'Client selection', 'Password protection', 'Mobile-friendly Galleries', 'Client Favorites Feature', 'White-label Gallery Customization', 'Client Comments', 'Advanced Analytics', 'Priority Phone Support']
-  }
-};
 
 // Initialize when document is ready
 document.addEventListener('DOMContentLoaded', function() {
