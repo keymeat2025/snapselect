@@ -524,8 +524,17 @@
             
             // Add user name for testing
             const userNameElement = document.getElementById('userName');
+            const avatarPlaceholder = document.querySelector('.avatar-placeholder');
             if (userNameElement) {
-                userNameElement.textContent = 'Test User';
+                // Try to get user data from localStorage
+                const userData = JSON.parse(localStorage.getItem('userData') || '{}');
+                const userName = userData.name || localStorage.getItem('userName') || 'User';
+                userNameElement.textContent = userName;
+                
+                // Update avatar placeholder with first letter of user's name
+                if (avatarPlaceholder) {
+                    avatarPlaceholder.textContent = userName.charAt(0).toUpperCase();
+                }
             }
             
             // Toggle user dropdown menu
