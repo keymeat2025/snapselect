@@ -524,7 +524,7 @@
                 // Set the region to asia-south1 (India)
                 window.firebaseServices.functions = firebase.app().functions("asia-south1");
             }
-        });
+            });
             const authOverlay = document.getElementById('authCheckOverlay');
             if (window.firebaseServices && window.firebaseServices.auth) {
                 window.firebaseServices.auth.onAuthStateChanged(function(user) {
