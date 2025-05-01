@@ -699,10 +699,18 @@
             }
 
             // Process payment
+          
             async function processPayment(planType) {
                 try {
                     // Show loading state
                     showPaymentProgress('Processing your request...');
+                    
+                    // Check if user is authenticated
+                    if (!firebase.auth().currentUser) {
+                        showPaymentError("You must be logged in to make a payment");
+                        setTimeout(resetPaymentButtons, 3000);
+                        return;
+                    }
                     
                     // Check if plan type exists
                     if (!SUBSCRIPTION_PLANS || !SUBSCRIPTION_PLANS[planType]) {
@@ -712,32 +720,39 @@
                     // Get plan details
                     const plan = SUBSCRIPTION_PLANS[planType];
                     
-                    // Set the region for Firebase functions
+                    // IMPORTANT FIX: Use explicit region for functions - ensure only one method is used consistently
                     const functions = firebase.app().functions("asia-south1");
                     
-                    // Ensure the function is called with POST method
-                    const createPaymentOrder = functions.httpsCallable('createPaymentOrder');
+                    // Log for debugging
+                    console.log("Calling createPaymentOrder with:", { planType, amount: plan.price });
                     
-                    // Call the Firebase function with the correct method
+                    // Call the Firebase function
+                    const createPaymentOrder = functions.httpsCallable('createPaymentOrder');
                     const orderResponse = await createPaymentOrder({
                         planType: planType,
                         amount: plan.price
                     });
                     
+                    // Log the response for debugging
+                    console.log("CreatePaymentOrder response:", orderResponse.data);
+                    
                     // Get order data from response
                     const orderData = orderResponse.data;
                     
+                    if (!orderData || !orderData.orderId) {
+                        throw new Error('Invalid response from payment order creation');
+                    }
+                    
                     // Configure Razorpay options
                     const options = {
-                        key: 'rzp_test_EF3W5mVXB1Q3li', // Replace with your key
-                        amount: orderData.amount * 100, // Razorpay expects amount in paise
-                        currency: orderData.currency,
+                        key: 'rzp_test_EF3W5mVXB1Q3li',
+                        amount: orderData.amount * 100, // Make sure this is in paise
+                        currency: orderData.currency || 'INR',
                         name: 'SnapSelect',
                         description: `${plan.name} Plan Subscription`,
                         order_id: orderData.orderId,
                         handler: function(response) {
                             // After payment is complete, verify the payment
-                            // Also use the same functions instance for verification
                             const verifyPaymentFunction = functions.httpsCallable('verifyPayment');
                             verifyPaymentFunction({
                                 orderId: orderData.orderId,
@@ -776,6 +791,11 @@
                         },
                         theme: {
                             color: '#4A90E2'
+                        },
+                        modal: {
+                            ondismiss: function() {
+                                resetPaymentButtons();
+                            }
                         }
                     };
                     
@@ -783,11 +803,12 @@
                     const razorpay = new Razorpay(options);
                     razorpay.open();
                     
-                    // Reset buttons after opening Razorpay checkout
-                    resetPaymentButtons();
-                    
                 } catch (error) {
                     console.error('Payment process error:', error);
+                    // Log the full error details for debugging
+                    if (error.code) console.error('Error code:', error.code);
+                    if (error.details) console.error('Error details:', error.details);
+                    
                     showPaymentError(`Payment failed: ${error.message}`);
                     setTimeout(resetPaymentButtons, 3000);
                 }
