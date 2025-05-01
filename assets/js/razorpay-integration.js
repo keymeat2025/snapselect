@@ -175,6 +175,7 @@ function initRazorpayIntegration() {
 }
 
 // Process payment through Razorpay
+
 async function processPayment(planType) {
   try {
     // Show loading state
@@ -188,18 +189,15 @@ async function processPayment(planType) {
     // Get plan details using global SUBSCRIPTION_PLANS object
     const planDetails = window.SUBSCRIPTION_PLANS[planType];
     
-    // Check if Firebase Functions are available
-    if (!window.firebaseServices || !window.firebaseServices.functions) {
-      throw new Error('Payment service is not available at the moment. Please try again later.');
-    }
+    // IMPORTANT FIX: Use explicit region for functions
+    const functions = firebase.app().functions("asia-south1");
     
     // Create payment order via Firebase function
-    const createPaymentOrder = window.firebaseServices.functions.httpsCallable('createPaymentOrder');
+    const createPaymentOrder = functions.httpsCallable('createPaymentOrder');
     const result = await createPaymentOrder({
       planType: planType,
       amount: planDetails.price,
-      currency: 'INR', // Explicitly set currency to INR for India
-      timezone: 'Asia/Kolkata' // Set timezone for India
+      currency: 'INR' // Explicitly set currency
     });
     
     if (!result.data || !result.data.orderId) {
@@ -211,17 +209,16 @@ async function processPayment(planType) {
       throw new Error('Razorpay SDK not loaded. Please refresh the page and try again.');
     }
     
-    // Initialize Razorpay checkout
+    // Rest of your function remains the same
     const options = {
-      key: 'rzp_test_EF3W5mVXB1Q3li', // Replace with your Razorpay key
-      amount: result.data.amount * 100, // Amount is in paisa
+      key: 'rzp_test_EF3W5mVXB1Q3li',
+      amount: result.data.amount * 100,
       currency: result.data.currency || 'INR',
       name: 'SnapSelect',
       description: `Upgrade to ${planDetails.name} Plan`,
       image: '../assets/images/snapselect-logo.png',
       order_id: result.data.orderId,
       handler: function(response) {
-        // Handle successful payment
         verifyPayment(response.razorpay_order_id, response.razorpay_payment_id, response.razorpay_signature);
       },
       prefill: {
