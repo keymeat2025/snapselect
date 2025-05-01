@@ -514,17 +514,14 @@
         let selectedPlan = null;
         let currentPlan = 'Free';
 
-        // Simple mock to prevent authentication overlay from showing
-       // document.addEventListener('DOMContentLoaded', function() {
-            // Hide auth overlay since we're just testing Razorpay
-     
+        // Main initialization
         document.addEventListener('DOMContentLoaded', function() {
             // If Firebase services are already initialized via your config script
             if (window.firebaseServices && window.firebaseServices.functions) {
                 // Set the region to asia-south1 (India)
                 window.firebaseServices.functions = firebase.app().functions("asia-south1");
             }
-            });
+            
             const authOverlay = document.getElementById('authCheckOverlay');
             if (window.firebaseServices && window.firebaseServices.auth) {
                 window.firebaseServices.auth.onAuthStateChanged(function(user) {
@@ -545,8 +542,7 @@
                 }
             }
             
-        
-           // Handle Firebase auth state changes
+            // Handle Firebase auth state changes
             const userNameElement = document.getElementById('userName');
             const avatarPlaceholder = document.querySelector('.avatar-placeholder');
             
@@ -703,43 +699,6 @@
             }
 
             // Process payment
-            /*
-            async function processPayment(planType) {
-                try {
-                    // Show loading state
-                    showPaymentProgress('Processing your request...');
-                    
-                    // Check if plan type exists
-                    if (!SUBSCRIPTION_PLANS || !SUBSCRIPTION_PLANS[planType]) {
-                        throw new Error(`Invalid plan selected: ${planType}`);
-                    }
-                    
-                    // Get plan details
-                    const plan = SUBSCRIPTION_PLANS[planType];
-                    
-                    // Create mock order ID
-                    const mockOrderId = 'order_mock_' + Date.now();
-                    
-                    // Show mock Razorpay modal
-                    if (razorpayPlanNameEl) razorpayPlanNameEl.textContent = `${plan.name} Plan`;
-                    if (razorpayAmountEl) razorpayAmountEl.textContent = `₹${plan.price}`;
-                    if (razorpayOrderIdEl) razorpayOrderIdEl.textContent = mockOrderId;
-                    
-                    // Display the modal after a short delay to simulate network request
-                    setTimeout(() => {
-                        if (mockRazorpayModal) mockRazorpayModal.style.display = 'flex';
-                        resetPaymentButtons();
-                    }, 1000);
-                    
-                } catch (error) {
-                    console.error('Payment process error:', error);
-                    showPaymentError(`Payment failed: ${error.message}`);
-                    setTimeout(resetPaymentButtons, 3000);
-                }
-            }
-                                  */
-            // Process payment
-        
             async function processPayment(planType) {
                 try {
                     // Show loading state
@@ -834,7 +793,7 @@
                 }
             }
 
-                        // Verify payment
+            // Verify payment
             async function verifyPayment(orderId, paymentId, signature) {
                 try {
                     showPaymentProgress('Verifying payment...');
@@ -934,14 +893,6 @@
                     }
                 });
             }
-
-            // Razorpay modal cancel button
-            //if (razorpayCancelBtn) {
-            //    razorpayCancelBtn.addEventListener('click', function() {
-            //        mockRazorpayModal.style.display = 'none';
-            //        resetPaymentButtons();
-            //    });
-            //}
 
             // Razorpay modal pay button
             if (razorpayPayBtn) {
