@@ -248,6 +248,7 @@ function updatePlanDisplay(planType) {
 /**
  * Process payment through Razorpay
  */
+
 async function processPayment(planType) {
   try {
     // Show loading state
@@ -259,8 +260,11 @@ async function processPayment(planType) {
       throw new Error('Invalid plan selected');
     }
     
+    // IMPORTANT FIX: Use explicit region for functions
+    const functions = firebase.app().functions("asia-south1");
+    
     // Create payment order via Firebase function
-    const createPaymentOrder = firebase.functions().httpsCallable('createPaymentOrder');
+    const createPaymentOrder = functions.httpsCallable('createPaymentOrder');
     const result = await createPaymentOrder({
       planType: planType,
       amount: planDetails.price
@@ -269,6 +273,8 @@ async function processPayment(planType) {
     if (!result.data || !result.data.orderId) {
       throw new Error('Failed to create payment order');
     }
+    
+    // Rest of the function remains the same...
     
     // Initialize Razorpay checkout
     const options = {
