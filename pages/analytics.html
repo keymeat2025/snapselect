@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Test Payment Function</title>
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-functions-compat.js"></script>
+</head>
+<body>
+  <h1>Test Payment Function</h1>
+  <button id="testBtn">Test Function</button>
+  <div id="result" style="margin-top: 20px; padding: 10px; background: #f0f0f0;"></div>
+
+  <script>
+    // Initialize Firebase
+    firebase.initializeApp({
+      apiKey: "AIzaSyCAl15Yq8Y727PKknJNs0Q8UZbRRbcWkMo",
+      authDomain: "snapselect01-eb74c.firebaseapp.com",
+      projectId: "snapselect01-eb74c",
+      storageBucket: "snapselect01-eb74c.firebasestorage.app",
+      messagingSenderId: "749450852067",
+      appId: "1:749450852067:web:8b1887075d607b3e91f7d6"
+    });
+
+    // Sign in anonymously for testing
+    firebase.auth().signInAnonymously()
+      .then(() => {
+        document.getElementById('result').textContent = 'Signed in anonymously for testing';
+      })
+      .catch((error) => {
+        document.getElementById('result').textContent = 'Error signing in: ' + error.message;
+      });
+
+    // Test function
+    document.getElementById('testBtn').addEventListener('click', async () => {
+      try {
+        document.getElementById('result').textContent = 'Testing...';
+        
+        // Set region
+        const functions = firebase.app().functions("asia-south1");
+        
+        // Call function
+        const createPaymentOrder = functions.httpsCallable('createPaymentOrder');
+        const result = await createPaymentOrder({
+          planType: 'basic',
+          amount: 399
+        });
+        
+        document.getElementById('result').textContent = 'Success! Result: ' + JSON.stringify(result.data);
+      } catch (error) {
+        document.getElementById('result').textContent = 'Error: ' + error.message;
+        console.error(error);
+      }
+    });
+  </script>
+</body>
+</html>
