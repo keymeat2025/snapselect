@@ -30,6 +30,11 @@ if (!window.firebaseServices) {
       if (typeof functions.useRegion === 'function') {
         functions = functions.useRegion('asia-south1');
       }
+            // Set the region for Firebase functions
+      if (typeof firebase.functions === 'function') {
+        functions = firebase.app().functions("asia-south1");
+        console.log("Firebase Functions initialized with region asia-south1");
+      }
     }
     
     // Make Firebase services available to other scripts
