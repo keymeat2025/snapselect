@@ -765,7 +765,10 @@ window.subscriptionManager = {
 // Export subscription plans
 window.SUBSCRIPTION_PLANS = SUBSCRIPTION_PLANS;
 
+// Export subscription plans
+window.SUBSCRIPTION_PLANS = SUBSCRIPTION_PLANS;
+
 // Example of a proper React component (for reference only)
 // This is what you would use in a React component file:
 //import React, { useState, useEffect } from 'react';
-//import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts
+//import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
