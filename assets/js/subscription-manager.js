@@ -46,16 +46,43 @@ const SUBSCRIPTION_PLANS = {
 let selectedPlan = null, selectedClient = null, currentUser = null, userClients = [], activePlans = [];
 
 // Initialize subscription manager
+
+
 function initSubscriptionManager() {
-  firebase.auth().onAuthStateChanged(user => {
-    if (user) {
-      currentUser = user;
-      loadUserData();
-      loadClientData();
-      loadActivePlans();
-    }
-  });
-  setupEventListeners();
+  try {
+    // Show loading overlay at the start
+    showLoadingOverlay('Initializing...');
+    
+    firebase.auth().onAuthStateChanged(user => {
+      if (user) {
+        currentUser = user;
+        
+        // Use Promise.all to handle all data loading in parallel
+        Promise.all([
+          loadUserData(),
+          loadClientData(),
+          loadActivePlans()
+        ])
+        .then(() => {
+          // Hide loading overlay when all data is loaded
+          hideLoadingOverlay();
+        })
+        .catch(error => {
+          console.error('Error loading data:', error);
+          showErrorMessage('Failed to load your data. Please refresh the page.');
+          hideLoadingOverlay();
+        });
+      } else {
+        // Hide loading overlay if user is not logged in
+        hideLoadingOverlay();
+      }
+    });
+    
+    setupEventListeners();
+  } catch (error) {
+    console.error('Error initializing subscription manager:', error);
+    hideLoadingOverlay(); // Make sure loading overlay is hidden even if there's an error
+  }
 }
 
 // Set up event listeners
@@ -111,7 +138,8 @@ function setupEventListeners() {
   });
 }
 
-// Load user data from Firestore
+
+// Modified loadUserData function to return a Promise
 async function loadUserData() {
   try {
     if (!currentUser) return;
@@ -134,10 +162,12 @@ async function loadUserData() {
     updateUserInfo(userDoc.data());
   } catch (error) {
     console.error('Error loading user data:', error);
+    throw error; // Re-throw to be caught by the Promise.all
   }
 }
 
-// Load client data
+
+// Modified loadClientData function to return a Promise
 async function loadClientData() {
   try {
     if (!currentUser) return;
@@ -155,10 +185,11 @@ async function loadClientData() {
     updateClientList();
   } catch (error) {
     console.error('Error loading client data:', error);
+    throw error; // Re-throw to be caught by the Promise.all
   }
 }
 
-// Load active plans
+// Modified loadActivePlans function to return a Promise
 async function loadActivePlans() {
   try {
     if (!currentUser) return;
@@ -177,6 +208,7 @@ async function loadActivePlans() {
     updateStorageUsage();
   } catch (error) {
     console.error('Error loading active plans:', error);
+    throw error; // Re-throw to be caught by the Promise.all
   }
 }
 
@@ -653,6 +685,8 @@ async function cancelClientPlan(planId, clientId) {
 }
 
 // Loading and notification utilities
+
+// Improved loading overlay with timeout protection
 function showLoadingOverlay(message) {
   const loadingOverlay = document.getElementById('loadingOverlay');
   if (!loadingOverlay) return;
@@ -661,11 +695,22 @@ function showLoadingOverlay(message) {
   if (loadingText) loadingText.textContent = message || 'Loading...';
   
   loadingOverlay.style.display = 'flex';
+  
+  // Add safety timeout to hide loading overlay after 10 seconds
+  // This prevents the UI from being stuck in loading state forever
+  clearTimeout(window.loadingTimeout);
+  window.loadingTimeout = setTimeout(() => {
+    hideLoadingOverlay();
+    showErrorMessage('Operation timed out. Please try again.');
+  }, 10000);
 }
 
 function hideLoadingOverlay() {
   const loadingOverlay = document.getElementById('loadingOverlay');
   if (loadingOverlay) loadingOverlay.style.display = 'none';
+  
+  // Clear the safety timeout
+  clearTimeout(window.loadingTimeout);
 }
 
 function showSuccessMessage(message) {
@@ -700,61 +745,84 @@ function showErrorMessage(message) {
   }, 3000);
 }
 
-
+// Add a function to refresh all data
+function refreshAllData() {
+  showLoadingOverlay('Refreshing data...');
+  
+  Promise.all([
+    loadUserData(),
+    loadClientData(),
+    loadActivePlans()
+  ])
+  .then(() => {
+    hideLoadingOverlay();
+  })
+  .catch(error => {
+    console.error('Error refreshing data:', error);
+    showErrorMessage('Failed to refresh your data.');
+    hideLoadingOverlay();
+  });
+}
 /**
  * Update storage usage display
  */
+
 function updateStorageUsage() {
-  // Calculate total storage used across all active plans
-  const totalStorage = activePlans.reduce((total, plan) => {
-    return total + (plan.storageUsed || 0);
-  }, 0);
-  
-  // Calculate total storage limit across all active plans
-  const totalStorageLimit = activePlans.reduce((total, plan) => {
-    return total + (SUBSCRIPTION_PLANS[plan.planType]?.storageLimit || 1);
-  }, 1); // Default to 1GB if no active plans
-  
-  // Convert to GB for display
-  const storageGB = (totalStorage / 1024).toFixed(2);
-  
-  // Update UI
-  const storageEl = document.getElementById('storageUsed');
-  if (storageEl) {
-    storageEl.textContent = `${storageGB} GB`;
-  }
-  
-  // Calculate percentage
-  const usagePercent = Math.min((totalStorage / (totalStorageLimit * 1024)) * 100, 100);
-  
-  // Update UI
-  const storageBarEl = document.getElementById('storageUsageBar');
-  if (storageBarEl) {
-    storageBarEl.style.width = `${usagePercent}%`;
-  }
-  
-  const storageTextEl = document.getElementById('storageUsageText');
-  if (storageTextEl) {
-    storageTextEl.textContent = `${storageGB}/${totalStorageLimit} GB`;
-  }
-  
-  // Add warning class if usage is high
-  if (storageBarEl) {
-    if (usagePercent > 90) {
-      storageBarEl.classList.add('high-usage');
-    } else {
-      storageBarEl.classList.remove('high-usage');
+  try {
+    // Calculate total storage used across all active plans
+    const totalStorage = activePlans.reduce((total, plan) => {
+      return total + (plan.storageUsed || 0);
+    }, 0);
+    
+    // Calculate total storage limit across all active plans
+    const totalStorageLimit = activePlans.reduce((total, plan) => {
+      return total + (SUBSCRIPTION_PLANS[plan.planType]?.storageLimit || 1);
+    }, 1); // Default to 1GB if no active plans
+    
+    // Convert to GB for display
+    const storageGB = (totalStorage / 1024).toFixed(2);
+    
+    // Update UI
+    const storageEl = document.getElementById('storageUsed');
+    if (storageEl) {
+      storageEl.textContent = `${storageGB} GB`;
     }
+    
+    // Calculate percentage
+    const usagePercent = Math.min((totalStorage / (totalStorageLimit * 1024)) * 100, 100);
+    
+    // Update UI
+    const storageBarEl = document.getElementById('storageUsageBar');
+    if (storageBarEl) {
+      storageBarEl.style.width = `${usagePercent}%`;
+    }
+    
+    const storageTextEl = document.getElementById('storageUsageText');
+    if (storageTextEl) {
+      storageTextEl.textContent = `${storageGB}/${totalStorageLimit} GB`;
+    }
+    
+    // Add warning class if usage is high
+    if (storageBarEl) {
+      if (usagePercent > 90) {
+        storageBarEl.classList.add('high-usage');
+      } else {
+        storageBarEl.classList.remove('high-usage');
+      }
+    }
+  } catch (error) {
+    console.error('Error updating storage usage:', error);
+    // Don't throw error here to prevent breaking the UI
   }
 }
-
 // Initialize on document ready
 document.addEventListener('DOMContentLoaded', initSubscriptionManager);
 
 // Export global functions
+
 window.subscriptionManager = {
   updatePlanDisplay,
-  refreshSubscription: () => { loadClientData(); loadActivePlans(); },
+  refreshSubscription: refreshAllData,
   getPlanDetails: (planType) => SUBSCRIPTION_PLANS[planType] || null,
   showUpgradeModal,
   hideUpgradeModal,
@@ -764,7 +832,3 @@ window.subscriptionManager = {
 
 // Export subscription plans
 window.SUBSCRIPTION_PLANS = SUBSCRIPTION_PLANS;
-
-// Export subscription plans
-window.SUBSCRIPTION_PLANS = SUBSCRIPTION_PLANS;
-
