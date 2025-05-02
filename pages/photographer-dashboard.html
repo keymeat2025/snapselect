@@ -1,4 +1,4 @@
-<!DOCTYPE html photographer-dashboard.html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -13,90 +13,9 @@
     <link rel="stylesheet" href="../assets/css/animations.css">
     <link rel="stylesheet" href="../assets/css/features.css">
     <link rel="stylesheet" href="../assets/css/payment.css">
-
-    <!-- Add Chart.js for analytics charts -->
-    <!-- Not needed for basic Razorpay mock implementation -->
-    <!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script> -->
     
-    <!-- Add jsPDF for PDF exports -->
-    <!-- Not needed for basic Razorpay mock implementation -->
-    <!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script> -->
-    
-    <!-- Remove real Razorpay script since we're using a mock -->
+    <!-- Razorpay Checkout JS -->
     <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
-    <!-- <script src="../assets/js/razorpay-mock.js"></script> -->
-    
-    <style>
-        /* Mock Razorpay modal styles */
-        .mock-razorpay-modal {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.6);
-            display: none;
-            justify-content: center;
-            align-items: center;
-            z-index: 9999;
-        }
-        .mock-razorpay-content {
-            background: white;
-            padding: 20px;
-            border-radius: 8px;
-            max-width: 400px;
-            width: 100%;
-            box-shadow: 0 0 20px rgba(0,0,0,0.3);
-        }
-        .mock-razorpay-header {
-            margin-bottom: 20px;
-            border-bottom: 1px solid #e0e0e0;
-            padding-bottom: 10px;
-        }
-        .mock-razorpay-details {
-            margin-bottom: 20px;
-        }
-        .mock-razorpay-details p {
-            margin: 10px 0;
-        }
-        .mock-razorpay-actions {
-            display: flex;
-            justify-content: space-between;
-        }
-        
-        /* Missing image replacement */
-        .payment-logo-icon {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            width: 50px;
-            height: 50px;
-            background-color: #f1f1f1;
-            border-radius: 4px;
-            font-size: 24px;
-            color: #4A90E2;
-        }
-        
-        /* Avatar placeholder */
-        .avatar-placeholder {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            background-color: #4A90E2;
-            color: white;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: bold;
-        }
-        
-        /* Empty gallery icon replacement */
-        .empty-gallery-icon {
-            font-size: 64px;
-            color: #ccc;
-            margin-bottom: 15px;
-        }
-    </style>
 </head>
 <body>
     <!-- Authentication Check Overlay (shown if not authenticated) -->
@@ -109,12 +28,11 @@
         </div>
     </div>
 
-    <!-- Navigation Header (Same as index but with active state for dashboard) -->
+    <!-- Navigation Header -->
     <header>
         <div class="container">
             <nav>
                 <a href="../index.html" class="logo">
-                    <!-- Replace missing image with text or icon -->
                     <div class="logo-text">SnapSelect</div>
                 </a>
                 <ul class="nav-links">
@@ -144,7 +62,6 @@
                     <div class="auth-user" id="userNav">
                         <div class="user-menu">
                             <button class="user-menu-btn" id="userMenuBtn">
-                                <!-- Replace missing avatar with icon -->
                                 <div class="avatar-placeholder">U</div>
                                 <span class="user-name" id="userName">User</span>
                                 <i class="fas fa-chevron-down"></i>
@@ -218,14 +135,14 @@
                             <div class="usage-item">
                                 <span class="usage-label">Storage:</span>
                                 <div class="usage-bar">
-                                    <div class="usage-progress" id="storageUsageBar" style="width: 0%"></div>
+                                    <div class="usage-progress" id="storageUsageBar"></div>
                                 </div>
                                 <span class="usage-text" id="storageUsageText">0/1 GB</span>
                             </div>
                             <div class="usage-item">
                                 <span class="usage-label">Galleries:</span>
                                 <div class="usage-bar">
-                                    <div class="usage-progress" id="galleryUsageBar" style="width: 0%"></div>
+                                    <div class="usage-progress" id="galleryUsageBar"></div>
                                 </div>
                                 <span class="usage-text" id="galleryUsageText">0/3</span>
                             </div>
@@ -274,7 +191,6 @@
 
                 <!-- Empty State (shown when no galleries exist) -->
                 <div id="emptyGalleryState" class="empty-state">
-                    <!-- Replace missing image with icon -->
                     <i class="fas fa-images empty-gallery-icon"></i>
                     <h3>No Galleries Yet</h3>
                     <p>Create your first client gallery to get started</p>
@@ -287,9 +203,8 @@
                     <!-- Example Gallery Card (will be generated via JS) -->
                     <div class="gallery-card sample-card">
                         <div class="gallery-thumbnail">
-                            <!-- Replace missing image with color block -->
-                            <div style="height: 150px; background-color: #e0e0e0; display: flex; align-items: center; justify-content: center;">
-                                <i class="fas fa-image" style="font-size: 32px; color: #aaa;"></i>
+                            <div class="gallery-image-placeholder">
+                                <i class="fas fa-image"></i>
                             </div>
                             <div class="gallery-status pending">Selection in Progress</div>
                         </div>
@@ -327,7 +242,7 @@
                 </div>
 
                 <!-- Gallery List View (hidden by default) -->
-                <div id="galleryList" class="gallery-list" style="display: none;">
+                <div id="galleryList" class="gallery-list">
                     <table class="gallery-table">
                         <thead>
                             <tr>
@@ -382,7 +297,6 @@
                             <div class="plan-tabs">
                                 <button class="plan-tab" data-plan="basic">Basic</button>
                                 <button class="plan-tab" data-plan="pro">Pro</button>
-                                <button class="plan-tab" data-plan="premium">Premium</button>
                             </div>
                             
                             <div id="planDetailsSection" class="current-vs-selected">
@@ -414,8 +328,8 @@
                             
                             <div class="payment-section">
                                 <!-- Payment success/error messages will be inserted here -->
-                                <div class="payment-success alert-success" style="display: none;"></div>
-                                <div class="payment-error alert-danger" style="display: none;"></div>
+                                <div class="payment-success alert-success"></div>
+                                <div class="payment-error alert-danger"></div>
                                 
                                 <h3>Complete Your Upgrade</h3>
                                 <p class="payment-info">Click the button below to proceed securely with Razorpay.</p>
@@ -423,7 +337,6 @@
                                 <form id="paymentForm">
                                     <div class="payment-options">
                                         <div class="payment-option">
-                                            <!-- Replace missing image with icon -->
                                             <div class="payment-logo-icon">
                                                 <i class="fas fa-credit-card"></i>
                                             </div>
@@ -450,25 +363,6 @@
                     </div>
                 </div>
             </div>
-            
-            <!-- Mock Razorpay Modal - Add this section 
-            <div id="mockRazorpayModal" class="mock-razorpay-modal">
-                <div class="mock-razorpay-content">
-                    <div class="mock-razorpay-header">
-                        <h3>Razorpay Checkout</h3>
-                    </div>
-                    <div class="mock-razorpay-details">
-                        <p><strong>Merchant:</strong> SnapSelect</p>
-                        <p><strong>Plan:</strong> <span id="razorpayPlanName">Basic Plan</span></p>
-                        <p><strong>Amount:</strong> <span id="razorpayAmount">₹499</span></p>
-                        <p><strong>Order ID:</strong> <span id="razorpayOrderId">order_mock_123456</span></p>
-                    </div>
-                    <div class="mock-razorpay-actions">
-                        <button id="razorpayCancelBtn" class="btn btn-secondary">Cancel</button>
-                        <button id="razorpayPayBtn" class="btn btn-primary">Pay Now</button>
-                    </div>
-                </div>
-            </div> -->
         </div>
     </main>
 
@@ -486,469 +380,17 @@
         </div>
     </footer>
 
-    <!-- Embedded Mock Razorpay Implementation -->
-    <script>
-        // Store email in localStorage for Razorpay mock
-        localStorage.setItem('userEmail', 'test.user@example.com');
-        
-        // Subscription plans
-        const SUBSCRIPTION_PLANS = {
-            basic: {
-                name: 'Basic',
-                price: 499,
-                features: ['15 GB Storage', '10 Galleries', '500 Photos per gallery', '30-day client selection window', 'Advanced uploads', 'Password protection']
-            },
-            pro: {
-                name: 'Pro',
-                price: 999,
-                features: ['50 GB Storage', 'Unlimited Galleries', '1000 Photos per gallery', '60-day client selection window', 'Advanced uploads', 'Password protection', 'Priority support']
-            },
-            premium: {
-                name: 'Premium',
-                price: 1999,
-                features: ['100 GB Storage', 'Unlimited Galleries', 'Unlimited Photos', '90-day client selection window', 'Advanced uploads', 'Password protection', 'Priority support', 'Advanced analytics']
-            }
-        };
-
-        // Global variables
-        let selectedPlan = null;
-        let currentPlan = 'Free';
-
-        // Main initialization
-        document.addEventListener('DOMContentLoaded', function() {
-            // If Firebase services are already initialized via your config script
-            if (window.firebaseServices && window.firebaseServices.functions) {
-                // Set the region to asia-south1 (India)
-                window.firebaseServices.functions = firebase.app().functions("asia-south1");
-            }
-            
-            const authOverlay = document.getElementById('authCheckOverlay');
-            if (window.firebaseServices && window.firebaseServices.auth) {
-                window.firebaseServices.auth.onAuthStateChanged(function(user) {
-                    if (authOverlay) {
-                        if (user) {
-                            // User is signed in, hide overlay
-                            authOverlay.style.display = 'none';
-                        } else {
-                            // Not signed in, show overlay
-                            authOverlay.style.display = 'flex';
-                        }
-                    }
-                });
-            } else {
-                // Firebase not available, show overlay
-                if (authOverlay) {
-                    authOverlay.style.display = 'flex';
-                }
-            }
-            
-            // Handle Firebase auth state changes
-            const userNameElement = document.getElementById('userName');
-            const avatarPlaceholder = document.querySelector('.avatar-placeholder');
-            
-            // Check if Firebase is available
-            if (window.firebaseServices && window.firebaseServices.auth) {
-                // Listen for auth state changes
-                window.firebaseServices.auth.onAuthStateChanged(function(user) {
-                    if (user) {
-                        // User is signed in
-                        // Show user info in header
-                        if (userNameElement) {
-                            const displayName = user.displayName || user.email || 'User';
-                            userNameElement.textContent = displayName;
-                            
-                            // Update avatar placeholder with first letter
-                            if (avatarPlaceholder) {
-                                avatarPlaceholder.textContent = displayName.charAt(0).toUpperCase();
-                            }
-                        }
-                    } else {
-                        // User is signed out
-                        if (userNameElement) {
-                            userNameElement.textContent = 'User';
-                            if (avatarPlaceholder) {
-                                avatarPlaceholder.textContent = 'U';
-                            }
-                        }
-                    }
-                });
-            }
-            
-            // Toggle user dropdown menu
-            const userMenuBtn = document.getElementById('userMenuBtn');
-            const userDropdown = document.getElementById('userDropdown');
-            
-            if (userMenuBtn && userDropdown) {
-                userMenuBtn.addEventListener('click', function() {
-                    userDropdown.classList.toggle('show');
-                });
-            }
-            
-            // Toggle notifications dropdown
-            const notificationBtn = document.getElementById('notificationBtn');
-            const notificationDropdown = document.getElementById('notificationDropdown');
-            
-            if (notificationBtn && notificationDropdown) {
-                notificationBtn.addEventListener('click', function() {
-                    notificationDropdown.classList.toggle('show');
-                });
-            }
-            
-            // Close dropdowns when clicking outside
-            window.addEventListener('click', function(event) {
-                if (userDropdown && userMenuBtn && !userMenuBtn.contains(event.target)) {
-                    userDropdown.classList.remove('show');
-                }
-                
-                if (notificationDropdown && notificationBtn && !notificationBtn.contains(event.target)) {
-                    notificationDropdown.classList.remove('show');
-                }
-            });
-            
-            // DOM elements for Razorpay
-            const upgradePlanBtn = document.getElementById('upgradePlanBtn');
-            const upgradePlanModal = document.getElementById('upgradePlanModal');
-            const closeModalBtn = document.querySelector('#upgradePlanModal .close-modal');
-            const planTabs = document.querySelectorAll('.plan-tab');
-            const selectedPlanNameEl = document.getElementById('selectedPlanName');
-            const selectedPlanPriceEl = document.getElementById('selectedPlanPrice');
-            const planFeaturesListEl = document.getElementById('planFeaturesList');
-            const confirmUpgradeBtn = document.getElementById('confirmUpgradeBtn');
-            const cancelUpgradeBtn = document.getElementById('cancelUpgradeBtn');
-            const currentPlanNameEl = document.getElementById('currentPlanName');
-            const mockRazorpayModal = document.getElementById('mockRazorpayModal');
-            const razorpayPlanNameEl = document.getElementById('razorpayPlanName');
-            const razorpayAmountEl = document.getElementById('razorpayAmount');
-            const razorpayOrderIdEl = document.getElementById('razorpayOrderId');
-            const razorpayCancelBtn = document.getElementById('razorpayCancelBtn');
-            const razorpayPayBtn = document.getElementById('razorpayPayBtn');
-            const paymentSuccessEl = document.querySelector('.payment-success');
-            const paymentErrorEl = document.querySelector('.payment-error');
-            
-            // Update plan display
-            function updatePlanDisplay(planType) {
-                const plan = SUBSCRIPTION_PLANS[planType];
-                if (!plan) return;
-                
-                // Update plan name and price
-                if (selectedPlanNameEl) selectedPlanNameEl.textContent = plan.name;
-                if (selectedPlanPriceEl) selectedPlanPriceEl.textContent = `₹${plan.price}`;
-                
-                // Update features list
-                if (planFeaturesListEl) {
-                    planFeaturesListEl.innerHTML = '';
-                    plan.features.forEach(feature => {
-                        const li = document.createElement('li');
-                        li.textContent = feature;
-                        planFeaturesListEl.appendChild(li);
-                    });
-                }
-            }
-
-            // Show payment progress
-            function showPaymentProgress(message) {
-                if (paymentSuccessEl) paymentSuccessEl.style.display = 'none';
-                if (paymentErrorEl) paymentErrorEl.style.display = 'none';
-                
-                if (confirmUpgradeBtn) {
-                    confirmUpgradeBtn.disabled = true;
-                    confirmUpgradeBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
-                }
-            }
-
-            // Show payment success
-            function showPaymentSuccess(message) {
-                if (paymentSuccessEl) {
-                    paymentSuccessEl.textContent = message;
-                    paymentSuccessEl.style.display = 'block';
-                }
-                
-                if (paymentErrorEl) {
-                    paymentErrorEl.style.display = 'none';
-                }
-                
-                if (confirmUpgradeBtn) {
-                    confirmUpgradeBtn.disabled = false;
-                    confirmUpgradeBtn.innerHTML = 'Upgrade Complete!';
-                }
-            }
-
-            // Show payment error
-            function showPaymentError(message) {
-                if (paymentErrorEl) {
-                    paymentErrorEl.textContent = message;
-                    paymentErrorEl.style.display = 'block';
-                }
-                
-                if (paymentSuccessEl) {
-                    paymentSuccessEl.style.display = 'none';
-                }
-                
-                if (confirmUpgradeBtn) {
-                    confirmUpgradeBtn.disabled = false;
-                    confirmUpgradeBtn.innerHTML = 'Try Again';
-                }
-            }
-
-            // Reset payment buttons
-            function resetPaymentButtons() {
-                if (confirmUpgradeBtn) {
-                    confirmUpgradeBtn.disabled = false;
-                    confirmUpgradeBtn.innerHTML = 'Upgrade Now';
-                }
-            }
-
-            // Process payment
-          
-            async function processPayment(planType) {
-                try {
-                    // Show loading state
-                    showPaymentProgress('Processing your request...');
-                    
-                    // Check if user is authenticated
-                    if (!firebase.auth().currentUser) {
-                        showPaymentError("You must be logged in to make a payment");
-                        setTimeout(resetPaymentButtons, 3000);
-                        return;
-                    }
-                    
-                    // Check if plan type exists
-                    if (!SUBSCRIPTION_PLANS || !SUBSCRIPTION_PLANS[planType]) {
-                        throw new Error(`Invalid plan selected: ${planType}`);
-                    }
-                    
-                    // Get plan details
-                    const plan = SUBSCRIPTION_PLANS[planType];
-                    
-                    // IMPORTANT FIX: Use explicit region for functions - ensure only one method is used consistently
-                    const functions = firebase.app().functions("asia-south1");
-                    
-                    // Log for debugging
-                    console.log("Calling createPaymentOrder with:", { planType, amount: plan.price });
-                    
-                    // Call the Firebase function
-                    const createPaymentOrder = functions.httpsCallable('createPaymentOrder');
-                    const orderResponse = await createPaymentOrder({
-                        planType: planType,
-                        amount: plan.price
-                    });
-                    
-                    // Log the response for debugging
-                    console.log("CreatePaymentOrder response:", orderResponse.data);
-                    
-                    // Get order data from response
-                    const orderData = orderResponse.data;
-                    
-                    if (!orderData || !orderData.orderId) {
-                        throw new Error('Invalid response from payment order creation');
-                    }
-                    
-                    // Configure Razorpay options
-                    const options = {
-                        key: 'rzp_test_EF3W5mVXB1Q3li',
-                        amount: orderData.amount * 100, // Make sure this is in paise
-                        currency: orderData.currency || 'INR',
-                        name: 'SnapSelect',
-                        description: `${plan.name} Plan Subscription`,
-                        order_id: orderData.orderId,
-                        handler: function(response) {
-                            // After payment is complete, verify the payment
-                            const verifyPaymentFunction = functions.httpsCallable('verifyPayment');
-                            verifyPaymentFunction({
-                                orderId: orderData.orderId,
-                                paymentId: response.razorpay_payment_id,
-                                signature: response.razorpay_signature
-                            }).then(verifyResponse => {
-                                const responseData = verifyResponse.data;
-                                if (responseData.success) {
-                                    showPaymentSuccess(`Payment successful! Your subscription has been upgraded to ${selectedPlan}.`);
-                                    
-                                    // Update UI after a short delay
-                                    setTimeout(() => {
-                                        if (upgradePlanModal) upgradePlanModal.style.display = 'none';
-                                        
-                                        // Update current plan
-                                        if (currentPlanNameEl) currentPlanNameEl.textContent = SUBSCRIPTION_PLANS[selectedPlan].name;
-                                        
-                                        // Update plan badge
-                                        const planBadge = document.getElementById('planBadge');
-                                        if (planBadge) planBadge.textContent = SUBSCRIPTION_PLANS[selectedPlan].name;
-                                        
-                                        currentPlan = SUBSCRIPTION_PLANS[selectedPlan].name;
-                                    }, 2000);
-                                } else {
-                                    throw new Error('Payment verification failed');
-                                }
-                            }).catch(error => {
-                                console.error('Payment verification error:', error);
-                                showPaymentError(`Payment verification failed: ${error.message}`);
-                                setTimeout(resetPaymentButtons, 3000);
-                            });
-                        },
-                        prefill: {
-                            name: document.getElementById('userName').textContent,
-                            email: localStorage.getItem('userEmail') || '',
-                        },
-                        theme: {
-                            color: '#4A90E2'
-                        },
-                        modal: {
-                            ondismiss: function() {
-                                resetPaymentButtons();
-                            }
-                        }
-                    };
-                    
-                    // Open Razorpay checkout
-                    const razorpay = new Razorpay(options);
-                    razorpay.open();
-                    
-                } catch (error) {
-                    console.error('Payment process error:', error);
-                    // Log the full error details for debugging
-                    if (error.code) console.error('Error code:', error.code);
-                    if (error.details) console.error('Error details:', error.details);
-                    
-                    showPaymentError(`Payment failed: ${error.message}`);
-                    setTimeout(resetPaymentButtons, 3000);
-                }
-            }
-
-            // Verify payment
-            async function verifyPayment(orderId, paymentId, signature) {
-                try {
-                    showPaymentProgress('Verifying payment...');
-                    
-                    // Call the Firebase function to verify payment
-                    const verifyPaymentFunction = window.firebaseServices.functions.httpsCallable('verifyPayment');
-                    const verifyResponse = await verifyPaymentFunction({
-                        orderId: orderId,
-                        paymentId: paymentId,
-                        signature: signature
-                    });
-                    
-                    // Check response
-                    const responseData = verifyResponse.data;
-                    
-                    if (responseData.success) {
-                        // Payment successful
-                        showPaymentSuccess(`Payment successful! Your subscription has been upgraded to ${selectedPlan}.`);
-                        
-                        // Update UI after a short delay
-                        setTimeout(() => {
-                            if (upgradePlanModal) upgradePlanModal.style.display = 'none';
-                            
-                            // Update current plan
-                            if (currentPlanNameEl) currentPlanNameEl.textContent = SUBSCRIPTION_PLANS[selectedPlan].name;
-                            
-                            // Update plan badge
-                            const planBadge = document.getElementById('planBadge');
-                            if (planBadge) planBadge.textContent = SUBSCRIPTION_PLANS[selectedPlan].name;
-                            
-                            currentPlan = SUBSCRIPTION_PLANS[selectedPlan].name;
-                        }, 2000);
-                    } else {
-                        throw new Error('Payment verification failed');
-                    }
-                    
-                } catch (error) {
-                    console.error('Payment verification error:', error);
-                    showPaymentError(`Payment verification failed: ${error.message}`);
-                    setTimeout(resetPaymentButtons, 3000);
-                }
-            }
-
-            // Plan tabs click
-            planTabs.forEach(tab => {
-                tab.addEventListener('click', function() {
-                    // Remove active class from all tabs
-                    planTabs.forEach(t => t.classList.remove('active'));
-                    // Add active class to clicked tab
-                    this.classList.add('active');
-                    
-                    // Update selected plan
-                    selectedPlan = this.getAttribute('data-plan');
-                    updatePlanDisplay(selectedPlan);
-                });
-            });
-
-            // Upgrade button click - shows the modal
-            if (upgradePlanBtn) {
-                upgradePlanBtn.addEventListener('click', function() {
-                    if (upgradePlanModal) {
-                        upgradePlanModal.style.display = 'block';
-                        
-                        // Set default selected plan (Basic)
-                        const basicPlanTab = document.querySelector('.plan-tab[data-plan="basic"]');
-                        if (basicPlanTab) {
-                            basicPlanTab.click();
-                        }
-                    }
-                });
-            }
-
-            // Close button click - hides the modal
-            if (closeModalBtn) {
-                closeModalBtn.addEventListener('click', function() {
-                    if (upgradePlanModal) {
-                        upgradePlanModal.style.display = 'none';
-                    }
-                });
-            }
-
-            // Cancel button click - hides the modal
-            if (cancelUpgradeBtn) {
-                cancelUpgradeBtn.addEventListener('click', function() {
-                    if (upgradePlanModal) {
-                        upgradePlanModal.style.display = 'none';
-                    }
-                });
-            }
-
-            // Confirm upgrade button click - starts payment process
-            if (confirmUpgradeBtn) {
-                confirmUpgradeBtn.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    if (selectedPlan) {
-                        processPayment(selectedPlan);
-                    }
-                });
-            }
-
-            // Razorpay modal pay button
-            if (razorpayPayBtn) {
-                razorpayPayBtn.addEventListener('click', function() {
-                    mockRazorpayModal.style.display = 'none';
-                    const orderId = razorpayOrderIdEl.textContent;
-                    verifyPayment(orderId);
-                });
-            }
-            
-            // Set default selected plan on load
-            if (document.querySelector('.plan-tab[data-plan="basic"]')) {
-                document.querySelector('.plan-tab[data-plan="basic"]').click();
-            }
-        }); 
-    </script>
- 
-    
+    <!-- Firebase Scripts -->
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-functions-compat.js"></script>
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            // If Firebase services are already initialized via your config script
-            if (window.firebaseServices && window.firebaseServices.functions) {
-                // Set the region to asia-south1 (India)
-                window.firebaseServices.functions = firebase.app().functions("asia-south1");
-            }
-        });
-    </script>
-        
+    
+    <!-- Application Scripts -->
     <script src="../assets/js/firebase-config.js"></script>
     <script src="../assets/js/firebase-auth.js"></script>
     <script src="../assets/js/firebase-db.js"></script>
     <script src="../assets/js/header-auth.js"></script>
+    <script src="../assets/js/dashboard.js"></script>
 </body>
 </html>
