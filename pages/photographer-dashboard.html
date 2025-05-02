@@ -726,13 +726,13 @@
                     functions.region("asia-south1");
                     
                     // Log for debugging
-                    console.log("Calling createPaymentOrder with:", { planType, amount: plan.price });
+                    console.log("Calling createPaymentOrder with::", { planType, amount: plan.price });
                     
                     // Call the Firebase function
                     const createPaymentOrder = functions.httpsCallable('createPaymentOrder');
                     const orderResponse = await createPaymentOrder({
-                        planType: planType,
-                        amount: plan.price
+                        planType,
+                        amount
                     });
                     
                     // Log the response for debugging
@@ -747,7 +747,7 @@
                     
                     // Configure Razorpay options
                     const options = {
-                        key: 'rzp_test_EF3W5mVXB1Q3li',
+                        key: 'rzp_test_k2If7sWFzrbatR',
                         amount: orderData.amount * 100, // Make sure this is in paise
                         currency: orderData.currency || 'INR',
                         name: 'SnapSelect',
