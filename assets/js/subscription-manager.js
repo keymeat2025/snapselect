@@ -691,30 +691,51 @@ function showErrorMessage(message) {
   }, 3000);
 }
 
-// Storage usage
+
+/**
+ * Update storage usage display
+ */
 function updateStorageUsage() {
-  const totalStorage = activePlans.reduce((total, plan) => 
-    total + (plan.storageUsed || 0), 0);
+  // Calculate total storage used across all active plans
+  const totalStorage = activePlans.reduce((total, plan) => {
+    return total + (plan.storageUsed || 0);
+  }, 0);
   
-  const totalStorageLimit = activePlans.reduce((total, plan) => 
-    total + (SUBSCRIPTION_PLANS[plan.planType]?.storageLimit || 1), 1);
+  // Calculate total storage limit across all active plans
+  const totalStorageLimit = activePlans.reduce((total, plan) => {
+    return total + (SUBSCRIPTION_PLANS[plan.planType]?.storageLimit || 1);
+  }, 1); // Default to 1GB if no active plans
   
+  // Convert to GB for display
   const storageGB = (totalStorage / 1024).toFixed(2);
   
+  // Update UI
   const storageEl = document.getElementById('storageUsed');
-  if (storageEl) storageEl.textContent = `${storageGB} GB`;
+  if (storageEl) {
+    storageEl.textContent = `${storageGB} GB`;
+  }
   
+  // Calculate percentage
   const usagePercent = Math.min((totalStorage / (totalStorageLimit * 1024)) * 100, 100);
   
+  // Update UI
   const storageBarEl = document.getElementById('storageUsageBar');
-  if (storageBarEl) storageBarEl.style.width = `${usagePercent}%`;
+  if (storageBarEl) {
+    storageBarEl.style.width = `${usagePercent}%`;
+  }
   
   const storageTextEl = document.getElementById('storageUsageText');
-  if (storageTextEl) storageTextEl.textContent = `${storageGB}/${totalStorageLimit} GB`;
+  if (storageTextEl) {
+    storageTextEl.textContent = `${storageGB}/${totalStorageLimit} GB`;
+  }
   
+  // Add warning class if usage is high
   if (storageBarEl) {
-    if (usagePercent > 90) storageBarEl.classList.add('high-usage');
-    else storageBarEl.classList.remove('high-usage');
+    if (usagePercent > 90) {
+      storageBarEl.classList.add('high-usage');
+    } else {
+      storageBarEl.classList.remove('high-usage');
+    }
   }
 }
 
