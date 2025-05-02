@@ -722,7 +722,8 @@
                     const plan = SUBSCRIPTION_PLANS[planType];
                     
                     // IMPORTANT FIX: Use explicit region for functions - ensure only one method is used consistently
-                    const functions = firebase.app().functions("asia-south1");
+                    const functions = firebase.functions();
+                    functions.region("asia-south1");
                     
                     // Log for debugging
                     console.log("Calling createPaymentOrder with:", { planType, amount: plan.price });
@@ -940,10 +941,7 @@
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             // If Firebase services are already initialized via your config script
-            if (window.firebaseServices && window.firebaseServices.functions) {
-                // Set the region to asia-south1 (India)
-                window.firebaseServices.functions = firebase.app().functions("asia-south1");
-            }
+            
         });
     </script>
         
