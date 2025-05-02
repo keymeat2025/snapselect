@@ -382,14 +382,14 @@
     <script src="../assets/js/firebase-db.js"></script>
     <script src="../assets/js/header-auth.js"></script>
     <script src="../assets/js/subscription-manager.js"></script>
-    <script src="../assets/js/client-manager.js"></script>
-    <script src="../assets/js/gallery-manager.js"></script>
+    <!-- Removed references to non-existent JS files -->
     
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             // Initialize Firebase region
             if (firebase && firebase.functions) {
-                firebase.functions().useEmulator("localhost", 5001);
+                // Remove local emulator reference which might be causing issues
+                // firebase.functions().useEmulator("localhost", 5001);
                 firebase.app().functions("asia-south1");
             }
             
@@ -474,42 +474,49 @@
                             loadingOverlay.style.display = 'flex';
                         }
                         
-                        // Create client
-                        const clientId = await window.subscriptionManager.createClient(
-                            clientName,
-                            clientEmail,
-                            { phone: clientPhone, notes: clientNotes }
-                        );
-                        
-                        if (clientId) {
-                            // Close modal
-                            const createClientModal = document.getElementById('createClientModal');
-                            if (createClientModal) {
-                                createClientModal.style.display = 'none';
-                            }
+                        // Check if subscription manager exists
+                        if (window.subscriptionManager && window.subscriptionManager.createClient) {
+                            // Create client
+                            const clientId = await window.subscriptionManager.createClient(
+                                clientName,
+                                clientEmail,
+                                { phone: clientPhone, notes: clientNotes }
+                            );
                             
-                            // Show success message
-                            const toastContainer = document.getElementById('toastContainer');
-                            if (toastContainer) {
-                                const toast = document.createElement('div');
-                                toast.className = 'toast toast-success';
-                                toast.innerHTML = `
-                                    <i class="fas fa-check-circle"></i>
-                                    <span>Client created successfully!</span>
-                                `;
-                                toastContainer.appendChild(toast);
+                            if (clientId) {
+                                // Close modal
+                                const createClientModal = document.getElementById('createClientModal');
+                                if (createClientModal) {
+                                    createClientModal.style.display = 'none';
+                                }
                                 
-                                // Remove toast after 3 seconds
-                                setTimeout(() => {
-                                    toast.classList.add('hide');
+                                // Show success message
+                                const toastContainer = document.getElementById('toastContainer');
+                                if (toastContainer) {
+                                    const toast = document.createElement('div');
+                                    toast.className = 'toast toast-success';
+                                    toast.innerHTML = `
+                                        <i class="fas fa-check-circle"></i>
+                                        <span>Client created successfully!</span>
+                                    `;
+                                    toastContainer.appendChild(toast);
+                                    
+                                    // Remove toast after 3 seconds
                                     setTimeout(() => {
-                                        toast.remove();
-                                    }, 300);
-                                }, 3000);
+                                        toast.classList.add('hide');
+                                        setTimeout(() => {
+                                            toast.remove();
+                                        }, 300);
+                                    }, 3000);
+                                }
+                                
+                                // Refresh client data
+                                if (window.subscriptionManager.refreshSubscription) {
+                                    window.subscriptionManager.refreshSubscription();
+                                }
                             }
-                            
-                            // Refresh client data
-                            window.subscriptionManager.refreshSubscription();
+                        } else {
+                            throw new Error('Client management functionality is not available');
                         }
                     } catch (error) {
                         console.error('Error creating client:', error);
@@ -569,7 +576,11 @@
             if (refreshPlansBtn) {
                 refreshPlansBtn.addEventListener('click', function() {
                     this.classList.add('rotating');
-                    window.subscriptionManager.refreshSubscription();
+                    
+                    // Check if subscription manager exists before calling
+                    if (window.subscriptionManager && window.subscriptionManager.refreshSubscription) {
+                        window.subscriptionManager.refreshSubscription();
+                    }
                     
                     // Remove rotating class after animation completes
                     setTimeout(() => {
