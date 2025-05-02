@@ -13,108 +13,13 @@
     <link rel="stylesheet" href="../assets/css/animations.css">
     <link rel="stylesheet" href="../assets/css/features.css">
     <link rel="stylesheet" href="../assets/css/payment.css">
-
-    <!-- Add Chart.js for analytics charts -->
-    <!-- Not needed for basic Razorpay mock implementation -->
-    <!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script> -->
-    
-    <!-- Add jsPDF for PDF exports -->
-    <!-- Not needed for basic Razorpay mock implementation -->
-    <!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script> -->
-    
-    <!-- Remove real Razorpay script since we're using a mock -->
     <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
-    <!-- <script src="../assets/js/razorpay-mock.js"></script> -->
-    
-    <style>
-        /* Mock Razorpay modal styles */
-        .mock-razorpay-modal {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.6);
-            display: none;
-            justify-content: center;
-            align-items: center;
-            z-index: 9999;
-        }
-        .mock-razorpay-content {
-            background: white;
-            padding: 20px;
-            border-radius: 8px;
-            max-width: 400px;
-            width: 100%;
-            box-shadow: 0 0 20px rgba(0,0,0,0.3);
-        }
-        .mock-razorpay-header {
-            margin-bottom: 20px;
-            border-bottom: 1px solid #e0e0e0;
-            padding-bottom: 10px;
-        }
-        .mock-razorpay-details {
-            margin-bottom: 20px;
-        }
-        .mock-razorpay-details p {
-            margin: 10px 0;
-        }
-        .mock-razorpay-actions {
-            display: flex;
-            justify-content: space-between;
-        }
-        
-        /* Missing image replacement */
-        .payment-logo-icon {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            width: 50px;
-            height: 50px;
-            background-color: #f1f1f1;
-            border-radius: 4px;
-            font-size: 24px;
-            color: #4A90E2;
-        }
-        
-        /* Avatar placeholder */
-        .avatar-placeholder {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            background-color: #4A90E2;
-            color: white;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: bold;
-        }
-        
-        /* Empty gallery icon replacement */
-        .empty-gallery-icon {
-            font-size: 64px;
-            color: #ccc;
-            margin-bottom: 15px;
-        }
-    </style>
 </head>
 <body>
-    <!-- Authentication Check Overlay (shown if not authenticated) -->
-    <div id="authCheckOverlay" class="auth-check-overlay">
-        <div class="auth-check-content">
-            <i class="fas fa-lock auth-icon"></i>
-            <h2>Authentication Required</h2>
-            <p>Please log in to access your dashboard.</p>
-            <a href="studiopanel-login.html" class="btn">Log In</a>
-        </div>
-    </div>
-
-    <!-- Navigation Header (Same as index but with active state for dashboard) -->
     <header>
         <div class="container">
             <nav>
                 <a href="../index.html" class="logo">
-                    <!-- Replace missing image with text or icon -->
                     <div class="logo-text">SnapSelect</div>
                 </a>
                 <ul class="nav-links">
@@ -123,33 +28,13 @@
                     <li><a href="../index.html#pricing">Pricing</a></li>
                 </ul>
                 <div class="right-nav">
-                    <!-- User logged in - show user menu with logout -->
-                    <div class="notification-bell">
-                        <button class="notification-btn" id="notificationBtn">
-                            <i class="fas fa-bell"></i>
-                            <span class="notification-badge" id="notificationCount">0</span>
-                        </button>
-                        <div class="notification-dropdown" id="notificationDropdown">
-                            <div class="notification-header">
-                                <h3>Notifications</h3>
-                                <button id="markAllReadBtn" class="mark-read-btn">Mark all read</button>
-                            </div>
-                            <div class="notification-list" id="notificationList">
-                                <!-- Notifications will be populated dynamically -->
-                                <div class="empty-notification">No new notifications</div>
-                            </div>
-                        </div>
-                    </div>
-
                     <div class="auth-user" id="userNav">
                         <div class="user-menu">
                             <button class="user-menu-btn" id="userMenuBtn">
-                                <!-- Replace missing avatar with icon -->
                                 <div class="avatar-placeholder">U</div>
                                 <span class="user-name" id="userName">User</span>
                                 <i class="fas fa-chevron-down"></i>
                             </button>
-
                             <div class="user-dropdown" id="userDropdown">
                                 <a href="photographer-dashboard.html" class="active">Dashboard</a>
                                 <a href="analytics.html">Analytics</a>
@@ -166,48 +51,9 @@
         </div>
     </header>
 
-    <!-- Main Dashboard Content -->
     <main class="dashboard-main">
         <div class="container">
-            <!-- Dashboard Header with Stats Overview -->
-            <section class="dashboard-header">
-                <div class="dashboard-title">
-                    <h1>Photographer Dashboard</h1>
-                    <p>Manage your client galleries and selections</p>
-                </div>
-                <div class="dashboard-stats">
-                    <div class="stat-card animate-in">
-                        <div class="stat-icon">
-                            <i class="fas fa-images"></i>
-                        </div>
-                        <div class="stat-info">
-                            <span class="stat-value" id="activeGalleriesCount">0</span>
-                            <span class="stat-label">Active Galleries</span>
-                        </div>
-                    </div>
-                    <div class="stat-card animate-in" style="animation-delay: 0.1s;">
-                        <div class="stat-icon">
-                            <i class="fas fa-check-circle"></i>
-                        </div>
-                        <div class="stat-info">
-                            <span class="stat-value" id="pendingSelectionsCount">0</span>
-                            <span class="stat-label">Pending Selections</span>
-                        </div>
-                    </div>
-                    <div class="stat-card animate-in" style="animation-delay: 0.2s;">
-                        <div class="stat-icon">
-                            <i class="fas fa-database"></i>
-                        </div>
-                        <div class="stat-info">
-                            <span class="stat-value" id="storageUsed">0 MB</span>
-                            <span class="stat-label">Storage Used</span>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            <!-- Plan Information Section -->
-            <section class="plan-info animate-in" style="animation-delay: 0.25s;">
+            <section class="plan-info animate-in">
                 <div class="plan-card">
                     <div class="plan-header">
                         <h3>Current Plan: <span id="currentPlanName">Free</span></h3>
@@ -231,143 +77,7 @@
                             </div>
                         </div>
                         <button id="upgradePlanBtn" class="btn upgrade-btn">Upgrade Plan</button>
-                        
                     </div>
-                </div>
-            </section>
-
-            <!-- Quick Actions Bar -->
-            <section class="quick-actions animate-in" style="animation-delay: 0.3s;">
-                <button id="createGalleryBtn" class="action-btn primary">
-                    <i class="fas fa-plus"></i> New Gallery
-                </button>
-                <button id="viewSelectionsBtn" class="action-btn">
-                    <i class="fas fa-check"></i> View Selections
-                </button>
-                <button id="downloadSelectedBtn" class="action-btn">
-                    <i class="fas fa-download"></i> Download Selected
-                </button>
-                <button id="viewAnalyticsBtn" class="action-btn">
-                    <i class="fas fa-chart-bar"></i> Analytics
-                </button>
-                <button id="helpBtn" class="action-btn help">
-                    <i class="fas fa-question-circle"></i> Help
-                </button>
-            </section>
-
-            <!-- Gallery Management Section -->
-            <section class="galleries-section animate-in" style="animation-delay: 0.4s;">
-                <div class="section-header">
-                    <h2>Client Galleries</h2>
-                    <div class="view-controls">
-                        <button class="view-btn active" data-view="grid">
-                            <i class="fas fa-th"></i>
-                        </button>
-                        <button class="view-btn" data-view="list">
-                            <i class="fas fa-list"></i>
-                        </button>
-                        <div class="search-container">
-                            <input type="text" id="gallerySearch" placeholder="Search galleries..." class="search-input">
-                            <i class="fas fa-search search-icon"></i>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Empty State (shown when no galleries exist) -->
-                <div id="emptyGalleryState" class="empty-state">
-                    <!-- Replace missing image with icon -->
-                    <i class="fas fa-images empty-gallery-icon"></i>
-                    <h3>No Galleries Yet</h3>
-                    <p>Create your first client gallery to get started</p>
-                    <button class="btn" id="emptyStateCreateBtn">Create Gallery</button>
-                </div>
-
-                <!-- Gallery Grid View (default) -->
-                <div id="galleryGrid" class="gallery-grid">
-                    <!-- Gallery cards will be populated dynamically -->
-                    <!-- Example Gallery Card (will be generated via JS) -->
-                    <div class="gallery-card sample-card">
-                        <div class="gallery-thumbnail">
-                            <!-- Replace missing image with color block -->
-                            <div style="height: 150px; background-color: #e0e0e0; display: flex; align-items: center; justify-content: center;">
-                                <i class="fas fa-image" style="font-size: 32px; color: #aaa;"></i>
-                            </div>
-                            <div class="gallery-status pending">Selection in Progress</div>
-                        </div>
-                        <div class="gallery-info">
-                            <h3 class="gallery-title">Johnson Wedding</h3>
-                            <div class="gallery-meta">
-                                <span><i class="fas fa-calendar"></i> Apr 18, 2025</span>
-                                <span><i class="fas fa-image"></i> 248 photos</span>
-                            </div>
-                            <div class="selection-progress">
-                                <div class="progress-label">
-                                    <span>Client Selection: 24/50</span>
-                                    <span>48%</span>
-                                </div>
-                                <div class="progress-bar">
-                                    <div class="progress" style="width: 48%"></div>
-                                </div>
-                            </div>
-                            <div class="gallery-actions">
-                                <button class="action-icon" title="View Gallery">
-                                    <i class="fas fa-eye"></i>
-                                </button>
-                                <button class="action-icon" title="Share with Client">
-                                    <i class="fas fa-share-alt"></i>
-                                </button>
-                                <button class="action-icon" title="Download Selections">
-                                    <i class="fas fa-download"></i>
-                                </button>
-                                <button class="action-icon" title="Delete Gallery">
-                                    <i class="fas fa-trash"></i>
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Gallery List View (hidden by default) -->
-                <div id="galleryList" class="gallery-list" style="display: none;">
-                    <table class="gallery-table">
-                        <thead>
-                            <tr>
-                                <th>Gallery Name</th>
-                                <th>Created</th>
-                                <th>Status</th>
-                                <th>Photos</th>
-                                <th>Selected</th>
-                                <th>Expires</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody id="galleryTableBody">
-                            <!-- Gallery rows will be populated dynamically -->
-                            <!-- Example row (will be generated via JS) -->
-                            <tr class="sample-row">
-                                <td class="gallery-name">Johnson Wedding</td>
-                                <td>Apr 18, 2025</td>
-                                <td><span class="status-badge pending">Selection in Progress</span></td>
-                                <td>248</td>
-                                <td>24/50</td>
-                                <td>May 18, 2025</td>
-                                <td class="table-actions">
-                                    <button class="action-icon" title="View Gallery">
-                                        <i class="fas fa-eye"></i>
-                                    </button>
-                                    <button class="action-icon" title="Share with Client">
-                                        <i class="fas fa-share-alt"></i>
-                                    </button>
-                                    <button class="action-icon" title="Download Selections">
-                                        <i class="fas fa-download"></i>
-                                    </button>
-                                    <button class="action-icon" title="Delete Gallery">
-                                        <i class="fas fa-trash"></i>
-                                    </button>
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
                 </div>
             </section>
 
@@ -414,7 +124,6 @@
                             </div>
                             
                             <div class="payment-section">
-                                <!-- Payment success/error messages will be inserted here -->
                                 <div class="payment-success alert-success" style="display: none;"></div>
                                 <div class="payment-error alert-danger" style="display: none;"></div>
                                 
@@ -424,7 +133,6 @@
                                 <form id="paymentForm">
                                     <div class="payment-options">
                                         <div class="payment-option">
-                                            <!-- Replace missing image with icon -->
                                             <div class="payment-logo-icon">
                                                 <i class="fas fa-credit-card"></i>
                                             </div>
@@ -451,29 +159,9 @@
                     </div>
                 </div>
             </div>
-            
-            <!-- Mock Razorpay Modal - Add this section 
-            <div id="mockRazorpayModal" class="mock-razorpay-modal">
-                <div class="mock-razorpay-content">
-                    <div class="mock-razorpay-header">
-                        <h3>Razorpay Checkout</h3>
-                    </div>
-                    <div class="mock-razorpay-details">
-                        <p><strong>Merchant:</strong> SnapSelect</p>
-                        <p><strong>Plan:</strong> <span id="razorpayPlanName">Basic Plan</span></p>
-                        <p><strong>Amount:</strong> <span id="razorpayAmount">₹499</span></p>
-                        <p><strong>Order ID:</strong> <span id="razorpayOrderId">order_mock_123456</span></p>
-                    </div>
-                    <div class="mock-razorpay-actions">
-                        <button id="razorpayCancelBtn" class="btn btn-secondary">Cancel</button>
-                        <button id="razorpayPayBtn" class="btn btn-primary">Pay Now</button>
-                    </div>
-                </div>
-            </div> -->
         </div>
     </main>
 
-    <!-- Footer -->
     <footer class="dashboard-footer">
         <div class="container">
             <div class="footer-bottom">
@@ -487,9 +175,9 @@
         </div>
     </footer>
 
-    <!-- Embedded Mock Razorpay Implementation -->
+    <!-- Streamlined Razorpay Implementation -->
     <script>
-        // Store email in localStorage for Razorpay mock
+        // Store email in localStorage for Razorpay
         localStorage.setItem('userEmail', 'test.user@example.com');
         
         // Subscription plans
@@ -517,94 +205,11 @@
 
         // Main initialization
         document.addEventListener('DOMContentLoaded', function() {
-            // If Firebase services are already initialized via your config script
+            // Initialize Firebase services with correct region
             if (window.firebaseServices && window.firebaseServices.functions) {
                 // Set the region to asia-south1 (India)
                 window.firebaseServices.functions = firebase.app().functions("asia-south1");
             }
-            
-            const authOverlay = document.getElementById('authCheckOverlay');
-            if (window.firebaseServices && window.firebaseServices.auth) {
-                window.firebaseServices.auth.onAuthStateChanged(function(user) {
-                    if (authOverlay) {
-                        if (user) {
-                            // User is signed in, hide overlay
-                            authOverlay.style.display = 'none';
-                        } else {
-                            // Not signed in, show overlay
-                            authOverlay.style.display = 'flex';
-                        }
-                    }
-                });
-            } else {
-                // Firebase not available, show overlay
-                if (authOverlay) {
-                    authOverlay.style.display = 'flex';
-                }
-            }
-            
-            // Handle Firebase auth state changes
-            const userNameElement = document.getElementById('userName');
-            const avatarPlaceholder = document.querySelector('.avatar-placeholder');
-            
-            // Check if Firebase is available
-            if (window.firebaseServices && window.firebaseServices.auth) {
-                // Listen for auth state changes
-                window.firebaseServices.auth.onAuthStateChanged(function(user) {
-                    if (user) {
-                        // User is signed in
-                        // Show user info in header
-                        if (userNameElement) {
-                            const displayName = user.displayName || user.email || 'User';
-                            userNameElement.textContent = displayName;
-                            
-                            // Update avatar placeholder with first letter
-                            if (avatarPlaceholder) {
-                                avatarPlaceholder.textContent = displayName.charAt(0).toUpperCase();
-                            }
-                        }
-                    } else {
-                        // User is signed out
-                        if (userNameElement) {
-                            userNameElement.textContent = 'User';
-                            if (avatarPlaceholder) {
-                                avatarPlaceholder.textContent = 'U';
-                            }
-                        }
-                    }
-                });
-            }
-            
-            // Toggle user dropdown menu
-            const userMenuBtn = document.getElementById('userMenuBtn');
-            const userDropdown = document.getElementById('userDropdown');
-            
-            if (userMenuBtn && userDropdown) {
-                userMenuBtn.addEventListener('click', function() {
-                    userDropdown.classList.toggle('show');
-                });
-            }
-            
-            // Toggle notifications dropdown
-            const notificationBtn = document.getElementById('notificationBtn');
-            const notificationDropdown = document.getElementById('notificationDropdown');
-            
-            if (notificationBtn && notificationDropdown) {
-                notificationBtn.addEventListener('click', function() {
-                    notificationDropdown.classList.toggle('show');
-                });
-            }
-            
-            // Close dropdowns when clicking outside
-            window.addEventListener('click', function(event) {
-                if (userDropdown && userMenuBtn && !userMenuBtn.contains(event.target)) {
-                    userDropdown.classList.remove('show');
-                }
-                
-                if (notificationDropdown && notificationBtn && !notificationBtn.contains(event.target)) {
-                    notificationDropdown.classList.remove('show');
-                }
-            });
             
             // DOM elements for Razorpay
             const upgradePlanBtn = document.getElementById('upgradePlanBtn');
@@ -617,12 +222,6 @@
             const confirmUpgradeBtn = document.getElementById('confirmUpgradeBtn');
             const cancelUpgradeBtn = document.getElementById('cancelUpgradeBtn');
             const currentPlanNameEl = document.getElementById('currentPlanName');
-            const mockRazorpayModal = document.getElementById('mockRazorpayModal');
-            const razorpayPlanNameEl = document.getElementById('razorpayPlanName');
-            const razorpayAmountEl = document.getElementById('razorpayAmount');
-            const razorpayOrderIdEl = document.getElementById('razorpayOrderId');
-            const razorpayCancelBtn = document.getElementById('razorpayCancelBtn');
-            const razorpayPayBtn = document.getElementById('razorpayPayBtn');
             const paymentSuccessEl = document.querySelector('.payment-success');
             const paymentErrorEl = document.querySelector('.payment-error');
             
@@ -699,8 +298,7 @@
                 }
             }
 
-            // Process payment
-          
+            // Process payment - FIXED FUNCTION 
             async function processPayment(planType) {
                 try {
                     // Show loading state
@@ -721,9 +319,8 @@
                     // Get plan details
                     const plan = SUBSCRIPTION_PLANS[planType];
                     
-                    // IMPORTANT FIX: Use explicit region for functions - ensure only one method is used consistently
-                    const functions = firebase.functions();
-                    functions.region("asia-south1");
+                    // FIXED: Correctly initialize functions with region
+                    const functions = firebase.app().functions("asia-south1");
                     
                     // Log for debugging
                     console.log("Calling createPaymentOrder with::", { planType, amount: plan.price });
@@ -732,7 +329,7 @@
                     const createPaymentOrder = functions.httpsCallable('createPaymentOrder');
                     const orderResponse = await createPaymentOrder({
                         planType,
-                        amount
+                        amount: plan.price
                     });
                     
                     // Log the response for debugging
@@ -816,13 +413,16 @@
                 }
             }
 
-            // Verify payment
+            // Verify payment - FIXED FUNCTION
             async function verifyPayment(orderId, paymentId, signature) {
                 try {
                     showPaymentProgress('Verifying payment...');
                     
+                    // FIXED: Correctly initialize functions with region
+                    const functions = firebase.app().functions("asia-south1");
+                    
                     // Call the Firebase function to verify payment
-                    const verifyPaymentFunction = window.firebaseServices.functions.httpsCallable('verifyPayment');
+                    const verifyPaymentFunction = functions.httpsCallable('verifyPayment');
                     const verifyResponse = await verifyPaymentFunction({
                         orderId: orderId,
                         paymentId: paymentId,
@@ -916,15 +516,6 @@
                     }
                 });
             }
-
-            // Razorpay modal pay button
-            if (razorpayPayBtn) {
-                razorpayPayBtn.addEventListener('click', function() {
-                    mockRazorpayModal.style.display = 'none';
-                    const orderId = razorpayOrderIdEl.textContent;
-                    verifyPayment(orderId);
-                });
-            }
             
             // Set default selected plan on load
             if (document.querySelector('.plan-tab[data-plan="basic"]')) {
@@ -932,19 +523,11 @@
             }
         }); 
     </script>
- 
     
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-functions-compat.js"></script>
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            // If Firebase services are already initialized via your config script
-            
-        });
-    </script>
-        
     <script src="../assets/js/firebase-config.js"></script>
     <script src="../assets/js/firebase-auth.js"></script>
     <script src="../assets/js/firebase-db.js"></script>
