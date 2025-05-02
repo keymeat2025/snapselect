@@ -1,4 +1,4 @@
-//  razorpay.js file
+// razorpay.js - Client-side Razorpay Integration
 document.addEventListener('DOMContentLoaded', function() {
     // Subscription plans
     const SUBSCRIPTION_PLANS = {
@@ -36,16 +36,9 @@ document.addEventListener('DOMContentLoaded', function() {
     const currentPlanNameEl = document.getElementById('currentPlanName');
     const paymentSuccessEl = document.querySelector('.payment-success');
     const paymentErrorEl = document.querySelector('.payment-error');
-    const currentPlanDisplayEl = document.getElementById('currentPlanDisplay');
-    const currentPlanPriceEl = document.getElementById('currentPlanPrice');
-    const currentPlanFeaturesEl = document.getElementById('currentPlanFeatures');
-    const planBadgeEl = document.getElementById('planBadge');
 
-    // Initialize firebase app if needed
-    if (!firebase.apps.length) {
-        // Your firebase initialization code
-        console.log('Firebase app not initialized. Please initialize it in firebase-config.js');
-    }
+    // IMPORTANT: Initialize user data and plan
+    initializeDashboard();
 
     // Initialize user data and plan
     function initializeDashboard() {
@@ -115,103 +108,124 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Update UI elements
         if (currentPlanNameEl) currentPlanNameEl.textContent = planName;
-        if (planBadgeEl) planBadgeEl.textContent = planName;
-        if (currentPlanDisplayEl) currentPlanDisplayEl.textContent = planName;
-        if (currentPlanPriceEl) currentPlanPriceEl.textContent = planPrice;
+        
+        // Update plan badge
+        const planBadge = document.getElementById('planBadge');
+        if (planBadge) planBadge.textContent = planName;
+        
+        // Update current plan in modal if elements exist
+        const currentPlanDisplay = document.getElementById('currentPlanDisplay');
+        if (currentPlanDisplay) currentPlanDisplay.textContent = planName;
+        
+        const currentPlanPrice = document.getElementById('currentPlanPrice');
+        if (currentPlanPrice) currentPlanPrice.textContent = planPrice;
         
         // Update features list
-        if (currentPlanFeaturesEl) {
-            currentPlanFeaturesEl.innerHTML = '';
+        const currentPlanFeatures = document.getElementById('currentPlanFeatures');
+        if (currentPlanFeatures) {
+            currentPlanFeatures.innerHTML = '';
             planFeatures.forEach(feature => {
                 const li = document.createElement('li');
                 li.textContent = feature;
-                currentPlanFeaturesEl.appendChild(li);
+                currentPlanFeatures.appendChild(li);
             });
         }
         
-        // Update storage usage based on plan
-        updateStorageUI(planType);
+        // Update storage usage stats if elements exist
+        updateStorageStats(planType);
         
-        // Update gallery usage based on plan
-        updateGalleryUI(planType);
+        // Update gallery stats if elements exist
+        updateGalleryStats(planType);
     }
 
-    // Update storage UI based on plan
-    function updateStorageUI(planType) {
+    // Update storage related UI elements 
+    function updateStorageStats(planType) {
+        // Get max storage based on plan
         let maxStorage = 1; // Default 1GB for free
         
         if (planType !== 'free' && SUBSCRIPTION_PLANS[planType]) {
-            // Extract the storage value from the first feature
             const storageFeature = SUBSCRIPTION_PLANS[planType].features.find(f => f.includes('GB Storage'));
-            
             if (storageFeature) {
-                maxStorage = parseInt(storageFeature.split(' ')[0]);
-            }
-        }
-        
-        // Simulate some storage usage (replace with actual usage from Firebase)
-        const usedStorage = Math.random() * maxStorage * 0.7; // 0-70% usage for demo
-        const usedStorageFormatted = usedStorage.toFixed(2);
-        
-        // Update storage UI elements
-        if (document.getElementById('storageUsed')) {
-            document.getElementById('storageUsed').textContent = `${usedStorageFormatted} GB`;
-        }
-        
-        if (document.getElementById('storageUsageBar')) {
-            const percentage = (usedStorage / maxStorage) * 100;
-            document.getElementById('storageUsageBar').style.width = `${percentage}%`;
-        }
-        
-        if (document.getElementById('storageUsageText')) {
-            document.getElementById('storageUsageText').textContent = `${usedStorageFormatted}/${maxStorage} GB`;
-        }
-    }
-
-    // Update gallery UI based on plan
-    function updateGalleryUI(planType) {
-        let maxGalleries = 3; // Default 3 for free
-        
-        if (planType !== 'free' && SUBSCRIPTION_PLANS[planType]) {
-            // Extract the gallery value from the second feature
-            const galleryFeature = SUBSCRIPTION_PLANS[planType].features.find(f => f.includes('Galleries'));
-            
-            if (galleryFeature) {
-                if (galleryFeature.includes('Unlimited')) {
-                    maxGalleries = '∞'; // Infinity symbol for unlimited
-                } else {
-                    maxGalleries = parseInt(galleryFeature.split(' ')[0]);
+                const match = storageFeature.match(/(\d+) GB/);
+                if (match && match[1]) {
+                    maxStorage = parseInt(match[1]);
                 }
             }
         }
         
-        // Simulate some gallery usage (replace with actual usage from Firebase)
-        let usedGalleries = Math.floor(Math.random() * 3); // 0-2 galleries for demo
-        if (maxGalleries === '∞') {
-            usedGalleries = Math.floor(Math.random() * 8) + 2; // 2-10 galleries for unlimited plans
+        // Simulate some storage usage for UI demo
+        // In production, fetch this from Firestore
+        const usedStorage = Math.random() * maxStorage * 0.7; // Random usage between 0-70%
+        const usedGB = usedStorage.toFixed(2);
+        
+        // Update storage used element
+        const storageUsedEl = document.getElementById('storageUsed');
+        if (storageUsedEl) {
+            storageUsedEl.textContent = `${usedGB} GB`;
         }
         
-        // Update active galleries count
-        if (document.getElementById('activeGalleriesCount')) {
-            document.getElementById('activeGalleriesCount').textContent = usedGalleries;
+        // Update progress bar
+        const storageUsageBar = document.getElementById('storageUsageBar');
+        if (storageUsageBar) {
+            const percentage = (usedStorage / maxStorage) * 100;
+            storageUsageBar.style.width = `${percentage}%`;
         }
         
-        // Update gallery usage bar
-        if (document.getElementById('galleryUsageBar') && maxGalleries !== '∞') {
-            const percentage = (usedGalleries / maxGalleries) * 100;
-            document.getElementById('galleryUsageBar').style.width = `${percentage}%`;
-        } else if (document.getElementById('galleryUsageBar')) {
-            // For unlimited plans, show a minimal bar
-            document.getElementById('galleryUsageBar').style.width = '10%';
-        }
-        
-        // Update gallery usage text
-        if (document.getElementById('galleryUsageText')) {
-            document.getElementById('galleryUsageText').textContent = `${usedGalleries}/${maxGalleries}`;
+        // Update usage text
+        const storageUsageText = document.getElementById('storageUsageText');
+        if (storageUsageText) {
+            storageUsageText.textContent = `${usedGB}/${maxStorage} GB`;
         }
     }
 
-    // Update selected plan display in the modal
+    // Update gallery related UI elements
+    function updateGalleryStats(planType) {
+        // Get max galleries based on plan
+        let maxGalleries = 3; // Default for free plan
+        
+        if (planType !== 'free' && SUBSCRIPTION_PLANS[planType]) {
+            const galleryFeature = SUBSCRIPTION_PLANS[planType].features.find(f => f.includes('Galleries'));
+            if (galleryFeature) {
+                if (galleryFeature.includes('Unlimited')) {
+                    maxGalleries = '∞';
+                } else {
+                    const match = galleryFeature.match(/(\d+) Galleries/);
+                    if (match && match[1]) {
+                        maxGalleries = parseInt(match[1]);
+                    }
+                }
+            }
+        }
+        
+        // Simulate some gallery usage for UI demo
+        // In production, fetch this from Firestore
+        const usedGalleries = Math.floor(Math.random() * 3) + 1; // 1-3 galleries
+        
+        // Update gallery count
+        const activeGalleriesCount = document.getElementById('activeGalleriesCount');
+        if (activeGalleriesCount) {
+            activeGalleriesCount.textContent = usedGalleries;
+        }
+        
+        // Update gallery progress bar
+        const galleryUsageBar = document.getElementById('galleryUsageBar');
+        if (galleryUsageBar) {
+            if (maxGalleries === '∞') {
+                galleryUsageBar.style.width = '10%'; // Show minimal progress for unlimited
+            } else {
+                const percentage = (usedGalleries / maxGalleries) * 100;
+                galleryUsageBar.style.width = `${percentage}%`;
+            }
+        }
+        
+        // Update gallery usage text
+        const galleryUsageText = document.getElementById('galleryUsageText');
+        if (galleryUsageText) {
+            galleryUsageText.textContent = `${usedGalleries}/${maxGalleries}`;
+        }
+    }
+
+    // Update selected plan display
     function updatePlanDisplay(planType) {
         const plan = SUBSCRIPTION_PLANS[planType];
         if (!plan) return;
@@ -309,17 +323,12 @@ document.addEventListener('DOMContentLoaded', function() {
             // Get plan details
             const plan = SUBSCRIPTION_PLANS[planType];
             
-            // Get Firebase function with specific region
-            const functions = firebase.functions();
-            functions.useEmulator('localhost', 5001); // Remove this in production
-            
-            // Specify region for non-emulator environment
-            // const functions = firebase.app().functions("asia-south1");
-            
-            // Log for debugging
-            console.log("Calling createPaymentOrder with:", { planType, amount: plan.price });
+            // IMPORTANT FIX: Get Firebase function with correct region
+            const functions = firebase.app().functions("asia-south1");
             
             // Call the Firebase function
+            console.log("Calling createPaymentOrder with:", { planType, amount: plan.price });
+            
             const createPaymentOrder = functions.httpsCallable('createPaymentOrder');
             const orderResponse = await createPaymentOrder({
                 planType: planType,
@@ -379,6 +388,11 @@ document.addEventListener('DOMContentLoaded', function() {
             
         } catch (error) {
             console.error('Payment process error:', error);
+            
+            // Log the full error details for debugging
+            if (error.code) console.error('Error code:', error.code);
+            if (error.details) console.error('Error details:', error.details);
+            
             showPaymentError(`Payment failed: ${error.message}`);
             setTimeout(resetPaymentButtons, 3000);
         }
@@ -390,12 +404,7 @@ document.addEventListener('DOMContentLoaded', function() {
             showPaymentProgress('Verifying payment...');
             
             // Call the Firebase function to verify payment
-            const functions = firebase.functions();
-            // Use emulator for local testing - remove in production
-            functions.useEmulator('localhost', 5001);
-            
-            // Specify region for non-emulator environment
-            // const functions = firebase.app().functions("asia-south1");
+            const functions = firebase.app().functions("asia-south1");
             
             const verifyPaymentFunction = functions.httpsCallable('verifyPayment');
             const verifyResponse = await verifyPaymentFunction({
@@ -492,21 +501,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Event listener for create gallery button (empty state)
-    const emptyStateCreateBtn = document.getElementById('emptyStateCreateBtn');
-    if (emptyStateCreateBtn) {
-        emptyStateCreateBtn.addEventListener('click', function() {
-            // Trigger the regular create gallery button
-            const createGalleryBtn = document.getElementById('createGalleryBtn');
-            if (createGalleryBtn) {
-                createGalleryBtn.click();
-            }
-        });
-    }
-
-    // Initialize dashboard
-    initializeDashboard();
-    
     // Set default selected plan on load
     if (document.querySelector('.plan-tab[data-plan="basic"]')) {
         document.querySelector('.plan-tab[data-plan="basic"]').click();
