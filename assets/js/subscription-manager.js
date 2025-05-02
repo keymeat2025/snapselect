@@ -557,8 +557,11 @@ function showPaymentProgress(message) {
     progressEl.style.display = 'block';
   }
   
-  document.querySelector('.payment-success')?.style.display = 'none';
-  document.querySelector('.payment-error')?.style.display = 'none';
+  const successEl = document.querySelector('.payment-success');
+  if (successEl) successEl.style.display = 'none';
+  
+  const errorEl = document.querySelector('.payment-error');
+  if (errorEl) errorEl.style.display = 'none';
   
   const confirmBtn = document.getElementById('confirmUpgradeBtn');
   if (confirmBtn) {
@@ -574,8 +577,11 @@ function showPaymentSuccess(message) {
     successEl.style.display = 'block';
   }
   
-  document.querySelector('.payment-progress')?.style.display = 'none';
-  document.querySelector('.payment-error')?.style.display = 'none';
+  const progressEl = document.querySelector('.payment-progress');
+  if (progressEl) progressEl.style.display = 'none';
+  
+  const errorEl = document.querySelector('.payment-error');
+  if (errorEl) errorEl.style.display = 'none';
   
   const confirmBtn = document.getElementById('confirmUpgradeBtn');
   if (confirmBtn) {
@@ -591,8 +597,11 @@ function showPaymentError(message) {
     errorEl.style.display = 'block';
   }
   
-  document.querySelector('.payment-progress')?.style.display = 'none';
-  document.querySelector('.payment-success')?.style.display = 'none';
+  const progressEl = document.querySelector('.payment-progress');
+  if (progressEl) progressEl.style.display = 'none';
+  
+  const successEl = document.querySelector('.payment-success');
+  if (successEl) successEl.style.display = 'none';
   
   const confirmBtn = document.getElementById('confirmUpgradeBtn');
   if (confirmBtn) {
@@ -755,3 +764,9 @@ window.subscriptionManager = {
 
 // Export subscription plans
 window.SUBSCRIPTION_PLANS = SUBSCRIPTION_PLANS;
+
+// Example of a proper React component (for reference only)
+/*
+// This is what you would use in a React component file:
+import React, { useState, useEffect } from 'react';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts
