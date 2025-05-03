@@ -46,32 +46,30 @@ const SUBSCRIPTION_PLANS = {
 let selectedPlan = null, selectedClient = null, currentUser = null, userClients = [], activePlans = [];
 
 // Initialize subscription manager
-
-
-function initSubscriptionManager() {
+async function initSubscriptionManager() {
   try {
     // Show loading overlay at the start
     showLoadingOverlay('Initializing...');
     
-    firebase.auth().onAuthStateChanged(user => {
+    firebase.auth().onAuthStateChanged(async user => {
       if (user) {
         currentUser = user;
         
-        // Use Promise.all to handle all data loading in parallel
-        Promise.all([
-          loadUserData(),
-          loadClientData(),
-          loadActivePlans()
-        ])
-        .then(() => {
+        try {
+          // Use Promise.all to handle all data loading in parallel
+          await Promise.all([
+            loadUserData(),
+            loadClientData(),
+            loadActivePlans()
+          ]);
+          
           // Hide loading overlay when all data is loaded
           hideLoadingOverlay();
-        })
-        .catch(error => {
+        } catch (error) {
           console.error('Error loading data:', error);
           showErrorMessage('Failed to load your data. Please refresh the page.');
           hideLoadingOverlay();
-        });
+        }
       } else {
         // Hide loading overlay if user is not logged in
         hideLoadingOverlay();
@@ -109,7 +107,14 @@ function setupEventListeners() {
   if (confirmUpgradeBtn) {
     confirmUpgradeBtn.addEventListener('click', function(e) {
       e.preventDefault();
-      if (selectedPlan) processPayment(selectedPlan);
+      
+      // Basic validation before processing
+      if (!selectedPlan || !selectedClient) {
+        showPaymentError('Please select both a plan and a client');
+        return;
+      }
+      
+      processPayment(selectedPlan);
     });
   }
   
@@ -138,7 +143,6 @@ function setupEventListeners() {
   });
 }
 
-
 // Modified loadUserData function to return a Promise
 async function loadUserData() {
   try {
@@ -165,7 +169,6 @@ async function loadUserData() {
     throw error; // Re-throw to be caught by the Promise.all
   }
 }
-
 
 // Modified loadClientData function to return a Promise
 async function loadClientData() {
@@ -763,6 +766,7 @@ function refreshAllData() {
     hideLoadingOverlay();
   });
 }
+
 /**
  * Update storage usage display
  */
@@ -815,11 +819,11 @@ function updateStorageUsage() {
     // Don't throw error here to prevent breaking the UI
   }
 }
+
 // Initialize on document ready
 document.addEventListener('DOMContentLoaded', initSubscriptionManager);
 
 // Export global functions
-
 window.subscriptionManager = {
   updatePlanDisplay,
   refreshSubscription: refreshAllData,
