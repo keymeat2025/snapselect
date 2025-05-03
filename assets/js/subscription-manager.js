@@ -461,14 +461,14 @@ function updatePlanDisplay(planType) {
   if (validityInfo) validityInfo.textContent = `Valid for ${planDetails.expiryDays} days`;
 }
 
+
 async function processPayment(planType) {
   try {
     showPaymentProgress('Processing your request...');
     
-    if (!selectedClient && selectedClient !== 'new') {
-      showPaymentError('Please select a client for this plan');
-      setTimeout(resetPaymentButtons, 3000);
-      return;
+    // Fix: Ensure selectedClient is properly handled
+    if (!selectedClient || selectedClient === 'undefined' || selectedClient === '') {
+      selectedClient = null;
     }
     
     // Handle client selection
@@ -490,8 +490,8 @@ async function processPayment(planType) {
       clientId = await createClient(clientName, clientEmail);
       
       if (!clientId) throw new Error('Failed to create client');
-    } else {
-      const client = userClients.find(c => c.id === selectedClient);
+    } else if (clientId) {
+      const client = userClients.find(c => c.id === clientId);
       clientName = client?.name || 'Selected Client';
     }
     
@@ -508,11 +508,13 @@ async function processPayment(planType) {
     
     // Create payment order
     const createPaymentOrder = functions.httpsCallable('createPaymentOrder');
+    
+    // Fix: Ensure clientId is properly passed
     const orderResponse = await createPaymentOrder({
       planType,
       amount: plan.price,
-      clientId,
-      clientName
+      clientId: clientId || null, // Explicitly set to null if not provided
+      clientName: clientName || ''
     });
     
     const orderData = orderResponse.data;
@@ -524,7 +526,7 @@ async function processPayment(planType) {
       amount: orderData.amount * 100,
       currency: orderData.currency || 'INR',
       name: 'SnapSelect',
-      description: `${plan.name} Plan for ${clientName}`,
+      description: `${plan.name} Plan for ${clientName || 'Default Plan'}`,
       order_id: orderData.orderId,
       handler: function(response) {
         verifyPayment(response.razorpay_order_id, response.razorpay_payment_id, response.razorpay_signature);
@@ -549,7 +551,7 @@ async function processPayment(planType) {
     showPaymentError(`Payment failed: ${error.message}`);
     setTimeout(resetPaymentButtons, 3000);
   }
-}
+}  
 
 async function verifyPayment(orderId, paymentId, signature) {
   try {
