@@ -5,6 +5,39 @@
 let auth;
 let db;
 
+// Add to firebase-auth.js
+const SecurityManager = {
+  validateInput(input) {
+    // Sanitize all user inputs
+    return input.replace(/[<>]/g, '');
+  },
+  
+  validateEmail(email) {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  },
+  
+  logSecurityEvent(event, details) {
+    firebase.firestore().collection('security_logs').add({
+      event: event,
+      details: details,
+      timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+      userId: firebase.auth().currentUser?.uid,
+      ip: this.getUserIP()
+    });
+  },
+  
+  async getUserIP() {
+    try {
+      const response = await fetch('https://api.ipify.org?format=json');
+      const data = await response.json();
+      return data.ip;
+    } catch (error) {
+      return 'unknown';
+    }
+  }
+};
+
 function initializeModule() {
   if (typeof window.firebaseServices === 'undefined') {
     console.log("Firebase services not available yet, retrying...");
@@ -352,6 +385,7 @@ function clearAllStorage() {
     }
   }
 }
+
 
 function clearHistoryState() {
   // Replace current page in history
