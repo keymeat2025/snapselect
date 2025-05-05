@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+//photographer-dashboard.html
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -18,6 +19,55 @@
     <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
 </head>
 <body>
+    <!-- Immediate Authentication Check -->
+    <script>
+    // Immediate authentication check
+    (function() {
+        // Check for authorization flag
+        const hasAuthorizationFlag = sessionStorage.getItem('authorizedAccess') === 'true';
+        
+        if (!hasAuthorizationFlag) {
+            // No authorization flag - redirect immediately
+            console.log("No authorization flag found - redirecting to login");
+            window.location.href = 'studiopanel-login.html';
+            return;
+        }
+        
+        // Check for authentication timestamp expiration
+        const authTimestamp = sessionStorage.getItem('authTimestamp');
+        if (authTimestamp) {
+            const elapsedTime = Date.now() - parseInt(authTimestamp);
+            const maxSessionTime = 24 * 60 * 60 * 1000; // 24 hours
+            
+            if (elapsedTime > maxSessionTime) {
+                // Session expired - clear and redirect
+                sessionStorage.removeItem('authorizedAccess');
+                sessionStorage.removeItem('authTimestamp');
+                
+                console.log("Session expired - redirecting to login");
+                window.location.href = 'studiopanel-login.html';
+                return;
+            }
+        }
+        
+        // Add event listener for visibility change to check auth when tab becomes visible
+        document.addEventListener('visibilitychange', function() {
+            if (document.visibilityState === 'visible') {
+                // Check if user is still authenticated when tab becomes visible
+                if (firebase && firebase.auth) {
+                    const currentUser = firebase.auth().currentUser;
+                    if (!currentUser) {
+                        // No user - redirect to login
+                        sessionStorage.removeItem('authorizedAccess');
+                        sessionStorage.removeItem('authTimestamp');
+                        window.location.href = 'studiopanel-login.html';
+                    }
+                }
+            }
+        });
+    })();
+    </script>
+
     <!-- Toast Container for Notifications -->
     <div id="toastContainer" class="toast-container"></div>
 
@@ -403,7 +453,6 @@
     <script src="../assets/js/firebase-db.js"></script>
     <script src="../assets/js/header-auth.js"></script>
     <script src="../assets/js/subscription-manager.js"></script>
-    <!-- Removed references to non-existent JS files -->
     <script src="../assets/js/notification-system.js"></script>
     
     <script>
@@ -413,6 +462,14 @@
                 // Remove local emulator reference which might be causing issues
                 // firebase.functions().useEmulator("localhost", 5001);
                 firebase.app().functions("asia-south1");
+            }
+            
+            // Secondary authentication check after DOM content loaded
+            // This provides a backup in case the initial check failed
+            if (!sessionStorage.getItem('authorizedAccess')) {
+                console.log("Unauthorized access attempt detected during DOM load");
+                window.location.href = 'studiopanel-login.html';
+                return;
             }
             
             // Show/hide new client form in upgrade modal
@@ -483,6 +540,13 @@
                 createClientForm.addEventListener('submit', async function(e) {
                     e.preventDefault();
                     
+                    // Verify authentication again before performing action
+                    if (!sessionStorage.getItem('authorizedAccess') || !firebase.auth().currentUser) {
+                        alert("Your session has expired. Please log in again.");
+                        window.location.href = 'studiopanel-login.html';
+                        return;
+                    }
+                    
                     const clientName = document.getElementById('clientName').value;
                     const clientEmail = document.getElementById('clientEmail').value;
                     const clientPhone = document.getElementById('clientPhone').value;
@@ -543,6 +607,16 @@
                     } catch (error) {
                         console.error('Error creating client:', error);
                         
+                        // If authentication error, redirect to login
+                        if (error.code === 'auth/user-token-expired' || 
+                            error.code === 'auth/user-token-revoked' || 
+                            error.code === 'auth/user-not-found' || 
+                            !firebase.auth().currentUser) {
+                            sessionStorage.removeItem('authorizedAccess');
+                            window.location.href = 'studiopanel-login.html';
+                            return;
+                        }
+                        
                         // Show error message
                         const toastContainer = document.getElementById('toastContainer');
                         if (toastContainer) {
@@ -597,6 +671,13 @@
             const refreshPlansBtn = document.getElementById('refreshPlansBtn');
             if (refreshPlansBtn) {
                 refreshPlansBtn.addEventListener('click', function() {
+                    // Verify authentication again before performing action
+                    if (!sessionStorage.getItem('authorizedAccess') || !firebase.auth().currentUser) {
+                        alert("Your session has expired. Please log in again.");
+                        window.location.href = 'studiopanel-login.html';
+                        return;
+                    }
+                    
                     this.classList.add('rotating');
                     
                     // Check if subscription manager exists before calling
@@ -610,6 +691,18 @@
                     }, 1000);
                 });
             }
+            
+            // Periodic check for authentication status
+            setInterval(function() {
+                if (!firebase.auth().currentUser) {
+                    // User is no longer authenticated
+                    sessionStorage.removeItem('authorizedAccess');
+                    sessionStorage.removeItem('authTimestamp');
+                    
+                    console.log("User authentication expired - redirecting to login");
+                    window.location.href = 'studiopanel-login.html';
+                }
+            }, 5 * 60 * 1000); // Check every 5 minutes
         });
     </script>
     <!-- Toast Container -->
