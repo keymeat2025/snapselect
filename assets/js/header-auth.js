@@ -6,7 +6,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const guestNav = document.getElementById('guestNav');
     const userNav = document.getElementById('userNav');
     const userName = document.getElementById('userName');
-    const userAvatar = document.getElementById('userAvatar');
+    const userAvatar = document.querySelector('.avatar-placeholder');
     const userMenuBtn = document.getElementById('userMenuBtn');
     const userDropdown = document.getElementById('userDropdown');
     const logoutBtn = document.getElementById('logoutBtn');
@@ -25,13 +25,18 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Check if current page requires authentication
     function checkProtectedPage() {
+        console.log("Checking if current page is protected");
+        
         const isProtectedPage = window.location.pathname.includes('/pages/') && 
                                !window.location.pathname.includes('login') &&
                                !window.location.pathname.includes('register');
         
         if (isProtectedPage) {
+            console.log("Current page is protected");
+            
             // Check for authorization flag
             const hasAuthorizationFlag = sessionStorage.getItem('authorizedAccess') === 'true';
+            console.log("Authorization flag:", hasAuthorizationFlag);
             
             if (!hasAuthorizationFlag) {
                 // No authorization flag - redirect to login
@@ -39,21 +44,32 @@ document.addEventListener('DOMContentLoaded', function() {
                 window.location.href = window.location.pathname.includes('/pages/') ? 
                                      'studiopanel-login.html' : 
                                      'pages/studiopanel-login.html';
+                return;
             }
             
             // Also check for Firebase auth if available
             if (firebase && firebase.auth) {
-                const currentUser = firebase.auth().currentUser;
+                console.log("Firebase auth is available, checking current user");
                 
-                if (!currentUser) {
-                    // No user logged in - redirect to login
-                    sessionStorage.removeItem('authorizedAccess');
-                    console.log("No authenticated user found - redirecting to login");
-                    window.location.href = window.location.pathname.includes('/pages/') ? 
-                                         'studiopanel-login.html' : 
-                                         'pages/studiopanel-login.html';
-                }
+                // Don't redirect immediately, use onAuthStateChanged to ensure it's initialized
+                firebase.auth().onAuthStateChanged(function(user) {
+                    if (!user) {
+                        console.log("No authenticated user found - redirecting to login");
+                        // Clear authorization flag
+                        sessionStorage.removeItem('authorizedAccess');
+                        sessionStorage.removeItem('authTimestamp');
+                        
+                        // Redirect to login
+                        window.location.href = window.location.pathname.includes('/pages/') ? 
+                                             'studiopanel-login.html' : 
+                                             'pages/studiopanel-login.html';
+                    } else {
+                        console.log("User authenticated:", user.email);
+                    }
+                });
             }
+        } else {
+            console.log("Current page is not protected");
         }
     }
     
@@ -66,6 +82,7 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
         
+        console.log("Firebase initialized, setting up auth observer");
         // Firebase is ready, set up auth observer
         setupAuthObserver();
     }
@@ -95,16 +112,31 @@ document.addEventListener('DOMContentLoaded', function() {
                         const userData = querySnapshot.docs[0].data();
                         // Update display name if available
                         if (userData.ownerName) {
-                            userName.textContent = userData.ownerName.split(' ')[0];
+                            if (userName) {
+                                userName.textContent = userData.ownerName.split(' ')[0];
+                            }
+                            if (userAvatar) {
+                                userAvatar.textContent = userData.ownerName.charAt(0).toUpperCase();
+                            }
                         }
                     } else {
                         // If no photographer profile found, use email
-                        userName.textContent = user.email.split('@')[0];
+                        if (userName) {
+                            userName.textContent = user.email.split('@')[0];
+                        }
+                        if (userAvatar) {
+                            userAvatar.textContent = user.email.charAt(0).toUpperCase();
+                        }
                     }
                 } catch (error) {
                     console.error("Error fetching user data:", error);
                     // Fallback to email if there's an error
-                    userName.textContent = user.email.split('@')[0];
+                    if (userName) {
+                        userName.textContent = user.email.split('@')[0];
+                    }
+                    if (userAvatar) {
+                        userAvatar.textContent = user.email.charAt(0).toUpperCase();
+                    }
                 }
             },
             // User logged out
@@ -138,36 +170,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             }
         );
-        
-        // Also check current auth state immediately
-        const auth = window.firebaseServices.auth;
-        if (auth) {
-            auth.onAuthStateChanged(user => {
-                if (!user) {
-                    updateUIForGuest();
-                    
-                    // Check if we're on a protected page
-                    const isProtectedPage = window.location.pathname.includes('/pages/') && 
-                                          !window.location.pathname.includes('login') &&
-                                          !window.location.pathname.includes('register');
-                    
-                    if (isProtectedPage) {
-                        // Clear authorization flag
-                        sessionStorage.removeItem('authorizedAccess');
-                        
-                        // Redirect to login
-                        console.log("No authenticated user found - redirecting to login");
-                        window.location.href = window.location.pathname.includes('/pages/') ? 
-                                             'studiopanel-login.html' : 
-                                             'pages/studiopanel-login.html';
-                    }
-                }
-            });
-        }
     }
     
     // Update UI for logged in user
     function updateUIForUser(user) {
+        console.log("Updating UI for logged in user");
+        
         if (guestNav) guestNav.style.display = 'none';
         if (userNav) userNav.style.display = 'block';
         
@@ -182,22 +190,20 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Display user's avatar
         if (userAvatar) {
-            if (user.photoURL) {
-                userAvatar.src = user.photoURL;
-            } else {
-                userAvatar.src = 'assets/images/placeholder-avatar.jpg';
-            }
+            userAvatar.textContent = user.email.charAt(0).toUpperCase();
         }
     }
     
     // Update UI for logged out user
     function updateUIForGuest() {
+        console.log("Updating UI for guest user");
+        
         if (guestNav) guestNav.style.display = 'block';
         if (userNav) userNav.style.display = 'none';
         
         // Clear user data from UI
         if (userName) userName.textContent = 'User';
-        if (userAvatar) userAvatar.src = 'assets/images/placeholder-avatar.jpg';
+        if (userAvatar) userAvatar.textContent = 'U';
         
         // Close dropdown if open
         if (userDropdown) {
@@ -240,9 +246,12 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Set up secure navigation for dashboard and other protected pages
     function setupSecureNavigation() {
+        console.log("Setting up secure navigation");
+        
         // Apply to dashboard link in user dropdown
         const dashboardLink = document.querySelector('.user-dropdown a[href*="dashboard"]');
         if (dashboardLink) {
+            console.log("Found dashboard link in dropdown, setting up secure navigation");
             // Update the href to prevent direct access
             dashboardLink.href = '#';
             
@@ -255,6 +264,7 @@ document.addEventListener('DOMContentLoaded', function() {
         allDashboardLinks.forEach(link => {
             // Check if it's not the dropdown link (already handled)
             if (!link.closest('.user-dropdown')) {
+                console.log("Found additional dashboard link, setting up secure navigation");
                 link.href = '#';
                 link.addEventListener('click', navigateToDashboard);
             }
@@ -264,21 +274,41 @@ document.addEventListener('DOMContentLoaded', function() {
     // Function to authorize dashboard access
     function navigateToDashboard(event) {
         event.preventDefault();
+        console.log("Dashboard link clicked");
         
         // Check if user is authenticated
         const auth = window.firebaseServices?.auth;
         const user = auth?.currentUser;
         
         if (user) {
-            // Set authorization flag for dashboard access
+            console.log("User authenticated, setting authorization flag");
+            
+            // Set authorization flag for dashboard access - make sure to set this BEFORE navigation
             sessionStorage.setItem('authorizedAccess', 'true');
             sessionStorage.setItem('authTimestamp', Date.now().toString());
             
-            // Navigate to dashboard
-            window.location.href = 'pages/studiopanel-dashboard.html';
+            // Verify the flag was set properly
+            console.log("Authorization flag check:", sessionStorage.getItem('authorizedAccess'));
+            
+            // Small delay to ensure flag is set before navigation
+            setTimeout(() => {
+                // Determine correct path based on current location
+                let dashboardPath;
+                if (window.location.pathname.includes('/pages/')) {
+                    dashboardPath = 'photographer-dashboard.html';
+                } else {
+                    dashboardPath = 'pages/photographer-dashboard.html';
+                }
+                
+                console.log("Navigating to dashboard:", dashboardPath);
+                window.location.href = dashboardPath;
+            }, 100);
         } else {
+            console.log("User not authenticated, redirecting to login");
             // Redirect to login if not authenticated
-            window.location.href = 'pages/studiopanel-login.html';
+            window.location.href = window.location.pathname.includes('/pages/') ? 
+                                  'studiopanel-login.html' : 
+                                  'pages/studiopanel-login.html';
         }
     }
     
@@ -347,15 +377,17 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         
         try {
-            // Clear any unsaved changes or local state if needed
-            clearLocalState();
-            
-            // Clear authorization flags first
+            // Clear authorization flag immediately before logout
+            console.log("Clearing authorization flags");
             sessionStorage.removeItem('authorizedAccess');
             sessionStorage.removeItem('authTimestamp');
             
+            // Clear any unsaved changes or local state if needed
+            clearLocalState();
+            
             // Sign out from Firebase
             await window.firebaseAuth.signOut();
+            console.log("Firebase sign out completed");
             
             // Close confirmation dialog
             const confirmDialog = document.getElementById('logoutConfirm');
@@ -367,15 +399,15 @@ document.addEventListener('DOMContentLoaded', function() {
             updateUIForGuest();
             
             // Redirect to home page
-            // For GitHub Pages, we need to use the relative path
+            console.log("Redirecting after logout");
             const currentPath = window.location.pathname;
+            
             if (currentPath.includes('index.html') || currentPath === '/' || currentPath === '/snapselect/') {
                 // Force reload to reset state
                 window.location.reload();
             } else {
                 // Use relative path for GitHub Pages
                 // If we're in a subdirectory, go up to the root
-                const pathParts = currentPath.split('/');
                 let redirectPath = '';
                 
                 // If we're in the 'pages' directory, go up one level
@@ -386,6 +418,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     redirectPath = 'index.html';
                 }
                 
+                console.log("Redirecting to:", redirectPath);
                 window.location.href = redirectPath;
             }
             
