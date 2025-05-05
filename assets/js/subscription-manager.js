@@ -45,10 +45,43 @@ const SUBSCRIPTION_PLANS = {
 // Global variables
 let selectedPlan = null, selectedClient = null, currentUser = null, userClients = [], activePlans = [];
 
-// Initialize subscription manager
+// Error handling function
+function handleError(error, context) {
+  console.error(`Error in ${context}:`, error);
+  
+  // Show user-friendly error
+  let userMessage = 'An error occurred. Please try again.';
+  
+  if (error.code === 'permission-denied') {
+    userMessage = 'You don\'t have permission to perform this action.';
+  } else if (error.code === 'network-error' || (error.message && error.message.includes('network'))) {
+    userMessage = 'Network error. Please check your connection.';
+  } else if (error.code === 'quota-exceeded') {
+    userMessage = 'You\'ve reached your plan limit. Please upgrade.';
+  }
+  
+  // Use NotificationSystem if available, otherwise use showErrorMessage
+  if (window.NotificationSystem && typeof window.NotificationSystem.showNotification === 'function') {
+    window.NotificationSystem.showNotification('error', 'Error', userMessage);
+  } else {
+    showErrorMessage(userMessage);
+  }
+  
+  // Log error for debugging
+  if (firebase && firebase.auth && firebase.auth().currentUser) {
+    firebase.firestore().collection('error_logs').add({
+      userId: firebase.auth().currentUser.uid,
+      error: error.toString(),
+      context: context,
+      timestamp: firebase.firestore.FieldValue.serverTimestamp()
+    }).catch(err => console.error('Error logging error:', err));
+  }
+}
 
+// Initialize subscription manager
 async function initSubscriptionManager() {
   try {
+    // Show loading overlay at the start
     showLoadingOverlay('Initializing...');
     
     firebase.auth().onAuthStateChanged(async user => {
@@ -56,15 +89,31 @@ async function initSubscriptionManager() {
         currentUser = user;
         
         try {
-          // Initialize security manager
-          SecurityManager.init();
+          // Check if SecurityManager exists before calling methods
+          if (window.SecurityManager && typeof window.SecurityManager.init === 'function') {
+            window.SecurityManager.init();
+          }
           
-          // Load cached data first for faster UX
-          const cachedClients = PerformanceManager.getCachedData('user_clients');
-          const cachedPlans = PerformanceManager.getCachedData('active_plans');
+          // Check if PerformanceManager exists before calling methods
+          const cachedClients = window.PerformanceManager && typeof window.PerformanceManager.getCachedData === 'function' 
+            ? window.PerformanceManager.getCachedData('user_clients') 
+            : null;
+            
+          const cachedPlans = window.PerformanceManager && typeof window.PerformanceManager.getCachedData === 'function'
+            ? window.PerformanceManager.getCachedData('active_plans')
+            : null;
           
-          if (cachedClients) updateClientDropdown(cachedClients);
-          if (cachedPlans) updateActivePlansDisplay(cachedPlans);
+          if (cachedClients) {
+            userClients = cachedClients;
+            updateClientDropdown();
+            updateClientList();
+          }
+          
+          if (cachedPlans) {
+            activePlans = cachedPlans;
+            updateActivePlansDisplay();
+            updateStorageUsage();
+          }
           
           // Load fresh data
           await Promise.all([
@@ -73,24 +122,28 @@ async function initSubscriptionManager() {
             loadActivePlans()
           ]);
           
-          // Cache the new data
-          PerformanceManager.cacheData('user_clients', userClients);
-          PerformanceManager.cacheData('active_plans', activePlans);
+          // Cache the new data if PerformanceManager exists
+          if (window.PerformanceManager && typeof window.PerformanceManager.cacheData === 'function') {
+            window.PerformanceManager.cacheData('user_clients', userClients);
+            window.PerformanceManager.cacheData('active_plans', activePlans);
+          }
           
           hideLoadingOverlay();
         } catch (error) {
-          handleError(error, 'initialization');
+          console.error('Error loading data:', error);
+          showErrorMessage('Failed to load your data. Please refresh the page.');
           hideLoadingOverlay();
         }
       } else {
+        // Hide loading overlay if user is not logged in
         hideLoadingOverlay();
       }
     });
     
     setupEventListeners();
   } catch (error) {
-    handleError(error, 'subscription manager init');
-    hideLoadingOverlay();
+    console.error('Error initializing subscription manager:', error);
+    hideLoadingOverlay(); // Make sure loading overlay is hidden even if there's an error
   }
 }
 
@@ -455,8 +508,11 @@ function updatePlanDisplay(planType) {
   const planDetails = SUBSCRIPTION_PLANS[planType];
   if (!planDetails) return;
 
-  document.getElementById('selectedPlanName').textContent = planDetails.name;
-  document.getElementById('selectedPlanPrice').textContent = `₹${planDetails.price}/${planDetails.priceType}`;
+  const planNameElement = document.getElementById('selectedPlanName');
+  const planPriceElement = document.getElementById('selectedPlanPrice');
+  
+  if (planNameElement) planNameElement.textContent = planDetails.name;
+  if (planPriceElement) planPriceElement.textContent = `₹${planDetails.price}/${planDetails.priceType}`;
 
   const featuresList = document.getElementById('planFeaturesList');
   if (featuresList) {
@@ -543,7 +599,7 @@ async function processPayment(planType) {
         verifyPayment(response.razorpay_order_id, response.razorpay_payment_id, response.razorpay_signature);
       },
       prefill: {
-        name: document.getElementById('userName').textContent,
+        name: document.getElementById('userName')?.textContent || '',
         email: currentUser.email || '',
       },
       theme: { color: '#4A90E2' },
@@ -701,8 +757,6 @@ async function cancelClientPlan(planId, clientId) {
 }
 
 // Loading and notification utilities
-
-// Improved loading overlay with timeout protection
 function showLoadingOverlay(message) {
   const loadingOverlay = document.getElementById('loadingOverlay');
   if (!loadingOverlay) return;
@@ -720,7 +774,6 @@ function showLoadingOverlay(message) {
     showErrorMessage('Operation timed out. Please try again.');
   }, 10000);
 }
-
 function hideLoadingOverlay() {
   const loadingOverlay = document.getElementById('loadingOverlay');
   if (loadingOverlay) loadingOverlay.style.display = 'none';
@@ -730,6 +783,13 @@ function hideLoadingOverlay() {
 }
 
 function showSuccessMessage(message) {
+  // Try to use NotificationSystem if available
+  if (window.NotificationSystem && typeof window.NotificationSystem.showNotification === 'function') {
+    window.NotificationSystem.showNotification('success', 'Success', message);
+    return;
+  }
+  
+  // Fallback to custom toast
   const toastContainer = document.getElementById('toastContainer');
   if (!toastContainer) return;
   
@@ -746,6 +806,13 @@ function showSuccessMessage(message) {
 }
 
 function showErrorMessage(message) {
+  // Try to use NotificationSystem if available
+  if (window.NotificationSystem && typeof window.NotificationSystem.showNotification === 'function') {
+    window.NotificationSystem.showNotification('error', 'Error', message);
+    return;
+  }
+  
+  // Fallback to custom toast
   const toastContainer = document.getElementById('toastContainer');
   if (!toastContainer) return;
   
@@ -772,6 +839,7 @@ function refreshAllData() {
   ])
   .then(() => {
     hideLoadingOverlay();
+    showSuccessMessage('Data refreshed successfully');
   })
   .catch(error => {
     console.error('Error refreshing data:', error);
@@ -780,40 +848,17 @@ function refreshAllData() {
   });
 }
 
-
-// Add to subscription-manager.js
-function handleError(error, context) {
-  console.error(`Error in ${context}:`, error);
-  
-  // Show user-friendly error
-  let userMessage = 'An error occurred. Please try again.';
-  
-  if (error.code === 'permission-denied') {
-    userMessage = 'You don\'t have permission to perform this action.';
-  } else if (error.code === 'network-error') {
-    userMessage = 'Network error. Please check your connection.';
-  } else if (error.code === 'quota-exceeded') {
-    userMessage = 'You\'ve reached your plan limit. Please upgrade.';
-  }
-  
-  NotificationSystem.showNotification('error', 'Error', userMessage);
-  
-  // Log error for debugging
-  if (firebase.auth().currentUser) {
-    firebase.firestore().collection('error_logs').add({
-      userId: firebase.auth().currentUser.uid,
-      error: error.toString(),
-      context: context,
-      timestamp: firebase.firestore.FieldValue.serverTimestamp()
-    });
-  }
-}
 /**
  * Update storage usage display
  */
-
 function updateStorageUsage() {
   try {
+    // Check if storage element exists
+    const storageUsedElement = document.getElementById('storageUsed');
+    const storageBarElement = document.getElementById('storageUsageBar');
+    
+    if (!storageUsedElement || !storageBarElement) return;
+    
     // Get storage from all sources
     const storageUsed = activePlans.reduce((total, plan) => 
       total + (plan.storageUsed || 0), 0
@@ -821,28 +866,29 @@ function updateStorageUsage() {
     
     const totalLimit = activePlans.reduce((total, plan) => 
       total + (SUBSCRIPTION_PLANS[plan.planType]?.storageLimit || 0), 0
-    );
+    ) || 1; // Ensure we don't divide by zero
     
     // Update UI
     const storageGB = (storageUsed / 1024).toFixed(2);
-    document.getElementById('storageUsed').textContent = `${storageGB} GB`;
+    storageUsedElement.textContent = `${storageGB} GB`;
     
     // Calculate percentage
     const usagePercent = Math.min((storageUsed / (totalLimit * 1024)) * 100, 100);
     
-    const storageBar = document.getElementById('storageUsageBar');
-    storageBar.style.width = `${usagePercent}%`;
+    storageBarElement.style.width = `${usagePercent}%`;
     
     // Add warning colors
+    storageBarElement.classList.remove('warning', 'critical');
     if (usagePercent > 90) {
-      storageBar.classList.add('critical');
+      storageBarElement.classList.add('critical');
     } else if (usagePercent > 75) {
-      storageBar.classList.add('warning');
+      storageBarElement.classList.add('warning');
     }
     
-    // Proactive notification
-    if (usagePercent > 80 && !localStorage.getItem('storageWarningShown')) {
-      NotificationSystem.showNotification(
+    // Proactive notification if NotificationSystem exists
+    if (usagePercent > 80 && !localStorage.getItem('storageWarningShown') && 
+        window.NotificationSystem && typeof window.NotificationSystem.showNotification === 'function') {
+      window.NotificationSystem.showNotification(
         'warning',
         'Storage Warning',
         `You're using ${usagePercent.toFixed(0)}% of your storage. Consider upgrading soon.`
@@ -854,8 +900,45 @@ function updateStorageUsage() {
   }
 }
 
+// Define a viewClient function if needed
+function viewClient(clientId) {
+  if (!clientId) return;
+  
+  // This function would navigate to a client view page
+  // For now, just show a message
+  showSuccessMessage(`Viewing client ${clientId}`);
+  
+  // In the future, you could implement:
+  // window.location.href = `/client-view.html?id=${clientId}`;
+}
+
+// Define a showExtendPlanModal function if needed
+function showExtendPlanModal(planId, clientId) {
+  if (!planId || !clientId) return;
+  
+  // This could show a modal for extending the plan
+  // For now, just show a message
+  showSuccessMessage(`Extend plan modal would show for plan ${planId}, client ${clientId}`);
+}
+
 // Initialize on document ready
-document.addEventListener('DOMContentLoaded', initSubscriptionManager);
+document.addEventListener('DOMContentLoaded', function() {
+  console.log('Subscription manager initializing...');
+  
+  // Check if required JS libraries are loaded
+  const requiredLibraries = {
+    firebase: typeof firebase !== 'undefined',
+    razorpay: typeof Razorpay !== 'undefined',
+    performanceManager: typeof window.PerformanceManager !== 'undefined',
+    securityManager: typeof window.SecurityManager !== 'undefined',
+    notificationSystem: typeof window.NotificationSystem !== 'undefined'
+  };
+  
+  console.log('Required libraries status:', requiredLibraries);
+  
+  // Try to initialize anyway
+  initSubscriptionManager();
+});
 
 // Export global functions
 window.subscriptionManager = {
