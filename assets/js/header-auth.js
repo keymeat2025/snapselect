@@ -440,6 +440,9 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
     
+
+
+
     // Clear any local state
     function clearLocalState() {
         // Clear any localStorage items that are not related to Firebase
@@ -450,3 +453,110 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Clear all session storage except the logout flag
         const logoutFlag = sessionStorage.getItem('userLoggedOut');
+        
+        // Clear all items from sessionStorage
+        sessionStorage.clear();
+        
+        // Restore the logout flag if it was set
+        if (logoutFlag) {
+            sessionStorage.setItem('userLoggedOut', logoutFlag);
+        }
+        
+        // Clear cookies related to the application
+        // (but not Firebase Auth cookies, those will be handled by Firebase)
+        const appCookies = ['snapselect_preferences', 'snapselect_lastVisited', 'snapselect_theme'];
+        appCookies.forEach(cookieName => {
+            document.cookie = `${cookieName}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
+        });
+        
+        console.log("Local application state cleared");
+    }
+    
+    // Special handling for cache control
+    function setupCacheControl() {
+        // Add no-cache headers for protected pages
+        if (window.location.pathname.includes('/pages/') && 
+            !window.location.pathname.includes('login') &&
+            !window.location.pathname.includes('register')) {
+            
+            // Add meta tags to prevent caching
+            const metaNoCache = document.createElement('meta');
+            metaNoCache.setAttribute('http-equiv', 'Cache-Control');
+            metaNoCache.setAttribute('content', 'no-cache, no-store, must-revalidate');
+            document.head.appendChild(metaNoCache);
+            
+            const metaNoStore = document.createElement('meta');
+            metaNoStore.setAttribute('http-equiv', 'Pragma');
+            metaNoStore.setAttribute('content', 'no-cache');
+            document.head.appendChild(metaNoStore);
+            
+            const metaExpires = document.createElement('meta');
+            metaExpires.setAttribute('http-equiv', 'Expires');
+            metaExpires.setAttribute('content', '0');
+            document.head.appendChild(metaExpires);
+            
+            console.log("Cache control headers added to protected page");
+        }
+    }
+    
+    // Setup cache control when the page loads
+    setupCacheControl();
+    
+    // Handle browser navigation events
+    function setupNavigationHandling() {
+        // Listen for popstate event (user pressing back or forward buttons)
+        window.addEventListener('popstate', function(event) {
+            console.log("Navigation event detected");
+            
+            // Check if we're on a protected page
+            const isProtectedPage = window.location.pathname.includes('/pages/') && 
+                                   !window.location.pathname.includes('login') &&
+                                   !window.location.pathname.includes('register');
+            
+            if (isProtectedPage) {
+                // Re-verify authorization on navigation events
+                const hasAuthorizationFlag = sessionStorage.getItem('authorizedAccess') === 'true';
+                const userLoggedOut = sessionStorage.getItem('userLoggedOut') === 'true';
+                
+                if (!hasAuthorizationFlag || userLoggedOut) {
+                    console.log("Invalid session state after navigation - redirecting to login");
+                    // Clear flags
+                    sessionStorage.removeItem('userLoggedOut');
+                    
+                    // Redirect
+                    window.location.replace('studiopanel-login.html');
+                }
+            }
+        });
+        
+        // Handle page visibility changes
+        document.addEventListener('visibilitychange', function() {
+            if (document.visibilityState === 'visible') {
+                console.log("Page became visible - verifying session");
+                
+                // Check if we're on a protected page
+                const isProtectedPage = window.location.pathname.includes('/pages/') && 
+                                       !window.location.pathname.includes('login') &&
+                                       !window.location.pathname.includes('register');
+                
+                if (isProtectedPage) {
+                    // Re-verify authorization
+                    const hasAuthorizationFlag = sessionStorage.getItem('authorizedAccess') === 'true';
+                    const userLoggedOut = sessionStorage.getItem('userLoggedOut') === 'true';
+                    
+                    if (!hasAuthorizationFlag || userLoggedOut) {
+                        console.log("Invalid session state when returning to page - redirecting to login");
+                        // Clear flags
+                        sessionStorage.removeItem('userLoggedOut');
+                        
+                        // Redirect
+                        window.location.replace('studiopanel-login.html');
+                    }
+                }
+            }
+        });
+    }
+    
+    // Setup navigation event handling
+    setupNavigationHandling();
+    });
