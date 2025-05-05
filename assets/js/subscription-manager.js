@@ -268,7 +268,26 @@ async function loadActivePlans() {
     
     activePlans = [];
     plansSnapshot.forEach(doc => {
-      activePlans.push({ id: doc.id, ...doc.data() });
+      const planData = { id: doc.id, ...doc.data() };
+      activePlans.push(planData);
+      
+      // Create notification for expiring plans
+      if (planData.status === PLAN_STATUS.EXPIRING_SOON && 
+          planData.daysLeftBeforeExpiration <= 7 &&
+          !localStorage.getItem(`plan_expiry_notified_${planData.id}`)) {
+        
+        if (window.NotificationSystem) {
+          const client = userClients.find(c => c.id === planData.clientId);
+          window.NotificationSystem.createNotificationFromEvent({
+            type: 'plan_expiring',
+            planName: SUBSCRIPTION_PLANS[planData.planType]?.name || planData.planType,
+            clientName: client?.name || planData.clientName || 'your client',
+            daysLeft: planData.daysLeftBeforeExpiration
+          });
+        }
+        
+        localStorage.setItem(`plan_expiry_notified_${planData.id}`, 'true');
+      }
     });
     
     updateActivePlansDisplay();
@@ -495,6 +514,14 @@ async function createClient(name, email) {
       planActive: false
     });
     
+    // Add notification for client creation
+    if (window.NotificationSystem) {
+      window.NotificationSystem.createNotificationFromEvent({
+        type: 'client_created',
+        clientName: name || email || 'New client'
+      });
+    }
+    
     await loadClientData();
     return clientRef.id;
   } catch (error) {
@@ -637,6 +664,22 @@ async function verifyPayment(orderId, paymentId, signature) {
     if (responseData && responseData.success) {
       showPaymentSuccess(`Payment successful! The ${SUBSCRIPTION_PLANS[responseData.planType]?.name || responseData.planType} plan has been activated for your client.`);
       
+      // Add notification for successful payment
+      if (window.NotificationSystem) {
+        window.NotificationSystem.createNotificationFromEvent({
+          type: 'payment_successful',
+          amount: SUBSCRIPTION_PLANS[responseData.planType]?.price || 0,
+          planName: SUBSCRIPTION_PLANS[responseData.planType]?.name || responseData.planType,
+          clientName: document.getElementById('clientSelect')?.options[document.getElementById('clientSelect')?.selectedIndex]?.text || 'your client'
+        });
+        
+        window.NotificationSystem.createNotificationFromEvent({
+          type: 'plan_purchased',
+          planName: SUBSCRIPTION_PLANS[responseData.planType]?.name || responseData.planType,
+          clientName: document.getElementById('clientSelect')?.options[document.getElementById('clientSelect')?.selectedIndex]?.text || 'your client'
+        });
+      }
+      
       setTimeout(() => {
         hideUpgradeModal();
         loadClientData();
@@ -714,6 +757,7 @@ function showPaymentError(message) {
   }
 }
 
+
 function resetPaymentButtons() {
   const confirmBtn = document.getElementById('confirmUpgradeBtn');
   if (confirmBtn) {
@@ -742,6 +786,20 @@ async function cancelClientPlan(planId, clientId) {
     
     if (result.data && result.data.success) {
       showSuccessMessage('Plan canceled successfully');
+      
+      // Add notification for plan cancellation
+      if (window.NotificationSystem) {
+        const plan = activePlans.find(p => p.id === planId);
+        const client = userClients.find(c => c.id === clientId);
+        if (plan && client) {
+          window.NotificationSystem.createNotificationFromEvent({
+            type: 'info',
+            title: 'Plan Canceled',
+            message: `The ${SUBSCRIPTION_PLANS[plan.planType]?.name || plan.planType} plan for ${client.name || 'your client'} has been canceled.`
+          });
+        }
+      }
+      
       loadClientData();
       loadActivePlans();
     } else {
@@ -774,6 +832,7 @@ function showLoadingOverlay(message) {
     showErrorMessage('Operation timed out. Please try again.');
   }, 10000);
 }
+
 function hideLoadingOverlay() {
   const loadingOverlay = document.getElementById('loadingOverlay');
   if (loadingOverlay) loadingOverlay.style.display = 'none';
@@ -885,14 +944,14 @@ function updateStorageUsage() {
       storageBarElement.classList.add('warning');
     }
     
-    // Proactive notification if NotificationSystem exists
-    if (usagePercent > 80 && !localStorage.getItem('storageWarningShown') && 
-        window.NotificationSystem && typeof window.NotificationSystem.showNotification === 'function') {
-      window.NotificationSystem.showNotification(
-        'warning',
-        'Storage Warning',
-        `You're using ${usagePercent.toFixed(0)}% of your storage. Consider upgrading soon.`
-      );
+    // Add notification for storage warning
+    if (usagePercent > 80 && !localStorage.getItem('storageWarningShown')) {
+      if (window.NotificationSystem) {
+        window.NotificationSystem.createNotificationFromEvent({
+          type: 'storage_warning',
+          percentage: usagePercent.toFixed(0)
+        });
+      }
       localStorage.setItem('storageWarningShown', 'true');
     }
   } catch (error) {
