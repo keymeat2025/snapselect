@@ -813,52 +813,44 @@ function handleError(error, context) {
  */
 
 function updateStorageUsage() {
-  
   try {
-    // Calculate total storage used across all active plans
-    const totalStorage = activePlans.reduce((total, plan) => {
-      return total + (plan.storageUsed || 0);
-    }, 0);
+    // Get storage from all sources
+    const storageUsed = activePlans.reduce((total, plan) => 
+      total + (plan.storageUsed || 0), 0
+    );
     
-    // Calculate total storage limit across all active plans
-    const totalStorageLimit = activePlans.reduce((total, plan) => {
-      return total + (SUBSCRIPTION_PLANS[plan.planType]?.storageLimit || 1);
-    }, 1); // Default to 1GB if no active plans
-    
-    // Convert to GB for display
-    const storageGB = (totalStorage / 1024).toFixed(2);
+    const totalLimit = activePlans.reduce((total, plan) => 
+      total + (SUBSCRIPTION_PLANS[plan.planType]?.storageLimit || 0), 0
+    );
     
     // Update UI
-    const storageEl = document.getElementById('storageUsed');
-    if (storageEl) {
-      storageEl.textContent = `${storageGB} GB`;
-    }
+    const storageGB = (storageUsed / 1024).toFixed(2);
+    document.getElementById('storageUsed').textContent = `${storageGB} GB`;
     
     // Calculate percentage
-    const usagePercent = Math.min((totalStorage / (totalStorageLimit * 1024)) * 100, 100);
+    const usagePercent = Math.min((storageUsed / (totalLimit * 1024)) * 100, 100);
     
-    // Update UI
-    const storageBarEl = document.getElementById('storageUsageBar');
-    if (storageBarEl) {
-      storageBarEl.style.width = `${usagePercent}%`;
+    const storageBar = document.getElementById('storageUsageBar');
+    storageBar.style.width = `${usagePercent}%`;
+    
+    // Add warning colors
+    if (usagePercent > 90) {
+      storageBar.classList.add('critical');
+    } else if (usagePercent > 75) {
+      storageBar.classList.add('warning');
     }
     
-    const storageTextEl = document.getElementById('storageUsageText');
-    if (storageTextEl) {
-      storageTextEl.textContent = `${storageGB}/${totalStorageLimit} GB`;
-    }
-    
-    // Add warning class if usage is high
-    if (storageBarEl) {
-      if (usagePercent > 90) {
-        storageBarEl.classList.add('high-usage');
-      } else {
-        storageBarEl.classList.remove('high-usage');
-      }
+    // Proactive notification
+    if (usagePercent > 80 && !localStorage.getItem('storageWarningShown')) {
+      NotificationSystem.showNotification(
+        'warning',
+        'Storage Warning',
+        `You're using ${usagePercent.toFixed(0)}% of your storage. Consider upgrading soon.`
+      );
+      localStorage.setItem('storageWarningShown', 'true');
     }
   } catch (error) {
     console.error('Error updating storage usage:', error);
-    // Don't throw error here to prevent breaking the UI
   }
 }
 
