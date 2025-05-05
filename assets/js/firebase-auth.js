@@ -67,9 +67,9 @@ const SecurityManager = {
       
       // Redirect to login
       console.log("Security check - redirecting to login page");
-      window.location.href = window.location.pathname.includes('/pages/') ? 
+      window.location.replace(window.location.pathname.includes('/pages/') ? 
                             'studiopanel-login.html' : 
-                            'pages/studiopanel-login.html';
+                            'pages/studiopanel-login.html');
       return false;
     }
     
@@ -139,9 +139,9 @@ function setupAuthObserver(onUserLoggedIn, onUserLoggedOut) {
         
         console.log("Auth state changed - redirecting to login page");
         // Redirect to login
-        window.location.href = window.location.pathname.includes('/pages/') ? 
+        window.location.replace(window.location.pathname.includes('/pages/') ? 
                               'studiopanel-login.html' : 
-                              'pages/studiopanel-login.html';
+                              'pages/studiopanel-login.html');
       }
     }
   });
@@ -222,6 +222,9 @@ async function signOut() {
     console.log("Clearing authorization flags");
     sessionStorage.removeItem('authorizedAccess');
     sessionStorage.removeItem('authTimestamp');
+    
+    // Set logout flag to handle back button navigation
+    sessionStorage.setItem('userLoggedOut', 'true');
     
     await auth.signOut();
     console.log("Firebase sign out completed");
@@ -317,6 +320,9 @@ async function signOut(options = {}) {
     sessionStorage.removeItem('authorizedAccess');
     sessionStorage.removeItem('authTimestamp');
     
+    // Set logout flag to handle back button navigation
+    sessionStorage.setItem('userLoggedOut', 'true');
+    
     // 1. Clear any pending operations
     await cancelPendingUploads();
     
@@ -343,7 +349,7 @@ async function signOut(options = {}) {
     // 7. Redirect if requested
     if (settings.redirect) {
       console.log(`Redirecting to ${settings.redirectUrl}`);
-      window.location.href = settings.redirectUrl;
+      window.location.replace(settings.redirectUrl);
     }
   } catch (error) {
     console.error("Sign out error:", error.message);
@@ -478,12 +484,15 @@ function clearAllStorage() {
 }
 
 function clearHistoryState() {
-  // Replace current page in history
-  window.history.replaceState(null, '', window.location.href);
-  
-  // Try to prevent back navigation to protected pages
-  window.history.pushState(null, '', window.location.href);
-  window.onpopstate = function () {
-    window.history.go(1);
-  };
+  // Modified approach that doesn't interfere with normal back button operation
+  // Instead of manipulating history, we'll simply add a flag to the current state
+  try {
+    const state = { loggedOut: true };
+    window.history.replaceState(state, '', window.location.href);
+    
+    // Don't set onpopstate handler to avoid interfering with normal navigation
+    console.log("History state updated to mark logout");
+  } catch (e) {
+    console.warn("Could not update history state:", e);
+  }
 }
