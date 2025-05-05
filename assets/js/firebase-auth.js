@@ -5,7 +5,7 @@
 let auth;
 let db;
 
-// Add to firebase-auth.js
+// Security Manager implementation
 const SecurityManager = {
   validateInput(input) {
     // Sanitize all user inputs
@@ -35,6 +35,36 @@ const SecurityManager = {
     } catch (error) {
       return 'unknown';
     }
+  },
+  
+  // Add authentication verification method
+  checkAuthentication() {
+    const currentUser = firebase.auth().currentUser;
+    const isAuthenticated = !!currentUser;
+    
+    // Check if we're on a protected page
+    const isProtectedPage = window.location.pathname.includes('/pages/') && 
+                           !window.location.pathname.includes('login') &&
+                           !window.location.pathname.includes('register');
+    
+    // Check for authorized access flag in addition to auth state
+    const hasAuthorizationFlag = sessionStorage.getItem('authorizedAccess') === 'true';
+    
+    if (isProtectedPage && (!isAuthenticated || !hasAuthorizationFlag)) {
+      // Log security event
+      this.logSecurityEvent('unauthorized_access_attempt', {
+        page: window.location.pathname,
+        redirected: true
+      });
+      
+      // Redirect to login
+      window.location.href = window.location.pathname.includes('/pages/') ? 
+                            'studiopanel-login.html' : 
+                            'pages/studiopanel-login.html';
+      return false;
+    }
+    
+    return isAuthenticated;
   }
 };
 
@@ -58,8 +88,12 @@ function initializeModule() {
     signOut,
     resetPassword,
     createPhotographerProfile,
-    getCurrentUser
+    getCurrentUser,
+    SecurityManager
   };
+  
+  // Run security check for protected pages
+  SecurityManager.checkAuthentication();
   
   console.log("Firebase Auth module initialized successfully");
 }
@@ -81,6 +115,21 @@ function setupAuthObserver(onUserLoggedIn, onUserLoggedOut) {
     } else {
       // User is signed out
       if (onUserLoggedOut) onUserLoggedOut();
+      
+      // Check if we're on a protected page and redirect if needed
+      const isProtectedPage = window.location.pathname.includes('/pages/') && 
+                             !window.location.pathname.includes('login') &&
+                             !window.location.pathname.includes('register');
+      
+      if (isProtectedPage) {
+        // Clear authorization flag
+        sessionStorage.removeItem('authorizedAccess');
+        
+        // Redirect to login
+        window.location.href = window.location.pathname.includes('/pages/') ? 
+                              'studiopanel-login.html' : 
+                              'pages/studiopanel-login.html';
+      }
     }
   });
 }
@@ -108,6 +157,9 @@ async function signInWithEmail(email, password) {
   
   try {
     const userCredential = await auth.signInWithEmailAndPassword(email, password);
+    // Set authorization flag on successful login
+    sessionStorage.setItem('authorizedAccess', 'true');
+    sessionStorage.setItem('authTimestamp', Date.now().toString());
     return userCredential.user;
   } catch (error) {
     console.error("Sign in error:", error.message);
@@ -124,6 +176,9 @@ async function signInWithGoogle() {
   try {
     const provider = new firebase.auth.GoogleAuthProvider();
     const result = await auth.signInWithPopup(provider);
+    // Set authorization flag on successful login
+    sessionStorage.setItem('authorizedAccess', 'true');
+    sessionStorage.setItem('authTimestamp', Date.now().toString());
     return result.user;
   } catch (error) {
     console.error("Google sign in error:", error.message);
@@ -138,6 +193,10 @@ async function signOut() {
   }
   
   try {
+    // Clear authorization flag immediately
+    sessionStorage.removeItem('authorizedAccess');
+    sessionStorage.removeItem('authTimestamp');
+    
     await auth.signOut();
   } catch (error) {
     console.error("Sign out error:", error.message);
@@ -225,6 +284,10 @@ async function signOut(options = {}) {
   
   try {
     console.log("Starting logout process...");
+    
+    // Clear authorization flag immediately
+    sessionStorage.removeItem('authorizedAccess');
+    sessionStorage.removeItem('authTimestamp');
     
     // 1. Clear any pending operations
     await cancelPendingUploads();
@@ -385,7 +448,6 @@ function clearAllStorage() {
     }
   }
 }
-
 
 function clearHistoryState() {
   // Replace current page in history
