@@ -19,45 +19,47 @@
     <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
 </head>
 <body>
-    <!-- Immediate Authentication Check -->
-    <script>
+ 
     // Immediate authentication check
+   <!-- Add this script right after the opening <body> tag in photographer-dashboard.html -->
+    <script>
+    // Immediate authentication check on page load
     (function() {
-        // Check for authorization flag
+        console.log("Running authentication check on dashboard page load");
+        console.log("Authorization flag:", sessionStorage.getItem('authorizedAccess'));
+        
+        // Check for authorization flag immediately
         const hasAuthorizationFlag = sessionStorage.getItem('authorizedAccess') === 'true';
         
         if (!hasAuthorizationFlag) {
-            // No authorization flag - redirect immediately
             console.log("No authorization flag found - redirecting to login");
             window.location.href = 'studiopanel-login.html';
             return;
         }
         
-        // Check for authentication timestamp expiration
+        // Check for authentication timestamp
         const authTimestamp = sessionStorage.getItem('authTimestamp');
         if (authTimestamp) {
             const elapsedTime = Date.now() - parseInt(authTimestamp);
             const maxSessionTime = 24 * 60 * 60 * 1000; // 24 hours
             
             if (elapsedTime > maxSessionTime) {
-                // Session expired - clear and redirect
+                console.log("Session expired - redirecting to login");
                 sessionStorage.removeItem('authorizedAccess');
                 sessionStorage.removeItem('authTimestamp');
-                
-                console.log("Session expired - redirecting to login");
                 window.location.href = 'studiopanel-login.html';
                 return;
             }
         }
         
-        // Add event listener for visibility change to check auth when tab becomes visible
+        // Add visibility change event listener
         document.addEventListener('visibilitychange', function() {
             if (document.visibilityState === 'visible') {
-                // Check if user is still authenticated when tab becomes visible
-                if (firebase && firebase.auth) {
+                // Check authentication when tab becomes visible again
+                if (typeof firebase !== 'undefined' && firebase.auth) {
                     const currentUser = firebase.auth().currentUser;
                     if (!currentUser) {
-                        // No user - redirect to login
+                        console.log("No authenticated user found on visibility change - redirecting to login");
                         sessionStorage.removeItem('authorizedAccess');
                         sessionStorage.removeItem('authTimestamp');
                         window.location.href = 'studiopanel-login.html';
@@ -65,7 +67,42 @@
                 }
             }
         });
+        
+        // Verify Firebase auth once loaded
+        if (typeof firebase !== 'undefined' && firebase.auth) {
+            // If Firebase is loaded, check current user
+            checkFirebaseAuth();
+        } else {
+            // If Firebase isn't loaded yet, wait for it
+            const checkInterval = setInterval(function() {
+                if (typeof firebase !== 'undefined' && firebase.auth) {
+                    clearInterval(checkInterval);
+                    checkFirebaseAuth();
+                }
+            }, 100);
+            
+            // Set a timeout to clear the interval after 10 seconds
+            setTimeout(function() {
+                clearInterval(checkInterval);
+            }, 10000);
+        }
+        
+        function checkFirebaseAuth() {
+            firebase.auth().onAuthStateChanged(function(user) {
+                if (!user) {
+                    console.log("Firebase auth check failed - no current user");
+                    sessionStorage.removeItem('authorizedAccess');
+                    sessionStorage.removeItem('authTimestamp');
+                    window.location.href = 'studiopanel-login.html';
+                } else {
+                    console.log("Firebase auth verified with user:", user.email);
+                    // Update timestamp on successful verification
+                    sessionStorage.setItem('authTimestamp', Date.now().toString());
+                }
+            });
+        }
     })();
+    </script>
     </script>
 
     <!-- Toast Container for Notifications -->
