@@ -780,11 +780,40 @@ function refreshAllData() {
   });
 }
 
+
+// Add to subscription-manager.js
+function handleError(error, context) {
+  console.error(`Error in ${context}:`, error);
+  
+  // Show user-friendly error
+  let userMessage = 'An error occurred. Please try again.';
+  
+  if (error.code === 'permission-denied') {
+    userMessage = 'You don\'t have permission to perform this action.';
+  } else if (error.code === 'network-error') {
+    userMessage = 'Network error. Please check your connection.';
+  } else if (error.code === 'quota-exceeded') {
+    userMessage = 'You\'ve reached your plan limit. Please upgrade.';
+  }
+  
+  NotificationSystem.showNotification('error', 'Error', userMessage);
+  
+  // Log error for debugging
+  if (firebase.auth().currentUser) {
+    firebase.firestore().collection('error_logs').add({
+      userId: firebase.auth().currentUser.uid,
+      error: error.toString(),
+      context: context,
+      timestamp: firebase.firestore.FieldValue.serverTimestamp()
+    });
+  }
+}
 /**
  * Update storage usage display
  */
 
 function updateStorageUsage() {
+  
   try {
     // Calculate total storage used across all active plans
     const totalStorage = activePlans.reduce((total, plan) => {
