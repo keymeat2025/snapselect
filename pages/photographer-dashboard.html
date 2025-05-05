@@ -57,6 +57,25 @@
                 <div class="hamburger">
                     <i class="fas fa-bars"></i>
                 </div>
+                <!-- Notification Bell -->
+                <div class="notification-container">
+                  <button id="notificationBtn" class="notification-btn">
+                    <i class="fas fa-bell"></i>
+                    <span id="notificationCount" class="notification-badge">0</span>
+                  </button>
+                  
+                  <div id="notificationDropdown" class="notification-dropdown">
+                    <div class="notification-header">
+                      <h3>Notifications</h3>
+                      <button id="markAllReadBtn" class="mark-all-read">Mark all as read</button>
+                    </div>
+                    <div id="notificationList" class="notification-list">
+                      <!-- Notifications will be loaded here -->
+                    </div>
+                  </div>
+                </div>
+
+                
             </nav>
         </div>
     </header>
@@ -590,5 +609,7 @@
             }
         });
     </script>
+    <!-- Toast Container -->
+    <div id="toastContainer"></div>
 </body>
 </html>
