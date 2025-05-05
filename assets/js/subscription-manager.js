@@ -46,9 +46,9 @@ const SUBSCRIPTION_PLANS = {
 let selectedPlan = null, selectedClient = null, currentUser = null, userClients = [], activePlans = [];
 
 // Initialize subscription manager
+
 async function initSubscriptionManager() {
   try {
-    // Show loading overlay at the start
     showLoadingOverlay('Initializing...');
     
     firebase.auth().onAuthStateChanged(async user => {
@@ -56,30 +56,41 @@ async function initSubscriptionManager() {
         currentUser = user;
         
         try {
-          // Use Promise.all to handle all data loading in parallel
+          // Initialize security manager
+          SecurityManager.init();
+          
+          // Load cached data first for faster UX
+          const cachedClients = PerformanceManager.getCachedData('user_clients');
+          const cachedPlans = PerformanceManager.getCachedData('active_plans');
+          
+          if (cachedClients) updateClientDropdown(cachedClients);
+          if (cachedPlans) updateActivePlansDisplay(cachedPlans);
+          
+          // Load fresh data
           await Promise.all([
             loadUserData(),
             loadClientData(),
             loadActivePlans()
           ]);
           
-          // Hide loading overlay when all data is loaded
+          // Cache the new data
+          PerformanceManager.cacheData('user_clients', userClients);
+          PerformanceManager.cacheData('active_plans', activePlans);
+          
           hideLoadingOverlay();
         } catch (error) {
-          console.error('Error loading data:', error);
-          showErrorMessage('Failed to load your data. Please refresh the page.');
+          handleError(error, 'initialization');
           hideLoadingOverlay();
         }
       } else {
-        // Hide loading overlay if user is not logged in
         hideLoadingOverlay();
       }
     });
     
     setupEventListeners();
   } catch (error) {
-    console.error('Error initializing subscription manager:', error);
-    hideLoadingOverlay(); // Make sure loading overlay is hidden even if there's an error
+    handleError(error, 'subscription manager init');
+    hideLoadingOverlay();
   }
 }
 
