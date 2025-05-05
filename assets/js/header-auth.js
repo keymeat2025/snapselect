@@ -34,6 +34,16 @@ document.addEventListener('DOMContentLoaded', function() {
         if (isProtectedPage) {
             console.log("Current page is protected");
             
+            // Check if user previously logged out
+            const userLoggedOut = sessionStorage.getItem('userLoggedOut') === 'true';
+            if (userLoggedOut) {
+                // If user intentionally logged out and is trying to use back button
+                console.log("User previously logged out - preventing access via back button");
+                sessionStorage.removeItem('userLoggedOut'); // Clear the flag
+                window.location.replace('studiopanel-login.html'); // Use replace to avoid adding to history
+                return;
+            }
+            
             // Check for authorization flag
             const hasAuthorizationFlag = sessionStorage.getItem('authorizedAccess') === 'true';
             console.log("Authorization flag:", hasAuthorizationFlag);
@@ -41,9 +51,7 @@ document.addEventListener('DOMContentLoaded', function() {
             if (!hasAuthorizationFlag) {
                 // No authorization flag - redirect to login
                 console.log("No authorization flag found - redirecting to login");
-                window.location.href = window.location.pathname.includes('/pages/') ? 
-                                     'studiopanel-login.html' : 
-                                     'pages/studiopanel-login.html';
+                window.location.replace('studiopanel-login.html');
                 return;
             }
             
@@ -60,9 +68,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         sessionStorage.removeItem('authTimestamp');
                         
                         // Redirect to login
-                        window.location.href = window.location.pathname.includes('/pages/') ? 
-                                             'studiopanel-login.html' : 
-                                             'pages/studiopanel-login.html';
+                        window.location.replace('studiopanel-login.html');
                     } else {
                         console.log("User authenticated:", user.email);
                     }
@@ -154,11 +160,12 @@ document.addEventListener('DOMContentLoaded', function() {
                     sessionStorage.removeItem('authorizedAccess');
                     sessionStorage.removeItem('authTimestamp');
                     
+                    // Set logout flag
+                    sessionStorage.setItem('userLoggedOut', 'true');
+                    
                     // Redirect to login
                     console.log("User logged out while on protected page - redirecting to login");
-                    window.location.href = window.location.pathname.includes('/pages/') ? 
-                                         'studiopanel-login.html' : 
-                                         'pages/studiopanel-login.html';
+                    window.location.replace('studiopanel-login.html');
                 } else {
                     // Force immediate UI update
                     setTimeout(() => {
@@ -382,6 +389,9 @@ document.addEventListener('DOMContentLoaded', function() {
             sessionStorage.removeItem('authorizedAccess');
             sessionStorage.removeItem('authTimestamp');
             
+            // Set logout flag in sessionStorage instead of manipulating history
+            sessionStorage.setItem('userLoggedOut', 'true');
+            
             // Clear any unsaved changes or local state if needed
             clearLocalState();
             
@@ -419,7 +429,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
                 
                 console.log("Redirecting to:", redirectPath);
-                window.location.href = redirectPath;
+                // Use replace instead of href to avoid adding to history stack
+                window.location.replace(redirectPath);
             }
             
             return true;
@@ -437,11 +448,5 @@ document.addEventListener('DOMContentLoaded', function() {
         localStorage.removeItem('snapselect_recent_galleries');
         localStorage.removeItem('snapselect_draft_uploads');
         
-        // Clear all session storage
-        sessionStorage.clear();
-        
-        // Add any other client-side cleanup needed
-        
-        // Note: Firebase Auth tokens will be cleared by signOut() method
-    }
-});
+        // Clear all session storage except the logout flag
+        const logoutFlag = sessionStorage.getItem('userLoggedOut');
