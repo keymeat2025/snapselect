@@ -29,29 +29,26 @@
     <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
 </head>
 <body>
-    <!-- Improved Authentication Check -->
+    <!-- Centralized Authentication Check -->
     <script>
     // Enhanced authentication check on page load
     (function() {
         console.log("Running enhanced authentication check on dashboard page load");
         
-        // Check if user logged out explicitly
+        // Basic session checks first (these don't need Firebase)
         const userLoggedOut = sessionStorage.getItem('userLoggedOut') === 'true';
         if (userLoggedOut) {
-            // If user intentionally logged out and is trying to use back button
             console.log("User previously logged out - preventing access via back button");
-            sessionStorage.removeItem('userLoggedOut'); // Clear the flag
-            window.location.replace('studiopanel-login.html'); // Use replace to avoid adding to history
+            sessionStorage.removeItem('userLoggedOut');
+            window.location.replace('studiopanel-login.html');
             return;
         }
         
-        // First check sessionStorage-based authorization - this works without Firebase
-        console.log("Authorization flag:", sessionStorage.getItem('authorizedAccess'));
+        // Check authorization flag
         const hasAuthorizationFlag = sessionStorage.getItem('authorizedAccess') === 'true';
-        
         if (!hasAuthorizationFlag) {
             console.log("No authorization flag found - redirecting to login");
-            window.location.replace('studiopanel-login.html'); // Use replace to avoid adding to history
+            window.location.replace('studiopanel-login.html');
             return;
         }
         
@@ -70,7 +67,7 @@
             }
         }
         
-        // Add visibility change event listener
+        // Setup visibility change event listener
         document.addEventListener('visibilitychange', function() {
             if (document.visibilityState === 'visible') {
                 // Check authentication when tab becomes visible again
@@ -86,45 +83,43 @@
             }
         });
         
-        // Verify Firebase auth with a more robust approach
-        const maxWaitTime = 5000; // Maximum wait time for Firebase (5 seconds)
-        const startTime = Date.now();
-        
-        function checkFirebaseAuth() {
-            // Check if we've waited too long
-            if (Date.now() - startTime > maxWaitTime) {
-                console.log("Firebase initialization timed out - proceeding with session-based auth only");
-                return;
-            }
-            
-            // If Firebase is initialized and auth is available
-            if (typeof firebase !== 'undefined' && firebase.auth) {
-                console.log("Firebase is initialized, checking auth state");
-                
-                firebase.auth().onAuthStateChanged(function(user) {
-                    if (!user) {
-                        console.log("Firebase auth check failed - no current user");
-                        
-                        // Only redirect if we're sure Firebase is fully initialized
-                        if (firebase.auth().currentUser === null && firebase.auth().currentUser !== undefined) {
-                            sessionStorage.removeItem('authorizedAccess');
-                            sessionStorage.removeItem('authTimestamp');
-                            window.location.replace('studiopanel-login.html');
-                        }
-                    } else {
-                        console.log("Firebase auth verified with user:", user.email);
-                        sessionStorage.setItem('authTimestamp', Date.now().toString());
-                    }
-                });
-            } else {
-                // Firebase not ready yet, try again after delay
-                console.log("Waiting for Firebase to initialize...");
-                setTimeout(checkFirebaseAuth, 200);
-            }
+        // Setup Firebase auth check using the centralized approach
+        if (!window.onFirebaseReady) {
+            window.onFirebaseReady = [];
         }
         
-        // Delay starting the Firebase check to avoid race conditions
-        setTimeout(checkFirebaseAuth, 500);
+        // Add our authentication verification to the queue
+        window.onFirebaseReady.push(function() {
+            console.log("Firebase ready - performing auth check");
+            
+            firebase.auth().onAuthStateChanged(function(user) {
+                if (!user) {
+                    console.log("Firebase auth check failed - no current user");
+                    sessionStorage.removeItem('authorizedAccess');
+                    sessionStorage.removeItem('authTimestamp');
+                    window.location.replace('studiopanel-login.html');
+                } else {
+                    console.log("Firebase auth verified with user:", user.email);
+                    sessionStorage.setItem('authTimestamp', Date.now().toString());
+                }
+            });
+        });
+        
+        // If Firebase is already initialized, run the auth check
+        if (window.firebaseServices && window.firebaseServices.auth) {
+            console.log("Firebase already available - running auth check immediately");
+            firebase.auth().onAuthStateChanged(function(user) {
+                if (!user) {
+                    console.log("Firebase auth check failed - no current user");
+                    sessionStorage.removeItem('authorizedAccess');
+                    sessionStorage.removeItem('authTimestamp');
+                    window.location.replace('studiopanel-login.html');
+                } else {
+                    console.log("Firebase auth verified with user:", user.email);
+                    sessionStorage.setItem('authTimestamp', Date.now().toString());
+                }
+            });
+        }
     })();
     </script>
 
@@ -559,8 +554,17 @@
                 console.log("Warning: User previously logged out - this should have been caught earlier");
             }
             
-            // Setup role-based UI
-            setupRoleBasedUI();
+            // Setup role-based UI when Firebase is ready
+            if (window.firebaseServices && firebase.auth().currentUser) {
+                setupRoleBasedUI();
+            } else if (window.onFirebaseReady) {
+                // Add to the Firebase ready queue
+                if (typeof window.onFirebaseReady === 'function') {
+                    window.onFirebaseReady(setupRoleBasedUI);
+                } else if (Array.isArray(window.onFirebaseReady)) {
+                    window.onFirebaseReady.push(setupRoleBasedUI);
+                }
+            }
             
             // Show/hide new client form in upgrade modal
             const clientSelect = document.getElementById('clientSelect');
@@ -693,8 +697,6 @@
                             }
                         } catch (error) {
                             console.error('Error creating client:', error);
-                            
-                                                     
                             // If authentication error, redirect to login
                             if (error.code === 'auth/user-token-expired' || 
                                 error.code === 'auth/user-token-revoked' || 
