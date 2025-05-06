@@ -1162,6 +1162,11 @@ function showExtendPlanModal(planId, clientId) {
  * Called when the Create Gallery modal is opened
  */
 
+
+/**
+ * Updates the gallery client dropdown to only show clients with valid active plans
+ * Called when the Create Gallery modal is opened
+ */
 function updateGalleryClientDropdown() {
   const galleryClientSelect = document.getElementById('galleryClient');
   if (!galleryClientSelect) return;
@@ -1280,13 +1285,14 @@ function updateGalleryClientDropdown() {
     showErrorMessage('You need clients with active plans to create galleries');
     console.log('No clients with any type of plan found');
   }
-}
   
   // Log debug info to help troubleshoot
-  console.log('Gallery clients dropdown updated with clients that have active plans');
+  console.log('Gallery clients dropdown updated');
   console.log('Total clients:', userClients.length);
-  console.log('Total active plans:', activePlans.length);
-  console.log('Clients with matching active plans:', clientsWithActivePlans.length);
+  // Handle the case where clientsWithActivePlans might not be defined
+  if (typeof clientsWithActivePlans !== 'undefined') {
+    console.log('Clients with matching active plans:', clientsWithActivePlans.length);
+  }
 }
 
 /**
