@@ -220,6 +220,19 @@ function setupEventListeners() {
       if (planId && clientId) showExtendPlanModal(planId, clientId);
     }
   });
+  
+  // Gallery buttons
+  const createGalleryBtn = document.getElementById('createGalleryBtn');
+  if (createGalleryBtn) createGalleryBtn.addEventListener('click', showCreateGalleryModal);
+  
+  const emptyStateCreateGalleryBtn = document.getElementById('emptyStateCreateGalleryBtn');
+  if (emptyStateCreateGalleryBtn) emptyStateCreateGalleryBtn.addEventListener('click', showCreateGalleryModal);
+  
+  // Gallery form submission
+  const createGalleryForm = document.getElementById('createGalleryForm');
+  if (createGalleryForm) {
+    createGalleryForm.addEventListener('submit', handleGalleryFormSubmit);
+  }
 }
 
 // Modified loadUserData function to return a Promise
@@ -1141,6 +1154,178 @@ function showExtendPlanModal(planId, clientId) {
   showSuccessMessage(`Extend plan modal would show for plan ${planId}, client ${clientId}`);
 }
 
+/**
+ * NEW FUNCTIONS FOR GALLERY MANAGEMENT
+ */
+
+/**
+ * Updates the gallery client dropdown to only show clients with active plans
+ * Called when the Create Gallery modal is opened
+ */
+function updateGalleryClientDropdown() {
+  const galleryClientSelect = document.getElementById('galleryClient');
+  if (!galleryClientSelect) return;
+  
+  // Clear existing options
+  galleryClientSelect.innerHTML = '<option value="">Select a client</option>';
+  
+  // Check if we have clients data
+  if (!userClients || userClients.length === 0) {
+    const option = document.createElement('option');
+    option.disabled = true;
+    option.textContent = 'No clients available';
+    galleryClientSelect.appendChild(option);
+    return;
+  }
+  
+  // Filter only clients with active plans
+  const activeClients = userClients.filter(client => client.planActive === true);
+  
+  if (activeClients.length === 0) {
+    const option = document.createElement('option');
+    option.disabled = true;
+    option.textContent = 'No clients with active plans';
+    galleryClientSelect.appendChild(option);
+    
+    // Show helpful message
+    showErrorMessage('You need clients with active plans to create galleries');
+  } else {
+    // Add active clients to the dropdown
+    activeClients.forEach(client => {
+      const option = document.createElement('option');
+      option.value = client.id;
+      option.textContent = `${client.name || client.email || 'Client'} (${client.planType || 'Active'} Plan)`;
+      galleryClientSelect.appendChild(option);
+    });
+  }
+}
+
+/**
+ * Event handler to open the Create Gallery modal
+ */
+function showCreateGalleryModal() {
+  // Get the modal element
+  const createGalleryModal = document.getElementById('createGalleryModal');
+  if (!createGalleryModal) return;
+  
+  // First update the client dropdown with active clients
+  updateGalleryClientDropdown();
+  
+  // Then show the modal
+  createGalleryModal.style.display = 'block';
+}
+
+/**
+ * Handle gallery form submission
+ */
+function handleGalleryFormSubmit(e) {
+  e.preventDefault();
+  
+  const galleryName = document.getElementById('galleryName').value;
+  const clientId = document.getElementById('galleryClient').value;
+  const galleryDescription = document.getElementById('galleryDescription').value;
+  
+  if (!galleryName) {
+    showErrorMessage('Please enter a gallery name');
+    return;
+  }
+  
+  if (!clientId) {
+    showErrorMessage('Please select a client');
+    return;
+  }
+  
+  // Show loading overlay
+  showLoadingOverlay('Creating gallery...');
+  
+  // Get client info
+  const client = userClients.find(c => c.id === clientId);
+  
+  // Create new gallery
+  createGallery(galleryName, clientId, galleryDescription)
+    .then(galleryId => {
+      if (galleryId) {
+        // Show success message
+        showSuccessMessage(`Gallery "${galleryName}" created successfully`);
+        
+        // Add notification for gallery creation
+        if (window.NotificationSystem) {
+          window.NotificationSystem.createNotificationFromEvent({
+            type: 'gallery_created',
+            galleryName: galleryName,
+            clientName: client?.name || 'your client'
+          });
+        }
+        
+        // Close the modal
+        const createGalleryModal = document.getElementById('createGalleryModal');
+        if (createGalleryModal) createGalleryModal.style.display = 'none';
+        
+        // Reset the form
+        document.getElementById('createGalleryForm').reset();
+        
+        // Refresh data
+        refreshAllData();
+      }
+    })
+    .catch(error => {
+      console.error('Error creating gallery:', error);
+      showErrorMessage(`Error creating gallery: ${error.message}`);
+    })
+    .finally(() => {
+      hideLoadingOverlay();
+    });
+}
+
+/**
+ * Create a new gallery for a client
+ */
+async function createGallery(name, clientId, description = '') {
+  try {
+    if (!currentUser) return null;
+    
+    // Validate client has active plan
+    const client = userClients.find(c => c.id === clientId);
+    if (!client) {
+      throw new Error('Client not found');
+    }
+    
+    if (!client.planActive) {
+      throw new Error('Client does not have an active plan');
+    }
+    
+    const plan = activePlans.find(p => p.clientId === clientId);
+    if (!plan) {
+      throw new Error('No active plan found for this client');
+    }
+    
+    const db = firebase.firestore();
+    const galleryRef = await db.collection('galleries').add({
+      name,
+      description,
+      clientId,
+      photographerId: currentUser.uid,
+      planId: plan.id,
+      planType: plan.planType,
+      createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+      photosCount: 0,
+      status: 'active'
+    });
+    
+    // Update plan to reference the gallery
+    await db.collection('client-plans').doc(plan.id).update({
+      galleryId: galleryRef.id,
+      galleryCreated: true,
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    
+    return galleryRef.id;
+  } catch (error) {
+    console.error('Error creating gallery:', error);
+    throw error;
+  }
+}
+
 // Initialize on document ready
 document.addEventListener('DOMContentLoaded', function() {
   console.log('Subscription manager initializing...');
@@ -1172,7 +1357,11 @@ window.subscriptionManager = {
   updateDashboardStats,
   // Add debug functions for testing
   setDebugStorageUsage,
-  updateStorageUsage
+  updateStorageUsage,
+  // Add gallery functions
+  updateGalleryClientDropdown,
+  showCreateGalleryModal,
+  createGallery
 };
 
 // Export subscription plans
