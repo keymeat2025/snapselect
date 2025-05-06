@@ -1,0 +1,111 @@
+/* status-bar.css */
+/* Account status bar styles */
+
+.account-status-bar {
+  background-color: #f9f9f9;
+  border-bottom: 1px solid #e1e1e1;
+  padding: 8px 16px;
+  font-size: 14px;
+  color: #333;
+}
+
+.status-bar-container {
+  display: flex;
+  align-items: center;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.status-bar-section {
+  display: flex;
+  align-items: center;
+  margin-right: 20px;
+}
+
+.plan-label, .storage-label, .usage-label {
+  font-weight: 600;
+  margin-right: 8px;
+  color: #555;
+}
+
+.plan-name {
+  font-weight: 600;
+  margin-right: 8px;
+}
+
+.plan-status {
+  font-size: 12px;
+  border-radius: 10px;
+  padding: 2px 8px;
+}
+
+.plan-status.active {
+  background-color: #e6f7e6;
+  color: #2e7d32;
+}
+
+.plan-status.inactive {
+  background-color: #ffebee;
+  color: #c62828;
+}
+
+.plan-status.expiring_soon {
+  background-color: #fff8e1;
+  color: #f57c00;
+}
+
+.storage-bar {
+  width: 120px;
+  height: 8px;
+  background-color: #e0e0e0;
+  border-radius: 4px;
+  margin: 0 8px;
+  overflow: hidden;
+}
+
+.storage-progress {
+  height: 100%;
+  background-color: #4caf50;
+  width: 0;
+  transition: width 0.3s ease;
+}
+
+.storage-progress.warning {
+  background-color: #ff9800;
+}
+
+.storage-progress.critical {
+  background-color: #f44336;
+}
+
+.storage-text, .usage-text {
+  font-weight: 600;
+}
+
+.status-bar-actions {
+  margin-left: auto;
+}
+
+/* Responsive styles */
+@media (max-width: 768px) {
+  .status-bar-container {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .status-bar-section {
+    margin-bottom: 8px;
+    width: 100%;
+  }
+  
+  .status-bar-actions {
+    margin-left: 0;
+    margin-top: 8px;
+    width: 100%;
+  }
+  
+  .storage-bar {
+    flex-grow: 1;
+    max-width: none;
+  }
+}
