@@ -4,6 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SnapSelect - Photographer Dashboard</title>
+    <!-- Prevent caching for protected pages -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="../assets/css/variables.css">
     <link rel="stylesheet" href="../assets/css/main.css">
@@ -13,6 +17,10 @@
     <link rel="stylesheet" href="../assets/css/animations.css">
     <link rel="stylesheet" href="../assets/css/features.css">
     <link rel="stylesheet" href="../assets/css/payment.css">
+    <link rel="stylesheet" href="../assets/css/notification.css">
+    <!-- New CSS for Phase 1 -->
+    <link rel="stylesheet" href="../assets/css/status-bar.css">
+    
     <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
     <style>
         /* Ensure toast container has proper positioning */
@@ -22,9 +30,139 @@
             right: 20px;
             z-index: 9999;
         }
+        
+        /* Styles for Phase 1 components */
+        .locked-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.7);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+            color: white;
+            text-align: center;
+            padding: 20px;
+        }
+        
+        .locked-icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+        }
+        
+        .locked-message {
+            margin-bottom: 24px;
+            font-size: 18px;
+        }
+        
+        .unlock-btn {
+            background-color: #4A90E2;
+            color: white;
+            border: none;
+            padding: 8px 24px;
+            border-radius: 4px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        
+        .unlock-btn:hover {
+            background-color: #3A7BC8;
+        }
+        
+        .admin-badge {
+            background-color: #F44336;
+            color: white;
+            font-size: 10px;
+            padding: 2px 6px;
+            border-radius: 10px;
+            margin-left: 8px;
+            text-transform: uppercase;
+        }
+        
+        .status-indicator {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 12px;
+            margin-right: 8px;
+        }
+        
+        .status-indicator.active {
+            background-color: #e6f7e6;
+            color: #2e7d32;
+        }
+        
+        .status-indicator.expiring {
+            background-color: #fff8e1;
+            color: #f57c00;
+        }
+        
+        .status-indicator.expired {
+            background-color: #ffebee;
+            color: #c62828;
+        }
+        
+        .plan-status-indicators {
+            display: flex;
+            align-items: center;
+            margin-left: auto;
+            margin-right: 16px;
+        }
+        
+        @media (max-width: 768px) {
+            .plan-status-indicators {
+                display: none;
+            }
+        }
     </style>
 </head>
 <body>
+    <!-- Immediate Authentication Check -->
+    <script>
+    // Immediate authentication check on page load
+    (function() {
+        console.log("Running authentication check on dashboard page load");
+        
+        // Check if user logged out explicitly
+        const userLoggedOut = sessionStorage.getItem('userLoggedOut') === 'true';
+        if (userLoggedOut) {
+            console.log("User previously logged out - preventing access via back button");
+            sessionStorage.removeItem('userLoggedOut');
+            window.location.replace('studiopanel-login.html');
+            return;
+        }
+        
+        // Check for authorization flag
+        console.log("Authorization flag:", sessionStorage.getItem('authorizedAccess'));
+        const hasAuthorizationFlag = sessionStorage.getItem('authorizedAccess') === 'true';
+        
+        if (!hasAuthorizationFlag) {
+            console.log("No authorization flag found - redirecting to login");
+            window.location.replace('studiopanel-login.html');
+            return;
+        }
+        
+        // Check for authentication timestamp
+        const authTimestamp = sessionStorage.getItem('authTimestamp');
+        if (authTimestamp) {
+            const elapsedTime = Date.now() - parseInt(authTimestamp);
+            const maxSessionTime = 24 * 60 * 60 * 1000; // 24 hours
+            
+            if (elapsedTime > maxSessionTime) {
+                console.log("Session expired - redirecting to login");
+                sessionStorage.removeItem('authorizedAccess');
+                sessionStorage.removeItem('authTimestamp');
+                window.location.replace('studiopanel-login.html');
+                return;
+            }
+        }
+    })();
+    </script>
+
     <!-- Toast Container for Notifications -->
     <div id="toastContainer" class="toast-container"></div>
 
@@ -58,6 +196,8 @@
                                 <a href="client-management.html">Clients</a>
                                 <a href="analytics.html">Analytics</a>
                                 <a href="account-settings.html">Account Settings</a>
+                                <!-- Added admin dashboard link (hidden by default) -->
+                                <a href="admin-dashboard.html" class="admin-only" style="display: none;">Admin Dashboard</a>
                                 <a href="#" id="logoutBtn">Logout</a>
                             </div>
                         </div>
@@ -84,11 +224,12 @@
                     </div>
                   </div>
                 </div>
-
-                    
             </nav>
         </div>
     </header>
+
+    <!-- Account Status Bar - Added for Phase 1 -->
+    <div id="accountStatusBar" class="account-status-bar"></div>
 
     <main class="dashboard-main">
         <div class="container">
@@ -169,10 +310,16 @@
                 </button>
             </section>
 
-            <!-- Active Plans Section -->
+            <!-- Active Plans Section - Updated with status indicators -->
             <section class="active-plans-section animate-in" style="animation-delay: 0.4s;">
                 <div class="section-header">
                     <h2>Active Client Plans</h2>
+                    <!-- Added plan status indicators -->
+                    <div class="plan-status-indicators">
+                        <span class="status-indicator active">Active</span>
+                        <span class="status-indicator expiring">Expiring Soon</span>
+                        <span class="status-indicator expired">Expired</span>
+                    </div>
                     <button id="refreshPlansBtn" class="refresh-btn">
                         <i class="fas fa-sync-alt"></i>
                     </button>
@@ -385,6 +532,19 @@
                     </div>
                 </div>
             </div>
+            
+            <!-- Locked Plan Overlay Template (Will be cloned and used when needed) -->
+            <div id="lockedPlanTemplate" style="display: none;">
+                <div class="locked-overlay">
+                    <div class="locked-icon">
+                        <i class="fas fa-lock"></i>
+                    </div>
+                    <div class="locked-message">
+                        This gallery is locked because your plan has expired.
+                    </div>
+                    <button class="unlock-btn">Unlock Gallery</button>
+                </div>
+            </div>
         </div>
     </main>
 
@@ -413,6 +573,11 @@
     <!-- Load notification system before subscription manager -->
     <script src="../assets/js/notification-system.js"></script>
     <script src="../assets/js/subscription-manager.js"></script>
+    
+    <!-- Phase 1 New Scripts -->
+    <script src="../assets/js/auth-protection.js"></script>
+    <script src="../assets/js/plan-validator.js"></script>
+    <script src="../assets/js/account-status-bar.js"></script>
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
@@ -425,6 +590,9 @@
             if (firebase && firebase.functions) {
                 firebase.app().functions("asia-south1");
             }
+            
+            // Setup role-based UI
+            setupRoleBasedUI();
             
             // Show/hide new client form in upgrade modal
             const clientSelect = document.getElementById('clientSelect');
@@ -471,92 +639,119 @@
             const emptyStateCreateClientBtn = document.getElementById('emptyStateCreateClientBtn');
             if (emptyStateCreateClientBtn) {
                 emptyStateCreateClientBtn.addEventListener('click', function() {
-                    const createClientModal = document.getElementById('createClientModal');
-                    if (createClientModal) {
-                        createClientModal.style.display = 'block';
-                    }
+                    validateFeatureAccess('create_client', function() {
+                        const createClientModal = document.getElementById('createClientModal');
+                        if (createClientModal) {
+                            createClientModal.style.display = 'block';
+                        }
+                    });
                 });
             }
             
             const emptyStateCreateGalleryBtn = document.getElementById('emptyStateCreateGalleryBtn');
             if (emptyStateCreateGalleryBtn) {
                 emptyStateCreateGalleryBtn.addEventListener('click', function() {
-                    const createGalleryModal = document.getElementById('createGalleryModal');
-                    if (createGalleryModal) {
-                        createGalleryModal.style.display = 'block';
-                    }
+                    validateFeatureAccess('create_gallery', function() {
+                        const createGalleryModal = document.getElementById('createGalleryModal');
+                        if (createGalleryModal) {
+                            createGalleryModal.style.display = 'block';
+                        }
+                    });
                 });
             }
             
-            // Create client form submission
+            // Create client form submission with validation
             const createClientForm = document.getElementById('createClientForm');
             if (createClientForm) {
                 createClientForm.addEventListener('submit', async function(e) {
                     e.preventDefault();
                     
-                    const clientName = document.getElementById('clientName').value;
-                    const clientEmail = document.getElementById('clientEmail').value;
-                    const clientPhone = document.getElementById('clientPhone').value;
-                    const clientNotes = document.getElementById('clientNotes').value;
-                    
-                    try {
-                        // Show loading
-                        const loadingOverlay = document.getElementById('loadingOverlay');
-                        if (loadingOverlay) {
-                            loadingOverlay.querySelector('.loading-text').textContent = 'Creating client...';
-                            loadingOverlay.style.display = 'flex';
-                        }
-                        
-                        // Check if subscription manager exists
-                        if (window.subscriptionManager && window.subscriptionManager.createClient) {
-                            // Create client
-                            const clientId = await window.subscriptionManager.createClient(
-                                clientName,
-                                clientEmail,
-                                { phone: clientPhone, notes: clientNotes }
-                            );
-                            
-                            if (clientId) {
-                                // Close modal
-                                const createClientModal = document.getElementById('createClientModal');
-                                if (createClientModal) {
-                                    createClientModal.style.display = 'none';
-                                }
-                                
-                                // Use the notification system instead of direct DOM manipulation
-                                if (window.NotificationSystem) {
-                                    window.NotificationSystem.createNotificationFromEvent({
-                                        type: 'client_created',
-                                        clientName: clientName
-                                    });
-                                }
-                                
-                                // Refresh client data
-                                if (window.subscriptionManager.refreshSubscription) {
-                                    window.subscriptionManager.refreshSubscription();
-                                }
-                            }
-                        } else {
-                            throw new Error('Client management functionality is not available');
-                        }
-                    } catch (error) {
-                        console.error('Error creating client:', error);
-                        
-                        // Use notification system for errors too
-                        if (window.NotificationSystem) {
-                            window.NotificationSystem.showNotification(
-                                'error',
-                                'Error',
-                                `Error creating client: ${error.message}`
-                            );
-                        }
-                    } finally {
-                        // Hide loading
-                        const loadingOverlay = document.getElementById('loadingOverlay');
-                        if (loadingOverlay) {
-                            loadingOverlay.style.display = 'none';
-                        }
+                    // Verify authentication again before performing action
+                    if (!sessionStorage.getItem('authorizedAccess') || !firebase.auth().currentUser) {
+                        alert("Your session has expired. Please log in again.");
+                        window.location.replace('studiopanel-login.html');
+                        return;
                     }
+                    
+                    // Validate client creation access
+                    validateFeatureAccess('create_client', async function() {
+                        const clientName = document.getElementById('clientName').value;
+                        const clientEmail = document.getElementById('clientEmail').value;
+                        const clientPhone = document.getElementById('clientPhone').value;
+                        const clientNotes = document.getElementById('clientNotes').value;
+                        
+                        try {
+                            // Show loading
+                            const loadingOverlay = document.getElementById('loadingOverlay');
+                            if (loadingOverlay) {
+                                loadingOverlay.querySelector('.loading-text').textContent = 'Creating client...';
+                                loadingOverlay.style.display = 'flex';
+                            }
+                            
+                            // Check if subscription manager exists
+                            if (window.subscriptionManager && window.subscriptionManager.createClient) {
+                                // Create client
+                                const clientId = await window.subscriptionManager.createClient(
+                                    clientName,
+                                    clientEmail,
+                                    { phone: clientPhone, notes: clientNotes }
+                                );
+                                
+                                if (clientId) {
+                                    // Close modal
+                                    const createClientModal = document.getElementById('createClientModal');
+                                    if (createClientModal) {
+                                        createClientModal.style.display = 'none';
+                                    }
+                                    
+                                    // Use the notification system instead of direct DOM manipulation
+                                    if (window.NotificationSystem) {
+                                        window.NotificationSystem.createNotificationFromEvent({
+                                            type: 'client_created',
+                                            clientName: clientName
+                                        });
+                                    }
+                                    
+                                    // Refresh client data
+                                    if (window.subscriptionManager.refreshSubscription) {
+                                        window.subscriptionManager.refreshSubscription();
+                                    }
+                                    
+                                    // Log feature usage
+                                    if (window.PlanValidator) {
+                                        window.PlanValidator.logFeatureUsage(
+                                            firebase.auth().currentUser.uid,
+                                            null,
+                                            'create_client',
+                                            true
+                                        );
+                                    }
+                                }
+                            } else {
+                                throw new Error('Client management functionality is not available');
+                                }
+                            } else {
+                                throw new Error('Client management functionality is not available');
+                            }
+                        } catch (error) {
+                            console.error('Error creating client:', error);
+                            
+                            // Use notification system for errors too
+                            if (window.NotificationSystem) {
+                                window.NotificationSystem.showNotification(
+                                    'error',
+                                    'Error',
+                                    `Error creating client: ${error.message}`
+                                );
+                            }
+                        } finally {
+                            // Hide loading
+                            const loadingOverlay = document.getElementById('loadingOverlay');
+                            if (loadingOverlay) {
+                                loadingOverlay.style.display = 'none';
+                            }
+                        }
+                    });
                 });
             }
             
@@ -580,6 +775,19 @@
                     }
                 });
             });
+            
+            // Create gallery button with plan validation
+            const createGalleryBtn = document.getElementById('createGalleryBtn');
+            if (createGalleryBtn) {
+                createGalleryBtn.addEventListener('click', function() {
+                    validateFeatureAccess('create_gallery', function() {
+                        const createGalleryModal = document.getElementById('createGalleryModal');
+                        if (createGalleryModal) {
+                            createGalleryModal.style.display = 'block';
+                        }
+                    });
+                });
+            }
             
             // Refresh buttons
             const refreshPlansBtn = document.getElementById('refreshPlansBtn');
@@ -607,6 +815,121 @@
                     }, 1000);
                 });
             }
+            
+            // Setup role-based UI
+            function setupRoleBasedUI() {
+                // Get current user
+                const user = firebase.auth().currentUser;
+                if (!user) return;
+                
+                // Check if user is admin
+                firebase.firestore().collection('admin')
+                    .doc(user.uid)
+                    .get()
+                    .then(doc => {
+                        const isAdmin = doc.exists;
+                        
+                        // Show/hide admin-only elements
+                        document.querySelectorAll('.admin-only').forEach(el => {
+                            el.style.display = isAdmin ? 'block' : 'none';
+                        });
+                        
+                        // Show admin badge if user is admin
+                        if (isAdmin) {
+                            const userMenu = document.getElementById('userMenuBtn');
+                            if (userMenu) {
+                                const adminBadge = document.createElement('span');
+                                adminBadge.className = 'admin-badge';
+                                adminBadge.textContent = 'Admin';
+                                userMenu.appendChild(adminBadge);
+                            }
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error checking admin role:', error);
+                    });
+            }
+            
+            // Validate feature access using PlanValidator
+            async function validateFeatureAccess(feature, callback) {
+                try {
+                    // Check if PlanValidator exists
+                    if (!window.PlanValidator) {
+                        console.error('PlanValidator not initialized');
+                        callback(); // Proceed anyway if validation not available
+                        return;
+                    }
+                    
+                    // Get current user
+                    const user = firebase.auth().currentUser;
+                    if (!user) {
+                        alert('You must be logged in to access this feature.');
+                        return;
+                    }
+                    
+                    // Check feature access
+                    const featureAccess = await window.PlanValidator.checkFeatureAccess(
+                        user.uid,
+                        null, // No specific client for general features
+                        feature
+                    );
+                    
+                    if (!featureAccess.allowed) {
+                        // Show upgrade modal or error message
+                        const planMessage = featureAccess.planType ? 
+                            `Your current plan (${featureAccess.planType}) does not include this feature.` : 
+                            'You need an active plan to use this feature.';
+                        
+                        const message = `${featureAccess.reason}. ${planMessage} Would you like to upgrade?`;
+                        
+                        if (confirm(message)) {
+                            // Show upgrade modal
+                            const upgradePlanModal = document.getElementById('upgradePlanModal');
+                            if (upgradePlanModal) {
+                                upgradePlanModal.style.display = 'block';
+                            }
+                        }
+                        return;
+                    }
+                    
+                    // Feature is allowed, proceed
+                    if (callback && typeof callback === 'function') {
+                        callback();
+                    }
+                    
+                    // Log feature usage
+                    window.PlanValidator.logFeatureUsage(
+                        user.uid,
+                        null,
+                        feature,
+                        true
+                    );
+                } catch (error) {
+                    console.error('Error validating feature access:', error);
+                    
+                    // Proceed in development environment, block in production
+                    const isProduction = window.location.hostname !== 'localhost';
+                    if (!isProduction) {
+                        if (callback && typeof callback === 'function') {
+                            callback();
+                        }
+                    } else {
+                        alert('Error validating feature access. Please try again later.');
+                    }
+                }
+            }
+            
+            // Periodic check for authentication status
+            setInterval(function() {
+                if (!firebase.auth().currentUser) {
+                    // User is no longer authenticated
+                    sessionStorage.removeItem('authorizedAccess');
+                    sessionStorage.removeItem('authTimestamp');
+                    
+                    console.log("User authentication expired - redirecting to login");
+                    window.location.replace('studiopanel-login.html');
+                }
+            }, 5 * 60 * 1000); // Check every 5 minutes
         });
     </script>
 </body>
