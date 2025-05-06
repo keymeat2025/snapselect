@@ -1162,6 +1162,7 @@ function showExtendPlanModal(planId, clientId) {
  * Updates the gallery client dropdown to only show clients with active plans
  * Called when the Create Gallery modal is opened
  */
+
 function updateGalleryClientDropdown() {
   const galleryClientSelect = document.getElementById('galleryClient');
   if (!galleryClientSelect) return;
@@ -1169,19 +1170,22 @@ function updateGalleryClientDropdown() {
   // Clear existing options
   galleryClientSelect.innerHTML = '<option value="">Select a client</option>';
   
-  // Check if we have clients data
-  if (!userClients || userClients.length === 0) {
+  // Check if we have clients and plans data
+  if (!userClients || userClients.length === 0 || !activePlans || activePlans.length === 0) {
     const option = document.createElement('option');
     option.disabled = true;
-    option.textContent = 'No clients available';
+    option.textContent = 'No clients with active plans available';
     galleryClientSelect.appendChild(option);
     return;
   }
   
-  // Filter only clients with active plans
-  const activeClients = userClients.filter(client => client.planActive === true);
+  // Filter clients that actually have plans in the activePlans array
+  const clientsWithActivePlans = userClients.filter(client => 
+    activePlans.some(plan => plan.clientId === client.id && 
+      (plan.status === PLAN_STATUS.ACTIVE || plan.status === PLAN_STATUS.EXPIRING_SOON))
+  );
   
-  if (activeClients.length === 0) {
+  if (clientsWithActivePlans.length === 0) {
     const option = document.createElement('option');
     option.disabled = true;
     option.textContent = 'No clients with active plans';
@@ -1190,11 +1194,13 @@ function updateGalleryClientDropdown() {
     // Show helpful message
     showErrorMessage('You need clients with active plans to create galleries');
   } else {
-    // Add active clients to the dropdown
-    activeClients.forEach(client => {
+    // Add clients with active plans to the dropdown
+    clientsWithActivePlans.forEach(client => {
       const option = document.createElement('option');
       option.value = client.id;
-      option.textContent = `${client.name || client.email || 'Client'} (${client.planType || 'Active'} Plan)`;
+      const plan = activePlans.find(p => p.clientId === client.id);
+      const planType = plan ? plan.planType : 'Active';
+      option.textContent = `${client.name || client.email || 'Client'} (${planType} Plan)`;
       galleryClientSelect.appendChild(option);
     });
   }
