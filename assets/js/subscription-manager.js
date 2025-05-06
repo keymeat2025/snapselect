@@ -1161,6 +1161,7 @@ function showExtendPlanModal(planId, clientId) {
  * Updates the gallery client dropdown to only show clients with valid active plans
  * Called when the Create Gallery modal is opened
  */
+
 function updateGalleryClientDropdown() {
   const galleryClientSelect = document.getElementById('galleryClient');
   if (!galleryClientSelect) return;
@@ -1168,27 +1169,108 @@ function updateGalleryClientDropdown() {
   // Clear existing options
   galleryClientSelect.innerHTML = '<option value="">Select a client</option>';
   
-  // Check if we have clients and plans data
-  if (!userClients || userClients.length === 0 || !activePlans || activePlans.length === 0) {
+  console.log('Starting gallery client dropdown update');
+  console.log('All clients:', userClients);
+  console.log('All active plans:', activePlans);
+  
+  // First check - do we have any clients?
+  if (!userClients || userClients.length === 0) {
+    console.log('No clients found at all');
     const option = document.createElement('option');
     option.disabled = true;
-    option.textContent = 'No clients with active plans available';
+    option.textContent = 'No clients available';
     galleryClientSelect.appendChild(option);
     
-    // Show helpful message
-    showErrorMessage('No clients with active plans found. Purchase a plan first.');
+    showErrorMessage('Please create a client first');
     return;
   }
   
-  // Filter clients that actually have plans in the activePlans array
-  const clientsWithActivePlans = userClients.filter(client => 
-    activePlans.some(plan => 
-      plan.clientId === client.id && 
-      (plan.status === PLAN_STATUS.ACTIVE || plan.status === PLAN_STATUS.EXPIRING_SOON)
-    )
-  );
+  // Second check - check both client.planActive flag AND active plans array
+  // This handles potential data inconsistencies
+  let clientsForGallery = [];
   
-  if (clientsWithActivePlans.length === 0) {
+  // First try clients with matching active plans in the activePlans array
+  if (activePlans && activePlans.length > 0) {
+    console.log('Found active plans, checking for matching clients');
+    
+    // Log each active plan for debugging
+    activePlans.forEach(plan => {
+      console.log(`Plan ${plan.id || 'unknown'} for client ${plan.clientId || 'unknown'}, status: ${plan.status || 'unknown'}, type: ${plan.planType || 'unknown'}`);
+      
+      // Find matching client
+      const matchingClient = userClients.find(c => c.id === plan.clientId);
+      if (matchingClient) {
+        console.log(`Found matching client for plan: ${matchingClient.name || matchingClient.email || matchingClient.id}`);
+      } else {
+        console.log(`No matching client found for plan with clientId: ${plan.clientId}`);
+      }
+    });
+    
+    // Filter clients that have plans in the activePlans array
+    const clientsWithActivePlans = userClients.filter(client => 
+      activePlans.some(plan => 
+        plan.clientId === client.id && 
+        (plan.status === PLAN_STATUS.ACTIVE || plan.status === PLAN_STATUS.EXPIRING_SOON)
+      )
+    );
+    
+    if (clientsWithActivePlans.length > 0) {
+      console.log(`Found ${clientsWithActivePlans.length} clients with matching active plans`);
+      clientsForGallery = clientsWithActivePlans;
+    }
+  }
+  
+  // If no clients found with active plans array, fall back to client.planActive flag
+  if (clientsForGallery.length === 0) {
+    console.log('No clients with matching active plans found, checking planActive flag');
+    
+    // Check clients with planActive flag
+    const clientsWithPlanActive = userClients.filter(client => client.planActive === true);
+    
+    if (clientsWithPlanActive.length > 0) {
+      console.log(`Found ${clientsWithPlanActive.length} clients with planActive flag`);
+      clientsForGallery = clientsWithPlanActive;
+    }
+  }
+  
+  // If we still have no clients, try one more fallback - clients with plan type
+  if (clientsForGallery.length === 0) {
+    console.log('No clients found with planActive flag, checking for planType');
+    
+    // Check clients with planType property
+    const clientsWithPlanType = userClients.filter(client => client.planType && client.planType !== '');
+    
+    if (clientsWithPlanType.length > 0) {
+      console.log(`Found ${clientsWithPlanType.length} clients with planType property`);
+      clientsForGallery = clientsWithPlanType;
+    }
+  }
+  
+  // If we have found clients to show
+  if (clientsForGallery.length > 0) {
+    // Add them to the dropdown
+    clientsForGallery.forEach(client => {
+      const option = document.createElement('option');
+      option.value = client.id;
+      
+      // Find the plan for this client to show its type
+      let planType = client.planType || 'Active';
+      
+      // Try to get plan type from activePlans array if available
+      const plan = activePlans && activePlans.length > 0 ? 
+        activePlans.find(p => p.clientId === client.id) : null;
+        
+      if (plan && plan.planType) {
+        planType = SUBSCRIPTION_PLANS[plan.planType]?.name || plan.planType;
+      }
+      
+      option.textContent = `${client.name || client.email || 'Client'} (${planType} Plan)`;
+      galleryClientSelect.appendChild(option);
+    });
+    
+    console.log(`Added ${clientsForGallery.length} clients to gallery dropdown`);
+  } else {
+    // No clients with plans found
     const option = document.createElement('option');
     option.disabled = true;
     option.textContent = 'No clients with active plans';
@@ -1196,22 +1278,9 @@ function updateGalleryClientDropdown() {
     
     // Show helpful message
     showErrorMessage('You need clients with active plans to create galleries');
-  } else {
-    // Add clients with active plans to the dropdown
-    clientsWithActivePlans.forEach(client => {
-      const option = document.createElement('option');
-      option.value = client.id;
-      
-      // Find the plan for this client to show its type
-      const plan = activePlans.find(p => p.clientId === client.id);
-      const planType = plan ? (SUBSCRIPTION_PLANS[plan.planType]?.name || plan.planType) : 'Active';
-      
-      option.textContent = `${client.name || client.email || 'Client'} (${planType} Plan)`;
-      galleryClientSelect.appendChild(option);
-    });
-    
-    console.log(`Found ${clientsWithActivePlans.length} clients with active plans`);
+    console.log('No clients with any type of plan found');
   }
+}
   
   // Log debug info to help troubleshoot
   console.log('Gallery clients dropdown updated with clients that have active plans');
