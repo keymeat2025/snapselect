@@ -4,6 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SnapSelect - Photographer Dashboard</title>
+    <!-- Prevent caching for protected pages -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <!-- CSS Files -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="../assets/css/variables.css">
     <link rel="stylesheet" href="../assets/css/main.css">
@@ -14,6 +19,7 @@
     <link rel="stylesheet" href="../assets/css/features.css">
     <link rel="stylesheet" href="../assets/css/payment.css">
     <link rel="stylesheet" href="../assets/css/notification.css">
+    <link rel="stylesheet" href="../assets/css/status-bar.css">
     
     <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
 </head>
@@ -140,6 +146,7 @@
                                 <a href="client-management.html">Clients</a>
                                 <a href="analytics.html">Analytics</a>
                                 <a href="account-settings.html">Account Settings</a>
+                                <a href="admin-dashboard.html" class="admin-only" style="display: none;">Admin Dashboard</a>
                                 <a href="#" id="logoutBtn">Logout</a>
                             </div>
                         </div>
@@ -165,11 +172,12 @@
                     </div>
                   </div>
                 </div>
-
-                
             </nav>
         </div>
     </header>
+
+    <!-- Account Status Bar - Added for Phase 1 -->
+    <div id="accountStatusBar" class="account-status-bar"></div>
 
     <main class="dashboard-main">
         <div class="container">
@@ -250,10 +258,15 @@
                 </button>
             </section>
 
-            <!-- Active Plans Section -->
+            <!-- Active Plans Section - Updated with status indicators -->
             <section class="active-plans-section animate-in" style="animation-delay: 0.4s;">
                 <div class="section-header">
                     <h2>Active Client Plans</h2>
+                    <div class="plan-status-indicators">
+                        <span class="status-indicator active">Active</span>
+                        <span class="status-indicator expiring">Expiring Soon</span>
+                        <span class="status-indicator expired">Expired</span>
+                    </div>
                     <button id="refreshPlansBtn" class="refresh-btn">
                         <i class="fas fa-sync-alt"></i>
                     </button>
@@ -466,6 +479,19 @@
                     </div>
                 </div>
             </div>
+
+            <!-- Locked Plan Overlay Template (Will be cloned and used when needed) -->
+            <div id="lockedPlanTemplate" style="display: none;">
+                <div class="locked-overlay">
+                    <div class="locked-icon">
+                        <i class="fas fa-lock"></i>
+                    </div>
+                    <div class="locked-message">
+                        This gallery is locked because your plan has expired.
+                    </div>
+                    <button class="unlock-btn">Unlock Gallery</button>
+                </div>
+            </div>
         </div>
     </main>
 
@@ -482,6 +508,9 @@
         </div>
     </footer>
 
+    <!-- Toast Container -->
+    <div id="toastContainer"></div>
+
     <!-- Scripts -->
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
@@ -494,17 +523,19 @@
     <script src="../assets/js/subscription-manager.js"></script>
     <script src="../assets/js/notification-system.js"></script>
     
+    <!-- Phase 1 New Scripts -->
+    <script src="../assets/js/auth-protection.js"></script>
+    <script src="../assets/js/plan-validator.js"></script>
+    <script src="../assets/js/account-status-bar.js"></script>
+    
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             // Initialize Firebase region
             if (firebase && firebase.functions) {
-                // Remove local emulator reference which might be causing issues
-                // firebase.functions().useEmulator("localhost", 5001);
                 firebase.app().functions("asia-south1");
             }
             
             // Secondary authentication check after DOM content loaded
-            // This provides a backup in case the initial check failed
             if (!sessionStorage.getItem('authorizedAccess')) {
                 console.log("Unauthorized access attempt detected during DOM load");
                 window.location.replace('studiopanel-login.html');
@@ -519,6 +550,9 @@
                 window.location.replace('studiopanel-login.html');
                 return;
             }
+            
+            // Setup role-based UI
+            setupRoleBasedUI();
             
             // Show/hide new client form in upgrade modal
             const clientSelect = document.getElementById('clientSelect');
@@ -575,14 +609,16 @@
             const emptyStateCreateGalleryBtn = document.getElementById('emptyStateCreateGalleryBtn');
             if (emptyStateCreateGalleryBtn) {
                 emptyStateCreateGalleryBtn.addEventListener('click', function() {
-                    const createGalleryModal = document.getElementById('createGalleryModal');
-                    if (createGalleryModal) {
-                        createGalleryModal.style.display = 'block';
-                    }
+                    validateFeatureAccess('create_gallery', function() {
+                        const createGalleryModal = document.getElementById('createGalleryModal');
+                        if (createGalleryModal) {
+                            createGalleryModal.style.display = 'block';
+                        }
+                    });
                 });
             }
             
-            // Create client form submission
+            // Create client form submission with validation
             const createClientForm = document.getElementById('createClientForm');
             if (createClientForm) {
                 createClientForm.addEventListener('submit', async function(e) {
@@ -595,102 +631,83 @@
                         return;
                     }
                     
-                    const clientName = document.getElementById('clientName').value;
-                    const clientEmail = document.getElementById('clientEmail').value;
-                    const clientPhone = document.getElementById('clientPhone').value;
-                    const clientNotes = document.getElementById('clientNotes').value;
-                    
-                    try {
-                        // Show loading
-                        const loadingOverlay = document.getElementById('loadingOverlay');
-                        if (loadingOverlay) {
-                            loadingOverlay.querySelector('.loading-text').textContent = 'Creating client...';
-                            loadingOverlay.style.display = 'flex';
-                        }
+                    // Validate client creation access
+                    validateFeatureAccess('create_client', async function() {
+                        const clientName = document.getElementById('clientName').value;
+                        const clientEmail = document.getElementById('clientEmail').value;
+                        const clientPhone = document.getElementById('clientPhone').value;
+                        const clientNotes = document.getElementById('clientNotes').value;
                         
-                        // Check if subscription manager exists
-                        if (window.subscriptionManager && window.subscriptionManager.createClient) {
-                            // Create client
-                            const clientId = await window.subscriptionManager.createClient(
-                                clientName,
-                                clientEmail,
-                                { phone: clientPhone, notes: clientNotes }
-                            );
-                            
-                            if (clientId) {
-                                // Close modal
-                                const createClientModal = document.getElementById('createClientModal');
-                                if (createClientModal) {
-                                    createClientModal.style.display = 'none';
-                                }
-                                
-                                // Show success message
-                                const toastContainer = document.getElementById('toastContainer');
-                                if (toastContainer) {
-                                    const toast = document.createElement('div');
-                                    toast.className = 'toast toast-success';
-                                    toast.innerHTML = `
-                                        <i class="fas fa-check-circle"></i>
-                                        <span>Client created successfully!</span>
-                                    `;
-                                    toastContainer.appendChild(toast);
-                                    
-                                    // Remove toast after 3 seconds
-                                    setTimeout(() => {
-                                        toast.classList.add('hide');
-                                        setTimeout(() => {
-                                            toast.remove();
-                                        }, 300);
-                                    }, 3000);
-                                }
-                                
-                                // Refresh client data
-                                if (window.subscriptionManager.refreshSubscription) {
-                                    window.subscriptionManager.refreshSubscription();
-                                }
+                        try {
+                            // Show loading
+                            const loadingOverlay = document.getElementById('loadingOverlay');
+                            if (loadingOverlay) {
+                                loadingOverlay.querySelector('.loading-text').textContent = 'Creating client...';
+                                loadingOverlay.style.display = 'flex';
                             }
-                        } else {
-                            throw new Error('Client management functionality is not available');
-                        }
-                    } catch (error) {
-                        console.error('Error creating client:', error);
-                        
-                        // If authentication error, redirect to login
-                        if (error.code === 'auth/user-token-expired' || 
-                            error.code === 'auth/user-token-revoked' || 
-                            error.code === 'auth/user-not-found' || 
-                            !firebase.auth().currentUser) {
-                            sessionStorage.removeItem('authorizedAccess');
-                            window.location.replace('studiopanel-login.html');
-                            return;
-                        }
-                        
-                        // Show error message
-                        const toastContainer = document.getElementById('toastContainer');
-                        if (toastContainer) {
-                            const toast = document.createElement('div');
-                            toast.className = 'toast toast-error';
-                            toast.innerHTML = `
-                                <i class="fas fa-exclamation-circle"></i>
-                                <span>Error creating client: ${error.message}</span>
-                            `;
-                            toastContainer.appendChild(toast);
                             
-                            // Remove toast after 3 seconds
-                            setTimeout(() => {
-                                toast.classList.add('hide');
-                                setTimeout(() => {
-                                    toast.remove();
-                                }, 300);
-                            }, 3000);
+                            // Check if subscription manager exists
+                            if (window.subscriptionManager && window.subscriptionManager.createClient) {
+                                // Create client
+                                const clientId = await window.subscriptionManager.createClient(
+                                    clientName,
+                                    clientEmail,
+                                    { phone: clientPhone, notes: clientNotes }
+                                );
+                                
+                                if (clientId) {
+                                    // Close modal
+                                    const createClientModal = document.getElementById('createClientModal');
+                                    if (createClientModal) {
+                                        createClientModal.style.display = 'none';
+                                    }
+                                    
+                                    // Show success message
+                                    showToast('success', 'Client created successfully!');
+                                    
+                                    // Refresh client data
+                                    if (window.subscriptionManager.refreshSubscription) {
+                                        window.subscriptionManager.refreshSubscription();
+                                    }
+                                    
+                                    // Log feature usage
+                                    if (window.PlanValidator) {
+                                        window.PlanValidator.logFeatureUsage(
+                                            firebase.auth().currentUser.uid,
+                                            null,
+                                            'create_client',
+                                            true
+                                        );
+                                    }
+                                }
+                            } else {
+                                throw new Error('Client management functionality is not available');
+                            }
+                        } catch (error) {
+                            console.error('Error creating client:', error);
+                            
+                            // If authentication error, redirect to login
+                            if (error.code === 'auth/user-token-expired' || 
+                                error.code === 'auth/user-token-revoked' || 
+                                error.code === 'auth/user-not-found' || 
+                                !firebase.auth().currentUser) {
+                                sessionStorage.removeItem('authorizedAccess');
+                                window.location.replace('studiopanel-login.html');
+                                return;
+                            }
+                            
+                            // Show error message
+                            showToast('error', `Error creating client: ${error.message}`);
+                        } finally {
+                            // Hide loading
+                            const loading
+                            // Hide loading
+                            const loadingOverlay = document.getElementById('loadingOverlay');
+                            if (loadingOverlay) {
+                                loadingOverlay.style.display = 'none';
+                            }
                         }
-                    } finally {
-                        // Hide loading
-                        const loadingOverlay = document.getElementById('loadingOverlay');
-                        if (loadingOverlay) {
-                            loadingOverlay.style.display = 'none';
-                        }
-                    }
+                    });
                 });
             }
             
@@ -716,7 +733,6 @@
             });
             
             // Refresh buttons
-        
             const refreshPlansBtn = document.getElementById('refreshPlansBtn');
             if (refreshPlansBtn) {
                 refreshPlansBtn.addEventListener('click', function() {
@@ -739,6 +755,151 @@
                         this.classList.remove('rotating');
                     }, 1000);
                 });
+            }
+            
+            // Create Gallery button with plan validation
+            const createGalleryBtn = document.getElementById('createGalleryBtn');
+            if (createGalleryBtn) {
+                createGalleryBtn.addEventListener('click', function() {
+                    validateFeatureAccess('create_gallery', function() {
+                        const createGalleryModal = document.getElementById('createGalleryModal');
+                        if (createGalleryModal) {
+                            createGalleryModal.style.display = 'block';
+                        }
+                    });
+                });
+            }
+            
+            // Validate feature access using PlanValidator
+            async function validateFeatureAccess(feature, callback) {
+                try {
+                    // Check if PlanValidator exists
+                    if (!window.PlanValidator) {
+                        console.error('PlanValidator not initialized');
+                        callback(); // Proceed anyway if validation not available
+                        return;
+                    }
+                    
+                    // Get current user
+                    const user = firebase.auth().currentUser;
+                    if (!user) {
+                        alert('You must be logged in to access this feature.');
+                        return;
+                    }
+                    
+                    // Check feature access
+                    const featureAccess = await window.PlanValidator.checkFeatureAccess(
+                        user.uid,
+                        null, // No specific client for general gallery creation
+                        feature
+                    );
+                    
+                    if (!featureAccess.allowed) {
+                        // Show upgrade modal or error message
+                        const planMessage = featureAccess.planType ? 
+                            `Your current plan (${featureAccess.planType}) does not include this feature.` : 
+                            'You need an active plan to use this feature.';
+                        
+                        const message = `${featureAccess.reason}. ${planMessage} Would you like to upgrade?`;
+                        
+                        if (confirm(message)) {
+                            // Show upgrade modal
+                            const upgradePlanModal = document.getElementById('upgradePlanModal');
+                            if (upgradePlanModal) {
+                                upgradePlanModal.style.display = 'block';
+                            }
+                        }
+                        return;
+                    }
+                    
+                    // Feature is allowed, proceed
+                    if (callback && typeof callback === 'function') {
+                        callback();
+                    }
+                    
+                    // Log feature usage
+                    window.PlanValidator.logFeatureUsage(
+                        user.uid,
+                        null,
+                        feature,
+                        true
+                    );
+                } catch (error) {
+                    console.error('Error validating feature access:', error);
+                    
+                    // Proceed in development environment, block in production
+                    const isProduction = window.location.hostname !== 'localhost';
+                    if (!isProduction) {
+                        if (callback && typeof callback === 'function') {
+                            callback();
+                        }
+                    } else {
+                        alert('Error validating feature access. Please try again later.');
+                    }
+                }
+            }
+            
+            // Setup role-based UI
+            function setupRoleBasedUI() {
+                // Get current user
+                const user = firebase.auth().currentUser;
+                if (!user) return;
+                
+                // Check if user is admin
+                firebase.firestore().collection('admin')
+                    .doc(user.uid)
+                    .get()
+                    .then(doc => {
+                        const isAdmin = doc.exists;
+                        
+                        // Show/hide admin-only elements
+                        document.querySelectorAll('.admin-only').forEach(el => {
+                            el.style.display = isAdmin ? 'block' : 'none';
+                        });
+                        
+                        // Show admin badge if user is admin
+                        if (isAdmin) {
+                            const userMenu = document.getElementById('userMenuBtn');
+                            if (userMenu) {
+                                const adminBadge = document.createElement('span');
+                                adminBadge.className = 'admin-badge';
+                                adminBadge.textContent = 'Admin';
+                                userMenu.appendChild(adminBadge);
+                            }
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error checking admin role:', error);
+                    });
+            }
+            
+            // Show toast notification
+            function showToast(type, message) {
+                const toastContainer = document.getElementById('toastContainer');
+                if (!toastContainer) return;
+                
+                const toast = document.createElement('div');
+                toast.className = `toast toast-${type}`;
+                
+                let icon = 'fas fa-info-circle';
+                if (type === 'success') icon = 'fas fa-check-circle';
+                if (type === 'error') icon = 'fas fa-exclamation-circle';
+                if (type === 'warning') icon = 'fas fa-exclamation-triangle';
+                
+                toast.innerHTML = `
+                    <i class="${icon}"></i>
+                    <span>${message}</span>
+                `;
+                
+                toastContainer.appendChild(toast);
+                
+                // Remove toast after 3 seconds
+                setTimeout(() => {
+                    toast.classList.add('hide');
+                    setTimeout(() => {
+                        toast.remove();
+                    }, 300);
+                }, 3000);
             }
             
             // Periodic check for authentication status
@@ -770,9 +931,99 @@
                     }
                 }
             });
+            
+            // Style additions for locked plan overlay
+            const style = document.createElement('style');
+            style.textContent = `
+                .locked-overlay {
+                    position: absolute;
+                    top: 0;
+                    left: 0;
+                    right: 0;
+                    bottom: 0;
+                    background-color: rgba(0, 0, 0, 0.7);
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    justify-content: center;
+                    z-index: 100;
+                    color: white;
+                    text-align: center;
+                    padding: 20px;
+                }
+                
+                .locked-icon {
+                    font-size: 48px;
+                    margin-bottom: 16px;
+                }
+                
+                .locked-message {
+                    margin-bottom: 24px;
+                    font-size: 18px;
+                }
+                
+                .unlock-btn {
+                    background-color: #4A90E2;
+                    color: white;
+                    border: none;
+                    padding: 8px 24px;
+                    border-radius: 4px;
+                    font-weight: 600;
+                    cursor: pointer;
+                }
+                
+                .unlock-btn:hover {
+                    background-color: #3A7BC8;
+                }
+                
+                .admin-badge {
+                    background-color: #F44336;
+                    color: white;
+                    font-size: 10px;
+                    padding: 2px 6px;
+                    border-radius: 10px;
+                    margin-left: 8px;
+                    text-transform: uppercase;
+                }
+                
+                .status-indicator {
+                    display: inline-block;
+                    padding: 2px 8px;
+                    border-radius: 10px;
+                    font-size: 12px;
+                    margin-right: 8px;
+                }
+                
+                .status-indicator.active {
+                    background-color: #e6f7e6;
+                    color: #2e7d32;
+                }
+                
+                .status-indicator.expiring {
+                    background-color: #fff8e1;
+                    color: #f57c00;
+                }
+                
+                .status-indicator.expired {
+                    background-color: #ffebee;
+                    color: #c62828;
+                }
+                
+                .plan-status-indicators {
+                    display: flex;
+                    align-items: center;
+                    margin-left: auto;
+                    margin-right: 16px;
+                }
+                
+                @media (max-width: 768px) {
+                    .plan-status-indicators {
+                        display: none;
+                    }
+                }
+            `;
+            document.head.appendChild(style);
         });
     </script>
-    <!-- Toast Container -->
-    <div id="toastContainer"></div>
 </body>
 </html>
