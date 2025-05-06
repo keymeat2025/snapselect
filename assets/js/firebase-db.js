@@ -1,236 +1,164 @@
-// firebase-db.js
-// Firestore database functions for SnapSelect
+// firebase-db.js - Database interactions for SnapSelect application
 
-// Initialize module with proper error handling
-//let db;
-
-function initializeModule() {
-  if (typeof window.firebaseServices === 'undefined' || !window.firebaseServices.db) {
-    console.log("Firebase Firestore not available yet, retrying...");
-    setTimeout(initializeModule, 100);
+// Initialize database functionality when Firebase is ready
+function initDatabaseFunctions() {
+  // Check if Firestore is available
+  if (!firebase.firestore) {
+    console.error('Firebase Firestore is not available');
     return;
   }
+
+  // Firestore settings
+  const db = firebase.firestore();
+  db.settings({
+    cacheSizeBytes: firebase.firestore.CACHE_SIZE_UNLIMITED
+  });
   
-  // Now you can safely use window.firebaseServices
-  const db = window.firebaseServices.db;
-  
-  // Initialize the exported object after db is available
-  window.firebaseDb = {
-    getUserProfile,
-    updateUserProfile,
-    createClientGallery,
-    getUserGalleries,
-    getGallery,
-    addPhotoToGallery,
-    getGalleryPhotos,
-    updatePhotoSelections
+  // Enable offline persistence if supported
+  db.enablePersistence({ synchronizeTabs: true })
+    .catch(error => {
+      if (error.code === 'failed-precondition') {
+        console.warn('Persistence failed: Multiple tabs open');
+      } else if (error.code === 'unimplemented') {
+        console.warn('Persistence not available in this browser');
+      }
+    });
+
+  // Database utility functions
+  window.dbUtils = {
+    // Get photographer document
+    getPhotographerDoc: async function(uid) {
+      try {
+        const doc = await db.collection('photographer').doc(uid).get();
+        return doc.exists ? doc.data() : null;
+      } catch (error) {
+        console.error('Error fetching photographer:', error);
+        return null;
+      }
+    },
+
+    // Get clients for a photographer
+    getPhotographerClients: async function(photographerId) {
+      try {
+        const snapshot = await db.collection('clients')
+          .where('photographerId', '==', photographerId)
+          .get();
+        
+        return snapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        }));
+      } catch (error) {
+        console.error('Error fetching clients:', error);
+        return [];
+      }
+    },
+
+    // Create a new client
+    createClient: async function(photographerId, clientData) {
+      try {
+        const clientRef = await db.collection('clients').add({
+          photographerId,
+          ...clientData,
+          createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        
+        return clientRef.id;
+      } catch (error) {
+        console.error('Error creating client:', error);
+        throw error;
+      }
+    },
+
+    // Get galleries for a photographer
+    getPhotographerGalleries: async function(photographerId) {
+      try {
+        const snapshot = await db.collection('galleries')
+          .where('photographerId', '==', photographerId)
+          .orderBy('createdAt', 'desc')
+          .get();
+        
+        return snapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        }));
+      } catch (error) {
+        console.error('Error fetching galleries:', error);
+        return [];
+      }
+    },
+
+    // Listen for realtime updates to a client's galleries
+    listenToClientGalleries: function(clientId, callback) {
+      return db.collection('galleries')
+        .where('clientId', '==', clientId)
+        .onSnapshot(snapshot => {
+          const galleries = snapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data()
+          }));
+          callback(galleries);
+        }, error => {
+          console.error('Error listening to galleries:', error);
+          callback([]);
+        });
+    },
+
+    // Listen for subscription changes
+    listenToSubscriptions: function(photographerId, callback) {
+      return db.collection('subscriptions')
+        .where('photographerId', '==', photographerId)
+        .onSnapshot(snapshot => {
+          const subscriptions = snapshot.docs.map(doc => ({
+            id: doc.id,
+            ...doc.data()
+          }));
+          callback(subscriptions);
+        }, error => {
+          console.error('Error listening to subscriptions:', error);
+          callback([]);
+        });
+    },
+
+    // Get active plans for a photographer
+    getActivePlans: async function(photographerId) {
+      try {
+        const now = new Date();
+        
+        const snapshot = await db.collection('subscriptions')
+          .where('photographerId', '==', photographerId)
+          .where('expiryDate', '>', now)
+          .get();
+        
+        return snapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        }));
+      } catch (error) {
+        console.error('Error fetching active plans:', error);
+        return [];
+      }
+    }
   };
-  
-  console.log("Firebase DB module initialized successfully");
+
+  console.log('Database functions initialized successfully');
 }
 
-// Start initialization
-initializeModule();
-
-// Get user profile data
-async function getUserProfile(userId) {
-  if (!db) {
-    throw new Error("Firestore not initialized yet");
-  }
-  
-  try {
-    const docRef = await db.collection('users').doc(userId).get();
-    if (docRef.exists) {
-      return docRef.data();
-    } else {
-      console.log('No user profile found for ID:', userId);
-      return null;
-    }
-  } catch (error) {
-    console.error('Error getting user profile:', error);
-    throw error;
-  }
-}
-
-// Update user profile data
-async function updateUserProfile(userId, profileData) {
-  if (!db) {
-    throw new Error("Firestore not initialized yet");
-  }
-  
-  try {
-    await db.collection('users').doc(userId).update({
-      ...profileData,
-      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-    });
-    return true;
-  } catch (error) {
-    console.error('Error updating user profile:', error);
-    throw error;
-  }
-}
-
-// Create a new gallery/collection for a client
-async function createClientGallery(userId, galleryData) {
-  if (!db) {
-    throw new Error("Firestore not initialized yet");
-  }
-  
-  try {
-    const result = await db.collection('users').doc(userId)
-      .collection('galleries').add({
-        ...galleryData,
-        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-      });
-    return result.id;
-  } catch (error) {
-    console.error('Error creating client gallery:', error);
-    throw error;
-  }
-}
-
-// Get a list of all galleries for a user
-async function getUserGalleries(userId) {
-  if (!db) {
-    throw new Error("Firestore not initialized yet");
-  }
-  
-  try {
-    const snapshot = await db.collection('users').doc(userId)
-      .collection('galleries')
-      .orderBy('createdAt', 'desc')
-      .get();
-    
-    const galleries = [];
-    snapshot.forEach(doc => {
-      galleries.push({
-        id: doc.id,
-        ...doc.data()
-      });
-    });
-    
-    return galleries;
-  } catch (error) {
-    console.error('Error getting user galleries:', error);
-    throw error;
-  }
-}
-
-// Get a specific gallery by ID
-async function getGallery(userId, galleryId) {
-  if (!db) {
-    throw new Error("Firestore not initialized yet");
-  }
-  
-  try {
-    const doc = await db.collection('users').doc(userId)
-      .collection('galleries').doc(galleryId).get();
-    
-    if (doc.exists) {
-      return {
-        id: doc.id,
-        ...doc.data()
-      };
-    } else {
-      console.log('No gallery found with ID:', galleryId);
-      return null;
-    }
-  } catch (error) {
-    console.error('Error getting gallery:', error);
-    throw error;
-  }
-}
-
-// Store photo metadata in a gallery
-async function addPhotoToGallery(userId, galleryId, photoData) {
-  if (!db) {
-    throw new Error("Firestore not initialized yet");
-  }
-  
-  try {
-    const result = await db.collection('users').doc(userId)
-      .collection('galleries').doc(galleryId)
-      .collection('photos').add({
-        ...photoData,
-        uploadedAt: firebase.firestore.FieldValue.serverTimestamp()
-      });
-    
-    // Also update the gallery's updatedAt time
-    await db.collection('users').doc(userId)
-      .collection('galleries').doc(galleryId).update({
-        updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
-        photoCount: firebase.firestore.FieldValue.increment(1)
-      });
-    
-    return result.id;
-  } catch (error) {
-    console.error('Error adding photo to gallery:', error);
-    throw error;
-  }
-}
-
-// Get all photos in a gallery
-async function getGalleryPhotos(userId, galleryId) {
-  if (!db) {
-    throw new Error("Firestore not initialized yet");
-  }
-  
-  try {
-    const snapshot = await db.collection('users').doc(userId)
-      .collection('galleries').doc(galleryId)
-      .collection('photos')
-      .orderBy('uploadedAt', 'desc')
-      .get();
-    
-    const photos = [];
-    snapshot.forEach(doc => {
-      photos.push({
-        id: doc.id,
-        ...doc.data()
-      });
-    });
-    
-    return photos;
-  } catch (error) {
-    console.error('Error getting gallery photos:', error);
-    throw error;
-  }
-}
-
-// Mark photos as selected by client
-async function updatePhotoSelections(userId, galleryId, photoId, isSelected) {
-  if (!db) {
-    throw new Error("Firestore not initialized yet");
-  }
-  
-  try {
-    await db.collection('users').doc(userId)
-      .collection('galleries').doc(galleryId)
-      .collection('photos').doc(photoId)
-      .update({
-        isSelected: isSelected,
-        selectedAt: isSelected ? firebase.firestore.FieldValue.serverTimestamp() : null
-      });
-    
-    // Update selection count in gallery document
-    if (isSelected) {
-      await db.collection('users').doc(userId)
-        .collection('galleries').doc(galleryId)
-        .update({
-          selectedCount: firebase.firestore.FieldValue.increment(1)
-        });
-    } else {
-      await db.collection('users').doc(userId)
-        .collection('galleries').doc(galleryId)
-        .update({
-          selectedCount: firebase.firestore.FieldValue.increment(-1)
-        });
-    }
-    
-    return true;
-  } catch (error) {
-    console.error('Error updating photo selection:', error);
-    throw error;
-  }
+// Check if Firebase is ready and register initialization
+if (window.firebaseServices && window.firebaseServices.db) {
+  // Firebase already initialized
+  console.log('Firebase DB already available, initializing database functions');
+  initDatabaseFunctions();
+} else if (typeof window.onFirebaseReady === 'function') {
+  // Firebase ready but we missed the initialization event
+  console.log('Firebase initialized with callback function, registering database init');
+  window.onFirebaseReady(initDatabaseFunctions);
+} else if (Array.isArray(window.onFirebaseReady)) {
+  // Firebase not ready yet
+  console.log('Firebase not ready, queuing database initialization');
+  window.onFirebaseReady.push(initDatabaseFunctions);
+} else {
+  // Create the queue if it doesn't exist
+  console.log('Creating Firebase ready queue with database initialization');
+  window.onFirebaseReady = [initDatabaseFunctions];
 }
