@@ -5,78 +5,6 @@
 let auth;
 let db;
 
-// Security Manager implementation
-const SecurityManager = {
-  validateInput(input) {
-    // Sanitize all user inputs
-    return input.replace(/[<>]/g, '');
-  },
-  
-  validateEmail(email) {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return emailRegex.test(email);
-  },
-  
-  logSecurityEvent(event, details) {
-    firebase.firestore().collection('security_logs').add({
-      event: event,
-      details: details,
-      timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-      userId: firebase.auth().currentUser?.uid,
-      ip: this.getUserIP()
-    });
-  },
-  
-  async getUserIP() {
-    try {
-      const response = await fetch('https://api.ipify.org?format=json');
-      const data = await response.json();
-      return data.ip;
-    } catch (error) {
-      return 'unknown';
-    }
-  },
-  
-  // Add authentication verification method
-  checkAuthentication() {
-    const currentUser = firebase.auth().currentUser;
-    const isAuthenticated = !!currentUser;
-    
-    console.log("Security check - Current user:", isAuthenticated ? "Authenticated" : "Not authenticated");
-    console.log("Security check - Authorization flag:", sessionStorage.getItem('authorizedAccess'));
-    
-    // Check if we're on a protected page
-    const isProtectedPage = window.location.pathname.includes('/pages/') && 
-                           !window.location.pathname.includes('login') &&
-                           !window.location.pathname.includes('register');
-    
-    // Check for authorized access flag in addition to auth state
-    const hasAuthorizationFlag = sessionStorage.getItem('authorizedAccess') === 'true';
-    
-    if (isProtectedPage && (!isAuthenticated || !hasAuthorizationFlag)) {
-      // Log security event
-      this.logSecurityEvent('unauthorized_access_attempt', {
-        page: window.location.pathname,
-        redirected: true,
-        hasAuthFlag: hasAuthorizationFlag,
-        isAuthenticated: isAuthenticated
-      });
-      
-      // Clear authorization flag
-      sessionStorage.removeItem('authorizedAccess');
-      
-      // Redirect to login
-      console.log("Security check - redirecting to login page");
-      window.location.replace(window.location.pathname.includes('/pages/') ? 
-                            'studiopanel-login.html' : 
-                            'pages/studiopanel-login.html');
-      return false;
-    }
-    
-    return isAuthenticated;
-  }
-};
-
 function initializeModule() {
   if (typeof window.firebaseServices === 'undefined') {
     console.log("Firebase services not available yet, retrying...");
@@ -97,12 +25,8 @@ function initializeModule() {
     signOut,
     resetPassword,
     createPhotographerProfile,
-    getCurrentUser,
-    SecurityManager
+    getCurrentUser
   };
-  
-  // Run security check for protected pages
-  SecurityManager.checkAuthentication();
   
   console.log("Firebase Auth module initialized successfully");
 }
@@ -120,29 +44,10 @@ function setupAuthObserver(onUserLoggedIn, onUserLoggedOut) {
   auth.onAuthStateChanged(user => {
     if (user) {
       // User is signed in
-      console.log("Auth state changed: User is signed in", user.email);
       if (onUserLoggedIn) onUserLoggedIn(user);
     } else {
       // User is signed out
-      console.log("Auth state changed: User is signed out");
       if (onUserLoggedOut) onUserLoggedOut();
-      
-      // Check if we're on a protected page and redirect if needed
-      const isProtectedPage = window.location.pathname.includes('/pages/') && 
-                             !window.location.pathname.includes('login') &&
-                             !window.location.pathname.includes('register');
-      
-      if (isProtectedPage) {
-        // Clear authorization flag
-        sessionStorage.removeItem('authorizedAccess');
-        sessionStorage.removeItem('authTimestamp');
-        
-        console.log("Auth state changed - redirecting to login page");
-        // Redirect to login
-        window.location.replace(window.location.pathname.includes('/pages/') ? 
-                              'studiopanel-login.html' : 
-                              'pages/studiopanel-login.html');
-      }
     }
   });
 }
@@ -155,10 +60,6 @@ async function registerWithEmail(email, password) {
   
   try {
     const userCredential = await auth.createUserWithEmailAndPassword(email, password);
-    // Set authorization flag on successful registration
-    sessionStorage.setItem('authorizedAccess', 'true');
-    sessionStorage.setItem('authTimestamp', Date.now().toString());
-    console.log("Authorization flag set after registration:", sessionStorage.getItem('authorizedAccess'));
     return userCredential.user;
   } catch (error) {
     console.error("Registration error:", error.message);
@@ -173,14 +74,7 @@ async function signInWithEmail(email, password) {
   }
   
   try {
-    console.log("Attempting to sign in with email:", email);
     const userCredential = await auth.signInWithEmailAndPassword(email, password);
-    
-    // Set authorization flag AFTER successful login
-    sessionStorage.setItem('authorizedAccess', 'true');
-    sessionStorage.setItem('authTimestamp', Date.now().toString());
-    
-    console.log("Authorization flag set after login:", sessionStorage.getItem('authorizedAccess'));
     return userCredential.user;
   } catch (error) {
     console.error("Sign in error:", error.message);
@@ -195,15 +89,8 @@ async function signInWithGoogle() {
   }
   
   try {
-    console.log("Attempting to sign in with Google");
     const provider = new firebase.auth.GoogleAuthProvider();
     const result = await auth.signInWithPopup(provider);
-    
-    // Set authorization flag AFTER successful login
-    sessionStorage.setItem('authorizedAccess', 'true');
-    sessionStorage.setItem('authTimestamp', Date.now().toString());
-    
-    console.log("Authorization flag set after Google login:", sessionStorage.getItem('authorizedAccess'));
     return result.user;
   } catch (error) {
     console.error("Google sign in error:", error.message);
@@ -218,16 +105,7 @@ async function signOut() {
   }
   
   try {
-    // Clear authorization flag immediately
-    console.log("Clearing authorization flags");
-    sessionStorage.removeItem('authorizedAccess');
-    sessionStorage.removeItem('authTimestamp');
-    
-    // Set logout flag to handle back button navigation
-    sessionStorage.setItem('userLoggedOut', 'true');
-    
     await auth.signOut();
-    console.log("Firebase sign out completed");
   } catch (error) {
     console.error("Sign out error:", error.message);
     throw error;
@@ -256,7 +134,7 @@ async function createPhotographerProfile(userId, studioData) {
   
   try {
     // Create main photographer document
-    await db.collection('photographer').doc(userId).set({
+    await db.collection('photographer').doc('photographer_main').set({
       studioName: studioData.studioName,
       ownerName: studioData.ownerName,
       ownerEmail: studioData.ownerEmail,
@@ -268,7 +146,7 @@ async function createPhotographerProfile(userId, studioData) {
     });
     
     // Create initial subscription document
-    await db.collection('subscription').doc(userId).set({
+    await db.collection('subscription').doc('subscription_current').set({
       planType: 'free',
       storageQuota: 1, // 1GB free storage
       startDate: firebase.firestore.FieldValue.serverTimestamp(),
@@ -315,14 +193,6 @@ async function signOut(options = {}) {
   try {
     console.log("Starting logout process...");
     
-    // Clear authorization flag immediately
-    console.log("Clearing authorization flags");
-    sessionStorage.removeItem('authorizedAccess');
-    sessionStorage.removeItem('authTimestamp');
-    
-    // Set logout flag to handle back button navigation
-    sessionStorage.setItem('userLoggedOut', 'true');
-    
     // 1. Clear any pending operations
     await cancelPendingUploads();
     
@@ -349,7 +219,7 @@ async function signOut(options = {}) {
     // 7. Redirect if requested
     if (settings.redirect) {
       console.log(`Redirecting to ${settings.redirectUrl}`);
-      window.location.replace(settings.redirectUrl);
+      window.location.href = settings.redirectUrl;
     }
   } catch (error) {
     console.error("Sign out error:", error.message);
@@ -484,15 +354,12 @@ function clearAllStorage() {
 }
 
 function clearHistoryState() {
-  // Modified approach that doesn't interfere with normal back button operation
-  // Instead of manipulating history, we'll simply add a flag to the current state
-  try {
-    const state = { loggedOut: true };
-    window.history.replaceState(state, '', window.location.href);
-    
-    // Don't set onpopstate handler to avoid interfering with normal navigation
-    console.log("History state updated to mark logout");
-  } catch (e) {
-    console.warn("Could not update history state:", e);
-  }
+  // Replace current page in history
+  window.history.replaceState(null, '', window.location.href);
+  
+  // Try to prevent back navigation to protected pages
+  window.history.pushState(null, '', window.location.href);
+  window.onpopstate = function () {
+    window.history.go(1);
+  };
 }
