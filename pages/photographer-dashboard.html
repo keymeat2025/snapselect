@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -594,6 +595,9 @@
             // Setup role-based UI
             setupRoleBasedUI();
             
+            // Update dashboard statistics
+            updateDashboardStats();
+            
             // Show/hide new client form in upgrade modal
             const clientSelect = document.getElementById('clientSelect');
             const newClientForm = document.getElementById('newClientForm');
@@ -716,9 +720,12 @@
                                     // Refresh client data
                                     if (window.subscriptionManager.refreshSubscription) {
                                         window.subscriptionManager.refreshSubscription();
+                                        // Update dashboard stats
+                                        updateDashboardStats();
                                     }
                                     
-                                    // Log feature usage
+                                  
+// Log feature usage
                                     if (window.PlanValidator) {
                                         window.PlanValidator.logFeatureUsage(
                                             firebase.auth().currentUser.uid,
@@ -797,6 +804,9 @@
                     if (window.subscriptionManager && window.subscriptionManager.refreshSubscription) {
                         window.subscriptionManager.refreshSubscription();
                         
+                        // Update dashboard stats
+                        updateDashboardStats();
+                        
                         // Use notification system to show refresh confirmation
                         if (window.NotificationSystem) {
                             window.NotificationSystem.showNotification(
@@ -812,6 +822,128 @@
                         this.classList.remove('rotating');
                     }, 1000);
                 });
+            }
+            
+            // Function to update dashboard statistics
+            async function updateDashboardStats() {
+                try {
+                    // Get current user
+                    const user = firebase.auth().currentUser;
+                    if (!user) return;
+                    
+                    const db = firebase.firestore();
+                    
+                    // Get active clients count
+                    const clientsSnapshot = await db.collection('clients')
+                        .where('photographerId', '==', user.uid)
+                        .get();
+                    
+                    const activeClientsCount = clientsSnapshot.size;
+                    
+                    // Update active clients count in UI
+                    const activeClientsCountElement = document.getElementById('activeClientsCount');
+                    if (activeClientsCountElement) {
+                        activeClientsCountElement.textContent = activeClientsCount;
+                    }
+                    
+                    // Get active galleries count
+                    let activeGalleriesCount = 0;
+                    try {
+                        const galleriesSnapshot = await db.collection('galleries')
+                            .where('photographerId', '==', user.uid)
+                            .where('status', '==', 'active')
+                            .get();
+                        
+                        activeGalleriesCount = galleriesSnapshot.size;
+                    } catch (error) {
+                        console.log('No galleries collection yet:', error);
+                        // If galleries collection doesn't exist yet, count will remain 0
+                    }
+                    
+                    // Update active galleries count in UI
+                    const activeGalleriesCountElement = document.getElementById('activeGalleriesCount');
+                    if (activeGalleriesCountElement) {
+                        activeGalleriesCountElement.textContent = activeGalleriesCount;
+                    }
+                    
+                    // Get storage usage
+                    let storageUsedValue = '0 MB';
+                    let storagePercentage = 0;
+                    
+                    // Try to get from activePlans first
+                    if (window.activePlans && window.activePlans.length > 0) {
+                        // Sum up storage used from all active plans
+                        const totalStorageUsed = window.activePlans.reduce((total, plan) => 
+                            total + (plan.storageUsed || 0), 0
+                        );
+                        
+                        if (totalStorageUsed > 0) {
+                            // Convert to appropriate unit (MB or GB)
+                            if (totalStorageUsed > 1024) {
+                                storageUsedValue = `${(totalStorageUsed / 1024).toFixed(2)} GB`;
+                            } else {
+                                storageUsedValue = `${totalStorageUsed.toFixed(2)} MB`;
+                            }
+                            
+                            // Calculate percentage for progress bar
+                            const totalLimit = window.activePlans.reduce((total, plan) => 
+                                total + (SUBSCRIPTION_PLANS[plan.planType]?.storageLimit || 0), 0
+                            ) || 1; // Default to 1 to avoid division by zero
+                            
+                            storagePercentage = Math.min((totalStorageUsed / (totalLimit * 1024)) * 100, 100);
+                        }
+                    } else if (window.subscriptionManager && window.subscriptionManager.getStorageUsage) {
+                        // If activePlans not available, try to get from subscription manager
+                        try {
+                            const storageInfo = await window.subscriptionManager.getStorageUsage();
+                            if (storageInfo) {
+                                storageUsedValue = storageInfo.displayValue || '0 MB';
+                                storagePercentage = storageInfo.percentage || 0;
+                            }
+                        } catch (storageError) {
+                            console.error('Error getting storage usage:', storageError);
+                        }
+                    }
+                    
+                    // Update storage used in UI
+                    const storageUsedElement = document.getElementById('storageUsed');
+                    if (storageUsedElement) {
+                        storageUsedElement.textContent = storageUsedValue;
+                    }
+                    
+                    // Update storage progress bar
+                    const storageUsageBar = document.getElementById('storageUsageBar');
+                    if (storageUsageBar) {
+                        storageUsageBar.style.width = `${storagePercentage}%`;
+                        
+                        // Add warning classes based on percentage
+                        storageUsageBar.classList.remove('warning', 'critical');
+                        if (storagePercentage > 90) {
+                            storageUsageBar.classList.add('critical');
+                        } else if (storagePercentage > 75) {
+                            storageUsageBar.classList.add('warning');
+                        }
+                    }
+                    
+                    // Update storage text
+                    const storageUsageText = document.getElementById('storageUsageText');
+                    if (storageUsageText) {
+                        // Try to get total limit from subscription-manager
+                        let totalLimit = '1 GB'; // Default
+                        if (window.SUBSCRIPTION_PLANS) {
+                            // Calculate total storage limit from all active plans
+                            const limitGB = window.activePlans?.reduce((total, plan) => 
+                                total + (window.SUBSCRIPTION_PLANS[plan.planType]?.storageLimit || 0), 0
+                            ) || 1;
+                            
+                            totalLimit = `${limitGB} GB`;
+                        }
+                        
+                        storageUsageText.textContent = `${storageUsedValue}/${totalLimit}`;
+                    }
+                } catch (error) {
+                    console.error('Error updating dashboard stats:', error);
+                }
             }
             
             // Setup role-based UI
