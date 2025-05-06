@@ -1,5 +1,6 @@
 /**
  * notification-system.js - Manages notifications for the SnapSelect application
+ * Firebase-based implementation to ensure consistency across browsers and devices
  */
 
 // Notification types
@@ -19,6 +20,9 @@ class NotificationSystem {
     this.notifications = [];
     this.unreadCount = 0;
     this.initialized = false;
+    this.currentUser = null;
+    this.notificationsRef = null;
+    this.notificationsListener = null;
     
     // DOM elements
     this.notificationBtn = null;
@@ -30,14 +34,16 @@ class NotificationSystem {
     
     // Bind methods
     this.init = this.init.bind(this);
+    this.initFirebase = this.initFirebase.bind(this);
     this.loadNotifications = this.loadNotifications.bind(this);
-    this.saveNotifications = this.saveNotifications.bind(this);
     this.updateNotificationCount = this.updateNotificationCount.bind(this);
     this.showNotification = this.showNotification.bind(this);
     this.createNotificationFromEvent = this.createNotificationFromEvent.bind(this);
     this.renderNotifications = this.renderNotifications.bind(this);
     this.markAllAsRead = this.markAllAsRead.bind(this);
     this.addEventListeners = this.addEventListeners.bind(this);
+    this.handleAuthStateChanged = this.handleAuthStateChanged.bind(this);
+    this.showToast = this.showToast.bind(this);
   }
   
   // Initialize the notification system
@@ -58,45 +64,139 @@ class NotificationSystem {
       return;
     }
     
-    // Load existing notifications
-    this.loadNotifications();
+    // Set up Firebase auth listener
+    if (firebase && firebase.auth) {
+      firebase.auth().onAuthStateChanged(this.handleAuthStateChanged);
+    } else {
+      console.error('Firebase is not available. Notifications will not function properly.');
+    }
     
     // Add event listeners
     this.addEventListeners();
-    
-    // Render notifications
-    this.renderNotifications();
-    
-    // Update notification count
-    this.updateNotificationCount();
     
     console.log('NotificationSystem initialized');
     this.initialized = true;
   }
   
-  // Load notifications from localStorage
-  loadNotifications() {
-    try {
-      const storedNotifications = localStorage.getItem('snapselect_notifications');
-      if (storedNotifications) {
-        this.notifications = JSON.parse(storedNotifications);
-        // Count unread notifications
-        this.unreadCount = this.notifications.filter(notification => !notification.read).length;
-      }
-    } catch (error) {
-      console.error('Error loading notifications:', error);
+  // Handle auth state changes
+  handleAuthStateChanged(user) {
+    // Clean up previous listener if it exists
+    if (this.notificationsListener) {
+      this.notificationsListener();
+      this.notificationsListener = null;
+    }
+    
+    if (user) {
+      this.currentUser = user;
+      console.log('User authenticated, initializing notifications for:', user.email);
+      this.initFirebase();
+    } else {
+      this.currentUser = null;
       this.notifications = [];
       this.unreadCount = 0;
+      this.updateNotificationCount();
+      this.renderNotifications();
     }
   }
   
-  // Save notifications to localStorage
-  saveNotifications() {
+  // Initialize Firebase references
+  initFirebase() {
+    if (!this.currentUser || !firebase || !firebase.firestore) return;
+    
     try {
-      localStorage.setItem('snapselect_notifications', JSON.stringify(this.notifications));
+      const db = firebase.firestore();
+      
+      // Create a reference to the user's notifications collection
+      this.notificationsRef = db.collection('user_notifications')
+        .doc(this.currentUser.uid)
+        .collection('notifications');
+      
+      // Load initial notifications
+      this.loadNotifications();
+      
+      // Set up real-time listener for notifications
+      this.notificationsListener = this.notificationsRef
+        .orderBy('timestamp', 'desc')
+        .limit(50)
+        .onSnapshot(snapshot => {
+          // Handle notification updates in real-time
+          this.handleNotificationUpdates(snapshot);
+        }, error => {
+          console.error('Error setting up notification listener:', error);
+        });
+        
     } catch (error) {
-      console.error('Error saving notifications:', error);
+      console.error('Error initializing Firebase for notifications:', error);
     }
+  }
+  
+  // Handle notification updates from Firestore
+  handleNotificationUpdates(snapshot) {
+    if (!snapshot) return;
+    
+    let newNotifications = [];
+    let newUnreadCount = 0;
+    
+    snapshot.forEach(doc => {
+      const notification = {
+        id: doc.id,
+        ...doc.data(),
+        timestamp: doc.data().timestamp?.toDate() || new Date()
+      };
+      
+      if (!notification.read) {
+        newUnreadCount++;
+      }
+      
+      newNotifications.push(notification);
+    });
+    
+    // Update local notification state
+    this.notifications = newNotifications;
+    this.unreadCount = newUnreadCount;
+    
+    // Update UI
+    this.updateNotificationCount();
+    this.renderNotifications();
+  }
+  
+  // Load notifications from Firebase
+  loadNotifications() {
+    if (!this.notificationsRef) return;
+    
+    this.notificationsRef
+      .orderBy('timestamp', 'desc')
+      .limit(50)
+      .get()
+      .then(snapshot => {
+        let newNotifications = [];
+        let newUnreadCount = 0;
+        
+        snapshot.forEach(doc => {
+          const notification = {
+            id: doc.id,
+            ...doc.data(),
+            timestamp: doc.data().timestamp?.toDate() || new Date()
+          };
+          
+          if (!notification.read) {
+            newUnreadCount++;
+          }
+          
+          newNotifications.push(notification);
+        });
+        
+        // Update local notification state
+        this.notifications = newNotifications;
+        this.unreadCount = newUnreadCount;
+        
+        // Update UI
+        this.updateNotificationCount();
+        this.renderNotifications();
+      })
+      .catch(error => {
+        console.error('Error loading notifications:', error);
+      });
   }
   
   // Update notification count badge
@@ -107,39 +207,10 @@ class NotificationSystem {
     }
   }
   
-  // Show notification toast
-  showNotification(type, title, message) {
+  // Show toast notification
+  showToast(type, title, message) {
     if (!this.toastContainer) return;
     
-    // Create notification object
-    const notification = {
-      id: Date.now().toString(),
-      type: type,
-      title: title,
-      message: message,
-      timestamp: new Date(),
-      read: false
-    };
-    
-    // Add to notifications array
-    this.notifications.unshift(notification);
-    if (this.notifications.length > 50) {
-      this.notifications = this.notifications.slice(0, 50);
-    }
-    
-    // Increment unread count
-    this.unreadCount++;
-    
-    // Update notification count badge
-    this.updateNotificationCount();
-    
-    // Save notifications
-    this.saveNotifications();
-    
-    // Render notifications
-    this.renderNotifications();
-    
-    // Show toast notification
     const toast = document.createElement('div');
     toast.className = `toast toast-${type}`;
     toast.innerHTML = `
@@ -159,6 +230,39 @@ class NotificationSystem {
         toast.remove();
       }, 300);
     }, 5000);
+  }
+  
+  // Show notification and save to Firebase
+  showNotification(type, title, message) {
+    if (!this.currentUser || !this.notificationsRef) {
+      console.error('User not authenticated or notifications not initialized');
+      // Still show toast even if Firebase is not available
+      this.showToast(type, title, message);
+      return;
+    }
+    
+    // Create notification object
+    const notification = {
+      type: type,
+      title: title,
+      message: message,
+      timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+      read: false,
+      userId: this.currentUser.uid
+    };
+    
+    // Add to Firebase
+    this.notificationsRef.add(notification)
+      .then(docRef => {
+        console.log('Notification added with ID:', docRef.id);
+        // Show toast notification
+        this.showToast(type, title, message);
+      })
+      .catch(error => {
+        console.error('Error adding notification:', error);
+        // Still show toast even if Firebase save fails
+        this.showToast(type, title, message);
+      });
   }
   
   // Create notification from event
@@ -252,29 +356,45 @@ class NotificationSystem {
       
       // Add click event to mark as read
       notificationItem.addEventListener('click', () => {
-        if (!notification.read) {
-          notification.read = true;
-          this.unreadCount = Math.max(0, this.unreadCount - 1);
-          this.updateNotificationCount();
-          this.saveNotifications();
-          notificationItem.classList.remove('unread');
-        }
+        this.markAsRead(notification.id);
       });
       
       this.notificationList.appendChild(notificationItem);
     });
   }
   
+  // Mark a single notification as read
+  markAsRead(notificationId) {
+    if (!this.currentUser || !this.notificationsRef) return;
+    
+    this.notificationsRef.doc(notificationId).update({
+      read: true
+    }).catch(error => {
+      console.error('Error marking notification as read:', error);
+    });
+  }
+  
   // Mark all notifications as read
   markAllAsRead() {
+    if (!this.currentUser || !this.notificationsRef) return;
+    
+    // Using a batch to update multiple documents
+    const batch = firebase.firestore().batch();
+    
     this.notifications.forEach(notification => {
-      notification.read = true;
+      if (!notification.read) {
+        const notificationRef = this.notificationsRef.doc(notification.id);
+        batch.update(notificationRef, { read: true });
+      }
     });
     
-    this.unreadCount = 0;
-    this.updateNotificationCount();
-    this.saveNotifications();
-    this.renderNotifications();
+    batch.commit()
+      .then(() => {
+        console.log('All notifications marked as read');
+      })
+      .catch(error => {
+        console.error('Error marking all notifications as read:', error);
+      });
   }
   
   // Add event listeners
