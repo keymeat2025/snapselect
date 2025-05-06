@@ -14,6 +14,15 @@
     <link rel="stylesheet" href="../assets/css/features.css">
     <link rel="stylesheet" href="../assets/css/payment.css">
     <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+    <style>
+        /* Ensure toast container has proper positioning */
+        #toastContainer {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 9999;
+        }
+    </style>
 </head>
 <body>
     <!-- Toast Container for Notifications -->
@@ -401,16 +410,19 @@
     <script src="../assets/js/firebase-auth.js"></script>
     <script src="../assets/js/firebase-db.js"></script>
     <script src="../assets/js/header-auth.js"></script>
-    <script src="../assets/js/subscription-manager.js"></script>
-    <!-- Removed references to non-existent JS files -->
+    <!-- Load notification system before subscription manager -->
     <script src="../assets/js/notification-system.js"></script>
+    <script src="../assets/js/subscription-manager.js"></script>
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
+            // Debug notification elements
+            console.log('Toast container exists:', !!document.getElementById('toastContainer'));
+            console.log('Notification button exists:', !!document.getElementById('notificationBtn'));
+            console.log('Notification dropdown exists:', !!document.getElementById('notificationDropdown'));
+            
             // Initialize Firebase region
             if (firebase && firebase.functions) {
-                // Remove local emulator reference which might be causing issues
-                // firebase.functions().useEmulator("localhost", 5001);
                 firebase.app().functions("asia-south1");
             }
             
@@ -511,24 +523,12 @@
                                     createClientModal.style.display = 'none';
                                 }
                                 
-                                // Show success message
-                                const toastContainer = document.getElementById('toastContainer');
-                                if (toastContainer) {
-                                    const toast = document.createElement('div');
-                                    toast.className = 'toast toast-success';
-                                    toast.innerHTML = `
-                                        <i class="fas fa-check-circle"></i>
-                                        <span>Client created successfully!</span>
-                                    `;
-                                    toastContainer.appendChild(toast);
-                                    
-                                    // Remove toast after 3 seconds
-                                    setTimeout(() => {
-                                        toast.classList.add('hide');
-                                        setTimeout(() => {
-                                            toast.remove();
-                                        }, 300);
-                                    }, 3000);
+                                // Use the notification system instead of direct DOM manipulation
+                                if (window.NotificationSystem) {
+                                    window.NotificationSystem.createNotificationFromEvent({
+                                        type: 'client_created',
+                                        clientName: clientName
+                                    });
                                 }
                                 
                                 // Refresh client data
@@ -542,24 +542,13 @@
                     } catch (error) {
                         console.error('Error creating client:', error);
                         
-                        // Show error message
-                        const toastContainer = document.getElementById('toastContainer');
-                        if (toastContainer) {
-                            const toast = document.createElement('div');
-                            toast.className = 'toast toast-error';
-                            toast.innerHTML = `
-                                <i class="fas fa-exclamation-circle"></i>
-                                <span>Error creating client: ${error.message}</span>
-                            `;
-                            toastContainer.appendChild(toast);
-                            
-                            // Remove toast after 3 seconds
-                            setTimeout(() => {
-                                toast.classList.add('hide');
-                                setTimeout(() => {
-                                    toast.remove();
-                                }, 300);
-                            }, 3000);
+                        // Use notification system for errors too
+                        if (window.NotificationSystem) {
+                            window.NotificationSystem.showNotification(
+                                'error',
+                                'Error',
+                                `Error creating client: ${error.message}`
+                            );
                         }
                     } finally {
                         // Hide loading
@@ -601,6 +590,15 @@
                     // Check if subscription manager exists before calling
                     if (window.subscriptionManager && window.subscriptionManager.refreshSubscription) {
                         window.subscriptionManager.refreshSubscription();
+                        
+                        // Use notification system to show refresh confirmation
+                        if (window.NotificationSystem) {
+                            window.NotificationSystem.showNotification(
+                                'success',
+                                'Success',
+                                'Data refreshed successfully'
+                            );
+                        }
                     }
                     
                     // Remove rotating class after animation completes
@@ -611,5 +609,5 @@
             }
         });
     </script>
- </body>
+</body>
 </html>
