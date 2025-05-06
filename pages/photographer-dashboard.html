@@ -680,7 +680,6 @@
                         const clientPhone = document.getElementById('clientPhone').value;
                         const clientNotes = document.getElementById('clientNotes').value;
                         
-                        
                         try {
                             // Show loading
                             const loadingOverlay = document.getElementById('loadingOverlay');
@@ -727,6 +726,9 @@
                                             true
                                         );
                                     }
+                                }
+                            } else {
+                                throw new Error('Client management functionality is not available');
                                 }
                             } else {
                                 throw new Error('Client management functionality is not available');
