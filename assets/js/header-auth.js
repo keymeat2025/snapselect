@@ -55,25 +55,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 return;
             }
             
-            // Also check for Firebase auth if available
-            if (firebase && firebase.auth) {
-                console.log("Firebase auth is available, checking current user");
-                
-                // Don't redirect immediately, use onAuthStateChanged to ensure it's initialized
-                firebase.auth().onAuthStateChanged(function(user) {
-                    if (!user) {
-                        console.log("No authenticated user found - redirecting to login");
-                        // Clear authorization flag
-                        sessionStorage.removeItem('authorizedAccess');
-                        sessionStorage.removeItem('authTimestamp');
-                        
-                        // Redirect to login
-                        window.location.replace('studiopanel-login.html');
-                    } else {
-                        console.log("User authenticated:", user.email);
-                    }
-                });
-            }
+            // Don't check Firebase auth immediately to avoid race conditions
+            // The auth state observer will handle this once Firebase is initialized
         } else {
             console.log("Current page is not protected");
         }
@@ -278,7 +261,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    // Function to authorize dashboard access
+    // Function to authorize dashboard access - IMPROVED VERSION
     function navigateToDashboard(event) {
         event.preventDefault();
         console.log("Dashboard link clicked");
@@ -290,26 +273,41 @@ document.addEventListener('DOMContentLoaded', function() {
         if (user) {
             console.log("User authenticated, setting authorization flag");
             
-            // Set authorization flag for dashboard access - make sure to set this BEFORE navigation
-            sessionStorage.setItem('authorizedAccess', 'true');
-            sessionStorage.setItem('authTimestamp', Date.now().toString());
-            
-            // Verify the flag was set properly
-            console.log("Authorization flag check:", sessionStorage.getItem('authorizedAccess'));
-            
-            // Small delay to ensure flag is set before navigation
-            setTimeout(() => {
-                // Determine correct path based on current location
-                let dashboardPath;
-                if (window.location.pathname.includes('/pages/')) {
-                    dashboardPath = 'photographer-dashboard.html';
-                } else {
-                    dashboardPath = 'pages/photographer-dashboard.html';
+            // First, verify we can access sessionStorage
+            try {
+                // Set authorization flag with explicit storage access check
+                sessionStorage.setItem('authorizedAccess', 'true');
+                sessionStorage.setItem('authTimestamp', Date.now().toString());
+                
+                // Double-check that the flag was set properly
+                const flagSet = sessionStorage.getItem('authorizedAccess') === 'true';
+                console.log("Authorization flag set successfully:", flagSet);
+                
+                if (!flagSet) {
+                    throw new Error("Failed to set authorization flag");
                 }
                 
-                console.log("Navigating to dashboard:", dashboardPath);
+                // Increased delay to ensure flag is set and Firebase state is synchronized
+                setTimeout(() => {
+                    // Determine correct path based on current location
+                    let dashboardPath;
+                    if (window.location.pathname.includes('/pages/')) {
+                        dashboardPath = 'photographer-dashboard.html';
+                    } else {
+                        dashboardPath = 'pages/photographer-dashboard.html';
+                    }
+                    
+                    console.log("Navigating to dashboard:", dashboardPath);
+                    window.location.href = dashboardPath;
+                }, 300); // Increased delay for better synchronization
+            } catch (e) {
+                console.error("Error setting session storage:", e);
+                // Fall back to direct navigation if sessionStorage fails
+                const dashboardPath = window.location.pathname.includes('/pages/') ? 
+                                     'photographer-dashboard.html' : 
+                                     'pages/photographer-dashboard.html';
                 window.location.href = dashboardPath;
-            }, 100);
+            }
         } else {
             console.log("User not authenticated, redirecting to login");
             // Redirect to login if not authenticated
@@ -440,9 +438,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
     
-
-
-
     // Clear any local state
     function clearLocalState() {
         // Clear any localStorage items that are not related to Firebase
@@ -559,4 +554,4 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Setup navigation event handling
     setupNavigationHandling();
-    });
+});
