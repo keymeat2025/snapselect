@@ -727,8 +727,7 @@ async function processPayment(planType) {
     showPaymentError(`Payment failed: ${error.message}`);
     setTimeout(resetPaymentButtons, 3000);
   }
-}  
-
+}
 async function verifyPayment(orderId, paymentId, signature) {
   try {
     showPaymentProgress('Verifying payment...');
@@ -1159,10 +1158,9 @@ function showExtendPlanModal(planId, clientId) {
  */
 
 /**
- * Updates the gallery client dropdown to only show clients with active plans
+ * Updates the gallery client dropdown to only show clients with valid active plans
  * Called when the Create Gallery modal is opened
  */
-
 function updateGalleryClientDropdown() {
   const galleryClientSelect = document.getElementById('galleryClient');
   if (!galleryClientSelect) return;
@@ -1176,13 +1174,18 @@ function updateGalleryClientDropdown() {
     option.disabled = true;
     option.textContent = 'No clients with active plans available';
     galleryClientSelect.appendChild(option);
+    
+    // Show helpful message
+    showErrorMessage('No clients with active plans found. Purchase a plan first.');
     return;
   }
   
   // Filter clients that actually have plans in the activePlans array
   const clientsWithActivePlans = userClients.filter(client => 
-    activePlans.some(plan => plan.clientId === client.id && 
-      (plan.status === PLAN_STATUS.ACTIVE || plan.status === PLAN_STATUS.EXPIRING_SOON))
+    activePlans.some(plan => 
+      plan.clientId === client.id && 
+      (plan.status === PLAN_STATUS.ACTIVE || plan.status === PLAN_STATUS.EXPIRING_SOON)
+    )
   );
   
   if (clientsWithActivePlans.length === 0) {
@@ -1198,12 +1201,23 @@ function updateGalleryClientDropdown() {
     clientsWithActivePlans.forEach(client => {
       const option = document.createElement('option');
       option.value = client.id;
+      
+      // Find the plan for this client to show its type
       const plan = activePlans.find(p => p.clientId === client.id);
-      const planType = plan ? plan.planType : 'Active';
+      const planType = plan ? (SUBSCRIPTION_PLANS[plan.planType]?.name || plan.planType) : 'Active';
+      
       option.textContent = `${client.name || client.email || 'Client'} (${planType} Plan)`;
       galleryClientSelect.appendChild(option);
     });
+    
+    console.log(`Found ${clientsWithActivePlans.length} clients with active plans`);
   }
+  
+  // Log debug info to help troubleshoot
+  console.log('Gallery clients dropdown updated with clients that have active plans');
+  console.log('Total clients:', userClients.length);
+  console.log('Total active plans:', activePlans.length);
+  console.log('Clients with matching active plans:', clientsWithActivePlans.length);
 }
 
 /**
@@ -1296,11 +1310,12 @@ async function createGallery(name, clientId, description = '') {
       throw new Error('Client not found');
     }
     
-    if (!client.planActive) {
-      throw new Error('Client does not have an active plan');
-    }
+    // Find active plan for this client
+    const plan = activePlans.find(p => 
+      p.clientId === clientId && 
+      (p.status === PLAN_STATUS.ACTIVE || p.status === PLAN_STATUS.EXPIRING_SOON)
+    );
     
-    const plan = activePlans.find(p => p.clientId === clientId);
     if (!plan) {
       throw new Error('No active plan found for this client');
     }
