@@ -11,6 +11,11 @@ const firebaseConfig = {
   measurementId: "G-J5XGE71VF6"
 };
 
+// Setup initialization queue if not already created
+if (!window.onFirebaseReady) {
+  window.onFirebaseReady = [];
+}
+
 // Initialize Firebase app if not already initialized
 if (!window.firebaseServices) {
   try {
@@ -30,7 +35,7 @@ if (!window.firebaseServices) {
       if (typeof functions.useRegion === 'function') {
         functions = functions.useRegion('asia-south1');
       }
-            // Set the region for Firebase functions
+      // Set the region for Firebase functions
       if (typeof firebase.functions === 'function') {
         functions = firebase.app().functions("asia-south1");
         console.log("Firebase Functions initialized with region asia-south1");
@@ -131,6 +136,29 @@ if (!window.firebaseServices) {
     };
     
     console.log('Firebase initialized successfully');
+    
+    // Call any queued ready functions
+    if (window.onFirebaseReady && Array.isArray(window.onFirebaseReady)) {
+      console.log(`Executing ${window.onFirebaseReady.length} queued Firebase callbacks`);
+      const callbacks = [...window.onFirebaseReady]; // Create a copy to avoid issues if callbacks register more callbacks
+      
+      callbacks.forEach(fn => {
+        if (typeof fn === 'function') {
+          try {
+            fn();
+          } catch (e) {
+            console.error('Error in Firebase ready callback:', e);
+          }
+        }
+      });
+      
+      // Replace the array with a function that immediately executes new callbacks
+      window.onFirebaseReady = function(fn) {
+        if (typeof fn === 'function') {
+          setTimeout(fn, 0); // Execute asynchronously to avoid potential issues
+        }
+      };
+    }
   } catch (error) {
     console.error('Firebase initialization error:', error);
   }
