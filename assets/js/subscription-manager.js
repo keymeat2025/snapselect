@@ -234,7 +234,6 @@ function setupEventListeners() {
     createGalleryForm.addEventListener('submit', handleGalleryFormSubmit);
   }
 }
-
 // Modified loadUserData function to return a Promise
 async function loadUserData() {
   try {
@@ -529,6 +528,7 @@ function updateActivePlansDisplay() {
     activePlansEl.appendChild(planCard);
   });
 }
+
 // Helper functions for formatting
 function formatPlanStatus(status) {
   const statusMap = {
@@ -1161,12 +1161,6 @@ function showExtendPlanModal(planId, clientId) {
  * Updates the gallery client dropdown to only show clients with valid active plans
  * Called when the Create Gallery modal is opened
  */
-
-
-/**
- * Updates the gallery client dropdown to only show clients with valid active plans
- * Called when the Create Gallery modal is opened
- */
 function updateGalleryClientDropdown() {
   const galleryClientSelect = document.getElementById('galleryClient');
   if (!galleryClientSelect) return;
@@ -1289,10 +1283,6 @@ function updateGalleryClientDropdown() {
   // Log debug info to help troubleshoot
   console.log('Gallery clients dropdown updated');
   console.log('Total clients:', userClients.length);
-  // Handle the case where clientsWithActivePlans might not be defined
-  if (typeof clientsWithActivePlans !== 'undefined') {
-    console.log('Clients with matching active plans:', clientsWithActivePlans.length);
-  }
 }
 
 /**
@@ -1392,7 +1382,36 @@ async function createGallery(name, clientId, description = '') {
     );
     
     if (!plan) {
-      throw new Error('No active plan found for this client');
+      // Fallback to client's planActive flag
+      if (client.planActive) {
+        // Create a dummy plan object using client's planType
+        const dummyPlan = {
+          id: `dummy_${Date.now()}`,
+          clientId: clientId,
+          planType: client.planType || 'basic',
+          status: PLAN_STATUS.ACTIVE
+        };
+        
+        // Use the dummy plan
+        console.log('No active plan found in activePlans, using client.planActive fallback');
+        
+        const db = firebase.firestore();
+        const galleryRef = await db.collection('galleries').add({
+          name,
+          description,
+          clientId,
+          photographerId: currentUser.uid,
+          planId: dummyPlan.id,
+          planType: dummyPlan.planType,
+          createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+          photosCount: 0,
+          status: 'active'
+        });
+        
+        return galleryRef.id;
+      } else {
+        throw new Error('No active plan found for this client');
+      }
     }
     
     const db = firebase.firestore();
