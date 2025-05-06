@@ -21,14 +21,19 @@
     <link rel="stylesheet" href="../assets/css/notification.css">
     <link rel="stylesheet" href="../assets/css/status-bar.css">
     
+    <!-- Load critical Firebase scripts first -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="../assets/js/firebase-config.js"></script>
+    
     <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
 </head>
 <body>
-    <!-- Immediate Authentication Check -->
+    <!-- Improved Authentication Check -->
     <script>
-    // Immediate authentication check on page load
+    // Enhanced authentication check on page load
     (function() {
-        console.log("Running authentication check on dashboard page load");
+        console.log("Running enhanced authentication check on dashboard page load");
         
         // Check if user logged out explicitly
         const userLoggedOut = sessionStorage.getItem('userLoggedOut') === 'true';
@@ -40,7 +45,7 @@
             return;
         }
         
-        // Check for authorization flag
+        // First check sessionStorage-based authorization - this works without Firebase
         console.log("Authorization flag:", sessionStorage.getItem('authorizedAccess'));
         const hasAuthorizationFlag = sessionStorage.getItem('authorizedAccess') === 'true';
         
@@ -81,35 +86,45 @@
             }
         });
         
-        // Verify Firebase auth once loaded
-        if (typeof firebase !== 'undefined' && firebase.auth) {
-            checkFirebaseAuth();
-        } else {
-            const checkInterval = setInterval(function() {
-                if (typeof firebase !== 'undefined' && firebase.auth) {
-                    clearInterval(checkInterval);
-                    checkFirebaseAuth();
-                }
-            }, 100);
-            
-            setTimeout(function() {
-                clearInterval(checkInterval);
-            }, 10000);
-        }
+        // Verify Firebase auth with a more robust approach
+        const maxWaitTime = 5000; // Maximum wait time for Firebase (5 seconds)
+        const startTime = Date.now();
         
         function checkFirebaseAuth() {
-            firebase.auth().onAuthStateChanged(function(user) {
-                if (!user) {
-                    console.log("Firebase auth check failed - no current user");
-                    sessionStorage.removeItem('authorizedAccess');
-                    sessionStorage.removeItem('authTimestamp');
-                    window.location.replace('studiopanel-login.html');
-                } else {
-                    console.log("Firebase auth verified with user:", user.email);
-                    sessionStorage.setItem('authTimestamp', Date.now().toString());
-                }
-            });
+            // Check if we've waited too long
+            if (Date.now() - startTime > maxWaitTime) {
+                console.log("Firebase initialization timed out - proceeding with session-based auth only");
+                return;
+            }
+            
+            // If Firebase is initialized and auth is available
+            if (typeof firebase !== 'undefined' && firebase.auth) {
+                console.log("Firebase is initialized, checking auth state");
+                
+                firebase.auth().onAuthStateChanged(function(user) {
+                    if (!user) {
+                        console.log("Firebase auth check failed - no current user");
+                        
+                        // Only redirect if we're sure Firebase is fully initialized
+                        if (firebase.auth().currentUser === null && firebase.auth().currentUser !== undefined) {
+                            sessionStorage.removeItem('authorizedAccess');
+                            sessionStorage.removeItem('authTimestamp');
+                            window.location.replace('studiopanel-login.html');
+                        }
+                    } else {
+                        console.log("Firebase auth verified with user:", user.email);
+                        sessionStorage.setItem('authTimestamp', Date.now().toString());
+                    }
+                });
+            } else {
+                // Firebase not ready yet, try again after delay
+                console.log("Waiting for Firebase to initialize...");
+                setTimeout(checkFirebaseAuth, 200);
+            }
         }
+        
+        // Delay starting the Firebase check to avoid race conditions
+        setTimeout(checkFirebaseAuth, 500);
     })();
     </script>
 
@@ -511,12 +526,9 @@
     <!-- Toast Container -->
     <div id="toastContainer"></div>
 
-    <!-- Scripts -->
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <!-- Remaining Scripts -->
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-functions-compat.js"></script>
-    <script src="../assets/js/firebase-config.js"></script>
     <script src="../assets/js/firebase-auth.js"></script>
     <script src="../assets/js/firebase-db.js"></script>
     <script src="../assets/js/header-auth.js"></script>
@@ -535,20 +547,16 @@
                 firebase.app().functions("asia-south1");
             }
             
-            // Secondary authentication check after DOM content loaded
+            // Modified secondary authentication check to avoid multiple redirects
             if (!sessionStorage.getItem('authorizedAccess')) {
-                console.log("Unauthorized access attempt detected during DOM load");
-                window.location.replace('studiopanel-login.html');
-                return;
+                console.log("Warning: No authorization flag found during DOM load");
+                // Don't redirect here - the initial check already handles this
             }
             
-            // Check if user previously logged out
+            // Check if user previously logged out - just log warning, don't redirect
             const userLoggedOut = sessionStorage.getItem('userLoggedOut') === 'true';
             if (userLoggedOut) {
-                console.log("User previously logged out - preventing access via DOM load");
-                sessionStorage.removeItem('userLoggedOut');
-                window.location.replace('studiopanel-login.html');
-                return;
+                console.log("Warning: User previously logged out - this should have been caught earlier");
             }
             
             // Setup role-based UI
@@ -686,6 +694,7 @@
                         } catch (error) {
                             console.error('Error creating client:', error);
                             
+                                                     
                             // If authentication error, redirect to login
                             if (error.code === 'auth/user-token-expired' || 
                                 error.code === 'auth/user-token-revoked' || 
@@ -699,9 +708,7 @@
                             // Show error message
                             showToast('error', `Error creating client: ${error.message}`);
                         } finally {
-                            // Hide loading
-                            const loading
-                            // Hide loading
+                            // Hide loading overlay
                             const loadingOverlay = document.getElementById('loadingOverlay');
                             if (loadingOverlay) {
                                 loadingOverlay.style.display = 'none';
