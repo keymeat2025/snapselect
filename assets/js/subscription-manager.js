@@ -122,6 +122,9 @@ async function initSubscriptionManager() {
             loadActivePlans()
           ]);
           
+          // Update dashboard stats after loading data
+          updateDashboardStats();
+          
           // Cache the new data if PerformanceManager exists
           if (window.PerformanceManager && typeof window.PerformanceManager.cacheData === 'function') {
             window.PerformanceManager.cacheData('user_clients', userClients);
@@ -250,6 +253,7 @@ async function loadClientData() {
     
     updateClientDropdown();
     updateClientList();
+    updateDashboardStats(); // Add this call to update dashboard stats
   } catch (error) {
     console.error('Error loading client data:', error);
     throw error; // Re-throw to be caught by the Promise.all
@@ -292,9 +296,37 @@ async function loadActivePlans() {
     
     updateActivePlansDisplay();
     updateStorageUsage();
+    updateDashboardStats(); // Add this call to update dashboard stats
   } catch (error) {
     console.error('Error loading active plans:', error);
     throw error; // Re-throw to be caught by the Promise.all
+  }
+}
+
+/**
+ * Update dashboard statistics
+ */
+function updateDashboardStats() {
+  try {
+    // Update active clients count
+    const activeClientsCount = document.getElementById('activeClientsCount');
+    if (activeClientsCount) {
+      // Count clients with active plans
+      const activeClients = userClients.filter(client => client.planActive).length;
+      activeClientsCount.textContent = activeClients;
+    }
+    
+    // Update active galleries count
+    const activeGalleriesCount = document.getElementById('activeGalleriesCount');
+    if (activeGalleriesCount) {
+      // Count active galleries from plans data
+      const activeGalleries = activePlans.length; // Each plan typically has one gallery
+      activeGalleriesCount.textContent = activeGalleries;
+    }
+    
+    // Note: Storage usage is already handled in updateStorageUsage()
+  } catch (error) {
+    console.error('Error updating dashboard stats:', error);
   }
 }
 
@@ -684,6 +716,7 @@ async function verifyPayment(orderId, paymentId, signature) {
         hideUpgradeModal();
         loadClientData();
         loadActivePlans();
+        updateDashboardStats(); // Add this call to update dashboard stats after plan purchase
       }, 2000);
     } else {
       throw new Error('Payment verification failed');
@@ -802,6 +835,7 @@ async function cancelClientPlan(planId, clientId) {
       
       loadClientData();
       loadActivePlans();
+      updateDashboardStats(); // Add this call to update dashboard stats after cancellation
     } else {
       throw new Error('Failed to cancel plan');
     }
@@ -897,6 +931,7 @@ function refreshAllData() {
     loadActivePlans()
   ])
   .then(() => {
+    updateDashboardStats(); // Add this call to update dashboard stats after refresh
     hideLoadingOverlay();
     showSuccessMessage('Data refreshed successfully');
   })
@@ -1007,7 +1042,8 @@ window.subscriptionManager = {
   showUpgradeModal,
   hideUpgradeModal,
   createClient,
-  cancelClientPlan
+  cancelClientPlan,
+  updateDashboardStats // Add this line to expose the new function
 };
 
 // Export subscription plans
