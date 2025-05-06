@@ -78,7 +78,7 @@ function handleError(error, context) {
   }
 }
 
-// Initialize subscription manager
+// Initialize subscription manager with enhanced error handling
 async function initSubscriptionManager() {
   try {
     // Show loading overlay at the start
@@ -113,14 +113,26 @@ async function initSubscriptionManager() {
             activePlans = cachedPlans;
             updateActivePlansDisplay();
             updateStorageUsage();
+          } else {
+            // Set default empty array if no cached plans
+            activePlans = [];
           }
           
           // Load fresh data
-          await Promise.all([
-            loadUserData(),
-            loadClientData(),
-            loadActivePlans()
-          ]);
+          try {
+            await Promise.all([
+              loadUserData(),
+              loadClientData(),
+              loadActivePlans()
+            ]);
+          } catch (loadError) {
+            console.error('Error loading data:', loadError);
+            // Try to update UI elements even if some data loading failed
+            updateClientDropdown();
+            updateClientList();
+            updateActivePlansDisplay();
+            updateStorageUsage();
+          }
           
           // Update dashboard stats after loading data
           updateDashboardStats();
@@ -271,8 +283,31 @@ async function loadActivePlans() {
       .get();
     
     activePlans = [];
+    
+    if (plansSnapshot.empty) {
+      console.log('No active plans found for this user');
+      updateActivePlansDisplay();
+      updateStorageUsage();
+      return;
+    }
+    
     plansSnapshot.forEach(doc => {
       const planData = { id: doc.id, ...doc.data() };
+      
+      // Ensure storageUsed exists (default to 0 if not present)
+      if (typeof planData.storageUsed === 'undefined') {
+        planData.storageUsed = 0;
+        
+        // Consider updating in Firestore to ensure persistence
+        // Only if the plan should have storage data
+        if (planData.status === PLAN_STATUS.ACTIVE) {
+          console.log(`Adding missing storageUsed field to plan ${planData.id}`);
+          db.collection('client-plans').doc(doc.id).update({
+            storageUsed: 0
+          }).catch(err => console.error('Error updating plan with storage field:', err));
+        }
+      }
+      
       activePlans.push(planData);
       
       // Create notification for expiring plans
@@ -299,6 +334,9 @@ async function loadActivePlans() {
     updateDashboardStats(); // Add this call to update dashboard stats
   } catch (error) {
     console.error('Error loading active plans:', error);
+    // Even in case of error, try to update UI with whatever data we have
+    updateActivePlansDisplay();
+    updateStorageUsage();
     throw error; // Re-throw to be caught by the Promise.all
   }
 }
@@ -478,7 +516,6 @@ function updateActivePlansDisplay() {
     activePlansEl.appendChild(planCard);
   });
 }
-
 // Helper functions for formatting
 function formatPlanStatus(status) {
   const statusMap = {
@@ -944,31 +981,62 @@ function refreshAllData() {
 
 /**
  * Update storage usage display
+ * Fixed to handle empty state and ensure proper display of small values
  */
 function updateStorageUsage() {
   try {
     // Check if storage element exists
     const storageUsedElement = document.getElementById('storageUsed');
     const storageBarElement = document.getElementById('storageUsageBar');
+    const storageUsageTextElement = document.getElementById('storageUsageText');
     
     if (!storageUsedElement || !storageBarElement) return;
     
     // Get storage from all sources
-    const storageUsed = activePlans.reduce((total, plan) => 
-      total + (plan.storageUsed || 0), 0
-    );
+    let storageUsed = 0;
+    let totalLimit = 0;
     
-    const totalLimit = activePlans.reduce((total, plan) => 
-      total + (SUBSCRIPTION_PLANS[plan.planType]?.storageLimit || 0), 0
-    ) || 1; // Ensure we don't divide by zero
+    // Calculate used storage and limits from active plans
+    if (activePlans && activePlans.length > 0) {
+      storageUsed = activePlans.reduce((total, plan) => 
+        total + (plan.storageUsed || 0), 0
+      );
+      
+      totalLimit = activePlans.reduce((total, plan) => 
+        total + (SUBSCRIPTION_PLANS[plan.planType]?.storageLimit || 0), 0
+      );
+    }
     
-    // Update UI
+    // Ensure we have at least a minimum limit to avoid division by zero
+    totalLimit = totalLimit || 1; // Default to 1 GB if no plans exist
+    
+    // Convert storage to GB for display (from MB)
     const storageGB = (storageUsed / 1024).toFixed(2);
-    storageUsedElement.textContent = `${storageGB} GB`;
     
-    // Calculate percentage
-    const usagePercent = Math.min((storageUsed / (totalLimit * 1024)) * 100, 100);
+    // Always show at least 0.01 GB if any storage is used but less than 0.01 GB
+    const displayStorageGB = storageUsed > 0 && storageGB === "0.00" ? "0.01" : storageGB;
     
+    // Update the storage text display
+    storageUsedElement.textContent = `${displayStorageGB} GB`;
+    
+    // Set storage usage text if the element exists
+    if (storageUsageTextElement) {
+      storageUsageTextElement.textContent = `${displayStorageGB}/${totalLimit} GB`;
+    }
+    
+    // Calculate percentage - ensure it's always at least 1% if there's any usage
+    // This makes the bar visible even with minimal usage
+    let usagePercent = (storageUsed / (totalLimit * 1024)) * 100;
+    
+    // Make sure small values show at least a tiny bar (minimum 1%)
+    if (storageUsed > 0 && usagePercent < 1) {
+      usagePercent = 1;
+    }
+    
+    // Cap at 100% for safety
+    usagePercent = Math.min(usagePercent, 100);
+    
+    // Update progress bar width
     storageBarElement.style.width = `${usagePercent}%`;
     
     // Add warning colors
@@ -989,8 +1057,66 @@ function updateStorageUsage() {
       }
       localStorage.setItem('storageWarningShown', 'true');
     }
+    
+    // Log storage information for debugging
+    console.log('Storage information:', {
+      storageUsed: storageUsed,
+      storageGB: storageGB,
+      totalLimitGB: totalLimit,
+      usagePercent: usagePercent,
+      plans: activePlans.length
+    });
+    
   } catch (error) {
     console.error('Error updating storage usage:', error);
+    
+    // Fallback to show default values in case of error
+    const storageUsedElement = document.getElementById('storageUsed');
+    if (storageUsedElement) {
+      storageUsedElement.textContent = '0.00 GB';
+    }
+    
+    const storageBarElement = document.getElementById('storageUsageBar');
+    if (storageBarElement) {
+      storageBarElement.style.width = '0%';
+    }
+    
+    const storageUsageTextElement = document.getElementById('storageUsageText');
+    if (storageUsageTextElement) {
+      storageUsageTextElement.textContent = '0/1 GB';
+    }
+  }
+}
+
+/**
+ * Helper function to manually set storage for debugging or initial setup
+ * Can be called from the console to simulate storage usage
+ */
+function setDebugStorageUsage(usedMB) {
+  try {
+    // Set a debug flag to indicate manual override
+    window.debugStorageOverride = true;
+    
+    // Create a mock plan if no plans exist
+    if (!activePlans || activePlans.length === 0) {
+      activePlans = [{
+        planType: 'basic',
+        storageUsed: usedMB || 100, // Default to 100MB if no value provided
+        status: PLAN_STATUS.ACTIVE
+      }];
+    } else {
+      // Update the first plan's storage
+      activePlans[0].storageUsed = usedMB || 100;
+    }
+    
+    // Update the display
+    updateStorageUsage();
+    
+    console.log(`Debug: Storage set to ${usedMB || 100}MB`);
+    return true;
+  } catch (error) {
+    console.error('Error setting debug storage:', error);
+    return false;
   }
 }
 
@@ -1043,7 +1169,10 @@ window.subscriptionManager = {
   hideUpgradeModal,
   createClient,
   cancelClientPlan,
-  updateDashboardStats // Add this line to expose the new function
+  updateDashboardStats,
+  // Add debug functions for testing
+  setDebugStorageUsage,
+  updateStorageUsage
 };
 
 // Export subscription plans
