@@ -187,7 +187,6 @@
                     </div>
                 </div>
             </section>
-
             <!-- Client Management Section -->
             <section class="clients-section animate-in" style="animation-delay: 0.5s;">
                 <div class="section-header">
@@ -352,7 +351,7 @@
                 </div>
             </div>
 
-            <!-- Create Gallery Modal -->
+            <!-- Create Gallery Modal - Updated with active clients only -->
             <div id="createGalleryModal" class="modal">
                 <div class="modal-content">
                     <div class="modal-header">
@@ -369,7 +368,7 @@
                                 <label for="galleryClient">Client *</label>
                                 <select id="galleryClient" required>
                                     <option value="">Select a client</option>
-                                    <!-- Clients will be loaded dynamically -->
+                                    <!-- Only clients with active plans will be loaded dynamically -->
                                 </select>
                                 <p class="form-help">Only clients with active plans can have galleries created.</p>
                             </div>
@@ -481,9 +480,15 @@
             const emptyStateCreateGalleryBtn = document.getElementById('emptyStateCreateGalleryBtn');
             if (emptyStateCreateGalleryBtn) {
                 emptyStateCreateGalleryBtn.addEventListener('click', function() {
-                    const createGalleryModal = document.getElementById('createGalleryModal');
-                    if (createGalleryModal) {
-                        createGalleryModal.style.display = 'block';
+                    // Use the new function from subscription manager
+                    if (window.subscriptionManager && window.subscriptionManager.showCreateGalleryModal) {
+                        window.subscriptionManager.showCreateGalleryModal();
+                    } else {
+                        // Fallback if function not available
+                        const createGalleryModal = document.getElementById('createGalleryModal');
+                        if (createGalleryModal) {
+                            createGalleryModal.style.display = 'block';
+                        }
                     }
                 });
             }
@@ -555,6 +560,23 @@
                         const loadingOverlay = document.getElementById('loadingOverlay');
                         if (loadingOverlay) {
                             loadingOverlay.style.display = 'none';
+                        }
+                    }
+                });
+            }
+            
+            // Gallery creation button
+            const createGalleryBtn = document.getElementById('createGalleryBtn');
+            if (createGalleryBtn) {
+                createGalleryBtn.addEventListener('click', function() {
+                    // Use the new function from subscription manager
+                    if (window.subscriptionManager && window.subscriptionManager.showCreateGalleryModal) {
+                        window.subscriptionManager.showCreateGalleryModal();
+                    } else {
+                        // Fallback if function not available
+                        const createGalleryModal = document.getElementById('createGalleryModal');
+                        if (createGalleryModal) {
+                            createGalleryModal.style.display = 'block';
                         }
                     }
                 });
