@@ -44,6 +44,11 @@ const SUBSCRIPTION_PLANS = {
 
 // Global variables
 let selectedPlan = null, selectedClient = null, currentUser = null, userClients = [], activePlans = [];
+// Add tracking variables for dashboard stats
+let totalStorageLimit = 0;
+let activeGalleriesCount = 0;
+let totalGalleriesCount = 0;
+let isUpdatingGalleryDropdown = false; // Flag to prevent duplicate execution
 
 // Error handling function
 function handleError(error, context) {
@@ -295,6 +300,7 @@ async function loadActivePlans() {
       .get();
     
     activePlans = [];
+    totalStorageLimit = 0; // Reset total storage limit
     
     if (plansSnapshot.empty) {
       console.log('No active plans found for this user');
@@ -322,6 +328,11 @@ async function loadActivePlans() {
       
       activePlans.push(planData);
       
+      // Add to total storage limit
+      if (planData.planType && SUBSCRIPTION_PLANS[planData.planType]) {
+        totalStorageLimit += SUBSCRIPTION_PLANS[planData.planType].storageLimit || 0;
+      }
+      
       // Create notification for expiring plans
       if (planData.status === PLAN_STATUS.EXPIRING_SOON && 
           planData.daysLeftBeforeExpiration <= 7 &&
@@ -343,7 +354,7 @@ async function loadActivePlans() {
     
     updateActivePlansDisplay();
     updateStorageUsage();
-    updateDashboardStats(); // Add this call to update dashboard stats
+    updateDashboardStats(); // Add this call to update dashboard stats after refresh
   } catch (error) {
     console.error('Error loading active plans:', error);
     // Even in case of error, try to update UI with whatever data we have
@@ -354,7 +365,7 @@ async function loadActivePlans() {
 }
 
 /**
- * Update dashboard statistics
+ * Update dashboard statistics with total counts
  */
 function updateDashboardStats() {
   try {
@@ -363,15 +374,21 @@ function updateDashboardStats() {
     if (activeClientsCount) {
       // Count clients with active plans
       const activeClients = userClients.filter(client => client.planActive).length;
-      activeClientsCount.textContent = activeClients;
+      activeClientsCount.textContent = `${activeClients}/${userClients.length}`;
     }
     
     // Update active galleries count
     const activeGalleriesCount = document.getElementById('activeGalleriesCount');
     if (activeGalleriesCount) {
       // Count active galleries from plans data
-      const activeGalleries = activePlans.length; // Each plan typically has one gallery
-      activeGalleriesCount.textContent = activeGalleries;
+      const galleryCount = activePlans.length; // Each active plan typically has one gallery
+      
+      // For total galleries, we would need to query all galleries, but for now
+      // we can use a simple estimation based on plans and client counts
+      // This could be replaced with an actual gallery count query in the future
+      const estimatedTotalGalleries = Math.max(galleryCount, userClients.length);
+      
+      activeGalleriesCount.textContent = `${galleryCount}/${estimatedTotalGalleries}`;
     }
     
     // Note: Storage usage is already handled in updateStorageUsage()
@@ -994,6 +1011,7 @@ function refreshAllData() {
 /**
  * Update storage usage display
  * Fixed to handle empty state and ensure proper display of small values
+ * Updated to show total storage limit from all plans
  */
 function updateStorageUsage() {
   try {
@@ -1006,21 +1024,18 @@ function updateStorageUsage() {
     
     // Get storage from all sources
     let storageUsed = 0;
-    let totalLimit = 0;
     
-    // Calculate used storage and limits from active plans
+    // Calculate used storage from active plans
     if (activePlans && activePlans.length > 0) {
       storageUsed = activePlans.reduce((total, plan) => 
         total + (plan.storageUsed || 0), 0
       );
-      
-      totalLimit = activePlans.reduce((total, plan) => 
-        total + (SUBSCRIPTION_PLANS[plan.planType]?.storageLimit || 0), 0
-      );
     }
     
     // Ensure we have at least a minimum limit to avoid division by zero
-    totalLimit = totalLimit || 1; // Default to 1 GB if no plans exist
+    if (totalStorageLimit <= 0) {
+      totalStorageLimit = 1; // Default to 1 GB if no plans exist
+    }
     
     // Convert storage to GB for display (from MB)
     const storageGB = (storageUsed / 1024).toFixed(2);
@@ -1028,17 +1043,17 @@ function updateStorageUsage() {
     // Always show at least 0.01 GB if any storage is used but less than 0.01 GB
     const displayStorageGB = storageUsed > 0 && storageGB === "0.00" ? "0.01" : storageGB;
     
-    // Update the storage text display
-    storageUsedElement.textContent = `${displayStorageGB} GB`;
+    // Update the storage text display with active/total format
+    storageUsedElement.textContent = `${displayStorageGB}/${totalStorageLimit} GB`;
     
     // Set storage usage text if the element exists
     if (storageUsageTextElement) {
-      storageUsageTextElement.textContent = `${displayStorageGB}/${totalLimit} GB`;
+      storageUsageTextElement.textContent = `${displayStorageGB}/${totalStorageLimit} GB`;
     }
     
     // Calculate percentage - ensure it's always at least 1% if there's any usage
     // This makes the bar visible even with minimal usage
-    let usagePercent = (storageUsed / (totalLimit * 1024)) * 100;
+    let usagePercent = (storageUsed / (totalStorageLimit * 1024)) * 100;
     
     // Make sure small values show at least a tiny bar (minimum 1%)
     if (storageUsed > 0 && usagePercent < 1) {
@@ -1074,7 +1089,7 @@ function updateStorageUsage() {
     console.log('Storage information:', {
       storageUsed: storageUsed,
       storageGB: storageGB,
-      totalLimitGB: totalLimit,
+      totalLimitGB: totalStorageLimit,
       usagePercent: usagePercent,
       plans: activePlans.length
     });
@@ -1085,7 +1100,7 @@ function updateStorageUsage() {
     // Fallback to show default values in case of error
     const storageUsedElement = document.getElementById('storageUsed');
     if (storageUsedElement) {
-      storageUsedElement.textContent = '0.00 GB';
+      storageUsedElement.textContent = '0.00/1 GB';
     }
     
     const storageBarElement = document.getElementById('storageUsageBar');
@@ -1160,129 +1175,136 @@ function showExtendPlanModal(planId, clientId) {
 /**
  * Updates the gallery client dropdown to only show clients with valid active plans
  * Called when the Create Gallery modal is opened
+ * Fixed to prevent duplicate execution
  */
 function updateGalleryClientDropdown() {
-  const galleryClientSelect = document.getElementById('galleryClient');
-  if (!galleryClientSelect) return;
-  
-  // Clear existing options
-  galleryClientSelect.innerHTML = '<option value="">Select a client</option>';
-  
-  console.log('Starting gallery client dropdown update');
-  console.log('All clients:', userClients);
-  console.log('All active plans:', activePlans);
-  
-  // First check - do we have any clients?
-  if (!userClients || userClients.length === 0) {
-    console.log('No clients found at all');
-    const option = document.createElement('option');
-    option.disabled = true;
-    option.textContent = 'No clients available';
-    galleryClientSelect.appendChild(option);
-    
-    showErrorMessage('Please create a client first');
+  // Check if update is already in progress
+  if (isUpdatingGalleryDropdown) {
+    console.log("Gallery dropdown update already in progress, skipping");
     return;
   }
   
-  // Second check - check both client.planActive flag AND active plans array
-  // This handles potential data inconsistencies
-  let clientsForGallery = [];
+  isUpdatingGalleryDropdown = true;
   
-  // First try clients with matching active plans in the activePlans array
-  if (activePlans && activePlans.length > 0) {
-    console.log('Found active plans, checking for matching clients');
-    
-    // Log each active plan for debugging
-    activePlans.forEach(plan => {
-      console.log(`Plan ${plan.id || 'unknown'} for client ${plan.clientId || 'unknown'}, status: ${plan.status || 'unknown'}, type: ${plan.planType || 'unknown'}`);
-      
-      // Find matching client
-      const matchingClient = userClients.find(c => c.id === plan.clientId);
-      if (matchingClient) {
-        console.log(`Found matching client for plan: ${matchingClient.name || matchingClient.email || matchingClient.id}`);
-      } else {
-        console.log(`No matching client found for plan with clientId: ${plan.clientId}`);
-      }
-    });
-    
-    // Filter clients that have plans in the activePlans array
-    const clientsWithActivePlans = userClients.filter(client => 
-      activePlans.some(plan => 
-        plan.clientId === client.id && 
-        (plan.status === PLAN_STATUS.ACTIVE || plan.status === PLAN_STATUS.EXPIRING_SOON)
-      )
-    );
-    
-    if (clientsWithActivePlans.length > 0) {
-      console.log(`Found ${clientsWithActivePlans.length} clients with matching active plans`);
-      clientsForGallery = clientsWithActivePlans;
+  try {
+    const galleryClientSelect = document.getElementById('galleryClient');
+    if (!galleryClientSelect) {
+      isUpdatingGalleryDropdown = false;
+      return;
     }
-  }
-  
-  // If no clients found with active plans array, fall back to client.planActive flag
-  if (clientsForGallery.length === 0) {
-    console.log('No clients with matching active plans found, checking planActive flag');
     
-    // Check clients with planActive flag
-    const clientsWithPlanActive = userClients.filter(client => client.planActive === true);
+    // Clear existing options
+    galleryClientSelect.innerHTML = '<option value="">Select a client</option>';
     
-    if (clientsWithPlanActive.length > 0) {
-      console.log(`Found ${clientsWithPlanActive.length} clients with planActive flag`);
-      clientsForGallery = clientsWithPlanActive;
-    }
-  }
-  
-  // If we still have no clients, try one more fallback - clients with plan type
-  if (clientsForGallery.length === 0) {
-    console.log('No clients found with planActive flag, checking for planType');
+    console.log('Starting gallery client dropdown update');
+    console.log('All clients:', userClients);
+    console.log('All active plans:', activePlans);
     
-    // Check clients with planType property
-    const clientsWithPlanType = userClients.filter(client => client.planType && client.planType !== '');
-    
-    if (clientsWithPlanType.length > 0) {
-      console.log(`Found ${clientsWithPlanType.length} clients with planType property`);
-      clientsForGallery = clientsWithPlanType;
-    }
-  }
-  
-  // If we have found clients to show
-  if (clientsForGallery.length > 0) {
-    // Add them to the dropdown
-    clientsForGallery.forEach(client => {
+    // First check - do we have any clients?
+    if (!userClients || userClients.length === 0) {
+      console.log('No clients found at all');
       const option = document.createElement('option');
-      option.value = client.id;
-      
-      // Find the plan for this client to show its type
-      let planType = client.planType || 'Active';
-      
-      // Try to get plan type from activePlans array if available
-      const plan = activePlans && activePlans.length > 0 ? 
-        activePlans.find(p => p.clientId === client.id) : null;
-        
-      if (plan && plan.planType) {
-        planType = SUBSCRIPTION_PLANS[plan.planType]?.name || plan.planType;
-      }
-      
-      option.textContent = `${client.name || client.email || 'Client'} (${planType} Plan)`;
+      option.disabled = true;
+      option.textContent = 'No clients available';
       galleryClientSelect.appendChild(option);
-    });
+      
+      showErrorMessage('Please create a client first');
+      isUpdatingGalleryDropdown = false;
+      return;
+    }
     
-    console.log(`Added ${clientsForGallery.length} clients to gallery dropdown`);
-  } else {
-    // No clients with plans found
-    const option = document.createElement('option');
-    option.disabled = true;
-    option.textContent = 'No clients with active plans';
-    galleryClientSelect.appendChild(option);
+    // Second check - check both client.planActive flag AND active plans array
+    // This handles potential data inconsistencies
+    let clientsForGallery = [];
     
-    // Show helpful message
-    showErrorMessage('You need clients with active plans to create galleries');
-    console.log('No clients with any type of plan found');
+    // First try clients with matching active plans in the activePlans array
+    if (activePlans && activePlans.length > 0) {
+      console.log('Found active plans, checking for matching clients');
+      
+      // Filter clients that have plans in the activePlans array
+      const clientsWithActivePlans = userClients.filter(client => 
+        activePlans.some(plan => 
+          plan.clientId === client.id && 
+          (plan.status === PLAN_STATUS.ACTIVE || plan.status === PLAN_STATUS.EXPIRING_SOON)
+        )
+      );
+      
+      if (clientsWithActivePlans.length > 0) {
+        console.log(`Found ${clientsWithActivePlans.length} clients with matching active plans`);
+        clientsForGallery = clientsWithActivePlans;
+      }
+    }
+    
+    // If no clients found with active plans array, fall back to client.planActive flag
+    if (clientsForGallery.length === 0) {
+      console.log('No clients with matching active plans found, checking planActive flag');
+      
+      // Check clients with planActive flag
+      const clientsWithPlanActive = userClients.filter(client => client.planActive === true);
+      
+      if (clientsWithPlanActive.length > 0) {
+        console.log(`Found ${clientsWithPlanActive.length} clients with planActive flag`);
+        clientsForGallery = clientsWithPlanActive;
+      }
+    }
+    
+    // If we still have no clients, try one more fallback - clients with plan type
+    if (clientsForGallery.length === 0) {
+      console.log('No clients found with planActive flag, checking for planType');
+      
+      // Check clients with planType property
+      const clientsWithPlanType = userClients.filter(client => client.planType && client.planType !== '');
+      
+      if (clientsWithPlanType.length > 0) {
+        console.log(`Found ${clientsWithPlanType.length} clients with planType property`);
+        clientsForGallery = clientsWithPlanType;
+      }
+    }
+    
+    // If we have found clients to show
+    if (clientsForGallery.length > 0) {
+      // Add them to the dropdown
+      clientsForGallery.forEach(client => {
+        const option = document.createElement('option');
+        option.value = client.id;
+        
+        // Find the plan for this client to show its type
+        let planType = client.planType || 'Active';
+        
+        // Try to get plan type from activePlans array if available
+        const plan = activePlans && activePlans.length > 0 ? 
+          activePlans.find(p => p.clientId === client.id) : null;
+          
+        if (plan && plan.planType) {
+          planType = SUBSCRIPTION_PLANS[plan.planType]?.name || plan.planType;
+        }
+        
+        option.textContent = `${client.name || client.email || 'Client'} (${planType} Plan)`;
+        galleryClientSelect.appendChild(option);
+      });
+      
+      console.log(`Added ${clientsForGallery.length} clients to gallery dropdown`);
+    } else {
+      // No clients with plans found
+      const option = document.createElement('option');
+      option.disabled = true;
+      option.textContent = 'No clients with active plans';
+      galleryClientSelect.appendChild(option);
+      
+      // Show helpful message
+      showErrorMessage('You need clients with active plans to create galleries');
+      console.log('No clients with any type of plan found');
+    }
+    
+    // Log debug info to help troubleshoot
+    console.log('Gallery clients dropdown updated');
+    console.log('Total clients:', userClients.length);
+  } catch (error) {
+    console.error('Error updating gallery client dropdown:', error);
+  } finally {
+    // Always reset the flag when done
+    isUpdatingGalleryDropdown = false;
   }
-  
-  // Log debug info to help troubleshoot
-  console.log('Gallery clients dropdown updated');
-  console.log('Total clients:', userClients.length);
 }
 
 /**
