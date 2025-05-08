@@ -283,7 +283,7 @@ function viewGallery(clientId) {
       .then(galleryId => {
         if (galleryId) {
           // Navigate to gallery view page with correct path
-          window.location.href = `gallery-view.html?id=${galleryId}&client=${clientId}`;
+          window.location.href = `/gallery-view.html?id=${galleryId}&client=${clientId}`;
         } else {
           showErrorMessage('No gallery found for this client. Create a gallery first.');
           hideLoadingOverlay();
@@ -296,7 +296,7 @@ function viewGallery(clientId) {
       });
   } else {
     // Navigate directly to gallery view page
-    window.location.href = `gallery-view.html?id=${plan.galleryId}&client=${clientId}`;
+    window.location.href = `/gallery-view.html?id=${plan.galleryId}&client=${clientId}`;
     hideLoadingOverlay();
   }
 }
