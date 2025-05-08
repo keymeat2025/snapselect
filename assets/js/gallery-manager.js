@@ -193,12 +193,13 @@ async function loadGalleries() {
               const clientData = clientDoc.data();
               
               // Find the gallery we just added and update its client information
-              const galleryIndex = window.galleryManagerVars.userGalleries.findIndex(g => g.id === doc.id);
+          
+
+                          // Update local gallery data
+              const galleryIndex = window.galleryManagerVars.userGalleries.findIndex(g => g.id === galleryId);
               if (galleryIndex !== -1) {
-                window.galleryManagerVars.userGalleries[galleryIndex].clientName = clientData.name || clientData.email || 'Unknown Client';
-                window.galleryManagerVars.userGalleries[galleryIndex].clientEmail = clientData.email || '';
+                window.galleryManagerVars.userGalleries[galleryIndex].shareLink = shareLink;
               }
-            }
           })
           .catch(err => console.error(`Error loading client data for gallery ${doc.id}:`, err));
           
