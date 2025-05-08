@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+//gallery-view.html
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gallery View - SnapSelect</title>
+  <link rel="stylesheet" href="styles/main.css">
+  <link rel="stylesheet" href="styles/gallery-view.css">
+  <!-- Include FontAwesome or other icon libraries if needed -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-storage.js"></script>
+</head>
+<body>
+  <!-- Header with navigation back to dashboard -->
+  <header class="app-header">
+    <div class="header-left">
+      <a href="dashboard.html" class="back-link"><i class="fas fa-arrow-left"></i> Back to Dashboard</a>
+      <h1 id="galleryTitle">Gallery View</h1>
+    </div>
+    <div class="header-right">
+      <div class="user-menu">
+        <div class="avatar-placeholder" id="avatarPlaceholder">U</div>
+        <span id="userName">User</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Loading overlay -->
+  <div id="loadingOverlay" class="loading-overlay">
+    <div class="spinner"></div>
+    <div class="loading-text">Loading gallery...</div>
+  </div>
+
+  <!-- Gallery information section -->
+  <section class="gallery-info-section">
+    <div class="gallery-info-container">
+      <div class="gallery-details">
+        <h2 id="galleryName">Loading gallery details...</h2>
+        <div class="gallery-meta">
+          <span class="client-name" id="clientName">Client: Loading...</span>
+          <span class="photo-count" id="photoCount">Photos: 0</span>
+        </div>
+        <p id="galleryDescription" class="gallery-description"></p>
+      </div>
+      <div class="gallery-actions">
+        <button id="uploadPhotosBtn" class="btn primary-btn">Upload Photos</button>
+        <button id="shareGalleryBtn" class="btn secondary-btn">Share Gallery</button>
+        <button id="gallerySettingsBtn" class="btn outline-btn">Settings</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Gallery content section -->
+  <section class="gallery-content-section">
+    <div class="gallery-filters">
+      <select id="sortFilter" class="filter-dropdown">
+        <option value="newest">Newest First</option>
+        <option value="oldest">Oldest First</option>
+        <option value="name">Name (A-Z)</option>
+      </select>
+      <div class="view-toggle">
+        <button id="gridViewBtn" class="view-btn active"><i class="fas fa-th"></i></button>
+        <button id="listViewBtn" class="view-btn"><i class="fas fa-list"></i></button>
+      </div>
+    </div>
+
+    <!-- Photos grid/list container -->
+    <div id="photosContainer" class="photos-grid">
+      <!-- Photos will be loaded here -->
+      <div id="emptyStateContainer" class="empty-state">
+        <div class="empty-state-icon"><i class="fas fa-images"></i></div>
+        <h3>No photos yet</h3>
+        <p>Upload photos to get started with this gallery</p>
+        <button id="emptyStateUploadBtn" class="btn primary-btn">Upload Photos</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Toast container for notifications -->
+  <div id="toastContainer" class="toast-container"></div>
+
+  <!-- Upload photos modal -->
+  <div id="uploadPhotosModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Upload Photos</h2>
+        <button class="close-modal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="upload-area" id="uploadArea">
+          <div class="upload-instructions">
+            <i class="fas fa-cloud-upload-alt"></i>
+            <p>Drag photos here or click to browse</p>
+            <p class="upload-limits">Max 50 photos at once, 10MB per photo</p>
+          </div>
+          <input type="file" id="photoFileInput" multiple accept="image/*" style="display: none;">
+        </div>
+        <div class="upload-progress-container" id="uploadProgressContainer">
+          <div class="upload-progress-header">
+            <h3>Uploading <span id="uploadCount">0</span> photos</h3>
+            <span id="uploadPercentage">0%</span>
+          </div>
+          <div class="upload-progress-bar-container">
+            <div class="upload-progress-bar" id="uploadProgressBar"></div>
+          </div>
+          <div id="uploadFileList" class="upload-file-list">
+            <!-- Upload progress items will be listed here -->
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button id="cancelUploadBtn" class="btn outline-btn">Cancel</button>
+        <button id="startUploadBtn" class="btn primary-btn">Start Upload</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="js/firebase-init.js"></script>
+  <script src="js/gallery-view.js"></script>
+</body>
+</html>
