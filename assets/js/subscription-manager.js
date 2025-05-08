@@ -1372,6 +1372,7 @@ function handleGalleryFormSubmit(e) {
 /**
  * Create a new gallery for a client
  */
+
 async function createGallery(name, clientId, description = '') {
   try {
     if (!currentUser) return null;
@@ -1415,14 +1416,18 @@ async function createGallery(name, clientId, description = '') {
           status: 'active'
         });
         
-        return galleryRef.id;
-        // Trigger a gallery refresh
+        // Trigger a gallery refresh - MOVED THIS BEFORE RETURN
         if (window.galleryManager && typeof window.galleryManager.loadGalleries === 'function') {
           setTimeout(() => {
             console.log("Triggering gallery reload after creation");
             window.galleryManager.loadGalleries();
           }, 1000);
         }
+
+        // Update dashboard stats
+        updateDashboardStats();
+        
+        return galleryRef.id;
       } else {
         throw new Error('No active plan found for this client');
       }
@@ -1448,15 +1453,18 @@ async function createGallery(name, clientId, description = '') {
       updatedAt: firebase.firestore.FieldValue.serverTimestamp()
     });
     
-    return galleryRef.id;
-    // Add before the return galleryRef.id; line
-    // Trigger a gallery refresh
+    // Trigger a gallery refresh - MOVED THIS BEFORE RETURN
     if (window.galleryManager && typeof window.galleryManager.loadGalleries === 'function') {
       setTimeout(() => {
         console.log("Triggering gallery reload after creation");
         window.galleryManager.loadGalleries();
       }, 1000);
     }
+    
+    // Update dashboard stats
+    updateDashboardStats();
+    
+    return galleryRef.id;
   } catch (error) {
     console.error('Error creating gallery:', error);
     throw error;
