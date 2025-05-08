@@ -971,7 +971,6 @@ function showErrorMessage(message) {
 }
 
 // Add a function to refresh all data
-
 function refreshAllData() {
   showLoadingOverlay('Refreshing data...');
   
@@ -981,13 +980,7 @@ function refreshAllData() {
     loadActivePlans()
   ])
   .then(() => {
-    updateDashboardStats();
-    
-    // Add gallery refresh here - this is critical
-    if (window.galleryManager && window.galleryManager.loadGalleries) {
-      window.galleryManager.loadGalleries();
-    }
-    
+    updateDashboardStats(); // Add this call to update dashboard stats after refresh
     hideLoadingOverlay();
     showSuccessMessage('Data refreshed successfully');
   })
@@ -1372,7 +1365,6 @@ function handleGalleryFormSubmit(e) {
 /**
  * Create a new gallery for a client
  */
-
 async function createGallery(name, clientId, description = '') {
   try {
     if (!currentUser) return null;
@@ -1416,17 +1408,6 @@ async function createGallery(name, clientId, description = '') {
           status: 'active'
         });
         
-        // Trigger a gallery refresh - MOVED THIS BEFORE RETURN
-        if (window.galleryManager && typeof window.galleryManager.loadGalleries === 'function') {
-          setTimeout(() => {
-            console.log("Triggering gallery reload after creation");
-            window.galleryManager.loadGalleries();
-          }, 1000);
-        }
-
-        // Update dashboard stats
-        updateDashboardStats();
-        
         return galleryRef.id;
       } else {
         throw new Error('No active plan found for this client');
@@ -1452,17 +1433,6 @@ async function createGallery(name, clientId, description = '') {
       galleryCreated: true,
       updatedAt: firebase.firestore.FieldValue.serverTimestamp()
     });
-    
-    // Trigger a gallery refresh - MOVED THIS BEFORE RETURN
-    if (window.galleryManager && typeof window.galleryManager.loadGalleries === 'function') {
-      setTimeout(() => {
-        console.log("Triggering gallery reload after creation");
-        window.galleryManager.loadGalleries();
-      }, 1000);
-    }
-    
-    // Update dashboard stats
-    updateDashboardStats();
     
     return galleryRef.id;
   } catch (error) {
