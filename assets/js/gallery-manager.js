@@ -243,7 +243,6 @@ async function loadGalleries() {
     throw error;
   }
 }
-
 /**
  * Update the display of galleries in the UI
  * This handles both recent galleries on dashboard and all galleries on gallery page
@@ -540,7 +539,6 @@ function showUploadPhotosModal(galleryId) {
   // Show the modal
   uploadModal.style.display = 'block';
 }
-
 /**
  * Show the Share Gallery modal
  * @param {string} galleryId - The ID of the gallery to share
@@ -930,7 +928,6 @@ async function handlePhotoUpload(galleryId, files) {
     if (typeof showLoadingOverlay === 'function') {
       showLoadingOverlay('Preparing to upload photos...');
     }
-    
     // Find gallery data
     const gallery = userGalleries.find(g => g.id === galleryId);
     if (!gallery) {
@@ -1115,7 +1112,6 @@ async function handlePhotoUpload(galleryId, files) {
       
       uploadPromises.push(uploadPromise);
     }
-    
     // Wait for all uploads to complete
     await Promise.all(uploadPromises);
     
