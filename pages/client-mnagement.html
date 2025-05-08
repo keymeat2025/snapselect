@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SnapSelect - Gallery Management</title>
+    <link rel="stylesheet" href="../assets/css/variables.css">
+    <link rel="stylesheet" href="../assets/css/main.css">
+    <link rel="stylesheet" href="../assets/css/dashboard.css">
+    <link rel="stylesheet" href="../assets/css/responsive.css">
+    <link rel="stylesheet" href="../assets/css/animations.css">
+    <link rel="stylesheet" href="../assets/css/user-menu.css">
+    <link rel="stylesheet" href="../assets/css/gallery.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"></script>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <nav>
+                <a href="../index.html" class="logo">
+                    <div class="logo-text">SnapSelect</div>
+                </a>
+                <ul class="nav-links">
+                    <li><a href="../index.html#features">Features</a></li>
+                    <li><a href="../index.html#how-it-works">How It Works</a></li>
+                    <li><a href="../index.html#pricing">Pricing</a></li>
+                </ul>
+                <div class="right-nav">
+                    <div class="auth-user" id="userNav">
+                        <div class="user-menu">
+                            <button class="user-menu-btn" id="userMenuBtn">
+                                <div class="avatar-placeholder">U</div>
+                                <span class="user-name" id="userName">User</span>
+                                <i class="fas fa-chevron-down"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </nav>
+        </div>
+    </header>
+
+    <main class="gallery-main">
+        <div class="container">
+            <!-- Gallery Management Section -->
+            <section class="gallery-header">
+                <div class="gallery-title">
+                    <h1>Manage Galleries</h1>
+                    <p>Upload and organize your photo galleries.</p>
+                </div>
+                <div class="gallery-actions">
+                    <button id="uploadPhotosBtn" class="action-btn primary">
+                        <i class="fas fa-upload"></i> Upload Pictures
+                    </button>
+                    <button id="createNewGalleryBtn" class="action-btn">
+                        <i class="fas fa-folder-plus"></i> Create New Gallery
+                    </button>
+                </div>
+            </section>
+            
+            <!-- Gallery Grid -->
+            <section class="gallery-grid">
+                <div class="empty-state">
+                    <i class="fas fa-images empty-icon"></i>
+                    <h3>No galleries yet</h3>
+                    <p>Create your first gallery to get started</p>
+                    <button class="btn primary-btn" id="createGalleryBtn">Create Gallery</button>
+                </div>
+                <!-- Dynamically loaded galleries will appear here -->
+            </section>
+            
+            <!-- Photo Upload Modal -->
+            <div id="photoUploadModal" class="modal">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h2>Upload Photos</h2>
+                        <button class="close-modal">&times;</button>
+                    </div>
+                    <form id="photoUploadForm" class="modal-body">
+                        <div class="form-group">
+                            <label for="gallerySelect">Select Gallery</label>
+                            <select id="gallerySelect" required>
+                                <option value="">Choose a gallery</option>
+                                <!-- Dynamically loaded gallery options -->
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="photoFiles">Upload Photos</label>
+                            <input type="file" id="photoFiles" multiple accept="image/*" required>
+                        </div>
+                        <div class="form-actions">
+                            <button type="button" class="btn secondary" id="cancelUploadBtn">Cancel</button>
+                            <button type="submit" class="btn primary">Upload</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- New Gallery Modal -->
+            <div id="newGalleryModal" class="modal">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h2>Create New Gallery</h2>
+                        <button class="close-modal">&times;</button>
+                    </div>
+                    <form id="newGalleryForm" class="modal-body">
+                        <div class="form-group">
+                            <label for="newGalleryName">Gallery Name</label>
+                            <input type="text" id="newGalleryName" placeholder="Enter gallery name" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="newGalleryDescription">Description</label>
+                            <textarea id="newGalleryDescription" placeholder="Describe this gallery (optional)"></textarea>
+                        </div>
+                        <div class="form-actions">
+                            <button type="button" class="btn secondary" id="cancelGalleryBtn">Cancel</button>
+                            <button type="submit" class="btn primary">Create Gallery</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer class="dashboard-footer">
+        <div class="container">
+            <div class="footer-bottom">
+                <p class="copyright">&copy; 2025 SnapSelect. All rights reserved.</p>
+                <div class="footer-links">
+                    <a href="#">Privacy Policy</a>
+                    <a href="#">Terms of Service</a>
+                    <a href="#" id="footerHelpLink">Help Center</a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Scripts -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            // Modal handling
+            const photoUploadModal = document.getElementById('photoUploadModal');
+            const newGalleryModal = document.getElementById('newGalleryModal');
+
+            document.getElementById('uploadPhotosBtn').addEventListener('click', () => {
+                photoUploadModal.style.display = 'block';
+            });
+            document.getElementById('createNewGalleryBtn').addEventListener('click', () => {
+                newGalleryModal.style.display = 'block';
+            });
+
+            document.querySelectorAll('.close-modal').forEach(button => {
+                button.addEventListener('click', function () {
+                    const modal = this.closest('.modal');
+                    modal.style.display = 'none';
+                });
+            });
+
+            window.addEventListener('click', function (event) {
+                if (event.target.classList.contains('modal')) {
+                    event.target.style.display = 'none';
+                }
+            });
+        });
+    </script>
+</body>
+</html>
