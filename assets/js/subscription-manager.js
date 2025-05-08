@@ -306,6 +306,7 @@ function viewGallery(clientId) {
  * @param {string} clientId - The client ID to search for
  * @returns {Promise<string|null>} - Returns gallery ID if found, null otherwise
  */
+
 async function findGalleryByClientId(clientId) {
   try {
     if (!currentUser || !clientId) return null;
