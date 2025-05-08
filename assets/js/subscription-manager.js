@@ -1574,6 +1574,7 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 // Export global functions
+
 window.subscriptionManager = {
   updatePlanDisplay,
   refreshSubscription: refreshAllData,
@@ -1589,7 +1590,8 @@ window.subscriptionManager = {
   // Add gallery functions
   updateGalleryClientDropdown,
   showCreateGalleryModal,
-  createGallery
+  createGallery,
+  viewGallery  // Add this line
 };
 
 // Export subscription plans
