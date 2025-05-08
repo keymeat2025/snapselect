@@ -1,125 +1,756 @@
 <!DOCTYPE html>
-//gallery-view.html
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Gallery View - SnapSelect</title>
-  <link rel="stylesheet" href="styles/main.css">
-  <link rel="stylesheet" href="styles/gallery-view.css">
-  <!-- Include FontAwesome or other icon libraries if needed -->
-  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-storage.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SnapSelect - Gallery View</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="../assets/css/variables.css">
+    <link rel="stylesheet" href="../assets/css/main.css">
+    <link rel="stylesheet" href="../assets/css/dashboard.css">
+    <link rel="stylesheet" href="../assets/css/responsive.css">
+    <link rel="stylesheet" href="../assets/css/user-menu.css">
+    <link rel="stylesheet" href="../assets/css/animations.css">
+    <link rel="stylesheet" href="../assets/css/features.css">
+    <link rel="stylesheet" href="../assets/css/payment.css">
+    <link rel="stylesheet" href="../assets/css/gallery-view.css">
+    <style>
+        /* Ensure toast container has proper positioning */
+        #toastContainer {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 9999;
+        }
+        
+        /* Gallery-specific styles */
+        .gallery-info-section {
+            padding: 20px;
+            background-color: var(--background-light);
+            border-bottom: 1px solid var(--border-color);
+        }
+        
+        .gallery-info-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+        
+        .gallery-details {
+            flex: 1;
+        }
+        
+        .gallery-meta {
+            margin: 10px 0;
+            color: var(--text-secondary);
+        }
+        
+        .gallery-meta span {
+            margin-right: 15px;
+        }
+        
+        .gallery-description {
+            margin-top: 10px;
+            color: var(--text-secondary);
+            max-width: 800px;
+        }
+        
+        .gallery-actions {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .gallery-content-section {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .gallery-filters {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+        
+        .filter-dropdown {
+            padding: 8px 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            background-color: white;
+        }
+        
+        .view-toggle {
+            display: flex;
+            gap: 5px;
+        }
+        
+        .view-btn {
+            width: 36px;
+            height: 36px;
+            border: 1px solid var(--border-color);
+            background-color: white;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+        }
+        
+        .view-btn.active {
+            background-color: var(--primary-color);
+            color: white;
+            border-color: var(--primary-color);
+        }
+        
+        .photos-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 20px;
+        }
+        
+        .photo-item {
+            background-color: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            transition: transform 0.2s;
+        }
+        
+        .photo-item:hover {
+            transform: translateY(-5px);
+        }
+        
+        .photo-container {
+            height: 200px;
+            width: 100%;
+            background-size: cover;
+            background-position: center;
+            position: relative;
+            cursor: pointer;
+        }
+        
+        .photo-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            opacity: 0;
+            transition: opacity 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .photo-container:hover .photo-overlay {
+            opacity: 1;
+        }
+        
+        .photo-actions {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .photo-action-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background-color: white;
+            color: var(--text-primary);
+            border: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        
+        .photo-action-btn:hover {
+            background-color: var(--primary-color);
+            color: white;
+        }
+        
+        .photo-details {
+            padding: 12px;
+        }
+        
+        .photo-name {
+            font-weight: 500;
+            margin-bottom: 5px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        .photo-date {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+        
+        /* List view */
+        .photos-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        
+        .photo-list-item {
+            display: flex;
+            align-items: center;
+            padding: 12px;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        
+        .photo-list-thumbnail {
+            width: 80px;
+            height: 80px;
+            background-size: cover;
+            background-position: center;
+            border-radius: 4px;
+            margin-right: 15px;
+            cursor: pointer;
+        }
+        
+        .photo-list-details {
+            flex: 1;
+        }
+        
+        .photo-list-name {
+            font-weight: 500;
+            margin-bottom: 5px;
+        }
+        
+        .photo-list-meta {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+        
+        .photo-list-date, .photo-list-size {
+            margin-right: 15px;
+        }
+        
+        .photo-list-actions {
+            display: flex;
+            gap: 10px;
+        }
+        
+        /* Photo view modal */
+        .photo-view-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0,0,0,0.9);
+            z-index: 1000;
+        }
+        
+        .photo-view-container {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+        
+        .photo-view-container .close-modal {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(0,0,0,0.5);
+            color: white;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            font-size: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: none;
+            cursor: pointer;
+            z-index: 1001;
+        }
+        
+        .photo-view-content {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 60px 20px;
+        }
+        
+        .photo-view-content img {
+            max-width: 100%;
+            max-height: calc(100vh - 200px);
+            object-fit: contain;
+            box-shadow: 0 0 30px rgba(0,0,0,0.5);
+        }
+        
+        .photo-view-info {
+            padding: 15px 20px;
+            background-color: rgba(0,0,0,0.7);
+            color: white;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .photo-view-name {
+            font-weight: 500;
+            font-size: 18px;
+        }
+        
+        .photo-view-meta {
+            font-size: 14px;
+            opacity: 0.8;
+        }
+        
+        .photo-view-meta span {
+            margin-left: 15px;
+        }
+        
+        .photo-view-actions {
+            padding: 15px 20px;
+            background-color: #000;
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+        }
+        
+        /* Upload related styles */
+        .upload-area {
+            border: 2px dashed var(--border-color);
+            padding: 40px;
+            text-align: center;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        
+        .upload-area:hover, .upload-area.drag-over {
+            background-color: var(--background-light);
+            border-color: var(--primary-color);
+        }
+        
+        .upload-instructions i {
+            font-size: 48px;
+            color: var(--text-secondary);
+            margin-bottom: 15px;
+        }
+        
+        .upload-limits {
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-top: 5px;
+        }
+        
+        .upload-progress-container {
+            display: none;
+            margin-top: 20px;
+        }
+        
+        .upload-progress-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+        
+        .upload-progress-bar-container {
+            height: 8px;
+            background-color: var(--background-light);
+            border-radius: 4px;
+            overflow: hidden;
+            margin-bottom: 15px;
+        }
+        
+        .upload-progress-bar {
+            height: 100%;
+            background-color: var(--primary-color);
+            width: 0%;
+            transition: width 0.3s;
+        }
+        
+        .upload-file-list {
+            max-height: 300px;
+            overflow-y: auto;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+        }
+        
+        .upload-file-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 12px 15px;
+            border-bottom: 1px solid var(--border-color);
+        }
+        
+        .upload-file-item:last-child {
+            border-bottom: none;
+        }
+    </style>
 </head>
 <body>
-  <!-- Header with navigation back to dashboard -->
-  <header class="app-header">
-    <div class="header-left">
-      <a href="dashboard.html" class="back-link"><i class="fas fa-arrow-left"></i> Back to Dashboard</a>
-      <h1 id="galleryTitle">Gallery View</h1>
-    </div>
-    <div class="header-right">
-      <div class="user-menu">
-        <div class="avatar-placeholder" id="avatarPlaceholder">U</div>
-        <span id="userName">User</span>
-      </div>
-    </div>
-  </header>
+    <!-- Toast Container for Notifications -->
+    <div id="toastContainer" class="toast-container"></div>
 
-  <!-- Loading overlay -->
-  <div id="loadingOverlay" class="loading-overlay">
-    <div class="spinner"></div>
-    <div class="loading-text">Loading gallery...</div>
-  </div>
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="loading-overlay">
+        <div class="loading-spinner"></div>
+        <div class="loading-text">Loading gallery...</div>
+    </div>
 
-  <!-- Gallery information section -->
-  <section class="gallery-info-section">
-    <div class="gallery-info-container">
-      <div class="gallery-details">
-        <h2 id="galleryName">Loading gallery details...</h2>
-        <div class="gallery-meta">
-          <span class="client-name" id="clientName">Client: Loading...</span>
-          <span class="photo-count" id="photoCount">Photos: 0</span>
+    <header>
+        <div class="container">
+            <nav>
+                <a href="../index.html" class="logo">
+                    <div class="logo-text">SnapSelect</div>
+                </a>
+                <ul class="nav-links">
+                    <li><a href="photographer-dashboard.html">Dashboard</a></li>
+                    <li><a href="client-management.html">Clients</a></li>
+                    <li><a href="analytics.html">Analytics</a></li>
+                </ul>
+                <div class="right-nav">
+                    <div class="auth-user" id="userNav">
+                        <div class="user-menu">
+                            <button class="user-menu-btn" id="userMenuBtn">
+                                <div class="avatar-placeholder" id="avatarPlaceholder">U</div>
+                                <span class="user-name" id="userName">User</span>
+                                <i class="fas fa-chevron-down"></i>
+                            </button>
+                            <div class="user-dropdown" id="userDropdown">
+                                <a href="photographer-dashboard.html">Dashboard</a>
+                                <a href="client-management.html">Clients</a>
+                                <a href="analytics.html">Analytics</a>
+                                <a href="account-settings.html">Account Settings</a>
+                                <a href="#" id="logoutBtn">Logout</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="hamburger">
+                    <i class="fas fa-bars"></i>
+                </div>
+              
+                <!-- Notification Bell -->
+                <div class="notification-container">
+                  <button id="notificationBtn" class="notification-btn">
+                    <i class="fas fa-bell"></i>
+                    <span id="notificationCount" class="notification-badge">0</span>
+                  </button>
+                  
+                  <div id="notificationDropdown" class="notification-dropdown">
+                    <div class="notification-header">
+                      <h3>Notifications</h3>
+                      <button id="markAllReadBtn" class="mark-all-read">Mark all as read</button>
+                    </div>
+                    <div id="notificationList" class="notification-list">
+                      <!-- Notifications will be loaded here -->
+                    </div>
+                  </div>
+                </div>
+            </nav>
         </div>
-        <p id="galleryDescription" class="gallery-description"></p>
-      </div>
-      <div class="gallery-actions">
-        <button id="uploadPhotosBtn" class="btn primary-btn">Upload Photos</button>
-        <button id="shareGalleryBtn" class="btn secondary-btn">Share Gallery</button>
-        <button id="gallerySettingsBtn" class="btn outline-btn">Settings</button>
-      </div>
-    </div>
-  </section>
+    </header>
 
-  <!-- Gallery content section -->
-  <section class="gallery-content-section">
-    <div class="gallery-filters">
-      <select id="sortFilter" class="filter-dropdown">
-        <option value="newest">Newest First</option>
-        <option value="oldest">Oldest First</option>
-        <option value="name">Name (A-Z)</option>
-      </select>
-      <div class="view-toggle">
-        <button id="gridViewBtn" class="view-btn active"><i class="fas fa-th"></i></button>
-        <button id="listViewBtn" class="view-btn"><i class="fas fa-list"></i></button>
-      </div>
-    </div>
+    <main class="gallery-main">
+        <div class="container">
+            <!-- Back to dashboard link -->
+            <div class="back-link-container">
+                <a href="photographer-dashboard.html" class="back-link">
+                    <i class="fas fa-arrow-left"></i> Back to Dashboard
+                </a>
+            </div>
+            
+            <!-- Gallery information section -->
+            <section class="gallery-info-section">
+                <div class="gallery-info-container">
+                    <div class="gallery-details">
+                        <h1 id="galleryName">Loading gallery details...</h1>
+                        <div class="gallery-meta">
+                            <span class="client-name" id="clientName">Client: Loading...</span>
+                            <span class="photo-count" id="photoCount">Photos: 0</span>
+                        </div>
+                        <p id="galleryDescription" class="gallery-description"></p>
+                    </div>
+                    <div class="gallery-actions">
+                        <button id="uploadPhotosBtn" class="btn primary">
+                            <i class="fas fa-upload"></i> Upload Photos
+                        </button>
+                        <button id="shareGalleryBtn" class="btn secondary">
+                            <i class="fas fa-share-alt"></i> Share Gallery
+                        </button>
+                        <button id="gallerySettingsBtn" class="btn outline">
+                            <i class="fas fa-cog"></i> Settings
+                        </button>
+                    </div>
+                </div>
+            </section>
 
-    <!-- Photos grid/list container -->
-    <div id="photosContainer" class="photos-grid">
-      <!-- Photos will be loaded here -->
-      <div id="emptyStateContainer" class="empty-state">
-        <div class="empty-state-icon"><i class="fas fa-images"></i></div>
-        <h3>No photos yet</h3>
-        <p>Upload photos to get started with this gallery</p>
-        <button id="emptyStateUploadBtn" class="btn primary-btn">Upload Photos</button>
-      </div>
-    </div>
-  </section>
+            <!-- Gallery content section -->
+            <section class="gallery-content-section">
+                <div class="gallery-filters">
+                    <select id="sortFilter" class="filter-dropdown">
+                        <option value="newest">Newest First</option>
+                        <option value="oldest">Oldest First</option>
+                        <option value="name">Name (A-Z)</option>
+                    </select>
+                    <div class="view-toggle">
+                        <button id="gridViewBtn" class="view-btn active" title="Grid View">
+                            <i class="fas fa-th"></i>
+                        </button>
+                        <button id="listViewBtn" class="view-btn" title="List View">
+                            <i class="fas fa-list"></i>
+                        </button>
+                    </div>
+                </div>
 
-  <!-- Toast container for notifications -->
-  <div id="toastContainer" class="toast-container"></div>
-
-  <!-- Upload photos modal -->
-  <div id="uploadPhotosModal" class="modal">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h2>Upload Photos</h2>
-        <button class="close-modal">&times;</button>
-      </div>
-      <div class="modal-body">
-        <div class="upload-area" id="uploadArea">
-          <div class="upload-instructions">
-            <i class="fas fa-cloud-upload-alt"></i>
-            <p>Drag photos here or click to browse</p>
-            <p class="upload-limits">Max 50 photos at once, 10MB per photo</p>
-          </div>
-          <input type="file" id="photoFileInput" multiple accept="image/*" style="display: none;">
+                <!-- Photos grid container -->
+                <div id="photosContainer" class="photos-grid">
+                    <!-- Photos will be loaded here -->
+                    <div id="emptyStateContainer" class="empty-state">
+                        <i class="fas fa-images empty-icon"></i>
+                        <h3>No photos yet</h3>
+                        <p>Upload photos to get started with this gallery</p>
+                        <button id="emptyStateUploadBtn" class="btn primary">Upload Photos</button>
+                    </div>
+                </div>
+            </section>
         </div>
-        <div class="upload-progress-container" id="uploadProgressContainer">
-          <div class="upload-progress-header">
-            <h3>Uploading <span id="uploadCount">0</span> photos</h3>
-            <span id="uploadPercentage">0%</span>
-          </div>
-          <div class="upload-progress-bar-container">
-            <div class="upload-progress-bar" id="uploadProgressBar"></div>
-          </div>
-          <div id="uploadFileList" class="upload-file-list">
-            <!-- Upload progress items will be listed here -->
-          </div>
-        </div>
-      </div>
-      <div class="modal-footer">
-        <button id="cancelUploadBtn" class="btn outline-btn">Cancel</button>
-        <button id="startUploadBtn" class="btn primary-btn">Start Upload</button>
-      </div>
-    </div>
-  </div>
+    </main>
 
-  <!-- Scripts -->
-  <script src="js/firebase-init.js"></script>
-  <script src="js/gallery-view.js"></script>
+    <footer class="dashboard-footer">
+        <div class="container">
+            <div class="footer-bottom">
+                <p class="copyright">&copy; 2025 SnapSelect. All rights reserved.</p>
+                <div class="footer-links">
+                    <a href="#">Privacy Policy</a>
+                    <a href="#">Terms of Service</a>
+                    <a href="#" id="footerHelpLink">Help Center</a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Upload photos modal -->
+    <div id="uploadPhotosModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Upload Photos</h2>
+                <button class="close-modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="upload-area" id="uploadArea">
+                    <div class="upload-instructions">
+                        <i class="fas fa-cloud-upload-alt"></i>
+                        <p>Drag photos here or click to browse</p>
+                        <p class="upload-limits">Max 50 photos at once, 10MB per photo</p>
+                    </div>
+                    <input type="file" id="photoFileInput" multiple accept="image/*" style="display: none;">
+                </div>
+                <div class="upload-progress-container" id="uploadProgressContainer">
+                    <div class="upload-progress-header">
+                        <h3>Uploading <span id="uploadCount">0</span> photos</h3>
+                        <span id="uploadPercentage">0%</span>
+                    </div>
+                    <div class="upload-progress-bar-container">
+                        <div class="upload-progress-bar" id="uploadProgressBar"></div>
+                    </div>
+                    <div id="uploadFileList" class="upload-file-list">
+                        <!-- Upload progress items will be listed here -->
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button id="cancelUploadBtn" class="btn outline">Cancel</button>
+                <button id="startUploadBtn" class="btn primary">Start Upload</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-functions-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js"></script>
+    <script src="../assets/js/firebase-config.js"></script>
+    <script src="../assets/js/firebase-auth.js"></script>
+    <script src="../assets/js/firebase-db.js"></script>
+    <script src="../assets/js/header-auth.js"></script>
+    <script src="../assets/js/notification-system.js"></script>
+    <script src="../assets/js/gallery-view.js"></script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize Firebase region
+            if (firebase && firebase.functions) {
+                firebase.app().functions("asia-south1");
+            }
+            
+            // Modal close buttons
+            document.querySelectorAll('.close-modal').forEach(button => {
+                button.addEventListener('click', function() {
+                    const modal = this.closest('.modal');
+                    if (modal) {
+                        modal.style.display = 'none';
+                    }
+                });
+            });
+            
+            // Click outside modal to close
+            window.addEventListener('click', function(event) {
+                if (event.target.classList.contains('modal')) {
+                    event.target.style.display = 'none';
+                }
+            });
+            
+            // Upload photos button
+            const uploadPhotosBtn = document.getElementById('uploadPhotosBtn');
+            if (uploadPhotosBtn) {
+                uploadPhotosBtn.addEventListener('click', function() {
+                    const uploadPhotosModal = document.getElementById('uploadPhotosModal');
+                    if (uploadPhotosModal) {
+                        uploadPhotosModal.style.display = 'block';
+                    }
+                });
+            }
+            
+            // Empty state upload button
+            const emptyStateUploadBtn = document.getElementById('emptyStateUploadBtn');
+            if (emptyStateUploadBtn) {
+                emptyStateUploadBtn.addEventListener('click', function() {
+                    const uploadPhotosModal = document.getElementById('uploadPhotosModal');
+                    if (uploadPhotosModal) {
+                        uploadPhotosModal.style.display = 'block';
+                    }
+                });
+            }
+            
+            // View toggle buttons
+            const gridViewBtn = document.getElementById('gridViewBtn');
+            const listViewBtn = document.getElementById('listViewBtn');
+            const photosContainer = document.getElementById('photosContainer');
+            
+            if (gridViewBtn && listViewBtn && photosContainer) {
+                gridViewBtn.addEventListener('click', function() {
+                    photosContainer.classList.add('photos-grid');
+                    photosContainer.classList.remove('photos-list');
+                    gridViewBtn.classList.add('active');
+                    listViewBtn.classList.remove('active');
+                });
+                
+                listViewBtn.addEventListener('click', function() {
+                    photosContainer.classList.remove('photos-grid');
+                    photosContainer.classList.add('photos-list');
+                    gridViewBtn.classList.remove('active');
+                    listViewBtn.classList.add('active');
+                });
+            }
+            
+            // Sort filter
+            const sortFilter = document.getElementById('sortFilter');
+            if (sortFilter) {
+                sortFilter.addEventListener('change', function() {
+                    // This will be handled by gallery-view.js
+                    // But we're connecting the event listener here
+                    if (window.galleryView && window.galleryView.handleSortChange) {
+                        window.galleryView.handleSortChange(this.value);
+                    }
+                });
+            }
+            
+            // Upload area click handler
+            const uploadArea = document.getElementById('uploadArea');
+            const photoFileInput = document.getElementById('photoFileInput');
+            
+            if (uploadArea && photoFileInput) {
+                uploadArea.addEventListener('click', function() {
+                    photoFileInput.click();
+                });
+                
+                // File input change handler
+                photoFileInput.addEventListener('change', function(e) {
+                    if (window.galleryView && window.galleryView.handleFileSelect) {
+                        window.galleryView.handleFileSelect(e);
+                    }
+                });
+                
+                // Drag and drop handlers
+                uploadArea.addEventListener('dragover', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    this.classList.add('drag-over');
+                });
+                
+                uploadArea.addEventListener('dragleave', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    this.classList.remove('drag-over');
+                });
+                
+                uploadArea.addEventListener('drop', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    this.classList.remove('drag-over');
+                    
+                    if (window.galleryView && window.galleryView.handleFileDrop) {
+                        window.galleryView.handleFileDrop(e);
+                    }
+                });
+            }
+            
+            // Upload buttons
+            const startUploadBtn = document.getElementById('startUploadBtn');
+            const cancelUploadBtn = document.getElementById('cancelUploadBtn');
+            
+            if (startUploadBtn) {
+                startUploadBtn.addEventListener('click', function() {
+                    if (window.galleryView && window.galleryView.startPhotoUpload) {
+                        window.galleryView.startPhotoUpload();
+                    }
+                });
+            }
+            
+            if (cancelUploadBtn) {
+                cancelUploadBtn.addEventListener('click', function() {
+                    const uploadPhotosModal = document.getElementById('uploadPhotosModal');
+                    if (uploadPhotosModal) {
+                        uploadPhotosModal.style.display = 'none';
+                    }
+                });
+            }
+            
+            // Share gallery button
+            const shareGalleryBtn = document.getElementById('shareGalleryBtn');
+            if (shareGalleryBtn) {
+                shareGalleryBtn.addEventListener('click', function() {
+                    if (window.galleryView && window.galleryView.showShareGalleryModal) {
+                        window.galleryView.showShareGalleryModal();
+                    } else {
+                        alert('Gallery sharing functionality is coming soon!');
+                    }
+                });
+            }
+            
+            // Settings button
+            const gallerySettingsBtn = document.getElementById('gallerySettingsBtn');
+            if (gallerySettingsBtn) {
+                gallerySettingsBtn.addEventListener('click', function() {
+                    if (window.galleryView && window.galleryView.showGallerySettingsModal) {
+                        window.galleryView.showGallerySettingsModal();
+                    } else {
+                        alert('Gallery settings functionality is coming soon!');
+                    }
+                });
+            }
+        });
+    </script>
 </body>
 </html>
