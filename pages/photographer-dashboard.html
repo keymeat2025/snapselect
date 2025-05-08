@@ -1,436 +1,4 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SnapSelect - Photographer Dashboard</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="../assets/css/variables.css">
-    <link rel="stylesheet" href="../assets/css/main.css">
-    <link rel="stylesheet" href="../assets/css/dashboard.css">
-    <link rel="stylesheet" href="../assets/css/responsive.css">
-    <link rel="stylesheet" href="../assets/css/user-menu.css">
-    <link rel="stylesheet" href="../assets/css/animations.css">
-    <link rel="stylesheet" href="../assets/css/features.css">
-    <link rel="stylesheet" href="../assets/css/payment.css">
-    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
-    <style>
-        /* Ensure toast container has proper positioning */
-        #toastContainer {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            z-index: 9999;
-        }
-    </style>
-</head>
-<body>
-    <!-- Toast Container for Notifications -->
-    <div id="toastContainer" class="toast-container"></div>
-
-    <!-- Loading Overlay -->
-    <div id="loadingOverlay" class="loading-overlay">
-        <div class="loading-spinner"></div>
-        <div class="loading-text">Loading...</div>
-    </div>
-
-    <header>
-        <div class="container">
-            <nav>
-                <a href="../index.html" class="logo">
-                    <div class="logo-text">SnapSelect</div>
-                </a>
-                <ul class="nav-links">
-                    <li><a href="../index.html#features">Features</a></li>
-                    <li><a href="../index.html#how-it-works">How It Works</a></li>
-                    <li><a href="../index.html#pricing">Pricing</a></li>
-                </ul>
-                <div class="right-nav">
-                    <div class="auth-user" id="userNav">
-                        <div class="user-menu">
-                            <button class="user-menu-btn" id="userMenuBtn">
-                                <div class="avatar-placeholder">U</div>
-                                <span class="user-name" id="userName">User</span>
-                                <i class="fas fa-chevron-down"></i>
-                            </button>
-                            <div class="user-dropdown" id="userDropdown">
-                                <a href="photographer-dashboard.html" class="active">Dashboard</a>
-                                <a href="client-management.html">Clients</a>
-                                <a href="analytics.html">Analytics</a>
-                                <a href="account-settings.html">Account Settings</a>
-                                <a href="#" id="logoutBtn">Logout</a>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="hamburger">
-                    <i class="fas fa-bars"></i>
-                </div>
-              
-            <!-- Notification Bell -->
-                <div class="notification-container">
-                  <button id="notificationBtn" class="notification-btn">
-                    <i class="fas fa-bell"></i>
-                    <span id="notificationCount" class="notification-badge">0</span>
-                  </button>
-                  
-                  <div id="notificationDropdown" class="notification-dropdown">
-                    <div class="notification-header">
-                      <h3>Notifications</h3>
-                      <button id="markAllReadBtn" class="mark-all-read">Mark all as read</button>
-                    </div>
-                    <div id="notificationList" class="notification-list">
-                      <!-- Notifications will be loaded here -->
-                    </div>
-                  </div>
-                </div>
-
-                    
-            </nav>
-        </div>
-    </header>
-
-    <main class="dashboard-main">
-        <div class="container">
-            <!-- Dashboard Overview -->
-            <section class="dashboard-header">
-                <div class="dashboard-title">
-                    <h1>Photographer Dashboard</h1>
-                    <p>Manage your client plans and galleries</p>
-                </div>
-                <div class="dashboard-stats">
-                    <div class="stat-card animate-in">
-                        <div class="stat-icon">
-                            <i class="fas fa-images"></i>
-                        </div>
-                        <div class="stat-info">
-                            <span class="stat-value" id="activeGalleriesCount">0</span>
-                            <span class="stat-label">Active Galleries</span>
-                        </div>
-                    </div>
-                    <div class="stat-card animate-in" style="animation-delay: 0.1s;">
-                        <div class="stat-icon">
-                            <i class="fas fa-users"></i>
-                        </div>
-                        <div class="stat-info">
-                            <span class="stat-value" id="activeClientsCount">0</span>
-                            <span class="stat-label">Active Clients</span>
-                        </div>
-                    </div>
-                    <div class="stat-card animate-in" style="animation-delay: 0.2s;">
-                        <div class="stat-icon">
-                            <i class="fas fa-database"></i>
-                        </div>
-                        <div class="stat-info">
-                            <span class="stat-value" id="storageUsed">0 MB</span>
-                            <span class="stat-label">Storage Used</span>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            <!-- Storage Usage Section -->
-            <section class="plan-info animate-in" style="animation-delay: 0.25s;">
-                <div class="plan-card">
-                    <div class="plan-header">
-                        <h3>Storage Usage</h3>
-                    </div>
-                    <div class="plan-details">
-                        <div class="plan-usage">
-                            <div class="usage-item">
-                                <span class="usage-label">Total Storage:</span>
-                                <div class="usage-bar">
-                                    <div class="usage-progress" id="storageUsageBar" style="width: 0%"></div>
-                                </div>
-                                <span class="usage-text" id="storageUsageText">0/1 GB</span>
-                            </div>
-                        </div>
-                        <button id="addStorageBtn" class="btn secondary-btn">Purchase Additional Storage</button>
-                    </div>
-                </div>
-            </section>
-
-            <!-- Quick Actions Bar -->
-            <section class="quick-actions animate-in" style="animation-delay: 0.3s;">
-                <button id="createClientBtn" class="action-btn">
-                    <i class="fas fa-user-plus"></i> New Client
-                </button>
-                <button id="upgradePlanBtn" class="action-btn primary">
-                    <i class="fas fa-plus"></i> Purchase Plan
-                </button>
-                <button id="createGalleryBtn" class="action-btn">
-                    <i class="fas fa-images"></i> New Gallery
-                </button>
-                <button id="viewAnalyticsBtn" class="action-btn">
-                    <i class="fas fa-chart-bar"></i> Analytics
-                </button>
-                <button id="helpBtn" class="action-btn help">
-                    <i class="fas fa-question-circle"></i> Help
-                </button>
-            </section>
-
-            <!-- Active Plans Section -->
-            <section class="active-plans-section animate-in" style="animation-delay: 0.4s;">
-                <div class="section-header">
-                    <h2>Active Client Plans</h2>
-                    <button id="refreshPlansBtn" class="refresh-btn">
-                        <i class="fas fa-sync-alt"></i>
-                    </button>
-                </div>
-                <div id="activePlans" class="active-plans-grid">
-                    <!-- Plans will be loaded dynamically -->
-                    <div class="empty-state">
-                        <i class="fas fa-ticket-alt empty-icon"></i>
-                        <h3>No active plans</h3>
-                        <p>Purchase a plan for a client to get started</p>
-                        <button class="btn" id="emptyStateUpgradeBtn">Purchase Plan</button>
-                    </div>
-                </div>
-            </section>
-            <!-- Client Management Section -->
-            <section class="clients-section animate-in" style="animation-delay: 0.5s;">
-                <div class="section-header">
-                    <h2>Your Clients</h2>
-                    <button id="viewAllClientsBtn" class="view-all-btn">View All</button>
-                </div>
-                <div id="clientList" class="client-grid">
-                    <!-- Clients will be loaded dynamically -->
-                    <div class="empty-state">
-                        <i class="fas fa-users empty-icon"></i>
-                        <h3>No clients yet</h3>
-                        <p>Add your first client to get started</p>
-                        <button class="btn" id="emptyStateCreateClientBtn">Add Client</button>
-                    </div>
-                </div>
-            </section>
-
-            <!-- Gallery Management Section -->
-            <section class="galleries-section animate-in" style="animation-delay: 0.6s;">
-                <div class="section-header">
-                    <h2>Recent Galleries</h2>
-                    <button id="viewAllGalleriesBtn" class="view-all-btn">View All</button>
-                </div>
-                <div id="recentGalleries" class="gallery-grid">
-                    <!-- Galleries will be loaded dynamically -->
-                    <div class="empty-state">
-                        <i class="fas fa-images empty-icon"></i>
-                        <h3>No galleries yet</h3>
-                        <p>Create your first gallery to get started</p>
-                        <button class="btn" id="emptyStateCreateGalleryBtn">Create Gallery</button>
-                    </div>
-                </div>
-            </section>
-
-            <!-- Plan Upgrade Modal -->
-            <div id="upgradePlanModal" class="modal">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h2>Purchase Client Plan</h2>
-                        <button class="close-modal">&times;</button>
-                    </div>
-                    <div class="modal-body">
-                        <!-- Client Selection -->
-                        <div class="client-selection">
-                            <h3>Select Client</h3>
-                            <select id="clientSelect" class="client-select">
-                                <option value="">Select a client</option>
-                                <option value="new">+ Create New Client</option>
-                                <!-- Existing clients will be loaded dynamically -->
-                            </select>
-                        </div>
-
-                        <!-- New Client Form (Hidden initially) -->
-                        <div id="newClientForm" class="new-client-form" style="display: none;">
-                            <h3>New Client Details</h3>
-                            <div class="form-group">
-                                <label for="newClientName">Client Name *</label>
-                                <input type="text" id="newClientName" placeholder="Enter client name" required>
-                            </div>
-                            <div class="form-group">
-                                <label for="newClientEmail">Client Email</label>
-                                <input type="email" id="newClientEmail" placeholder="Enter client email (optional)">
-                            </div>
-                        </div>
-
-                        <div class="plan-comparison">
-                            <div class="plan-tabs">
-                                <button class="plan-tab" data-plan="lite">Lite</button>
-                                <button class="plan-tab" data-plan="mini">Mini</button>
-                                <button class="plan-tab" data-plan="basic">Basic</button>
-                                <button class="plan-tab" data-plan="pro">Pro</button>
-                                <button class="plan-tab" data-plan="premium">Premium</button>
-                                <button class="plan-tab" data-plan="ultimate">Ultimate</button>
-                            </div>
-                            
-                            <div id="planDetailsSection" class="plan-details-section">
-                                <div class="plan-column selected">
-                                    <h3>Selected Plan</h3>
-                                    <div class="plan-name" id="selectedPlanName">Basic</div>
-                                    <div class="plan-price" id="selectedPlanPrice">₹399/client</div>
-                                    <div class="plan-validity" id="validityInfo">Valid for 30 days</div>
-                                    <ul class="plan-features" id="planFeaturesList">
-                                        <li>15 GB Storage</li>
-                                        <li>1 Gallery</li>
-                                        <li>500 Photos per gallery</li>
-                                        <li>30-day client selection window</li>
-                                        <li>Advanced uploads</li>
-                                        <li>Password protection</li>
-                                    </ul>
-                                </div>
-                            </div>
-                            
-                            <div class="payment-section">
-                                <div class="payment-progress alert-info" style="display: none;"></div>
-                                <div class="payment-success alert-success" style="display: none;"></div>
-                                <div class="payment-error alert-danger" style="display: none;"></div>
-                                
-                                <h3>Complete Your Purchase</h3>
-                                <p class="payment-info">This plan will be associated with the selected client and valid for the duration specified above.</p>
-                                
-                                <form id="paymentForm">
-                                    <div class="payment-options">
-                                        <div class="payment-option">
-                                            <div class="payment-logo-icon">
-                                                <i class="fas fa-credit-card"></i>
-                                            </div>
-                                            <div class="payment-description">
-                                                <p>Secure payment via Razorpay</p>
-                                                <div class="payment-methods">
-                                                    <i class="fas fa-credit-card"></i>
-                                                    <i class="fas fa-university"></i>
-                                                    <i class="fab fa-cc-visa"></i>
-                                                    <i class="fab fa-cc-mastercard"></i>
-                                                    <i class="fab fa-google-pay"></i>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    
-                                    <div class="form-actions">
-                                        <button type="button" class="btn secondary" id="cancelUpgradeBtn">Cancel</button>
-                                        <button type="submit" class="btn primary" id="confirmUpgradeBtn">Purchase Plan</button>
-                                    </div>
-                                </form>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Create Client Modal -->
-            <div id="createClientModal" class="modal">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h2>Create New Client</h2>
-                        <button class="close-modal">&times;</button>
-                    </div>
-                    <div class="modal-body">
-                        <form id="createClientForm">
-                            <div class="form-group">
-                                <label for="clientName">Client Name *</label>
-                                <input type="text" id="clientName" placeholder="Enter client name" required>
-                            </div>
-                            <div class="form-group">
-                                <label for="clientEmail">Client Email</label>
-                                <input type="email" id="clientEmail" placeholder="Enter client email (optional)">
-                            </div>
-                            <div class="form-group">
-                                <label for="clientPhone">Client Phone</label>
-                                <input type="tel" id="clientPhone" placeholder="Enter client phone (optional)">
-                            </div>
-                            <div class="form-group">
-                                <label for="clientNotes">Notes</label>
-                                <textarea id="clientNotes" placeholder="Any additional notes about this client"></textarea>
-                            </div>
-                            <div class="form-actions">
-                                <button type="button" class="btn secondary" id="cancelClientBtn">Cancel</button>
-                                <button type="submit" class="btn primary" id="saveClientBtn">Save Client</button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Create Gallery Modal - Updated with active clients only -->
-            <div id="createGalleryModal" class="modal">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h2>Create New Gallery</h2>
-                        <button class="close-modal">&times;</button>
-                    </div>
-                    <div class="modal-body">
-                        <form id="createGalleryForm">
-                            <div class="form-group">
-                                <label for="galleryName">Gallery Name *</label>
-                                <input type="text" id="galleryName" placeholder="Enter gallery name" required>
-                            </div>
-                            <div class="form-group">
-                                <label for="galleryClient">Client *</label>
-                                <select id="galleryClient" required>
-                                    <option value="">Select a client</option>
-                                    <!-- Only clients with active plans will be loaded dynamically -->
-                                </select>
-                                <p class="form-help">Only clients with active plans can have galleries created.</p>
-                            </div>
-                            <div class="form-group">
-                                <label for="galleryDescription">Description</label>
-                                <textarea id="galleryDescription" placeholder="Describe this gallery (optional)"></textarea>
-                            </div>
-                            <div class="form-actions">
-                                <button type="button" class="btn secondary" id="cancelGalleryBtn">Cancel</button>
-                                <button type="submit" class="btn primary" id="saveGalleryBtn">Create Gallery</button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </main>
-
-    <footer class="dashboard-footer">
-        <div class="container">
-            <div class="footer-bottom">
-                <p class="copyright">&copy; 2025 SnapSelect. All rights reserved.</p>
-                <div class="footer-links">
-                    <a href="#">Privacy Policy</a>
-                    <a href="#">Terms of Service</a>
-                    <a href="#" id="footerHelpLink">Help Center</a>
-                </div>
-            </div>
-        </div>
-    </footer>
-
-    <!-- Scripts -->
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-functions-compat.js"></script>
-    <script src="../assets/js/firebase-config.js"></script>
-    <script src="../assets/js/firebase-auth.js"></script>
-    <script src="../assets/js/firebase-db.js"></script>
-    <script src="../assets/js/header-auth.js"></script>
-    <!-- Load notification system before subscription manager -->
-    <script src="../assets/js/notification-system.js"></script>
-    <script src="../assets/js/subscription-manager.js"></script>
-
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            // Debug notification elements
-            console.log('Toast container exists:', !!document.getElementById('toastContainer'));
-            console.log('Notification button exists:', !!document.getElementById('notificationBtn'));
-            console.log('Notification dropdown exists:', !!document.getElementById('notificationDropdown'));
-            
-            // Initialize Firebase region
-            if (firebase && firebase.functions) {
-                firebase.app().functions("asia-south1");
-            }
-            
-            // Show/hide new client form in upgrade modal
-            const clientSelect = document.getElementById('clientSelect');
-            const newClientForm = document.getElementById('newClientForm');
-            
-            if (clientSelect && newClientForm) {
-                clientSelect.addEventListener('change', function() {
+clientSelect.addEventListener('change', function() {
                     if (this.value === 'new') {
                         newClientForm.style.display = 'block';
                     } else {
@@ -613,6 +181,11 @@
                     if (window.subscriptionManager && window.subscriptionManager.refreshSubscription) {
                         window.subscriptionManager.refreshSubscription();
                         
+                        // Also refresh galleries if gallery manager exists
+                        if (window.galleryManager && window.galleryManager.loadGalleries) {
+                            window.galleryManager.loadGalleries();
+                        }
+                        
                         // Use notification system to show refresh confirmation
                         if (window.NotificationSystem) {
                             window.NotificationSystem.showNotification(
@@ -627,6 +200,173 @@
                     setTimeout(() => {
                         this.classList.remove('rotating');
                     }, 1000);
+                });
+            }
+            
+            // Link to galleries page
+            const viewAllGalleriesBtn = document.getElementById('viewAllGalleriesBtn');
+            if (viewAllGalleriesBtn) {
+                viewAllGalleriesBtn.addEventListener('click', function() {
+                    window.location.href = 'galleries.html';
+                });
+            }
+            
+            // Initialize gallery-specific elements now that the DOM is ready
+            
+            // Upload Photos form file selection
+            const photoFilesInput = document.getElementById('photoFiles');
+            if (photoFilesInput) {
+                photoFilesInput.addEventListener('change', function(e) {
+                    const fileCount = this.files.length;
+                    const fileCountEl = document.querySelector('.file-count');
+                    if (fileCountEl) {
+                        fileCountEl.textContent = fileCount > 0 ? 
+                            `${fileCount} file${fileCount !== 1 ? 's' : ''} selected` : '';
+                    }
+                    
+                    // Enable upload button if files selected
+                    const uploadBtn = document.getElementById('confirmUploadBtn');
+                    if (uploadBtn) {
+                        uploadBtn.disabled = fileCount === 0;
+                    }
+                });
+            }
+            
+            // Make upload area act as a drop zone
+            const uploadDropzone = document.getElementById('uploadDropzone');
+            if (uploadDropzone) {
+                // Prevent default behavior to allow drop
+                ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                    uploadDropzone.addEventListener(eventName, preventDefaults, false);
+                });
+                
+                function preventDefaults(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                }
+                
+                // Highlight drop area when item is dragged over it
+                ['dragenter', 'dragover'].forEach(eventName => {
+                    uploadDropzone.addEventListener(eventName, highlight, false);
+                });
+                
+                ['dragleave', 'drop'].forEach(eventName => {
+                    uploadDropzone.addEventListener(eventName, unhighlight, false);
+                });
+                
+                function highlight() {
+                    uploadDropzone.classList.add('highlight');
+                }
+                
+                function unhighlight() {
+                    uploadDropzone.classList.remove('highlight');
+                }
+                
+                // Handle dropped files
+                uploadDropzone.addEventListener('drop', handleDrop, false);
+                
+                function handleDrop(e) {
+                    const dt = e.dataTransfer;
+                    const files = dt.files;
+                    
+                    // Update file input with dropped files
+                    const fileInput = document.getElementById('photoFiles');
+                    if (fileInput) {
+                        // Note: We can't directly set FileList to a file input
+                        // This is a limitation of the browser API
+                        // Instead, we need to trigger the file dialog or use a different approach
+                        
+                        // For simplicity, we'll just display the count and enable the button
+                        const fileCount = files.length;
+                        const fileCountEl = document.querySelector('.file-count');
+                        if (fileCountEl) {
+                            fileCountEl.textContent = fileCount > 0 ? 
+                                `${fileCount} file${fileCount !== 1 ? 's' : ''} selected (dropped)` : '';
+                        }
+                        
+                        // Enable upload button if files selected
+                        const uploadBtn = document.getElementById('confirmUploadBtn');
+                        if (uploadBtn) {
+                            uploadBtn.disabled = fileCount === 0;
+                        }
+                        
+                        // Store the files in a global variable for later use
+                        window.droppedFiles = files;
+                    }
+                }
+            }
+            
+            // Handle uploadPhotosForm submission
+            const uploadPhotosForm = document.getElementById('uploadPhotosForm');
+            if (uploadPhotosForm) {
+                uploadPhotosForm.addEventListener('submit', async function(e) {
+                    e.preventDefault();
+                    
+                    // Get gallery ID
+                    const galleryId = this.getAttribute('data-gallery-id');
+                    if (!galleryId) {
+                        console.error('No gallery ID found on upload form');
+                        return;
+                    }
+                    
+                    // Get files (either from input or dropped)
+                    let files = null;
+                    const fileInput = document.getElementById('photoFiles');
+                    
+                    if (fileInput && fileInput.files && fileInput.files.length > 0) {
+                        files = fileInput.files;
+                    } else if (window.droppedFiles && window.droppedFiles.length > 0) {
+                        files = window.droppedFiles;
+                    }
+                    
+                    if (!files || files.length === 0) {
+                        if (window.NotificationSystem) {
+                            window.NotificationSystem.showNotification(
+                                'warning',
+                                'No Files',
+                                'Please select or drop files to upload'
+                            );
+                        }
+                        return;
+                    }
+                    
+                    // Get options
+                    const autoSelectCover = document.getElementById('autoSelectCover').checked;
+                    const compressImages = document.getElementById('compressImages').checked;
+                    
+                    try {
+                        // Process the upload using galleryManager
+                        if (window.galleryManager && window.galleryManager.handlePhotoUpload) {
+                            await window.galleryManager.handlePhotoUpload(galleryId, files, {
+                                autoSelectCover,
+                                compressImages
+                            });
+                            
+                            // Reset the form and close the modal on success
+                            this.reset();
+                            document.querySelector('.file-count').textContent = '';
+                            document.getElementById('confirmUploadBtn').disabled = true;
+                            window.droppedFiles = null;
+                            
+                            const modal = this.closest('.modal');
+                            if (modal) {
+                                modal.style.display = 'none';
+                            }
+                        } else {
+                            throw new Error('Gallery upload functionality is not available');
+                        }
+                    } catch (error) {
+                        console.error('Error uploading photos:', error);
+                        
+                        // Use notification system for errors
+                        if (window.NotificationSystem) {
+                            window.NotificationSystem.showNotification(
+                                'error',
+                                'Upload Failed',
+                                error.message || 'Failed to upload photos. Please try again.'
+                            );
+                        }
+                    }
                 });
             }
         });
