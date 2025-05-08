@@ -628,6 +628,168 @@ function showGallerySettingsModal(galleryId) {
     const planInfo = window.SUBSCRIPTION_PLANS && gallery.planType ? 
       window.SUBSCRIPTION_PLANS[gallery.planType] : null;
       
+    // Check if password protection is available in this plan
+    const hasPasswordProtection = planInfo && planInfo.features && 
+      planInfo.features.includes('Password protection');
+      
+    if (hasPasswordProtection) {
+      passwordProtectionSection.style.display = 'block';
+      
+      // Set existing password if any
+      const passwordInput = settingsModal.querySelector('#galleryPassword');
+      if (passwordInput) passwordInput.value = gallery.password || '';
+      
+      // Set password toggle
+      const passwordToggle = settingsModal.querySelector('#passwordProtectionToggle');
+      if (passwordToggle) passwordToggle.checked = !!gallery.password;
+    } else {
+      passwordProtectionSection.style.display = 'none';
+    }
+  }
+  
+  // Set gallery customization options if available in the plan
+  const customizationSection = settingsModal.querySelector('#galleryCustomizationSection');
+  if (customizationSection) {
+    // Get plan info
+    const planInfo = window.SUBSCRIPTION_PLANS && gallery.planType ? 
+      window.SUBSCRIPTION_PLANS[gallery.planType] : null;
+      
+    // Check if any customization is available in this plan
+    const hasBasicCustomization = planInfo && planInfo.features && 
+      planInfo.features.includes('Basic Gallery Customization');
+    const hasAdvancedCustomization = planInfo && planInfo.features && 
+      planInfo.features.includes('Advanced Gallery Customization');
+    const hasCompleteCustomization = planInfo && planInfo.features && 
+      planInfo.features.includes('Complete Gallery Customization');
+    const hasWhiteLabelCustomization = planInfo && planInfo.features && 
+      planInfo.features.includes('White-label Gallery Customization');
+      
+    if (hasBasicCustomization || hasAdvancedCustomization || 
+        hasCompleteCustomization || hasWhiteLabelCustomization) {
+      
+      customizationSection.style.display = 'block';
+      
+      // Show/hide advanced options based on plan level
+      const advancedCustomizationOptions = customizationSection.querySelector('.advanced-customization-options');
+      if (advancedCustomizationOptions) {
+        if (hasAdvancedCustomization || hasCompleteCustomization || hasWhiteLabelCustomization) {
+          advancedCustomizationOptions.style.display = 'block';
+        } else {
+          advancedCustomizationOptions.style.display = 'none';
+        }
+      }
+      
+      // Show/hide complete customization options
+      const completeCustomizationOptions = customizationSection.querySelector('.complete-customization-options');
+      if (completeCustomizationOptions) {
+        if (hasCompleteCustomization || hasWhiteLabelCustomization) {
+          completeCustomizationOptions.style.display = 'block';
+        } else {
+          completeCustomizationOptions.style.display = 'none';
+        }
+      }
+      
+      // Show/hide white label options
+      const whiteLabelOptions = customizationSection.querySelector('.white-label-options');
+      if (whiteLabelOptions) {
+        if (hasWhiteLabelCustomization) {
+          whiteLabelOptions.style.display = 'block';
+        } else {
+          whiteLabelOptions.style.display = 'none';
+        }
+      }
+      
+      // Set existing customization values if any
+      if (gallery.customization) {
+        // Basic customization
+        const themeSelect = settingsModal.querySelector('#galleryTheme');
+        if (themeSelect) themeSelect.value = gallery.customization.theme || 'default';
+        
+        const logoUrlInput = settingsModal.querySelector('#logoUrl');
+        if (logoUrlInput) logoUrlInput.value = gallery.customization.logoUrl || '';
+        
+        // Advanced customization
+        const headerTextInput = settingsModal.querySelector('#headerText');
+        if (headerTextInput) headerTextInput.value = gallery.customization.headerText || '';
+        
+        const accentColorInput = settingsModal.querySelector('#accentColor');
+        if (accentColorInput) accentColorInput.value = gallery.customization.accentColor || '#4A90E2';
+        
+        // Complete customization
+        const customCssInput = settingsModal.querySelector('#customCss');
+        if (customCssInput) customCssInput.value = gallery.customization.customCss || '';
+        
+        // White label options
+        const hidePromoInput = settingsModal.querySelector('#hidePromo');
+        if (hidePromoInput) hidePromoInput.checked = gallery.customization.hidePromo || false;
+        
+        const customDomainInput = settingsModal.querySelector('#customDomain');
+        if (customDomainInput) customDomainInput.value = gallery.customization.customDomain || '';
+      }
+    } else {
+      customizationSection.style.display = 'none';
+    }
+  }
+  
+  // Update gallery ID on the form
+  const galleryIdInput = settingsModal.querySelector('#settingsGalleryId');
+  if (galleryIdInput) galleryIdInput.value = galleryId;
+  
+  // Show the modal
+  settingsModal.style.display = 'block';
+}
+
+/**
+ * Updates a gallery's share link in Firestore
+ * @param {string} galleryId - The ID of the gallery to update
+ * @param {string} shareLink - The new share link
+ */
+async function updateGalleryShareLink(galleryId, shareLink) {
+  try {
+    if (!currentUser || !galleryId) return;
+    
+    const db = firebase.firestore();
+    await db.collection('galleries').doc(galleryId).update({
+      shareLink: shareLink,
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    
+    // Update local gallery data
+    const galleryIndex = userGalleries.findIndex(g => g.id === galleryId);
+    if (galleryIndex !== -1) {
+      userGalleries[galleryIndex].shareLink = shareLink;
+    }
+    
+  } catch (error) {
+    console.error('Error updating gallery share link:', error);
+    throw error;
+  }
+}
+
+/**
+ * Save gallery settings to Firestore
+ * @param {string} galleryId - The ID of the gallery to update
+ * @param {Object} settings - The gallery settings to save
+ */
+async function saveGallerySettings(galleryId, settings) {
+  try {
+    if (!currentUser || !galleryId) return;
+    
+    // Show loading overlay
+    if (typeof showLoadingOverlay === 'function') {
+      showLoadingOverlay('Saving gallery settings...');
+    }
+    
+    // Find the gallery
+    const gallery = userGalleries.find(g => g.id === galleryId);
+    if (!gallery) {
+      throw new Error(`Gallery with ID ${galleryId} not found`);
+    }
+    
+    // Get plan info
+    const planInfo = window.SUBSCRIPTION_PLANS && gallery.planType ? 
+      window.SUBSCRIPTION_PLANS[gallery.planType] : null;
+      
     if (!planInfo) {
       throw new Error('Plan information not found for this gallery');
     }
@@ -1336,165 +1498,3 @@ window.galleryManager = {
   filterGalleries,
   GALLERY_STATUS
 };
-      window.SUBSCRIPTION_PLANS[gallery.planType] : null;
-      
-    // Check if password protection is available in this plan
-    const hasPasswordProtection = planInfo && planInfo.features && 
-      planInfo.features.includes('Password protection');
-      
-    if (hasPasswordProtection) {
-      passwordProtectionSection.style.display = 'block';
-      
-      // Set existing password if any
-      const passwordInput = settingsModal.querySelector('#galleryPassword');
-      if (passwordInput) passwordInput.value = gallery.password || '';
-      
-      // Set password toggle
-      const passwordToggle = settingsModal.querySelector('#passwordProtectionToggle');
-      if (passwordToggle) passwordToggle.checked = !!gallery.password;
-    } else {
-      passwordProtectionSection.style.display = 'none';
-    }
-  }
-  
-  // Set gallery customization options if available in the plan
-  const customizationSection = settingsModal.querySelector('#galleryCustomizationSection');
-  if (customizationSection) {
-    // Get plan info
-    const planInfo = window.SUBSCRIPTION_PLANS && gallery.planType ? 
-      window.SUBSCRIPTION_PLANS[gallery.planType] : null;
-      
-    // Check if any customization is available in this plan
-    const hasBasicCustomization = planInfo && planInfo.features && 
-      planInfo.features.includes('Basic Gallery Customization');
-    const hasAdvancedCustomization = planInfo && planInfo.features && 
-      planInfo.features.includes('Advanced Gallery Customization');
-    const hasCompleteCustomization = planInfo && planInfo.features && 
-      planInfo.features.includes('Complete Gallery Customization');
-    const hasWhiteLabelCustomization = planInfo && planInfo.features && 
-      planInfo.features.includes('White-label Gallery Customization');
-      
-    if (hasBasicCustomization || hasAdvancedCustomization || 
-        hasCompleteCustomization || hasWhiteLabelCustomization) {
-      
-      customizationSection.style.display = 'block';
-      
-      // Show/hide advanced options based on plan level
-      const advancedCustomizationOptions = customizationSection.querySelector('.advanced-customization-options');
-      if (advancedCustomizationOptions) {
-        if (hasAdvancedCustomization || hasCompleteCustomization || hasWhiteLabelCustomization) {
-          advancedCustomizationOptions.style.display = 'block';
-        } else {
-          advancedCustomizationOptions.style.display = 'none';
-        }
-      }
-      
-      // Show/hide complete customization options
-      const completeCustomizationOptions = customizationSection.querySelector('.complete-customization-options');
-      if (completeCustomizationOptions) {
-        if (hasCompleteCustomization || hasWhiteLabelCustomization) {
-          completeCustomizationOptions.style.display = 'block';
-        } else {
-          completeCustomizationOptions.style.display = 'none';
-        }
-      }
-      
-      // Show/hide white label options
-      const whiteLabelOptions = customizationSection.querySelector('.white-label-options');
-      if (whiteLabelOptions) {
-        if (hasWhiteLabelCustomization) {
-          whiteLabelOptions.style.display = 'block';
-        } else {
-          whiteLabelOptions.style.display = 'none';
-        }
-      }
-      
-      // Set existing customization values if any
-      if (gallery.customization) {
-        // Basic customization
-        const themeSelect = settingsModal.querySelector('#galleryTheme');
-        if (themeSelect) themeSelect.value = gallery.customization.theme || 'default';
-        
-        const logoUrlInput = settingsModal.querySelector('#logoUrl');
-        if (logoUrlInput) logoUrlInput.value = gallery.customization.logoUrl || '';
-        
-        // Advanced customization
-        const headerTextInput = settingsModal.querySelector('#headerText');
-        if (headerTextInput) headerTextInput.value = gallery.customization.headerText || '';
-        
-        const accentColorInput = settingsModal.querySelector('#accentColor');
-        if (accentColorInput) accentColorInput.value = gallery.customization.accentColor || '#4A90E2';
-        
-        // Complete customization
-        const customCssInput = settingsModal.querySelector('#customCss');
-        if (customCssInput) customCssInput.value = gallery.customization.customCss || '';
-        
-        // White label options
-        const hidePromoInput = settingsModal.querySelector('#hidePromo');
-        if (hidePromoInput) hidePromoInput.checked = gallery.customization.hidePromo || false;
-        
-        const customDomainInput = settingsModal.querySelector('#customDomain');
-        if (customDomainInput) customDomainInput.value = gallery.customization.customDomain || '';
-      }
-    } else {
-      customizationSection.style.display = 'none';
-    }
-  }
-  
-  // Update gallery ID on the form
-  const galleryIdInput = settingsModal.querySelector('#settingsGalleryId');
-  if (galleryIdInput) galleryIdInput.value = galleryId;
-  
-  // Show the modal
-  settingsModal.style.display = 'block';
-}
-
-/**
- * Updates a gallery's share link in Firestore
- * @param {string} galleryId - The ID of the gallery to update
- * @param {string} shareLink - The new share link
- */
-async function updateGalleryShareLink(galleryId, shareLink) {
-  try {
-    if (!currentUser || !galleryId) return;
-    
-    const db = firebase.firestore();
-    await db.collection('galleries').doc(galleryId).update({
-      shareLink: shareLink,
-      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-    });
-    
-    // Update local gallery data
-    const galleryIndex = userGalleries.findIndex(g => g.id === galleryId);
-    if (galleryIndex !== -1) {
-      userGalleries[galleryIndex].shareLink = shareLink;
-    }
-    
-  } catch (error) {
-    console.error('Error updating gallery share link:', error);
-    throw error;
-  }
-}
-
-/**
- * Save gallery settings to Firestore
- * @param {string} galleryId - The ID of the gallery to update
- * @param {Object} settings - The gallery settings to save
- */
-async function saveGallerySettings(galleryId, settings) {
-  try {
-    if (!currentUser || !galleryId) return;
-    
-    // Show loading overlay
-    if (typeof showLoadingOverlay === 'function') {
-      showLoadingOverlay('Saving gallery settings...');
-    }
-    
-    // Find the gallery
-    const gallery = userGalleries.find(g => g.id === galleryId);
-    if (!gallery) {
-      throw new Error(`Gallery with ID ${galleryId} not found`);
-    }
-    
-    // Get plan info
-    const planInfo = window.SUBSCRIPTION_PLANS && gallery.planType ?
