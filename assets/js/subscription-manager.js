@@ -252,6 +252,7 @@ function setupEventListeners() {
  */
 
 
+
 function viewGallery(clientId) {
   if (!clientId) {
     showErrorMessage('Could not find gallery details');
@@ -283,8 +284,7 @@ function viewGallery(clientId) {
     findGalleryByClientId(clientId)
       .then(galleryId => {
         if (galleryId) {
-          // Navigate to gallery view page with correct path
-          // Using an absolute path to prevent path confusion
+          // Navigate to gallery view page with correct absolute path
           window.location.href = `/snapselect/pages/gallery-view.html?id=${galleryId}&client=${clientId}`;
         } else {
           showErrorMessage('No gallery found for this client. Create a gallery first.');
@@ -297,8 +297,7 @@ function viewGallery(clientId) {
         hideLoadingOverlay();
       });
   } else {
-    // Navigate directly to gallery view page with correct path
-    // Using an absolute path to prevent path confusion
+    // Navigate directly to gallery view page with correct absolute path
     window.location.href = `/snapselect/pages/gallery-view.html?id=${plan.galleryId}&client=${clientId}`;
     hideLoadingOverlay();
   }
