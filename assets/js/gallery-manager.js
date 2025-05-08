@@ -628,168 +628,6 @@ function showGallerySettingsModal(galleryId) {
     const planInfo = window.SUBSCRIPTION_PLANS && gallery.planType ? 
       window.SUBSCRIPTION_PLANS[gallery.planType] : null;
       
-    // Check if password protection is available in this plan
-    const hasPasswordProtection = planInfo && planInfo.features && 
-      planInfo.features.includes('Password protection');
-      
-    if (hasPasswordProtection) {
-      passwordProtectionSection.style.display = 'block';
-      
-      // Set existing password if any
-      const passwordInput = settingsModal.querySelector('#galleryPassword');
-      if (passwordInput) passwordInput.value = gallery.password || '';
-      
-      // Set password toggle
-      const passwordToggle = settingsModal.querySelector('#passwordProtectionToggle');
-      if (passwordToggle) passwordToggle.checked = !!gallery.password;
-    } else {
-      passwordProtectionSection.style.display = 'none';
-    }
-  }
-  
-  // Set gallery customization options if available in the plan
-  const customizationSection = settingsModal.querySelector('#galleryCustomizationSection');
-  if (customizationSection) {
-    // Get plan info
-    const planInfo = window.SUBSCRIPTION_PLANS && gallery.planType ? 
-      window.SUBSCRIPTION_PLANS[gallery.planType] : null;
-      
-    // Check if any customization is available in this plan
-    const hasBasicCustomization = planInfo && planInfo.features && 
-      planInfo.features.includes('Basic Gallery Customization');
-    const hasAdvancedCustomization = planInfo && planInfo.features && 
-      planInfo.features.includes('Advanced Gallery Customization');
-    const hasCompleteCustomization = planInfo && planInfo.features && 
-      planInfo.features.includes('Complete Gallery Customization');
-    const hasWhiteLabelCustomization = planInfo && planInfo.features && 
-      planInfo.features.includes('White-label Gallery Customization');
-      
-    if (hasBasicCustomization || hasAdvancedCustomization || 
-        hasCompleteCustomization || hasWhiteLabelCustomization) {
-      
-      customizationSection.style.display = 'block';
-      
-      // Show/hide advanced options based on plan level
-      const advancedCustomizationOptions = customizationSection.querySelector('.advanced-customization-options');
-      if (advancedCustomizationOptions) {
-        if (hasAdvancedCustomization || hasCompleteCustomization || hasWhiteLabelCustomization) {
-          advancedCustomizationOptions.style.display = 'block';
-        } else {
-          advancedCustomizationOptions.style.display = 'none';
-        }
-      }
-      
-      // Show/hide complete customization options
-      const completeCustomizationOptions = customizationSection.querySelector('.complete-customization-options');
-      if (completeCustomizationOptions) {
-        if (hasCompleteCustomization || hasWhiteLabelCustomization) {
-          completeCustomizationOptions.style.display = 'block';
-        } else {
-          completeCustomizationOptions.style.display = 'none';
-        }
-      }
-      
-      // Show/hide white label options
-      const whiteLabelOptions = customizationSection.querySelector('.white-label-options');
-      if (whiteLabelOptions) {
-        if (hasWhiteLabelCustomization) {
-          whiteLabelOptions.style.display = 'block';
-        } else {
-          whiteLabelOptions.style.display = 'none';
-        }
-      }
-      
-      // Set existing customization values if any
-      if (gallery.customization) {
-        // Basic customization
-        const themeSelect = settingsModal.querySelector('#galleryTheme');
-        if (themeSelect) themeSelect.value = gallery.customization.theme || 'default';
-        
-        const logoUrlInput = settingsModal.querySelector('#logoUrl');
-        if (logoUrlInput) logoUrlInput.value = gallery.customization.logoUrl || '';
-        
-        // Advanced customization
-        const headerTextInput = settingsModal.querySelector('#headerText');
-        if (headerTextInput) headerTextInput.value = gallery.customization.headerText || '';
-        
-        const accentColorInput = settingsModal.querySelector('#accentColor');
-        if (accentColorInput) accentColorInput.value = gallery.customization.accentColor || '#4A90E2';
-        
-        // Complete customization
-        const customCssInput = settingsModal.querySelector('#customCss');
-        if (customCssInput) customCssInput.value = gallery.customization.customCss || '';
-        
-        // White label options
-        const hidePromoInput = settingsModal.querySelector('#hidePromo');
-        if (hidePromoInput) hidePromoInput.checked = gallery.customization.hidePromo || false;
-        
-        const customDomainInput = settingsModal.querySelector('#customDomain');
-        if (customDomainInput) customDomainInput.value = gallery.customization.customDomain || '';
-      }
-    } else {
-      customizationSection.style.display = 'none';
-    }
-  }
-  
-  // Update gallery ID on the form
-  const galleryIdInput = settingsModal.querySelector('#settingsGalleryId');
-  if (galleryIdInput) galleryIdInput.value = galleryId;
-  
-  // Show the modal
-  settingsModal.style.display = 'block';
-}
-
-/**
- * Updates a gallery's share link in Firestore
- * @param {string} galleryId - The ID of the gallery to update
- * @param {string} shareLink - The new share link
- */
-async function updateGalleryShareLink(galleryId, shareLink) {
-  try {
-    if (!currentUser || !galleryId) return;
-    
-    const db = firebase.firestore();
-    await db.collection('galleries').doc(galleryId).update({
-      shareLink: shareLink,
-      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-    });
-    
-    // Update local gallery data
-    const galleryIndex = userGalleries.findIndex(g => g.id === galleryId);
-    if (galleryIndex !== -1) {
-      userGalleries[galleryIndex].shareLink = shareLink;
-    }
-    
-  } catch (error) {
-    console.error('Error updating gallery share link:', error);
-    throw error;
-  }
-}
-
-/**
- * Save gallery settings to Firestore
- * @param {string} galleryId - The ID of the gallery to update
- * @param {Object} settings - The gallery settings to save
- */
-async function saveGallerySettings(galleryId, settings) {
-  try {
-    if (!currentUser || !galleryId) return;
-    
-    // Show loading overlay
-    if (typeof showLoadingOverlay === 'function') {
-      showLoadingOverlay('Saving gallery settings...');
-    }
-    
-    // Find the gallery
-    const gallery = userGalleries.find(g => g.id === galleryId);
-    if (!gallery) {
-      throw new Error(`Gallery with ID ${galleryId} not found`);
-    }
-    
-    // Get plan info
-    const planInfo = window.SUBSCRIPTION_PLANS && gallery.planType ? 
-      window.SUBSCRIPTION_PLANS[gallery.planType] : null;
-      
     if (!planInfo) {
       throw new Error('Plan information not found for this gallery');
     }
@@ -1041,7 +879,7 @@ async function handlePhotoUpload(galleryId, files) {
     // Initialize Firebase Storage if needed
     const storage = firebase.storage();
     const storageRef = storage.ref();
-    const galleryRef = storageRef.child(`galleries/${galleryId}`);
+    const galleryStorageRef = storageRef.child(`galleries/${galleryId}`);
     
     // Upload each file
     const uploadPromises = [];
@@ -1056,7 +894,7 @@ async function handlePhotoUpload(galleryId, files) {
       const uniqueName = `photo_${timestamp}_${i}.${fileExt}`;
       
       // Create a reference to the file location
-      const fileRef = galleryRef.child(uniqueName);
+      const fileRef = galleryStorageRef.child(uniqueName);
       
       // Create metadata including original filename
       const metadata = {
@@ -1126,10 +964,10 @@ async function handlePhotoUpload(galleryId, files) {
     
     // Update gallery data in Firestore
     const db = firebase.firestore();
-    const galleryRef = db.collection('galleries').doc(galleryId);
+    const galleryDocRef = db.collection('galleries').doc(galleryId);
     
     // Get the current gallery data first to ensure we have the latest
-    const galleryDoc = await galleryRef.get();
+    const galleryDoc = await galleryDocRef.get();
     if (!galleryDoc.exists) {
       throw new Error('Gallery no longer exists');
     }
@@ -1150,7 +988,7 @@ async function handlePhotoUpload(galleryId, files) {
     }));
     
     // Update gallery document
-    await galleryRef.update({
+    await galleryDocRef.update({
       photosCount: updatedPhotosCount,
       updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
       lastUploadAt: firebase.firestore.FieldValue.serverTimestamp(),
@@ -1161,7 +999,7 @@ async function handlePhotoUpload(galleryId, files) {
     const batch = db.batch();
     
     photoData.forEach(photo => {
-      const photoRef = galleryRef.collection('photos').doc();
+      const photoRef = galleryDocRef.collection('photos').doc();
       batch.set(photoRef, photo);
     });
     
@@ -1254,3 +1092,409 @@ async function handlePhotoUpload(galleryId, files) {
     throw error;
   }
 }
+
+/**
+ * Handle file selection for upload
+ * @param {Event} event - The file input change event
+ */
+function handleFileSelection(event) {
+  const fileInput = event.target;
+  const files = fileInput.files;
+  
+  if (!files || files.length === 0) return;
+  
+  // Get the gallery ID from the form's data attribute
+  const uploadForm = fileInput.closest('form');
+  if (!uploadForm) return;
+  
+  const galleryId = uploadForm.getAttribute('data-gallery-id');
+  if (!galleryId) {
+    console.error('No gallery ID found on the upload form');
+    return;
+  }
+  
+  // Update the file count display if it exists
+  const fileCountEl = uploadForm.querySelector('.file-count');
+  if (fileCountEl) {
+    fileCountEl.textContent = `${files.length} file${files.length !== 1 ? 's' : ''} selected`;
+  }
+  
+  // Enable the upload button if it exists
+  const uploadBtn = uploadForm.querySelector('button[type="submit"]');
+  if (uploadBtn) {
+    uploadBtn.disabled = false;
+  }
+}
+
+/**
+ * Handle upload form submission
+ * @param {Event} event - The form submit event
+ */
+function handleUploadFormSubmit(event) {
+  event.preventDefault();
+  
+  const form = event.target;
+  const galleryId = form.getAttribute('data-gallery-id');
+  const fileInput = form.querySelector('input[type="file"]');
+  
+  if (!galleryId || !fileInput || !fileInput.files || fileInput.files.length === 0) {
+    return;
+  }
+  
+  // Process the upload
+  handlePhotoUpload(galleryId, fileInput.files)
+    .then(() => {
+      // Reset the form
+      form.reset();
+      
+      // Close the modal
+      const modal = form.closest('.modal');
+      if (modal) {
+        modal.style.display = 'none';
+      }
+    })
+    .catch(error => {
+      console.error('Error in upload form submission:', error);
+    });
+}
+
+/**
+ * Handle gallery settings form submission
+ * @param {Event} event - The form submit event
+ */
+function handleSettingsFormSubmit(event) {
+  event.preventDefault();
+  
+  const form = event.target;
+  const galleryId = form.querySelector('#settingsGalleryId').value;
+  
+  if (!galleryId) {
+    console.error('No gallery ID found in the settings form');
+    return;
+  }
+  
+  // Get form data
+  const settings = {
+    name: form.querySelector('#gallerySettingsName').value,
+    description: form.querySelector('#gallerySettingsDescription').value,
+    
+    // Password protection settings
+    enablePassword: form.querySelector('#passwordProtectionToggle')?.checked || false,
+    password: form.querySelector('#galleryPassword')?.value || '',
+    
+    // Customization settings - basic
+    theme: form.querySelector('#galleryTheme')?.value || 'default',
+    logoUrl: form.querySelector('#logoUrl')?.value || '',
+    
+    // Customization settings - advanced
+    headerText: form.querySelector('#headerText')?.value || '',
+    accentColor: form.querySelector('#accentColor')?.value || '#4A90E2',
+    
+    // Customization settings - complete
+    customCss: form.querySelector('#customCss')?.value || '',
+    
+    // Customization settings - white label
+    hidePromo: form.querySelector('#hidePromo')?.checked || false,
+    customDomain: form.querySelector('#customDomain')?.value || ''
+  };
+  
+  // Save the settings
+  saveGallerySettings(galleryId, settings)
+    .then(() => {
+      // Close the modal
+      const modal = form.closest('.modal');
+      if (modal) {
+        modal.style.display = 'none';
+      }
+    })
+    .catch(error => {
+      console.error('Error in settings form submission:', error);
+    });
+}
+
+/**
+ * Create a copy button to copy link to clipboard
+ * @param {string} targetId - The ID of the input element to copy from
+ * @returns {HTMLElement} - The copy button element
+ */
+function createCopyButton(targetId) {
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.className = 'btn copy-btn';
+  button.innerHTML = '<i class="fas fa-copy"></i> Copy Link';
+  
+  button.addEventListener('click', () => {
+    const input = document.getElementById(targetId);
+    if (!input) return;
+    
+    // Select the text
+    input.select();
+    input.setSelectionRange(0, 99999); // For mobile devices
+    
+    // Copy to clipboard
+    document.execCommand('copy');
+    
+    // Change button text temporarily
+    const originalText = button.innerHTML;
+    button.innerHTML = '<i class="fas fa-check"></i> Copied!';
+    
+    // Reset button text after a delay
+    setTimeout(() => {
+      button.innerHTML = originalText;
+    }, 2000);
+    
+    // Show notification if available
+    if (window.NotificationSystem) {
+      window.NotificationSystem.showNotification(
+        'success',
+        'Copied',
+        'Link copied to clipboard!'
+      );
+    }
+  });
+  
+  return button;
+}
+
+// Add event listeners for export
+document.addEventListener('galleries-loaded', function(event) {
+  const galleries = event.detail.galleries;
+  console.log(`Galleries loaded event received: ${galleries.length} galleries`);
+  
+  // If there are dashboard stats, update them
+  const galleryCountEl = document.getElementById('activeGalleriesCount');
+  if (galleryCountEl) {
+    const activeGalleries = galleries.filter(g => 
+      g.status === GALLERY_STATUS.ACTIVE || 
+      g.status === GALLERY_STATUS.PROCESSING ||
+      g.status === GALLERY_STATUS.EXPIRING_SOON
+    ).length;
+    
+    galleryCountEl.textContent = activeGalleries;
+  }
+});
+
+// Initialize on document ready
+document.addEventListener('DOMContentLoaded', function() {
+  console.log('Gallery manager initializing...');
+  
+  // Check if required JS libraries are loaded
+  const requiredLibraries = {
+    firebase: typeof firebase !== 'undefined'
+  };
+  
+  console.log('Required libraries status:', requiredLibraries);
+  
+  // Setup event listeners for forms
+  
+  // Upload photos form
+  const uploadPhotosForm = document.getElementById('uploadPhotosForm');
+  if (uploadPhotosForm) {
+    // File input change event
+    const fileInput = uploadPhotosForm.querySelector('input[type="file"]');
+    if (fileInput) {
+      fileInput.addEventListener('change', handleFileSelection);
+    }
+    
+    // Form submit event
+    uploadPhotosForm.addEventListener('submit', handleUploadFormSubmit);
+  }
+  
+  // Gallery settings form
+  const gallerySettingsForm = document.getElementById('gallerySettingsForm');
+  if (gallerySettingsForm) {
+    gallerySettingsForm.addEventListener('submit', handleSettingsFormSubmit);
+  }
+  
+  // Share gallery form - add copy button
+  const shareGalleryModal = document.getElementById('shareGalleryModal');
+  if (shareGalleryModal) {
+    const shareLinkInput = shareGalleryModal.querySelector('#shareLinkInput');
+    const copyBtnContainer = shareGalleryModal.querySelector('.copy-btn-container');
+    
+    if (shareLinkInput && copyBtnContainer) {
+      // Create and append the copy button
+      const copyBtn = createCopyButton('shareLinkInput');
+      copyBtnContainer.appendChild(copyBtn);
+    }
+  }
+  
+  // Initialize the gallery manager
+  initGalleryManager();
+});
+
+// Export gallery manager functions to global scope
+window.galleryManager = {
+  loadGalleries,
+  createGallery: window.subscriptionManager?.createGallery || null,
+  handlePhotoUpload,
+  saveGallerySettings,
+  viewGallery,
+  showUploadPhotosModal,
+  showShareGalleryModal,
+  showGallerySettingsModal,
+  filterGalleries,
+  GALLERY_STATUS
+};
+      window.SUBSCRIPTION_PLANS[gallery.planType] : null;
+      
+    // Check if password protection is available in this plan
+    const hasPasswordProtection = planInfo && planInfo.features && 
+      planInfo.features.includes('Password protection');
+      
+    if (hasPasswordProtection) {
+      passwordProtectionSection.style.display = 'block';
+      
+      // Set existing password if any
+      const passwordInput = settingsModal.querySelector('#galleryPassword');
+      if (passwordInput) passwordInput.value = gallery.password || '';
+      
+      // Set password toggle
+      const passwordToggle = settingsModal.querySelector('#passwordProtectionToggle');
+      if (passwordToggle) passwordToggle.checked = !!gallery.password;
+    } else {
+      passwordProtectionSection.style.display = 'none';
+    }
+  }
+  
+  // Set gallery customization options if available in the plan
+  const customizationSection = settingsModal.querySelector('#galleryCustomizationSection');
+  if (customizationSection) {
+    // Get plan info
+    const planInfo = window.SUBSCRIPTION_PLANS && gallery.planType ? 
+      window.SUBSCRIPTION_PLANS[gallery.planType] : null;
+      
+    // Check if any customization is available in this plan
+    const hasBasicCustomization = planInfo && planInfo.features && 
+      planInfo.features.includes('Basic Gallery Customization');
+    const hasAdvancedCustomization = planInfo && planInfo.features && 
+      planInfo.features.includes('Advanced Gallery Customization');
+    const hasCompleteCustomization = planInfo && planInfo.features && 
+      planInfo.features.includes('Complete Gallery Customization');
+    const hasWhiteLabelCustomization = planInfo && planInfo.features && 
+      planInfo.features.includes('White-label Gallery Customization');
+      
+    if (hasBasicCustomization || hasAdvancedCustomization || 
+        hasCompleteCustomization || hasWhiteLabelCustomization) {
+      
+      customizationSection.style.display = 'block';
+      
+      // Show/hide advanced options based on plan level
+      const advancedCustomizationOptions = customizationSection.querySelector('.advanced-customization-options');
+      if (advancedCustomizationOptions) {
+        if (hasAdvancedCustomization || hasCompleteCustomization || hasWhiteLabelCustomization) {
+          advancedCustomizationOptions.style.display = 'block';
+        } else {
+          advancedCustomizationOptions.style.display = 'none';
+        }
+      }
+      
+      // Show/hide complete customization options
+      const completeCustomizationOptions = customizationSection.querySelector('.complete-customization-options');
+      if (completeCustomizationOptions) {
+        if (hasCompleteCustomization || hasWhiteLabelCustomization) {
+          completeCustomizationOptions.style.display = 'block';
+        } else {
+          completeCustomizationOptions.style.display = 'none';
+        }
+      }
+      
+      // Show/hide white label options
+      const whiteLabelOptions = customizationSection.querySelector('.white-label-options');
+      if (whiteLabelOptions) {
+        if (hasWhiteLabelCustomization) {
+          whiteLabelOptions.style.display = 'block';
+        } else {
+          whiteLabelOptions.style.display = 'none';
+        }
+      }
+      
+      // Set existing customization values if any
+      if (gallery.customization) {
+        // Basic customization
+        const themeSelect = settingsModal.querySelector('#galleryTheme');
+        if (themeSelect) themeSelect.value = gallery.customization.theme || 'default';
+        
+        const logoUrlInput = settingsModal.querySelector('#logoUrl');
+        if (logoUrlInput) logoUrlInput.value = gallery.customization.logoUrl || '';
+        
+        // Advanced customization
+        const headerTextInput = settingsModal.querySelector('#headerText');
+        if (headerTextInput) headerTextInput.value = gallery.customization.headerText || '';
+        
+        const accentColorInput = settingsModal.querySelector('#accentColor');
+        if (accentColorInput) accentColorInput.value = gallery.customization.accentColor || '#4A90E2';
+        
+        // Complete customization
+        const customCssInput = settingsModal.querySelector('#customCss');
+        if (customCssInput) customCssInput.value = gallery.customization.customCss || '';
+        
+        // White label options
+        const hidePromoInput = settingsModal.querySelector('#hidePromo');
+        if (hidePromoInput) hidePromoInput.checked = gallery.customization.hidePromo || false;
+        
+        const customDomainInput = settingsModal.querySelector('#customDomain');
+        if (customDomainInput) customDomainInput.value = gallery.customization.customDomain || '';
+      }
+    } else {
+      customizationSection.style.display = 'none';
+    }
+  }
+  
+  // Update gallery ID on the form
+  const galleryIdInput = settingsModal.querySelector('#settingsGalleryId');
+  if (galleryIdInput) galleryIdInput.value = galleryId;
+  
+  // Show the modal
+  settingsModal.style.display = 'block';
+}
+
+/**
+ * Updates a gallery's share link in Firestore
+ * @param {string} galleryId - The ID of the gallery to update
+ * @param {string} shareLink - The new share link
+ */
+async function updateGalleryShareLink(galleryId, shareLink) {
+  try {
+    if (!currentUser || !galleryId) return;
+    
+    const db = firebase.firestore();
+    await db.collection('galleries').doc(galleryId).update({
+      shareLink: shareLink,
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    
+    // Update local gallery data
+    const galleryIndex = userGalleries.findIndex(g => g.id === galleryId);
+    if (galleryIndex !== -1) {
+      userGalleries[galleryIndex].shareLink = shareLink;
+    }
+    
+  } catch (error) {
+    console.error('Error updating gallery share link:', error);
+    throw error;
+  }
+}
+
+/**
+ * Save gallery settings to Firestore
+ * @param {string} galleryId - The ID of the gallery to update
+ * @param {Object} settings - The gallery settings to save
+ */
+async function saveGallerySettings(galleryId, settings) {
+  try {
+    if (!currentUser || !galleryId) return;
+    
+    // Show loading overlay
+    if (typeof showLoadingOverlay === 'function') {
+      showLoadingOverlay('Saving gallery settings...');
+    }
+    
+    // Find the gallery
+    const gallery = userGalleries.find(g => g.id === galleryId);
+    if (!gallery) {
+      throw new Error(`Gallery with ID ${galleryId} not found`);
+    }
+    
+    // Get plan info
+    const planInfo = window.SUBSCRIPTION_PLANS && gallery.planType ?
