@@ -182,6 +182,13 @@ function setupEventListeners() {
       updatePlanDisplay(selectedPlan);
     });
   });
+    // In the setupEventListeners() function, add this:
+  document.addEventListener('click', function(e) {
+    if (e.target.classList.contains('view-gallery-btn')) {
+      const clientId = e.target.getAttribute('data-client-id');
+      if (clientId) viewGallery(clientId);
+    }
+  });
 
   // Client selection and buttons
   const clientSelect = document.getElementById('clientSelect');
@@ -239,6 +246,90 @@ function setupEventListeners() {
     createGalleryForm.addEventListener('submit', handleGalleryFormSubmit);
   }
 }
+/**
+ * Navigate to the gallery view page for a specific client's gallery
+ * @param {string} clientId - The ID of the client whose gallery to view
+ */
+function viewGallery(clientId) {
+  if (!clientId) {
+    showErrorMessage('Could not find gallery details');
+    return;
+  }
+  
+  // Show loading overlay while we get the gallery info
+  showLoadingOverlay('Fetching gallery details...');
+  
+  // Find the client
+  const client = userClients.find(c => c.id === clientId);
+  if (!client) {
+    hideLoadingOverlay();
+    showErrorMessage('Client not found');
+    return;
+  }
+  
+  // Find the client's plan
+  const plan = activePlans.find(p => p.clientId === clientId);
+  if (!plan) {
+    hideLoadingOverlay();
+    showErrorMessage('No active plan found for this client');
+    return;
+  }
+  
+  // Check if plan has a gallery
+  if (!plan.galleryId) {
+    // Try to fetch gallery by client ID
+    findGalleryByClientId(clientId)
+      .then(galleryId => {
+        if (galleryId) {
+          // Navigate to gallery view page
+          window.location.href = `/gallery-view.html?id=${galleryId}&client=${clientId}`;
+        } else {
+          showErrorMessage('No gallery found for this client. Create a gallery first.');
+          hideLoadingOverlay();
+        }
+      })
+      .catch(error => {
+        console.error('Error finding gallery:', error);
+        showErrorMessage('Error finding gallery details');
+        hideLoadingOverlay();
+      });
+  } else {
+    // Navigate directly to gallery view page
+    window.location.href = `/gallery-view.html?id=${plan.galleryId}&client=${clientId}`;
+    hideLoadingOverlay();
+  }
+}
+
+/**
+ * Find a gallery by client ID
+ * @param {string} clientId - The client ID to search for
+ * @returns {Promise<string|null>} - Returns gallery ID if found, null otherwise
+ */
+async function findGalleryByClientId(clientId) {
+  try {
+    if (!currentUser || !clientId) return null;
+    
+    const db = firebase.firestore();
+    const gallerySnapshot = await db.collection('galleries')
+      .where('clientId', '==', clientId)
+      .where('photographerId', '==', currentUser.uid)
+      .where('status', '==', 'active')
+      .limit(1)
+      .get();
+    
+    if (gallerySnapshot.empty) {
+      console.log('No gallery found for client:', clientId);
+      return null;
+    }
+    
+    // Return the first gallery ID found
+    return gallerySnapshot.docs[0].id;
+  } catch (error) {
+    console.error('Error finding gallery by client ID:', error);
+    throw error;
+  }
+}
+
 // Modified loadUserData function to return a Promise
 async function loadUserData() {
   try {
@@ -538,7 +629,7 @@ function updateActivePlansDisplay() {
         <button class="btn view-gallery-btn" data-client-id="${plan.clientId}">View Gallery</button>
         ${plan.status === PLAN_STATUS.ACTIVE || plan.status === PLAN_STATUS.EXPIRING_SOON ?
           `<button class="btn extend-plan-btn" data-plan-id="${plan.id}" data-client-id="${plan.clientId}">Extend Plan</button>
-           <button class="btn cancel-plan-btn" data-plan-id="${plan.id}" data-client-id="${plan.clientId}">Cancel Plan</button>` : ''}
+           //<button class="btn cancel-plan-btn" data-plan-id="${plan.id}" data-client-id="${plan.clientId}">Cancel Plan</button>` : ''}
       </div>
     `;
     
