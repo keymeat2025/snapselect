@@ -250,8 +250,9 @@ function setupEventListeners() {
  * Navigate to the gallery view page for a specific client's gallery
  * @param {string} clientId - The ID of the client whose gallery to view
  */
-function viewGallery(clientId) {
 
+
+function viewGallery(clientId) {
   if (!clientId) {
     showErrorMessage('Could not find gallery details');
     return;
@@ -283,7 +284,8 @@ function viewGallery(clientId) {
       .then(galleryId => {
         if (galleryId) {
           // Navigate to gallery view page with correct path
-          window.location.href = `pages/gallery-view.html?id=${galleryId}&client=${clientId}`;
+          // Using an absolute path to prevent path confusion
+          window.location.href = `/snapselect/pages/gallery-view.html?id=${galleryId}&client=${clientId}`;
         } else {
           showErrorMessage('No gallery found for this client. Create a gallery first.');
           hideLoadingOverlay();
@@ -295,8 +297,9 @@ function viewGallery(clientId) {
         hideLoadingOverlay();
       });
   } else {
-    // Navigate directly to gallery view page
-    window.location.href = `pages/gallery-view.html?id=${plan.galleryId}&client=${clientId}`;
+    // Navigate directly to gallery view page with correct path
+    // Using an absolute path to prevent path confusion
+    window.location.href = `/snapselect/pages/gallery-view.html?id=${plan.galleryId}&client=${clientId}`;
     hideLoadingOverlay();
   }
 }
