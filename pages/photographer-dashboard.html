@@ -13,7 +13,6 @@
     <link rel="stylesheet" href="../assets/css/animations.css">
     <link rel="stylesheet" href="../assets/css/features.css">
     <link rel="stylesheet" href="../assets/css/payment.css">
-    <link rel="stylesheet" href="../assets/css/gallery.css">
     <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
     <style>
         /* Ensure toast container has proper positioning */
@@ -57,7 +56,6 @@
                             <div class="user-dropdown" id="userDropdown">
                                 <a href="photographer-dashboard.html" class="active">Dashboard</a>
                                 <a href="client-management.html">Clients</a>
-                                <a href="galleries.html">Galleries</a>
                                 <a href="analytics.html">Analytics</a>
                                 <a href="account-settings.html">Account Settings</a>
                                 <a href="#" id="logoutBtn">Logout</a>
@@ -69,23 +67,25 @@
                     <i class="fas fa-bars"></i>
                 </div>
               
-                <!-- Notification Bell -->
+            <!-- Notification Bell -->
                 <div class="notification-container">
-                    <button id="notificationBtn" class="notification-btn">
-                        <i class="fas fa-bell"></i>
-                        <span id="notificationCount" class="notification-badge">0</span>
-                    </button>
+                  <button id="notificationBtn" class="notification-btn">
+                    <i class="fas fa-bell"></i>
+                    <span id="notificationCount" class="notification-badge">0</span>
+                  </button>
                   
-                    <div id="notificationDropdown" class="notification-dropdown">
-                        <div class="notification-header">
-                            <h3>Notifications</h3>
-                            <button id="markAllReadBtn" class="mark-all-read">Mark all as read</button>
-                        </div>
-                        <div id="notificationList" class="notification-list">
-                            <!-- Notifications will be loaded here -->
-                        </div>
+                  <div id="notificationDropdown" class="notification-dropdown">
+                    <div class="notification-header">
+                      <h3>Notifications</h3>
+                      <button id="markAllReadBtn" class="mark-all-read">Mark all as read</button>
                     </div>
+                    <div id="notificationList" class="notification-list">
+                      <!-- Notifications will be loaded here -->
+                    </div>
+                  </div>
                 </div>
+
+                    
             </nav>
         </div>
     </header>
@@ -187,7 +187,6 @@
                     </div>
                 </div>
             </section>
-            
             <!-- Client Management Section -->
             <section class="clients-section animate-in" style="animation-delay: 0.5s;">
                 <div class="section-header">
@@ -317,6 +316,7 @@
                     </div>
                 </div>
             </div>
+
             <!-- Create Client Modal -->
             <div id="createClientModal" class="modal">
                 <div class="modal-content">
@@ -384,231 +384,6 @@
                     </div>
                 </div>
             </div>
-
-            <!-- Upload Photos Modal -->
-            <div id="uploadPhotosModal" class="modal">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h2>Upload Photos</h2>
-                        <button class="close-modal">&times;</button>
-                    </div>
-                    <div class="modal-body">
-                        <form id="uploadPhotosForm" data-gallery-id="">
-                            <div class="gallery-info">
-                                <h3>Gallery: <span id="uploadGalleryName">Gallery</span></h3>
-                                <p class="limit-info">Limit: <span id="photoLimit">0 photos remaining</span></p>
-                            </div>
-                            
-                            <div class="upload-area">
-                                <div class="upload-dropzone" id="uploadDropzone">
-                                    <i class="fas fa-cloud-upload-alt"></i>
-                                    <p>Drag &amp; drop photos here or click to browse</p>
-                                    <p class="upload-note">Supported formats: JPG, PNG, WebP (max 10MB per file)</p>
-                                    <input type="file" id="photoFiles" name="photos" multiple accept="image/*" class="file-input">
-                                    <div class="file-count"></div>
-                                </div>
-                            </div>
-                            
-                            <div class="upload-options">
-                                <div class="form-group">
-                                    <label>
-                                        <input type="checkbox" id="autoSelectCover" checked>
-                                        Use first photo as gallery cover
-                                    </label>
-                                </div>
-                                <div class="form-group">
-                                    <label>
-                                        <input type="checkbox" id="compressImages" checked>
-                                        Automatically optimize photos for web
-                                    </label>
-                                </div>
-                            </div>
-                            
-                            <div class="form-actions">
-                                <button type="button" class="btn secondary" id="cancelUploadBtn">Cancel</button>
-                                <button type="submit" class="btn primary" id="confirmUploadBtn" disabled>Upload Photos</button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Share Gallery Modal -->
-            <div id="shareGalleryModal" class="modal">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h2>Share Gallery</h2>
-                        <button class="close-modal">&times;</button>
-                    </div>
-                    <div class="modal-body">
-                        <form id="shareGalleryForm">
-                            <input type="hidden" id="shareGalleryId" value="">
-                            
-                            <div class="gallery-info">
-                                <h3>Gallery: <span id="shareGalleryName">Gallery</span></h3>
-                            </div>
-                            
-                            <div class="form-group">
-                                <label for="shareLinkInput">Gallery Link</label>
-                                <div class="input-with-button">
-                                    <input type="text" id="shareLinkInput" readonly>
-                                    <div class="copy-btn-container"></div>
-                                </div>
-                                <p class="form-help">Share this link with your client to view the gallery</p>
-                            </div>
-                            
-                            <div class="share-options">
-                                <div class="form-group">
-                                    <label for="expiryDate">Link Expiry</label>
-                                    <select id="expiryDate" class="form-select">
-                                        <option value="plan">Follow plan expiry (default)</option>
-                                        <option value="7">7 days</option>
-                                        <option value="14">14 days</option>
-                                        <option value="30">30 days</option>
-                                        <option value="never">Never expire</option>
-                                    </select>
-                                </div>
-                                
-                                <div class="form-group">
-                                    <label>
-                                        <input type="checkbox" id="downloadEnabled" checked>
-                                        Allow photo downloads
-                                    </label>
-                                </div>
-                                
-                                <div class="form-group">
-                                    <label>
-                                        <input type="checkbox" id="sharingEnabled">
-                                        Allow social sharing
-                                    </label>
-                                </div>
-                            </div>
-                            
-                            <div class="form-group">
-                                <label for="shareMessage">Message (optional)</label>
-                                <textarea id="shareMessage" placeholder="Add a personal message to your client"></textarea>
-                            </div>
-                            
-                            <div class="form-actions">
-                                <button type="button" class="btn secondary" id="cancelShareBtn">Close</button>
-                                <button type="submit" class="btn primary" id="confirmShareBtn">Update Settings</button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Gallery Settings Modal -->
-            <div id="gallerySettingsModal" class="modal">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h2>Gallery Settings</h2>
-                        <button class="close-modal">&times;</button>
-                    </div>
-                    <div class="modal-body">
-                        <form id="gallerySettingsForm">
-                            <input type="hidden" id="settingsGalleryId" value="">
-                            
-                            <div class="form-group">
-                                <label for="gallerySettingsName">Gallery Name *</label>
-                                <input type="text" id="gallerySettingsName" placeholder="Enter gallery name" required>
-                            </div>
-                            
-                            <div class="form-group">
-                                <label for="gallerySettingsDescription">Description</label>
-                                <textarea id="gallerySettingsDescription" placeholder="Describe this gallery (optional)"></textarea>
-                            </div>
-                            
-                            <!-- Password Protection Section -->
-                            <div id="passwordProtectionSection" class="settings-section">
-                                <h3>Password Protection</h3>
-                                
-                                <div class="form-group">
-                                    <label class="toggle-switch">
-                                        <input type="checkbox" id="passwordProtectionToggle">
-                                        <span class="toggle-slider"></span>
-                                        Enable Password Protection
-                                    </label>
-                                </div>
-                                
-                                <div class="form-group password-input">
-                                    <label for="galleryPassword">Gallery Password</label>
-                                    <input type="text" id="galleryPassword" placeholder="Enter password">
-                                    <p class="form-help">Clients will need this password to view the gallery</p>
-                                </div>
-                            </div>
-                            
-                            <!-- Gallery Customization Section -->
-                            <div id="galleryCustomizationSection" class="settings-section">
-                                <h3>Gallery Customization</h3>
-                                
-                                <!-- Basic Customization -->
-                                <div class="form-group">
-                                    <label for="galleryTheme">Theme</label>
-                                    <select id="galleryTheme" class="form-select">
-                                        <option value="default">Default</option>
-                                        <option value="light">Light</option>
-                                        <option value="dark">Dark</option>
-                                        <option value="minimal">Minimal</option>
-                                        <option value="elegant">Elegant</option>
-                                    </select>
-                                </div>
-                                
-                                <div class="form-group">
-                                    <label for="logoUrl">Logo URL</label>
-                                    <input type="url" id="logoUrl" placeholder="https://your-logo-url.com/logo.png">
-                                    <p class="form-help">Enter a URL for your logo image</p>
-                                </div>
-                                
-                                <!-- Advanced Customization Options -->
-                                <div class="advanced-customization-options">
-                                    <div class="form-group">
-                                        <label for="headerText">Header Text</label>
-                                        <input type="text" id="headerText" placeholder="Enter header text">
-                                    </div>
-                                    
-                                    <div class="form-group">
-                                        <label for="accentColor">Accent Color</label>
-                                        <input type="color" id="accentColor" value="#4A90E2">
-                                    </div>
-                                </div>
-                                
-                                <!-- Complete Customization Options -->
-                                <div class="complete-customization-options">
-                                    <div class="form-group">
-                                        <label for="customCss">Custom CSS</label>
-                                        <textarea id="customCss" placeholder="Enter custom CSS" class="code-textarea"></textarea>
-                                        <p class="form-help">Add custom CSS styles to your gallery</p>
-                                    </div>
-                                </div>
-                                
-                                <!-- White Label Options -->
-                                <div class="white-label-options">
-                                    <div class="form-group">
-                                        <label class="toggle-switch">
-                                            <input type="checkbox" id="hidePromo">
-                                            <span class="toggle-slider"></span>
-                                            Hide SnapSelect Branding
-                                        </label>
-                                        <p class="form-help">Remove SnapSelect logo and promotion links from your gallery</p>
-                                    </div>
-                                    
-                                    <div class="form-group">
-                                        <label for="customDomain">Custom Domain</label>
-                                        <input type="text" id="customDomain" placeholder="gallery.yourdomain.com">
-                                        <p class="form-help">Enter your custom domain for the gallery (requires DNS setup)</p>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <div class="form-actions">
-                                <button type="button" class="btn secondary" id="cancelSettingsBtn">Cancel</button>
-                                <button type="submit" class="btn primary" id="saveSettingsBtn">Save Settings</button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            </div>
         </div>
     </main>
 
@@ -630,7 +405,6 @@
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-functions-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js"></script>
     <script src="../assets/js/firebase-config.js"></script>
     <script src="../assets/js/firebase-auth.js"></script>
     <script src="../assets/js/firebase-db.js"></script>
@@ -638,7 +412,6 @@
     <!-- Load notification system before subscription manager -->
     <script src="../assets/js/notification-system.js"></script>
     <script src="../assets/js/subscription-manager.js"></script>
-    <script src="../assets/js/gallery-manager.js"></script>
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
@@ -840,11 +613,6 @@
                     if (window.subscriptionManager && window.subscriptionManager.refreshSubscription) {
                         window.subscriptionManager.refreshSubscription();
                         
-                        // Also refresh galleries if gallery manager exists
-                        if (window.galleryManager && window.galleryManager.loadGalleries) {
-                            window.galleryManager.loadGalleries();
-                        }
-                        
                         // Use notification system to show refresh confirmation
                         if (window.NotificationSystem) {
                             window.NotificationSystem.showNotification(
@@ -859,173 +627,6 @@
                     setTimeout(() => {
                         this.classList.remove('rotating');
                     }, 1000);
-                });
-            }
-            
-            // Link to galleries page
-            const viewAllGalleriesBtn = document.getElementById('viewAllGalleriesBtn');
-            if (viewAllGalleriesBtn) {
-                viewAllGalleriesBtn.addEventListener('click', function() {
-                    window.location.href = 'galleries.html';
-                });
-            }
-            
-            // Initialize gallery-specific elements now that the DOM is ready
-            
-            // Upload Photos form file selection
-            const photoFilesInput = document.getElementById('photoFiles');
-            if (photoFilesInput) {
-                photoFilesInput.addEventListener('change', function(e) {
-                    const fileCount = this.files.length;
-                    const fileCountEl = document.querySelector('.file-count');
-                    if (fileCountEl) {
-                        fileCountEl.textContent = fileCount > 0 ? 
-                            `${fileCount} file${fileCount !== 1 ? 's' : ''} selected` : '';
-                    }
-                    
-                    // Enable upload button if files selected
-                    const uploadBtn = document.getElementById('confirmUploadBtn');
-                    if (uploadBtn) {
-                        uploadBtn.disabled = fileCount === 0;
-                    }
-                });
-            }
-            
-            // Make upload area act as a drop zone
-            const uploadDropzone = document.getElementById('uploadDropzone');
-            if (uploadDropzone) {
-                // Prevent default behavior to allow drop
-                ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-                    uploadDropzone.addEventListener(eventName, preventDefaults, false);
-                });
-                
-                function preventDefaults(e) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                }
-                
-                // Highlight drop area when item is dragged over it
-                ['dragenter', 'dragover'].forEach(eventName => {
-                    uploadDropzone.addEventListener(eventName, highlight, false);
-                });
-                
-                ['dragleave', 'drop'].forEach(eventName => {
-                    uploadDropzone.addEventListener(eventName, unhighlight, false);
-                });
-                
-                function highlight() {
-                    uploadDropzone.classList.add('highlight');
-                }
-                
-                function unhighlight() {
-                    uploadDropzone.classList.remove('highlight');
-                }
-                
-                // Handle dropped files
-                uploadDropzone.addEventListener('drop', handleDrop, false);
-                
-                function handleDrop(e) {
-                    const dt = e.dataTransfer;
-                    const files = dt.files;
-                    
-                    // Update file input with dropped files
-                    const fileInput = document.getElementById('photoFiles');
-                    if (fileInput) {
-                        // Note: We can't directly set FileList to a file input
-                        // This is a limitation of the browser API
-                        // Instead, we need to trigger the file dialog or use a different approach
-                        
-                        // For simplicity, we'll just display the count and enable the button
-                        const fileCount = files.length;
-                        const fileCountEl = document.querySelector('.file-count');
-                        if (fileCountEl) {
-                            fileCountEl.textContent = fileCount > 0 ? 
-                                `${fileCount} file${fileCount !== 1 ? 's' : ''} selected (dropped)` : '';
-                        }
-                        
-                        // Enable upload button if files selected
-                        const uploadBtn = document.getElementById('confirmUploadBtn');
-                        if (uploadBtn) {
-                            uploadBtn.disabled = fileCount === 0;
-                        }
-                        
-                        // Store the files in a global variable for later use
-                        window.droppedFiles = files;
-                    }
-                }
-            }
-            
-            // Handle uploadPhotosForm submission
-            const uploadPhotosForm = document.getElementById('uploadPhotosForm');
-            if (uploadPhotosForm) {
-                uploadPhotosForm.addEventListener('submit', async function(e) {
-                    e.preventDefault();
-                    
-                    // Get gallery ID
-                    const galleryId = this.getAttribute('data-gallery-id');
-                    if (!galleryId) {
-                        console.error('No gallery ID found on upload form');
-                        return;
-                    }
-                    
-                    // Get files (either from input or dropped)
-                    let files = null;
-                    const fileInput = document.getElementById('photoFiles');
-                    
-                    if (fileInput && fileInput.files && fileInput.files.length > 0) {
-                        files = fileInput.files;
-                    } else if (window.droppedFiles && window.droppedFiles.length > 0) {
-                        files = window.droppedFiles;
-                    }
-                    
-                    if (!files || files.length === 0) {
-                        if (window.NotificationSystem) {
-                            window.NotificationSystem.showNotification(
-                                'warning',
-                                'No Files',
-                                'Please select or drop files to upload'
-                            );
-                        }
-                        return;
-                    }
-                    
-                    // Get options
-                    const autoSelectCover = document.getElementById('autoSelectCover').checked;
-                    const compressImages = document.getElementById('compressImages').checked;
-                    
-                    try {
-                        // Process the upload using galleryManager
-                        if (window.galleryManager && window.galleryManager.handlePhotoUpload) {
-                            await window.galleryManager.handlePhotoUpload(galleryId, files, {
-                                autoSelectCover,
-                                compressImages
-                            });
-                            
-                            // Reset the form and close the modal on success
-                            this.reset();
-                            document.querySelector('.file-count').textContent = '';
-                            document.getElementById('confirmUploadBtn').disabled = true;
-                            window.droppedFiles = null;
-                            
-                            const modal = this.closest('.modal');
-                            if (modal) {
-                                modal.style.display = 'none';
-                            }
-                        } else {
-                            throw new Error('Gallery upload functionality is not available');
-                        }
-                    } catch (error) {
-                        console.error('Error uploading photos:', error);
-                        
-                        // Use notification system for errors
-                        if (window.NotificationSystem) {
-                            window.NotificationSystem.showNotification(
-                                'error',
-                                'Upload Failed',
-                                error.message || 'Failed to upload photos. Please try again.'
-                            );
-                        }
-                    }
                 });
             }
         });
