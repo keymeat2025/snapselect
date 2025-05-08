@@ -971,6 +971,7 @@ function showErrorMessage(message) {
 }
 
 // Add a function to refresh all data
+
 function refreshAllData() {
   showLoadingOverlay('Refreshing data...');
   
@@ -980,7 +981,13 @@ function refreshAllData() {
     loadActivePlans()
   ])
   .then(() => {
-    updateDashboardStats(); // Add this call to update dashboard stats after refresh
+    updateDashboardStats();
+    
+    // Add gallery refresh here - this is critical
+    if (window.galleryManager && window.galleryManager.loadGalleries) {
+      window.galleryManager.loadGalleries();
+    }
+    
     hideLoadingOverlay();
     showSuccessMessage('Data refreshed successfully');
   })
@@ -1409,6 +1416,13 @@ async function createGallery(name, clientId, description = '') {
         });
         
         return galleryRef.id;
+        // Trigger a gallery refresh
+        if (window.galleryManager && typeof window.galleryManager.loadGalleries === 'function') {
+          setTimeout(() => {
+            console.log("Triggering gallery reload after creation");
+            window.galleryManager.loadGalleries();
+          }, 1000);
+        }
       } else {
         throw new Error('No active plan found for this client');
       }
@@ -1435,6 +1449,14 @@ async function createGallery(name, clientId, description = '') {
     });
     
     return galleryRef.id;
+    // Add before the return galleryRef.id; line
+    // Trigger a gallery refresh
+    if (window.galleryManager && typeof window.galleryManager.loadGalleries === 'function') {
+      setTimeout(() => {
+        console.log("Triggering gallery reload after creation");
+        window.galleryManager.loadGalleries();
+      }, 1000);
+    }
   } catch (error) {
     console.error('Error creating gallery:', error);
     throw error;
