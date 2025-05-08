@@ -57,11 +57,15 @@ function initDatabaseFunctions() {
     // Create a new client
     createClient: async function(photographerId, clientData) {
       try {
-        const clientRef = await db.collection('clients').add({
+        // Add default fields to ensure consistency
+        const completeClientData = {
           photographerId,
-          ...clientData,
-          createdAt: firebase.firestore.FieldValue.serverTimestamp()
-        });
+          planActive: false, // Default to no active plan
+          createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+          ...clientData
+        };
+        
+        const clientRef = await db.collection('clients').add(completeClientData);
         
         return clientRef.id;
       } catch (error) {
@@ -137,6 +141,71 @@ function initDatabaseFunctions() {
       } catch (error) {
         console.error('Error fetching active plans:', error);
         return [];
+      }
+    },
+    
+    // NEW: Get client plans with consistent structure
+    getClientPlans: async function(photographerId) {
+      try {
+        const snapshot = await db.collection('client-plans')
+          .where('photographerId', '==', photographerId)
+          .get();
+        
+        return snapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        }));
+      } catch (error) {
+        console.error('Error fetching client plans:', error);
+        return [];
+      }
+    },
+
+    // NEW: Update client plan with normalized data
+    updateClientPlan: async function(planId, updateData) {
+      try {
+        // Ensure the timestamp is set for any updates
+        const data = {
+          ...updateData,
+          updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        };
+        
+        await db.collection('client-plans').doc(planId).update(data);
+        return true;
+      } catch (error) {
+        console.error('Error updating client plan:', error);
+        throw error;
+      }
+    },
+    
+    // NEW: Create gallery with consistent data structure
+    createGallery: async function(photographerId, clientId, galleryData) {
+      try {
+        // Add required fields for consistency
+        const completeGalleryData = {
+          photographerId,
+          clientId,
+          createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+          photosCount: 0,
+          status: 'active',
+          ...galleryData
+        };
+        
+        const galleryRef = await db.collection('galleries').add(completeGalleryData);
+        
+        // If this gallery is associated with a plan, update the plan
+        if (galleryData.planId) {
+          await db.collection('client-plans').doc(galleryData.planId).update({
+            galleryId: galleryRef.id,
+            galleryCreated: true,
+            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+          });
+        }
+        
+        return galleryRef.id;
+      } catch (error) {
+        console.error('Error creating gallery:', error);
+        throw error;
       }
     }
   };
