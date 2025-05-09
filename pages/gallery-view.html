@@ -652,44 +652,66 @@
     </footer>
 
     <!-- Upload photos modal -->
+
     <div id="uploadPhotosModal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2>Upload Photos</h2>
-                <button class="close-modal">&times;</button>
-            </div>
-            <div class="modal-body">
-                <div class="upload-area" id="uploadArea">
-                    <div class="upload-instructions">
-                        <i class="fas fa-cloud-upload-alt"></i>
-                        <p>Drag photos here or click to browse</p>
-                        <p class="upload-limits">Max 50 photos at once, 10MB per photo</p>
-                    </div>
-                    <input type="file" id="photoFileInput" multiple accept="image/*" style="display: none;">
-                </div>
-                <div class="upload-progress-container" id="uploadProgressContainer">
-                    <div class="upload-progress-header">
-                        <h3>Uploading <span id="uploadCount">0</span> photos</h3>
-                        <span id="uploadPercentage">0%</span>
-                    </div>
-                    <div class="upload-progress-bar-container">
-                        <div class="upload-progress-bar" id="uploadProgressBar"></div>
-                    </div>
-                    <div id="uploadFileList" class="upload-file-list">
-                        <!-- Upload progress items will be listed here -->
-                    </div>
-                </div>
-            </div>
-         
-            <div class="modal-footer">
-              <button id="cancelUploadBtn" class="btn outline">Cancel</button>
-              <button id="pauseUploadBtn" class="btn warning" style="display: none;">
-                <i class="fas fa-pause"></i> Pause Upload
-              </button>
-              <button id="startUploadBtn" class="btn primary">Start Upload</button>
-            </div>
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2>Upload Photos</h2>
+          <button class="close-modal">&times;</button>
         </div>
-    </div>
+        
+        <!-- Upload steps indicator (new) -->
+        <div class="upload-steps">
+          <div class="upload-step active">1. Select Files</div>
+          <div class="upload-step">2. Upload</div>
+        </div>
+        
+        <div class="modal-body">
+          <!-- Step 1: Select Files -->
+          <div id="uploadStep1">
+            <div class="upload-area" id="uploadArea">
+              <div class="upload-instructions">
+                <i class="fas fa-cloud-upload-alt"></i>
+                <p>Drag photos here or click to browse</p>
+                <p class="upload-limits">Max file size: <span id="maxFileSize">10</span>MB per photo</p>
+              </div>
+              <input type="file" id="photoFileInput" multiple accept="image/*" style="display: none;">
+            </div>
+          </div>
+          
+          <!-- Step 2: Preview and Upload (new) -->
+          <div id="uploadStep2" style="display: none;">
+            <div id="uploadStatusText" class="upload-status-text">Ready to upload 0 files</div>
+            
+            <!-- File preview list -->
+            <div id="uploadPreview" class="upload-files-preview"></div>
+            
+            <!-- Rejection summary -->
+            <div id="rejectionSummary" class="rejection-summary" style="display: none;"></div>
+            
+            <!-- Total progress tracking -->
+            <div id="uploadProgressContainer" class="upload-progress-container" style="display: none;">
+              <div class="upload-total-progress">
+                <div class="upload-progress-header">
+                  <span>Total Progress</span>
+                  <span id="totalProgressText">0% Complete</span>
+                </div>
+                <div class="upload-total-progress-bar-container">
+                  <div class="upload-total-progress-bar" id="totalProgressBar"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="modal-footer">
+          <button id="backToSelectBtn" style="display: none;" class="btn outline-btn">Back to Select Files</button>
+          <button id="cancelUploadBtn" class="btn outline-btn">Cancel</button>
+          <button id="pauseUploadBtn" style="display: none;" class="btn secondary-btn"><i class="fas fa-pause"></i> Pause Upload</button>
+          <button id="startUploadBtn" class="btn primary-btn">Start Upload</button>
+        </div>
+      </div>
+    </div>    
 
     <!-- Storage sync modal -->
     <div id="syncPhotosModal" class="modal">
