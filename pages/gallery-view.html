@@ -752,5 +752,86 @@
             }
         });
     </script>
+    <script>
+      document.addEventListener('DOMContentLoaded', function() {
+        // Initialize owner controls visibility
+        function initOwnerControls() {
+          const ownerControlsPanel = document.getElementById('ownerControlsPanel');
+          const currentUser = firebase.auth().currentUser;
+          
+          if (ownerControlsPanel && currentUser) {
+            const urlParams = new URLSearchParams(window.location.search);
+            const galleryId = urlParams.get('id');
+            
+            if (galleryId) {
+              // Check if current user is the owner
+              firebase.firestore().collection('galleries').doc(galleryId).get()
+                .then(doc => {
+                  if (doc.exists && doc.data().photographerId === currentUser.uid) {
+                    ownerControlsPanel.style.display = 'block';
+                  }
+                })
+                .catch(error => {
+                  console.error('Error checking gallery ownership:', error);
+                });
+            }
+          }
+        }
+        
+        // Sync button event handler
+        const syncPhotosBtn = document.getElementById('syncPhotosBtn');
+        if (syncPhotosBtn) {
+          syncPhotosBtn.addEventListener('click', function() {
+            if (window.galleryView && window.galleryView.syncStorageWithFirestore) {
+              // Show progress container
+              const syncProgressContainer = document.getElementById('syncProgressContainer');
+              if (syncProgressContainer) syncProgressContainer.style.display = 'block';
+              
+              // Call the sync function
+              window.galleryView.syncStorageWithFirestore();
+            } else {
+              alert('Sync function not available');
+            }
+          });
+        }
+        
+        // Load more button event handler
+        const loadMoreBtn = document.getElementById('loadMoreBtn');
+        if (loadMoreBtn) {
+          loadMoreBtn.addEventListener('click', function() {
+            if (window.galleryView && window.galleryView.loadMorePhotos) {
+              window.galleryView.loadMorePhotos();
+            } else {
+              console.error('Load more function not available');
+            }
+          });
+        }
+        
+        // Status filter event handler
+        const statusFilter = document.getElementById('statusFilter');
+        if (statusFilter) {
+          statusFilter.addEventListener('change', function() {
+            const photosContainer = document.getElementById('photosContainer');
+            if (photosContainer) {
+              // Clear container and show loading
+              photosContainer.innerHTML = '<div class="loading-photos">Loading photos...</div>';
+              
+              // Reset loaded photos
+              window.photosList = [];
+              window.lastVisiblePhoto = null;
+              window.allPhotosLoaded = false;
+              
+              // Reload with new filter
+              if (window.galleryView && window.galleryView.loadGalleryPhotos) {
+                window.galleryView.loadGalleryPhotos(true);
+              }
+            }
+          });
+        }
+        
+        // Initialize after delay to make sure Firebase Auth is ready
+        setTimeout(initOwnerControls, 1000);
+      });
+    </script>
 </body>
 </html>
