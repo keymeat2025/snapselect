@@ -304,7 +304,7 @@
   transition: background-color 0.2s;
 }
 
-.upload-area:hover, .upload-area.drag-over {
+.upload-area:hover, .upload-area.dragging {
   background-color: #f5f9ff;
   border-color: #4A90E2;
 }
@@ -321,49 +321,43 @@
   margin-top: 5px;
 }
 
-.upload-progress-container {
-  display: none;
+/* Enhanced upload preview system */
+.upload-preview {
   margin-top: 20px;
-}
-
-.upload-progress-header {
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: 10px;
-}
-
-
-.upload-progress-bar-container {
-  height: 8px;
-  background-color: #eee;
-  border-radius: 4px;
-  overflow: hidden;
-  margin-bottom: 15px;
-}
-
-.upload-progress-bar {
-  height: 100%;
-  background-color: #4A90E2;
-  width: 0%;
-  transition: width 0.3s;
-}
-
-.upload-file-list {
-  max-height: 300px;
-  overflow-y: auto;
   border: 1px solid #eee;
-  border-radius: 4px;
+  border-radius: 8px;
+  overflow: hidden;
+  max-height: 400px;
+  overflow-y: auto;
 }
 
 .upload-file-item {
   display: flex;
-  justify-content: space-between;
+  align-items: center;
   padding: 12px 15px;
   border-bottom: 1px solid #eee;
+  position: relative;
+  transition: background-color 0.2s;
 }
 
 .upload-file-item:last-child {
   border-bottom: none;
+}
+
+.upload-file-thumbnail {
+  width: 60px;
+  height: 60px;
+  background-size: cover;
+  background-position: center;
+  border-radius: 4px;
+  margin-right: 15px;
+  flex-shrink: 0;
+  position: relative;
+}
+
+.upload-file-info {
+  flex: 1;
+  min-width: 0; /* Ensures flex item can shrink below content size */
 }
 
 .upload-file-name {
@@ -372,32 +366,147 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 300px;
+}
+
+.upload-file-meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-size: 12px;
 }
 
 .upload-file-size {
-  font-size: 12px;
-  color: #888;
+  color: #666;
 }
 
 .upload-file-status {
   font-weight: 500;
 }
 
-.upload-file-item.waiting .upload-file-status {
-  color: #888;
+.upload-progress {
+  width: 100%;
+  margin-top: 6px;
 }
 
-.upload-file-item.uploading .upload-file-status {
+.upload-progress-bar {
+  height: 4px;
+  background-color: #4A90E2;
+  width: 0%;
+  transition: width 0.3s;
+  border-radius: 2px;
+}
+
+/* New styles for rejected files */
+.upload-file-rejected {
+  background-color: rgba(220, 53, 69, 0.05);
+  border-left: 3px solid #dc3545;
+}
+
+.rejection-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(220, 53, 69, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+}
+
+.rejection-overlay i {
+  font-size: 24px;
+  color: #dc3545;
+  background-color: rgba(255, 255, 255, 0.8);
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.rejection-reason {
+  color: #dc3545;
+  font-size: 12px;
+  margin-top: 4px;
+  font-style: italic;
+}
+
+/* File statuses */
+.status-waiting {
+  color: #6c757d;
+}
+
+.status-uploading {
   color: #4A90E2;
 }
 
-.upload-file-item.complete .upload-file-status {
+.status-complete {
   color: #28a745;
 }
 
-.upload-file-item.failed .upload-file-status {
+.status-failed {
   color: #dc3545;
+}
+
+.status-rejected {
+  color: #dc3545;
+  font-weight: bold;
+}
+
+/* Count displays */
+.valid-count {
+  color: #28a745;
+  font-weight: bold;
+}
+
+.rejected-count {
+  color: #dc3545;
+  font-weight: bold;
+}
+
+/* Upload progress container */
+.upload-progress-container {
+  margin-top: 20px;
+  padding: 15px;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  border: 1px solid #e9ecef;
+}
+
+.upload-progress-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 15px;
+}
+
+.upload-total-progress {
+  margin-bottom: 20px;
+}
+
+.upload-total-progress-bar-container {
+  height: 8px;
+  background-color: #eee;
+  border-radius: 4px;
+  overflow: hidden;
+  margin-top: 8px;
+}
+
+.upload-total-progress-bar {
+  height: 100%;
+  background-color: #4A90E2;
+  width: 0%;
+  transition: width 0.3s;
+}
+
+.upload-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 15px;
+  justify-content: flex-end;
 }
 
 /* Photo view modal */
@@ -529,12 +638,17 @@
   font-size: 14px;
 }
 
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 .primary-btn {
   background-color: #4A90E2;
   color: white;
 }
 
-.primary-btn:hover {
+.primary-btn:hover:not(:disabled) {
   background-color: #3a80d2;
 }
 
@@ -543,7 +657,7 @@
   color: white;
 }
 
-.secondary-btn:hover {
+.secondary-btn:hover:not(:disabled) {
   background-color: #5a6268;
 }
 
@@ -553,7 +667,7 @@
   color: #333;
 }
 
-.outline-btn:hover {
+.outline-btn:hover:not(:disabled) {
   background-color: #f2f2f2;
 }
 
@@ -561,7 +675,7 @@
   color: #dc3545;
 }
 
-.danger-btn:hover {
+.danger-btn:hover:not(:disabled) {
   background-color: #dc3545;
   color: white;
 }
@@ -628,46 +742,45 @@
   font-size: 20px;
 }
 
+.toast-success {
+  background-color: #d4edda;
+  border-left: 4px solid #28a745;
+}
+
 .toast-success i {
   color: #28a745;
+}
+
+.toast-error {
+  background-color: #f8d7da;
+  border-left: 4px solid #dc3545;
 }
 
 .toast-error i {
   color: #dc3545;
 }
 
+.toast-warning {
+  background-color: #fff3cd;
+  border-left: 4px solid #ffc107;
+}
+
+.toast-warning i {
+  color: #ffc107;
+}
+
+.toast-info {
+  background-color: #cff4fc;
+  border-left: 4px solid #0dcaf0;
+}
+
+.toast-info i {
+  color: #0dcaf0;
+}
+
 .toast.hide {
   opacity: 0;
   transform: translateY(20px);
-}
-
-/* Responsive adjustments */
-@media (max-width: 768px) {
-  .gallery-info-container {
-    flex-direction: column;
-  }
-  
-  .gallery-actions {
-    margin-top: 20px;
-  }
-  
-  .photos-grid {
-    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-    gap: 15px;
-  }
-  
-  .photo-container {
-    height: 160px;
-  }
-  
-  .photo-info-container {
-    flex-direction: column;
-  }
-  
-  .photo-info-thumbnail {
-    width: 100%;
-    margin-bottom: 20px;
-  }
 }
 
 /* Modal styling */
@@ -724,6 +837,7 @@
   justify-content: flex-end;
   gap: 10px;
 }
+
 /* Status styling */
 .status-deleted .photo-container,
 .status-deleted .photo-list-thumbnail {
@@ -845,26 +959,7 @@
   border: 1px solid #e9ecef;
 }
 
-/* Toast notifications */
-.toast.toast-warning {
-  background-color: #fff3cd;
-  border-left: 4px solid #ffc107;
-}
-
-.toast.toast-warning i {
-  color: #ffc107;
-}
-
-.toast.toast-info {
-  background-color: #cff4fc;
-  border-left: 4px solid #0dcaf0;
-}
-
-.toast.toast-info i {
-  color: #0dcaf0;
-}
-
-/* Add styles for notification system if needed */
+/* Add notification system styles */
 .notification-item .notification-icon .fas.fa-exclamation-triangle {
   color: #ffc107;
 }
@@ -873,8 +968,102 @@
   color: #0dcaf0;
 }
 
+/* Enhanced Step Indicators for Upload Modal */
+.upload-steps {
+  display: flex;
+  margin-bottom: 20px;
+  border-bottom: 1px solid #eee;
+  padding-bottom: 15px;
+}
+
+.upload-step {
+  flex: 1;
+  text-align: center;
+  position: relative;
+  padding: 0 10px 15px;
+}
+
+.upload-step::after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background-color: transparent;
+}
+
+.upload-step.active {
+  font-weight: bold;
+  color: #4A90E2;
+}
+
+.upload-step.active::after {
+  background-color: #4A90E2;
+}
+
+.upload-step.completed {
+  color: #28a745;
+}
+
+.upload-step.completed::after {
+  background-color: #28a745;
+}
+
+/* File Type Icons */
+.file-type-icon {
+  margin-right: 8px;
+  width: 24px;
+  height: 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  background-color: #f8f9fa;
+  color: #6c757d;
+}
+
 /* Responsive adjustments */
 @media (max-width: 768px) {
+  .gallery-info-container {
+    flex-direction: column;
+  }
+  
+  .gallery-actions {
+    margin-top: 20px;
+  }
+  
+  .photos-grid {
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 15px;
+  }
+  
+  .photo-container {
+    height: 160px;
+  }
+  
+  .photo-info-container {
+    flex-direction: column;
+  }
+  
+  .photo-info-thumbnail {
+    width: 100%;
+    height: 160px;
+    margin-bottom: 20px;
+  }
+  
+  .upload-file-item {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .upload-file-thumbnail {
+    width: 100%;
+    height: 120px;
+    margin-right: 0;
+    margin-bottom: 10px;
+  }
+  
   .owner-controls {
     padding: 10px;
   }
@@ -891,5 +1080,10 @@
   .view-toggle {
     margin-top: 10px;
     align-self: flex-end;
+  }
+  
+  .upload-steps {
+    flex-direction: column;
+    gap: 10px;
   }
 }
