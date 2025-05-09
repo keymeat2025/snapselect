@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>View Gallery - SnapSelect</title>
+  <link rel="stylesheet" href="../assets/css/main.css">
+  <link rel="stylesheet" href="../assets/css/client-gallery-view.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-storage.js"></script>
+</head>
+<body>
+  <!-- Header -->
+  <header class="client-header">
+    <div class="header-left">
+      <div class="logo">
+        <img src="../assets/images/logo.png" alt="SnapSelect Logo">
+        <span class="logo-text">SnapSelect</span>
+      </div>
+    </div>
+    <div class="header-right">
+      <div id="selectionCounter" class="selection-counter">
+        <span id="currentSelections">0</span>/<span id="maxSelections">0</span>
+      </div>
+      <button id="submitSelectionsBtn" class="btn primary-btn">Submit Selections</button>
+    </div>
+  </header>
+
+  <!-- Loading Overlay -->
+  <div id="loadingOverlay" class="loading-overlay">
+    <div class="spinner"></div>
+    <div id="loadingText" class="loading-text">Loading gallery...</div>
+  </div>
+
+  <!-- Password Form Overlay -->
+  <div id="passwordOverlay" class="overlay-container hidden">
+    <div class="password-container">
+      <div class="password-header">
+        <h2>Password Required</h2>
+      </div>
+      <div class="password-body">
+        <p>This gallery is password protected. Please enter the password to continue.</p>
+        <form id="passwordForm">
+          <div class="form-group">
+            <input type="password" id="galleryPassword" placeholder="Enter password" required>
+            <div id="passwordError" class="error-message hidden">Incorrect password. Please try again.</div>
+          </div>
+          <button type="submit" class="btn primary-btn">Submit</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Gallery Expired Message -->
+  <div id="galleryExpiredMsg" class="message-container hidden">
+    <div class="message-icon">
+      <i class="fas fa-clock"></i>
+    </div>
+    <div class="message-content">
+      <h2>Gallery Access Expired</h2>
+      <p>The link to this gallery has expired. Please contact the photographer for a new link.</p>
+    </div>
+  </div>
+
+  <!-- Error Message -->
+  <div id="errorContainer" class="message-container hidden">
+    <div class="message-icon">
+      <i class="fas fa-exclamation-circle"></i>
+    </div>
+    <div class="message-content">
+      <h2>Error</h2>
+      <p id="errorMessage">An error occurred while loading the gallery.</p>
+    </div>
+  </div>
+
+  <!-- Gallery Information -->
+  <section id="galleryInfo" class="gallery-info-section hidden">
+    <div class="gallery-title">
+      <h1 id="galleryName">Gallery Name</h1>
+    
+      <p id="galleryDescription">Gallery description text will appear here</p>
+          </div>
+          <div class="gallery-meta">
+            <span class="photographer-name">By <span id="photographerName">Photographer Name</span></span>
+            <span class="photo-count" id="photoCount">0 photos</span>
+            <span class="expiry-info" id="expiryInfo">Available until <span id="expiryDate">Date</span></span>
+          </div>
+        </section>
+      
+        <!-- Gallery Content -->
+        <section id="galleryContainer" class="gallery-container hidden">
+          <!-- Gallery Controls -->
+          <div class="gallery-controls">
+            <div class="view-toggles">
+              <button id="gridViewBtn" class="view-toggle-btn active" title="Grid View">
+                <i class="fas fa-th"></i>
+              </button>
+              <button id="listViewBtn" class="view-toggle-btn" title="List View">
+                <i class="fas fa-list"></i>
+              </button>
+            </div>
+            <div class="filter-controls">
+              <select id="sortFilter" class="sort-filter">
+                <option value="newest">Newest First</option>
+                <option value="oldest">Oldest First</option>
+                <option value="name-asc">Name (A-Z)</option>
+                <option value="name-desc">Name (Z-A)</option>
+              </select>
+              <div class="search-container">
+                <input type="text" id="searchInput" placeholder="Search photos...">
+                <i class="fas fa-search search-icon"></i>
+              </div>
+            </div>
+          </div>
+      
+          <!-- Photos Container -->
+          <div id="photoContainer" class="photos-grid">
+            <!-- Photos will be loaded here -->
+          </div>
+      
+          <!-- Load More Button -->
+          <div class="load-more-container">
+            <button id="loadMoreBtn" class="btn outline-btn hidden">Load More Photos</button>
+          </div>
+        </section>
+      
+        <!-- No Photos Message -->
+        <div id="noPhotosMsg" class="message-container hidden">
+          <div class="message-icon">
+            <i class="fas fa-images"></i>
+          </div>
+          <div class="message-content">
+            <h2>No Photos Available</h2>
+            <p>This gallery does not contain any photos yet.</p>
+          </div>
+        </div>
+      
+        <!-- Photo Lightbox -->
+        <div id="photoLightbox" class="lightbox hidden">
+          <div class="lightbox-header">
+            <h3 id="lightboxTitle">Photo Title</h3>
+            <button id="closeLightboxBtn" class="close-lightbox-btn">&times;</button>
+          </div>
+          <div class="lightbox-content">
+            <button id="prevPhotoBtn" class="lightbox-nav-btn prev-btn">
+              <i class="fas fa-chevron-left"></i>
+            </button>
+            <div class="lightbox-image-container">
+              <img id="lightboxImage" src="" alt="Photo in lightbox">
+              <div id="photoWatermark" class="photo-watermark">Watermark Text</div>
+            </div>
+            <button id="nextPhotoBtn" class="lightbox-nav-btn next-btn">
+              <i class="fas fa-chevron-right"></i>
+            </button>
+          </div>
+          <div class="lightbox-footer">
+            <div class="photo-info">
+              <span id="photoNumber">Photo 1 of 50</span>
+            </div>
+            <div class="lightbox-actions">
+              <button id="selectPhotoBtn" class="btn outline-btn">
+                <i class="far fa-check-circle"></i> Select
+              </button>
+              <button id="deselectPhotoBtn" class="btn outline-btn hidden">
+                <i class="fas fa-check-circle"></i> Selected
+              </button>
+            </div>
+          </div>
+        </div>
+      
+        <!-- Selection Submission Modal -->
+        <div id="submissionModal" class="modal hidden">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h2>Submit Your Selections</h2>
+              <button id="closeSubmissionModalBtn" class="close-modal">&times;</button>
+            </div>
+            <div class="modal-body">
+              <p class="selection-summary">
+                You've selected <span id="submissionSelectionCount">0</span> photos.
+              </p>
+              <div id="requireApprovalInfo" class="approval-info">
+                <p>Your selections will be sent to the photographer for approval.</p>
+              </div>
+              <form id="submissionForm">
+                <div class="form-group">
+                  <label for="submissionName">Your Name</label>
+                  <input type="text" id="submissionName" class="form-control" placeholder="Enter your name" required>
+                </div>
+                <div class="form-group">
+                  <label for="submissionEmail">Your Email</label>
+                  <input type="email" id="submissionEmail" class="form-control" placeholder="Enter your email" required>
+                </div>
+                <div class="form-group">
+                  <label for="submissionComments">Comments (Optional)</label>
+                  <textarea id="submissionComments" class="form-control" placeholder="Add any comments for the photographer"></textarea>
+                </div>
+              </form>
+              <div id="successMessage" class="success-message hidden">
+                <i class="fas fa-check-circle"></i>
+                <p>Your selections have been submitted successfully!</p>
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button id="cancelSubmissionBtn" class="btn outline-btn">Cancel</button>
+              <button id="confirmSubmissionBtn" class="btn primary-btn">Submit Selections</button>
+            </div>
+          </div>
+        </div>
+      
+        <!-- Toast Container -->
+        <div id="toastContainer" class="toast-container"></div>
+      
+        <!-- Scripts -->
+        <script src="../assets/js/firebase-init.js"></script>
+        <script src="../assets/js/client-gallery-view.js"></script>
+      </body>
+      </html>
