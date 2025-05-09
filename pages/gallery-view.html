@@ -742,6 +742,109 @@
         </div>
     </div>
 
+    <!-- Gallery Share Modal - Include this in your gallery-view.html page -->
+    <div id="shareGalleryModal" class="modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2>Share Gallery</h2>
+          <button class="close-modal">&times;</button>
+        </div>
+        <div class="modal-body">
+          <form id="shareSettingsForm">
+            <!-- Share Link Section (shown after sharing) -->
+            <div id="shareLinkSection" class="share-link-section hidden">
+              <h3>Share Link</h3>
+              <div class="share-link-container">
+                <input type="text" id="shareUrlDisplay" readonly class="share-url-input">
+                <button type="button" id="copyLinkBtn" class="btn outline-btn">Copy Link</button>
+              </div>
+              <div class="share-instructions">
+                Share this link with your client to give them access to the gallery.
+              </div>
+            </div>
+            
+            <!-- Share Settings Section -->
+            <div class="share-settings-section">
+              <h3>Sharing Settings</h3>
+              
+              <!-- Password Protection -->
+              <div class="form-group">
+                <div class="toggle-container">
+                  <label class="toggle-label">Password Protection</label>
+                  <label class="switch">
+                    <input type="checkbox" id="passwordProtection">
+                    <span class="slider round"></span>
+                  </label>
+                </div>
+                <div id="passwordSection" class="hidden">
+                  <input type="password" id="password" placeholder="Enter password" class="form-control">
+                  <p class="form-hint">Clients will need to enter this password to access the gallery.</p>
+                </div>
+              </div>
+              
+              <!-- Expiry Date -->
+              <div class="form-group">
+                <label for="expiryDate">Link Expiry Date (Optional)</label>
+                <input type="date" id="expiryDate" class="form-control">
+                <p class="form-hint">The gallery link will expire on this date. Leave blank for no expiration.</p>
+              </div>
+              
+              <!-- Photo Selection Limit -->
+              <div class="form-group">
+                <label for="maxSelections">Maximum Photo Selections</label>
+                <input type="number" id="maxSelections" min="0" class="form-control">
+                <p class="form-hint">Set the maximum number of photos the client can select. Enter 0 for unlimited selections.</p>
+              </div>
+              
+              <!-- Require Approval -->
+              <div class="form-group">
+                <div class="toggle-container">
+                  <label class="toggle-label">Require Approval for Selections</label>
+                  <label class="switch">
+                    <input type="checkbox" id="requireApproval">
+                    <span class="slider round"></span>
+                  </label>
+                </div>
+                <p class="form-hint">Clients must submit their selections for your approval before they're finalized.</p>
+              </div>
+              
+              <!-- Prevent Download -->
+              <div class="form-group">
+                <div class="toggle-container">
+                  <label class="toggle-label">Prevent Download</label>
+                  <label class="switch">
+                    <input type="checkbox" id="preventDownload">
+                    <span class="slider round"></span>
+                  </label>
+                </div>
+                <p class="form-hint">Limit the ability for clients to download photos directly.</p>
+              </div>
+              
+              <!-- Watermark -->
+              <div class="form-group">
+                <div class="toggle-container">
+                  <label class="toggle-label">Enable Watermark</label>
+                  <label class="switch">
+                    <input type="checkbox" id="watermarkEnabled">
+                    <span class="slider round"></span>
+                  </label>
+                </div>
+                <p class="form-hint">Apply your watermark to all shared photos.</p>
+              </div>
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <div class="modal-footer-left">
+            <button type="button" id="revokeAccessBtn" class="btn danger-btn hidden">Revoke Access</button>
+          </div>
+          <div class="modal-footer-right">
+            <button type="button" class="btn outline-btn close-modal">Cancel</button>
+            <button type="submit" form="shareSettingsForm" id="shareGallerySubmitBtn" class="btn primary-btn">Share Gallery</button>
+          </div>
+        </div>
+      </div>
+    </div>
     <!-- Scripts -->
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
