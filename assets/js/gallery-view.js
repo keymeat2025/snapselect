@@ -179,6 +179,433 @@ function setupEventListeners() {
   const syncPhotosBtn = document.getElementById('syncPhotosBtn');
   if (syncPhotosBtn) syncPhotosBtn.addEventListener('click', syncStorageWithFirestore);
 }
+
+// Load gallery data from Firestore
+async function loadGalleryData() {
+  try {
+    if (!galleryId || !currentUser) {
+      throw new Error('Missing gallery ID or user is not logged in');
+    }
+    
+    const db = firebase.firestore();
+    const galleryDoc = await db.collection('galleries').doc(galleryId).get();
+    
+    if (!galleryDoc.exists) {
+      throw new Error('Gallery not found');
+    }
+    
+    galleryData = { id: galleryDoc.id, ...galleryDoc.data() };
+    
+    // Add human-readable fields for admin searching
+    galleryData.ownerEmail = currentUser.email;
+    galleryData.searchLabel = `Gallery: ${galleryData.name || 'Untitled'} - ${currentUser.email}`;
+    
+    // Check permissions - owner or client access only
+    const isOwner = galleryData.photographerId === currentUser.uid;
+    const hasClientAccess = galleryData.clientId === clientId && clientId;
+    
+    if (!isOwner && !hasClientAccess) {
+      throw new Error('You do not have permission to view this gallery');
+    }
+    
+    // Show sync button only for the gallery owner
+    const syncPhotosBtn = document.getElementById('syncPhotosBtn');
+    if (syncPhotosBtn) {
+      syncPhotosBtn.style.display = isOwner ? 'block' : 'none';
+    }
+    
+    // Show owner controls panel only for the owner
+    const ownerControlsPanel = document.getElementById('ownerControlsPanel');
+    if (ownerControlsPanel) {
+      ownerControlsPanel.style.display = isOwner ? 'block' : 'none';
+    }
+    
+    // Get plan limits
+    if (galleryData.planType && PLAN_LIMITS[galleryData.planType]) {
+      planLimits = PLAN_LIMITS[galleryData.planType];
+    } else {
+      // Use default plan if none specified
+      planLimits = PLAN_LIMITS[DEFAULT_PLAN];
+      console.log('No plan type found, using default plan limits');
+    }
+    
+    // Update UI with gallery data
+    updateGalleryInfo();
+    
+    // Load photos with pagination
+    await loadGalleryPhotos(true);
+    
+    // Load client data if needed
+    if (clientId && !galleryData.clientName) {
+      try {
+        const clientDoc = await db.collection('clients').doc(clientId).get();
+        if (clientDoc.exists) {
+          galleryData.clientName = clientDoc.data().name || clientDoc.data().email || 'Unknown Client';
+          updateGalleryInfo();
+        }
+      } catch (clientError) {
+        console.error('Error loading client data:', clientError);
+        // Non-critical error, continue
+      }
+    }
+    
+    // Show plan limits notification if close to limit
+    if (planLimits && galleryData.photosCount) {
+      const percentUsed = (galleryData.photosCount / planLimits.photos) * 100;
+      if (percentUsed >= 90) {
+        showWarningMessage(`This gallery is at ${percentUsed.toFixed(0)}% of its photo limit (${galleryData.photosCount}/${planLimits.photos})`);
+      } else if (percentUsed >= 80) {
+        showInfoMessage(`This gallery is at ${percentUsed.toFixed(0)}% of its photo limit (${galleryData.photosCount}/${planLimits.photos})`);
+      }
+    }
+    
+    return galleryData;
+  } catch (error) {
+    console.error('Error loading gallery data:', error);
+    showErrorMessage(`Failed to load gallery: ${error.message}`);
+    throw error;
+  }
+}
+
+// Load photos from the gallery with pagination support
+async function loadGalleryPhotos(resetList = false) {
+  try {
+    if (isLoadingMore) return; // Prevent duplicate loading
+    isLoadingMore = true;
+    
+    if (!galleryId || !currentUser) {
+      throw new Error('Missing gallery ID or user is not logged in');
+    }
+    
+    // If resetting the list, clear the last visible photo
+    if (resetList) {
+      lastVisiblePhoto = null;
+      photosList = [];
+      allPhotosLoaded = false;
+    }
+    
+    // Show loading state for photos
+    const photosContainer = document.getElementById('photosContainer');
+    const loadingIndicator = document.getElementById('photosLoadingIndicator');
+    
+    if (loadingIndicator) loadingIndicator.style.display = 'block';
+    
+    const loadMoreBtn = document.getElementById('loadMoreBtn');
+    if (loadMoreBtn) loadMoreBtn.disabled = true;
+    
+    const db = firebase.firestore();
+    
+    // Start with a base query
+    let photosQuery = db.collection('photos')
+      .where('galleryId', '==', galleryId);
+    
+    // Apply status filter - show deleted photos only to the owner
+    if (galleryData.photographerId === currentUser.uid) {
+      // Owner can see any status based on filter
+      photosQuery = photosQuery.where('status', '==', selectedStatus);
+    } else {
+      // Non-owners can only see active photos
+      photosQuery = photosQuery.where('status', '==', 'active');
+    }
+    
+    // Add sorting
+    photosQuery = photosQuery.orderBy('createdAt', 'desc');
+    
+    // Add pagination using the last document
+    if (lastVisiblePhoto) {
+      photosQuery = photosQuery.startAfter(lastVisiblePhoto);
+    }
+    
+    // Limit the number of photos per page
+    photosQuery = photosQuery.limit(PHOTOS_PER_PAGE);
+    
+    // Execute the query
+    const photosSnapshot = await photosQuery.get();
+    
+    // Check if we've reached the end
+    if (photosSnapshot.empty) {
+      allPhotosLoaded = true;
+      
+      if (loadMoreBtn) {
+        loadMoreBtn.style.display = 'none';
+        loadMoreBtn.disabled = true;
+      }
+      
+      if (loadingIndicator) loadingIndicator.style.display = 'none';
+      
+      // If no photos and this is the initial load, show empty state
+      if (photosList.length === 0) {
+        renderPhotos(); // This will show the empty state
+      }
+      
+      isLoadingMore = false;
+      return;
+    }
+    
+    // Store the last visible document for pagination
+    lastVisiblePhoto = photosSnapshot.docs[photosSnapshot.docs.length - 1];
+    
+    // Add photos to the list
+    photosSnapshot.forEach(doc => {
+      photosList.push({ id: doc.id, ...doc.data() });
+    });
+    
+    // Update photo count in gallery info
+    const photoCountElement = document.getElementById('photoCount');
+    if (photoCountElement) {
+      const visibleCount = photosList.length;
+      const totalCount = galleryData.photosCount || visibleCount;
+      photoCountElement.textContent = `Photos: ${visibleCount}/${totalCount}`;
+    }
+    
+    // Update UI with photos
+    renderPhotos();
+    
+    // Update load more button visibility
+    if (loadMoreBtn) {
+      if (photosSnapshot.size < PHOTOS_PER_PAGE) {
+        // We received fewer photos than the limit, so there are no more
+        loadMoreBtn.style.display = 'none';
+        allPhotosLoaded = true;
+      } else {
+        loadMoreBtn.style.display = 'block';
+        loadMoreBtn.disabled = false;
+      }
+    }
+    
+    if (loadingIndicator) loadingIndicator.style.display = 'none';
+    
+    isLoadingMore = false;
+  } catch (error) {
+    console.error('Error loading gallery photos:', error);
+    showErrorMessage('Failed to load photos');
+    
+    const loadingIndicator = document.getElementById('photosLoadingIndicator');
+    if (loadingIndicator) loadingIndicator.style.display = 'none';
+    
+    const loadMoreBtn = document.getElementById('loadMoreBtn');
+    if (loadMoreBtn) loadMoreBtn.disabled = false;
+    
+    isLoadingMore = false;
+    throw error;
+  }
+}
+
+// Load more photos (pagination)
+function loadMorePhotos() {
+  if (isLoadingMore || allPhotosLoaded) return;
+  loadGalleryPhotos(false); // Don't reset the list
+}
+
+// Handle status filter change
+function handleStatusChange(e) {
+  selectedStatus = e.target.value;
+  
+  // Reset photos and reload with new status
+  photosList = [];
+  lastVisiblePhoto = null;
+  allPhotosLoaded = false;
+  loadGalleryPhotos(true);
+}
+
+// Render photos in the container with pagination support
+function renderPhotos() {
+  const photosContainer = document.getElementById('photosContainer');
+  if (!photosContainer) return;
+  
+  // Check if we have photos
+  if (photosList.length === 0) {
+    // Show empty state
+    photosContainer.innerHTML = `
+      <div id="emptyStateContainer" class="empty-state">
+        <div class="empty-state-icon"><i class="fas fa-images"></i></div>
+        <h3>No photos yet</h3>
+        <p>Upload photos to get started with this gallery</p>
+        <button id="emptyStateUploadBtn" class="btn primary-btn">Upload Photos</button>
+      </div>
+    `;
+    
+    // Re-attach event listener
+    const emptyStateUploadBtn = document.getElementById('emptyStateUploadBtn');
+    if (emptyStateUploadBtn) emptyStateUploadBtn.addEventListener('click', showUploadPhotosModal);
+    
+    return;
+  }
+  
+  // For pagination: only clear container on first load
+  if (photosContainer.classList.contains('photos-grid') && !photosContainer.querySelector('.photo-item')) {
+    photosContainer.innerHTML = '';
+  } else if (photosContainer.classList.contains('photos-list') && !photosContainer.querySelector('.photo-list-item')) {
+    photosContainer.innerHTML = '';
+  }
+  
+  // Get current view mode
+  const isGridView = photosContainer.classList.contains('photos-grid');
+  
+  // Create photo elements for new photos
+  photosList.forEach((photo, index) => {
+    // Skip already rendered photos by checking if the element exists
+    const existingElement = document.querySelector(`[data-photo-id="${photo.id}"]`);
+    if (existingElement) return;
+    
+    const photoElement = document.createElement('div');
+    photoElement.className = isGridView ? 'photo-item' : 'photo-list-item';
+    photoElement.setAttribute('data-photo-id', photo.id);
+    
+    // Add status class for visual indication
+    if (photo.status !== 'active') {
+      photoElement.classList.add(`status-${photo.status}`);
+    }
+    
+    // Get thumbnail URL
+    const thumbnailUrl = photo.thumbnails?.[THUMBNAIL_SIZE] || photo.url || '';
+    
+    if (isGridView) {
+      // Grid view
+      photoElement.innerHTML = `
+        <div class="photo-container" style="background-image: url('${thumbnailUrl}')">
+          <div class="photo-overlay">
+            <div class="photo-actions">
+              <button class="photo-action-btn view-btn"><i class="fas fa-eye"></i></button>
+              <button class="photo-action-btn info-btn"><i class="fas fa-info-circle"></i></button>
+              <button class="photo-action-btn delete-btn"><i class="fas fa-trash"></i></button>
+            </div>
+            ${photo.status !== 'active' ? `<div class="photo-status">${photo.status}</div>` : ''}
+          </div>
+        </div>
+        <div class="photo-details">
+          <div class="photo-name">${photo.name || 'Untitled Photo'}</div>
+          <div class="photo-date">${photo.createdAt?.toDate().toLocaleDateString() || 'Unknown date'}</div>
+        </div>
+      `;
+    } else {
+      // List view
+      photoElement.innerHTML = `
+        <div class="photo-list-thumbnail" style="background-image: url('${thumbnailUrl}')"></div>
+        <div class="photo-list-details">
+          <div class="photo-list-name">${photo.name || 'Untitled Photo'}</div>
+          <div class="photo-list-meta">
+            <span class="photo-list-date">${photo.createdAt?.toDate().toLocaleDateString() || 'Unknown date'}</span>
+            <span class="photo-list-size">${formatFileSize(photo.size || 0)}</span>
+            ${photo.status !== 'active' ? `<span class="photo-status-badge">${photo.status}</span>` : ''}
+          </div>
+        </div>
+        <div class="photo-list-actions">
+          <button class="photo-action-btn view-btn"><i class="fas fa-eye"></i></button>
+          <button class="photo-action-btn info-btn"><i class="fas fa-info-circle"></i></button>
+          <button class="photo-action-btn delete-btn"><i class="fas fa-trash"></i></button>
+        </div>
+      `;
+    }
+    
+    photosContainer.appendChild(photoElement);
+  });
+  
+  // Add click handlers for photo actions
+  document.querySelectorAll('.photo-action-btn.view-btn').forEach(btn => {
+    if (btn.getAttribute('data-handler-attached')) return; // Skip if handler already attached
+    
+    btn.setAttribute('data-handler-attached', 'true');
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const photoId = getPhotoIdFromElement(e.target);
+      viewPhoto(photoId);
+    });
+  });
+  
+  document.querySelectorAll('.photo-action-btn.info-btn').forEach(btn => {
+    if (btn.getAttribute('data-handler-attached')) return; // Skip if handler already attached
+    
+    btn.setAttribute('data-handler-attached', 'true');
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const photoId = getPhotoIdFromElement(e.target);
+      showPhotoInfo(photoId);
+    });
+  });
+  
+  document.querySelectorAll('.photo-action-btn.delete-btn').forEach(btn => {
+    if (btn.getAttribute('data-handler-attached')) return; // Skip if handler already attached
+    
+    btn.setAttribute('data-handler-attached', 'true');
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const photoId = getPhotoIdFromElement(e.target);
+      confirmDeletePhoto(photoId);
+    });
+  });
+  
+  // Add click handler for photo containers
+  document.querySelectorAll('.photo-container, .photo-list-thumbnail').forEach(container => {
+    if (container.getAttribute('data-handler-attached')) return; // Skip if handler already attached
+    
+    container.setAttribute('data-handler-attached', 'true');
+    container.addEventListener('click', (e) => {
+      const photoId = getPhotoIdFromElement(e.target);
+      viewPhoto(photoId);
+    });
+  });
+  
+  // After rendering, check if load more button should be shown
+  const loadMoreContainer = document.getElementById('loadMoreContainer');
+  if (loadMoreContainer) {
+    loadMoreContainer.style.display = allPhotosLoaded ? 'none' : 'block';
+  }
+}
+
+// Update gallery info in UI
+function updateGalleryInfo() {
+  if (!galleryData) return;
+  
+  // Update page title
+  document.title = `${galleryData.name || 'Gallery'} - SnapSelect`;
+  
+  // Update gallery title
+  const galleryTitleElement = document.getElementById('galleryTitle');
+  if (galleryTitleElement) {
+    galleryTitleElement.textContent = 'Gallery: ' + (galleryData.name || 'Untitled Gallery');
+  }
+  
+  // Update gallery name
+  const galleryNameElement = document.getElementById('galleryName');
+  if (galleryNameElement) {
+    galleryNameElement.textContent = galleryData.name || 'Untitled Gallery';
+  }
+  
+  // Update client name
+  const clientNameElement = document.getElementById('clientName');
+  if (clientNameElement) {
+    clientNameElement.textContent = 'Client: ' + (galleryData.clientName || 'Unknown Client');
+  }
+  
+  // Update gallery description
+  const galleryDescriptionElement = document.getElementById('galleryDescription');
+  if (galleryDescriptionElement) {
+    galleryDescriptionElement.textContent = galleryData.description || 'No description provided.';
+  }
+  
+  // Update photo count
+  const photoCountElement = document.getElementById('photoCount');
+  if (photoCountElement) {
+    photoCountElement.textContent = `Photos: ${galleryData.photosCount || 0}`;
+  }
+}
+
+// Update user info in header
+function updateUserInfo() {
+  if (!currentUser) return;
+  
+  const userNameElement = document.getElementById('userName');
+  if (userNameElement) {
+    userNameElement.textContent = currentUser.displayName || currentUser.email || 'User';
+  }
+  
+  const avatarPlaceholder = document.getElementById('avatarPlaceholder');
+  if (avatarPlaceholder) {
+    avatarPlaceholder.textContent = (currentUser.displayName || currentUser.email || 'U').charAt(0).toUpperCase();
+  }
+}
+
 // Improved showUploadPhotosModal to prevent double opening
 function showUploadPhotosModal() {
   const uploadPhotosModal = document.getElementById('uploadPhotosModal');
@@ -344,6 +771,8 @@ function handleFiles(files) {
     const maxPhotos = planLimits.photos;
     const photosToUpload = files.length;
     
+  
+// Handle files with early plan validation (continued)
     if ((currentPhotoCount + photosToUpload) > maxPhotos) {
       const remainingSlots = Math.max(0, maxPhotos - currentPhotoCount);
       
@@ -630,7 +1059,6 @@ function uploadComplete() {
     hideUploadPhotosModal();
   }, 1500);
 }
-
 // Network monitoring
 window.addEventListener('online', function() {
   if (isUploading && uploadPaused) {
@@ -649,6 +1077,7 @@ window.addEventListener('offline', function() {
     }
   }
 });
+
 // Format file size for display
 function formatFileSize(bytes) {
   if (bytes === 0) return '0 Bytes';
@@ -756,6 +1185,350 @@ function showInfoMessage(message) {
   }, 3000);
 }
 
+// View photo in full-screen modal
+function viewPhoto(photoId) {
+  if (!photoId) return;
+  
+  // Find photo in list
+  const photo = photosList.find(p => p.id === photoId);
+  if (!photo) {
+    showErrorMessage('Photo not found');
+    return;
+  }
+  
+  // Create modal if it doesn't exist
+  let photoViewModal = document.getElementById('photoViewModal');
+  if (!photoViewModal) {
+    photoViewModal = document.createElement('div');
+    photoViewModal.id = 'photoViewModal';
+    photoViewModal.className = 'photo-view-modal';
+    
+    photoViewModal.innerHTML = `
+      <div class="photo-view-container">
+        <button class="close-modal">&times;</button>
+        <div class="photo-view-content">
+          <img id="photoViewImage" src="" alt="Full size photo">
+        </div>
+        <div class="photo-view-info">
+          <div class="photo-view-name" id="photoViewName"></div>
+          <div class="photo-view-meta">
+            <span id="photoViewSize"></span>
+            <span id="photoViewDate"></span>
+          </div>
+        </div>
+        <div class="photo-view-actions">
+          <button id="photoViewDownloadBtn" class="btn outline-btn"><i class="fas fa-download"></i> Download</button>
+          <button id="photoViewInfoBtn" class="btn outline-btn"><i class="fas fa-info-circle"></i> Info</button>
+          <button id="photoViewDeleteBtn" class="btn outline-btn danger-btn"><i class="fas fa-trash"></i> Delete</button>
+        </div>
+      </div>
+    `;
+    
+    document.body.appendChild(photoViewModal);
+    
+    // Add event listeners
+    const closeModalBtn = photoViewModal.querySelector('.close-modal');
+    if (closeModalBtn) {
+      closeModalBtn.addEventListener('click', () => {
+        photoViewModal.style.display = 'none';
+      });
+    }
+    
+    // Download button
+    const downloadBtn = document.getElementById('photoViewDownloadBtn');
+    if (downloadBtn) {
+      downloadBtn.addEventListener('click', () => {
+        const photoImg = document.getElementById('photoViewImage');
+        if (photoImg && photoImg.src) {
+          // Create an anchor and trigger download
+          const a = document.createElement('a');
+          a.href = photoImg.src;
+          a.download = photoImg.alt || 'photo.jpg';
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+        }
+      });
+    }
+    
+    // Info button
+    const infoBtn = document.getElementById('photoViewInfoBtn');
+    if (infoBtn) {
+      infoBtn.addEventListener('click', () => {
+        const photoId = photoViewModal.getAttribute('data-photo-id');
+        showPhotoInfo(photoId);
+      });
+    }
+    
+    // Delete button
+    const deleteBtn = document.getElementById('photoViewDeleteBtn');
+    if (deleteBtn) {
+      deleteBtn.addEventListener('click', () => {
+        const photoId = photoViewModal.getAttribute('data-photo-id');
+        confirmDeletePhoto(photoId);
+        photoViewModal.style.display = 'none';
+      });
+    }
+  }
+  
+  // Update modal content
+  const photoImage = document.getElementById('photoViewImage');
+  const photoName = document.getElementById('photoViewName');
+  const photoSize = document.getElementById('photoViewSize');
+  const photoDate = document.getElementById('photoViewDate');
+  
+  if (photoImage) photoImage.src = photo.url || '';
+  if (photoName) photoName.textContent = photo.name || 'Untitled Photo';
+  if (photoSize) photoSize.textContent = formatFileSize(photo.size || 0);
+  if (photoDate) photoDate.textContent = photo.createdAt?.toDate().toLocaleDateString() || 'Unknown date';
+  
+  // Store photo ID for action buttons
+  photoViewModal.setAttribute('data-photo-id', photoId);
+  
+  // Show modal
+  photoViewModal.style.display = 'block';
+}
+
+// Show photo information in a modal
+function showPhotoInfo(photoId) {
+  if (!photoId) return;
+  
+  // Find photo in list
+  const photo = photosList.find(p => p.id === photoId);
+  if (!photo) {
+    showErrorMessage('Photo not found');
+    return;
+  }
+  
+  // Create modal if it doesn't exist
+  let photoInfoModal = document.getElementById('photoInfoModal');
+  if (!photoInfoModal) {
+    photoInfoModal = document.createElement('div');
+    photoInfoModal.id = 'photoInfoModal';
+    photoInfoModal.className = 'modal';
+    
+    photoInfoModal.innerHTML = `
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2>Photo Information</h2>
+          <button class="close-modal">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div class="photo-info-container">
+            <div class="photo-info-thumbnail" id="photoInfoThumbnail"></div>
+            <div class="photo-info-details">
+              <div class="info-row">
+                <label>File Name:</label>
+                <span id="photoInfoName"></span>
+              </div>
+              <div class="info-row">
+                <label>Uploaded:</label>
+                <span id="photoInfoDate"></span>
+              </div>
+              <div class="info-row">
+                <label>File Size:</label>
+                <span id="photoInfoSize"></span>
+              </div>
+              <div class="info-row">
+                <label>Dimensions:</label>
+                <span id="photoInfoDimensions"></span>
+              </div>
+              <div class="info-row">
+                <label>File Type:</label>
+                <span id="photoInfoType"></span>
+              </div>
+              <div class="info-row">
+                <label>Storage Path:</label>
+                <span id="photoInfoPath"></span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button id="closePhotoInfoBtn" class="btn outline-btn">Close</button>
+        </div>
+      </div>
+    `;
+    
+    document.body.appendChild(photoInfoModal);
+    
+    // Add event listeners
+    const closeModalBtn = photoInfoModal.querySelector('.close-modal');
+    if (closeModalBtn) {
+      closeModalBtn.addEventListener('click', () => {
+        photoInfoModal.style.display = 'none';
+      });
+    }
+    
+    const closeBtn = document.getElementById('closePhotoInfoBtn');
+    if (closeBtn) {
+      closeBtn.addEventListener('click', () => {
+        photoInfoModal.style.display = 'none';
+      });
+    }
+  }
+  
+  // Update modal content
+  const thumbnail = document.getElementById('photoInfoThumbnail');
+  const name = document.getElementById('photoInfoName');
+  const date = document.getElementById('photoInfoDate');
+  const size = document.getElementById('photoInfoSize');
+  const dimensions = document.getElementById('photoInfoDimensions');
+  const type = document.getElementById('photoInfoType');
+  const path = document.getElementById('photoInfoPath');
+  
+  if (thumbnail) {
+    thumbnail.style.backgroundImage = `url('${photo.thumbnails?.md || photo.url || ''}')`;
+  }
+  
+  if (name) name.textContent = photo.name || 'Untitled Photo';
+  if (date) date.textContent = photo.createdAt?.toDate().toLocaleString() || 'Unknown date';
+  if (size) size.textContent = formatFileSize(photo.size || 0);
+  if (dimensions) dimensions.textContent = photo.width && photo.height ? `${photo.width} × ${photo.height} px` : 'Unknown';
+  if (type) type.textContent = photo.type || 'Unknown';
+  if (path) path.textContent = photo.storageRef || 'Unknown';
+  
+  // Show modal
+  photoInfoModal.style.display = 'block';
+}
+
+// Confirm and delete photo
+function confirmDeletePhoto(photoId) {
+  if (!photoId) return;
+  
+  // Find photo in list
+  const photo = photosList.find(p => p.id === photoId);
+  if (!photo) {
+    showErrorMessage('Photo not found');
+    return;
+  }
+  
+  // Show confirmation dialog
+  if (confirm(`Are you sure you want to delete "${photo.name || 'this photo'}"? This action cannot be undone.`)) {
+    deletePhoto(photoId);
+  }
+}
+
+// Delete photo from storage and database
+async function deletePhoto(photoId) {
+  try {
+    if (!photoId || !currentUser) {
+      throw new Error('Missing photo ID or user is not logged in');
+    }
+    
+    showLoadingOverlay('Deleting photo...');
+    
+    // Find photo in list
+    const photo = photosList.find(p => p.id === photoId);
+    if (!photo) {
+      throw new Error('Photo not found');
+    }
+    
+    const db = firebase.firestore();
+    
+    // Delete from Firestore first
+    await db.collection('photos').doc(photoId).update({
+      status: 'deleted',
+      deletedAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    
+    // Update gallery photo count
+    await db.collection('galleries').doc(galleryId).update({
+      photosCount: firebase.firestore.FieldValue.increment(-1),
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    
+    // Update plan storage usage if we have plan ID
+    if (galleryData.planId && photo.size) {
+      await db.collection('client-plans').doc(galleryData.planId).update({
+        storageUsed: firebase.firestore.FieldValue.increment(-(photo.size / (1024 * 1024))), // Convert to MB
+        photosUploaded: firebase.firestore.FieldValue.increment(-1),
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+    }
+    
+    // Remove photo from list
+    photosList = photosList.filter(p => p.id !== photoId);
+    
+    // Re-render photos
+    renderPhotos();
+    
+    hideLoadingOverlay();
+    showSuccessMessage('Photo deleted successfully');
+  } catch (error) {
+    console.error('Error deleting photo:', error);
+    hideLoadingOverlay();
+    showErrorMessage(`Failed to delete photo: ${error.message}`);
+  }
+}
+
+// Set view mode (grid or list)
+function setViewMode(mode) {
+  const photosContainer = document.getElementById('photosContainer');
+  if (!photosContainer) return;
+  
+  const gridViewBtn = document.getElementById('gridViewBtn');
+  const listViewBtn = document.getElementById('listViewBtn');
+  
+  if (mode === 'grid') {
+    photosContainer.classList.add('photos-grid');
+    photosContainer.classList.remove('photos-list');
+    gridViewBtn.classList.add('active');
+    listViewBtn.classList.remove('active');
+  } else {
+    photosContainer.classList.remove('photos-grid');
+    photosContainer.classList.add('photos-list');
+    gridViewBtn.classList.remove('active');
+    listViewBtn.classList.add('active');
+  }
+  
+  // Re-render photos to update layout
+  renderPhotos();
+}
+
+// Handle sort change
+function handleSortChange(e) {
+  const sortValue = e.target.value;
+  
+  // Sort photos based on selected option
+  if (sortValue === 'newest') {
+    photosList.sort((a, b) => {
+      return (b.createdAt?.toDate() || 0) - (a.createdAt?.toDate() || 0);
+    });
+  } else if (sortValue === 'oldest') {
+    photosList.sort((a, b) => {
+      return (a.createdAt?.toDate() || 0) - (b.createdAt?.toDate() || 0);
+    });
+  } else if (sortValue === 'name') {
+    photosList.sort((a, b) => {
+      return (a.name || '').localeCompare(b.name || '');
+    });
+  }
+  
+  // Re-render photos with new sort order
+  renderPhotos();
+}
+
+// Show share gallery modal (placeholder)
+function showShareGalleryModal() {
+  alert('Gallery sharing functionality would be implemented here');
+  // In a real implementation, this would show a modal with options to:
+  // - Generate a share link
+  // - Set password protection
+  // - Set expiration date
+  // - Send email invites
+}
+
+// Show gallery settings modal (placeholder)
+function showGallerySettingsModal() {
+  alert('Gallery settings functionality would be implemented here');
+  // In a real implementation, this would show a modal with options to:
+  // - Rename gallery
+  // - Update description
+  // - Change thumbnail
+  // - Manage access settings
+}
+
 // Update file status in the UI
 function updateFileStatus(index, status) {
   const fileItem = document.querySelector(`.upload-file-item[data-index="${index}"]`);
@@ -859,61 +1632,228 @@ function showUploadStatus() {
   if (uploadStep2) uploadStep2.style.display = 'block';
 }
 
-// Handle drag over for file drop
-function handleDragOver(event) {
-  event.preventDefault();
-  event.stopPropagation();
-  
-  const uploadArea = document.getElementById('uploadArea');
-  if (uploadArea) uploadArea.classList.add('dragging');
-}
 
-// Handle drag leave for file drop
-function handleDragLeave(event) {
-  event.preventDefault();
-  event.stopPropagation();
-  
-  const uploadArea = document.getElementById('uploadArea');
-  if (uploadArea) uploadArea.classList.remove('dragging');
-}
-
-// Handle file drop for upload
-function handleFileDrop(event) {
-  event.preventDefault();
-  event.stopPropagation();
-  
-  const uploadArea = document.getElementById('uploadArea');
-  if (uploadArea) uploadArea.classList.remove('dragging');
-  
-  if (event.dataTransfer && event.dataTransfer.files) {
-    handleFiles(event.dataTransfer.files);
-  }
-}
-
-// Get photo ID from a clicked element
-function getPhotoIdFromElement(element) {
-  // Traverse up the DOM tree to find the closest element with photo ID
-  let currentElement = element;
-  while (currentElement && !currentElement.getAttribute('data-photo-id')) {
-    currentElement = currentElement.parentElement;
-  }
-  
-  return currentElement ? currentElement.getAttribute('data-photo-id') : null;
-}
-
-// Update sync progress in the UI
-function updateSyncProgress(current, total) {
-  const syncProgressBar = document.getElementById('syncProgressBar');
-  const syncProgressText = document.getElementById('syncProgressText');
-  
-  if (syncProgressBar) {
-    const percent = Math.floor((current / total) * 100);
-    syncProgressBar.style.width = `${percent}%`;
-    syncProgressBar.setAttribute('aria-valuenow', percent);
-  }
-  
-  if (syncProgressText) {
-    syncProgressText.textContent = `${current}/${total} files processed`;
+// Synchronize Storage with Firestore to ensure all photos are properly tracked
+async function syncStorageWithFirestore() {
+  try {
+    // Security check: Only the gallery owner can sync
+    if (!galleryData || galleryData.photographerId !== currentUser.uid) {
+      showErrorMessage('Only the gallery owner can perform this operation');
+      return;
+    }
+    
+    showLoadingOverlay('Synchronizing photos...');
+    
+    // Get the Firebase storage reference for this gallery
+    const storage = firebase.storage();
+    const galleryPath = `galleries/${galleryId}/photos/`;
+    const storageRef = storage.ref(galleryPath);
+    
+    // Get all files from Storage
+    let storageFiles = [];
+    try {
+      const storageList = await storageRef.listAll();
+      storageFiles = storageList.items;
+    } catch (storageError) {
+      console.error('Error listing files from Storage:', storageError);
+      showErrorMessage('Unable to list files from Storage');
+      hideLoadingOverlay();
+      return;
+    }
+    
+    // If no files in storage, show message and exit
+    if (storageFiles.length === 0) {
+      hideLoadingOverlay();
+      showInfoMessage('No files found in Storage for this gallery');
+      return;
+    }
+    
+    // Get Firestore records for this gallery
+    const db = firebase.firestore();
+    const existingPhotosSnapshot = await db.collection('photos')
+      .where('galleryId', '==', galleryId)
+      .get();
+    
+    // Create a map of existing filenames for quick lookup
+    const existingPhotos = new Map();
+    existingPhotosSnapshot.forEach(doc => {
+      const data = doc.data();
+      if (data.fileName) {
+        existingPhotos.set(data.fileName, { id: doc.id, ...data });
+      }
+    });
+    
+    // For tracking progress
+    let totalFiles = storageFiles.length;
+    let syncedFiles = 0;
+    let newFilesAdded = 0;
+    let skippedFiles = 0;
+    
+    // Plan limit check
+    let totalPhotosAfterSync = existingPhotosSnapshot.size;
+    const maxPhotos = planLimits ? planLimits.photos : PLAN_LIMITS[DEFAULT_PLAN].photos;
+    
+    // Update progress indicator
+    updateSyncProgress(0, totalFiles);
+    
+    // Process files in batches to avoid overwhelming the database
+    const BATCH_SIZE = 10;
+    const batches = [];
+    
+    for (let i = 0; i < storageFiles.length; i += BATCH_SIZE) {
+      const batch = storageFiles.slice(i, i + BATCH_SIZE);
+      batches.push(batch);
+    }
+    
+    // Process each batch sequentially
+    for (let batchIndex = 0; batchIndex < batches.length; batchIndex++) {
+      const batch = batches[batchIndex];
+      const batchPromises = batch.map(async (fileRef) => {
+        try {
+          // Extract filename
+          const fileName = fileRef.name;
+          
+          // Skip if already in Firestore
+          if (existingPhotos.has(fileName)) {
+            syncedFiles++;
+            skippedFiles++;
+            updateSyncProgress(syncedFiles, totalFiles);
+            return { status: 'skipped', fileName };
+          }
+          
+          // Check plan limits before proceeding
+          if (totalPhotosAfterSync >= maxPhotos) {
+            syncedFiles++;
+            skippedFiles++;
+            updateSyncProgress(syncedFiles, totalFiles);
+            return { status: 'limit_exceeded', fileName };
+          }
+          
+          // Get metadata and download URL
+          const [metadata, url] = await Promise.all([
+            fileRef.getMetadata(),
+            fileRef.getDownloadURL()
+          ]);
+          
+          // Create thumbnails 
+          // In a real implementation, this would trigger a cloud function
+          // Here we're just using the full image URL as thumbnail
+          const thumbnails = {
+            sm: url,
+            md: url,
+            lg: url
+          };
+          
+          // Create a proper filename if missing
+          const originalName = metadata.customMetadata?.originalName || fileName;
+          
+          // Create document in Firestore
+          const photoDoc = db.collection('photos').doc();
+          
+          // Add human-readable search information for easy admin searching
+          const searchableInfo = {
+            galleryName: galleryData.name || 'Untitled Gallery',
+            clientName: galleryData.clientName || 'Unknown Client',
+            photoName: originalName,
+            photoNameLower: originalName.toLowerCase(),
+            searchLabel: `Photo: ${originalName} in ${galleryData.name}`,
+            photographerEmail: currentUser.email
+          };
+          
+          await photoDoc.set({
+            galleryId: galleryId,
+            photographerId: currentUser.uid,
+            name: originalName,
+            fileName: fileName,
+            storageRef: fileRef.fullPath,
+            url: url,
+            thumbnails: thumbnails,
+            size: metadata.size || 0,
+            type: metadata.contentType || 'image/jpeg',
+            width: 0, // Would be populated by cloud function
+            height: 0, // Would be populated by cloud function
+            status: 'active',
+            createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+            syncedAt: firebase.firestore.FieldValue.serverTimestamp(),
+            // Add the searchable info
+            ...searchableInfo
+          });
+          
+          syncedFiles++;
+          newFilesAdded++;
+          totalPhotosAfterSync++;
+          updateSyncProgress(syncedFiles, totalFiles);
+          
+          return { status: 'added', fileName, photoId: photoDoc.id };
+        } catch (error) {
+          console.error(`Error processing file ${fileRef.name}:`, error);
+          syncedFiles++;
+          updateSyncProgress(syncedFiles, totalFiles);
+          return { status: 'error', fileName: fileRef.name, error: error.message };
+        }
+      });
+      
+      // Wait for the current batch to complete before moving to the next
+      await Promise.all(batchPromises);
+      
+      // Brief pause between batches to prevent overloading Firestore
+      if (batchIndex < batches.length - 1) {
+        await new Promise(resolve => setTimeout(resolve, 500));
+      }
+    }
+    
+    // Update gallery document with new photo count
+    if (newFilesAdded > 0) {
+      await db.collection('galleries').doc(galleryId).update({
+        photosCount: firebase.firestore.FieldValue.increment(newFilesAdded),
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+        lastSyncAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+      
+      // Also update plan with storage usage if plan ID is available
+      if (galleryData.planId) {
+        const totalUploadSize = newFilesAdded * 5 * 1024 * 1024; // Estimate 5MB per photo
+        await db.collection('client-plans').doc(galleryData.planId).update({
+          storageUsed: firebase.firestore.FieldValue.increment(totalUploadSize / (1024 * 1024)), // Convert to MB
+          photosUploaded: firebase.firestore.FieldValue.increment(newFilesAdded),
+          updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+      }
+      
+      // Reload gallery photos to show the newly added ones
+      photosList = [];
+      lastVisiblePhoto = null;
+      allPhotosLoaded = false;
+      await loadGalleryPhotos(true);
+      
+      // Show success message
+      showSuccessMessage(`Sync complete: ${newFilesAdded} new photos added, ${skippedFiles} already synced.`);
+      
+      // Add notification
+      if (window.NotificationSystem) {
+        window.NotificationSystem.createNotificationFromEvent({
+          type: 'success',
+          title: 'Gallery Sync Complete',
+          message: `${newFilesAdded} new photos added to ${galleryData.name || 'gallery'}`
+        });
+      }
+    } else {
+      // No new photos found
+      showInfoMessage(`All ${skippedFiles} photos are already synced.`);
+    }
+    
+    // Handle limit warnings
+    if (totalPhotosAfterSync >= maxPhotos) {
+      showWarningMessage(`Plan limit reached: ${maxPhotos} photos. Upgrade your plan to add more photos.`);
+    } else if (totalPhotosAfterSync > (maxPhotos * 0.9)) {
+      showWarningMessage(`Approaching plan limit: ${totalPhotosAfterSync}/${maxPhotos} photos.`);
+    }
+    
+    hideLoadingOverlay();
+  } catch (error) {
+    console.error('Error synchronizing photos:', error);
+    showErrorMessage(`Sync failed: ${error.message}`);
+    hideLoadingOverlay();
   }
 }
 
