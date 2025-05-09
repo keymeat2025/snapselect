@@ -180,6 +180,70 @@ function setupEventListeners() {
   if (syncPhotosBtn) syncPhotosBtn.addEventListener('click', syncStorageWithFirestore);
 }
 
+// Handle drag over event
+function handleDragOver(e) {
+  e.preventDefault();
+  e.stopPropagation();
+  
+  // Add a visual indicator when files are dragged over
+  const uploadArea = document.getElementById('uploadArea');
+  if (uploadArea) {
+    uploadArea.classList.add('dragging');
+  }
+}
+
+// Handle drag leave event
+function handleDragLeave(e) {
+  e.preventDefault();
+  e.stopPropagation();
+  
+  // Remove visual indicator when files are dragged out
+  const uploadArea = document.getElementById('uploadArea');
+  if (uploadArea) {
+    uploadArea.classList.remove('dragging');
+  }
+}
+
+// Handle file drop event
+function handleFileDrop(e) {
+  e.preventDefault();
+  e.stopPropagation();
+  
+  // Remove visual indicator
+  const uploadArea = document.getElementById('uploadArea');
+  if (uploadArea) {
+    uploadArea.classList.remove('dragging');
+  }
+  
+  // Get the files from the drop event
+  const files = e.dataTransfer.files;
+  if (files.length > 0) {
+    handleFiles(files);
+  }
+}
+
+// Helper function to get photo ID from clicked element
+function getPhotoIdFromElement(element) {
+  // Find the closest parent with data-photo-id attribute
+  let current = element;
+  
+  while (current && !current.getAttribute('data-photo-id')) {
+    current = current.parentElement;
+  }
+  
+  return current ? current.getAttribute('data-photo-id') : null;
+}
+
+// Update sync progress display
+function updateSyncProgress(current, total) {
+  const percent = Math.round((current / total) * 100);
+  const loadingText = document.querySelector('#loadingOverlay .loading-text');
+  
+  if (loadingText) {
+    loadingText.textContent = `Synchronizing photos: ${percent}% (${current}/${total})`;
+  }
+}
+
 // Load gallery data from Firestore
 async function loadGalleryData() {
   try {
@@ -771,8 +835,6 @@ function handleFiles(files) {
     const maxPhotos = planLimits.photos;
     const photosToUpload = files.length;
     
-  
-// Handle files with early plan validation (continued)
     if ((currentPhotoCount + photosToUpload) > maxPhotos) {
       const remainingSlots = Math.max(0, maxPhotos - currentPhotoCount);
       
@@ -1588,9 +1650,7 @@ function updateUploadPreview(files) {
   const uploadPreview = document.getElementById('uploadPreview');
   if (!uploadPreview) return;
   
-  uploadPreview.innerHTML = '';
-  
-  files.forEach((file, index) => {
+  uploadPreview.innerHTML = '';files.forEach((file, index) => {
     const fileItem = document.createElement('div');
     fileItem.className = 'upload-file-item';
     fileItem.setAttribute('data-index', index);
