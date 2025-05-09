@@ -14,6 +14,9 @@
     <link rel="stylesheet" href="../assets/css/features.css">
     <link rel="stylesheet" href="../assets/css/payment.css">
     <link rel="stylesheet" href="../assets/css/gallery-view.css">
+    <!-- In your gallery-view.html, add: -->
+    <link rel="stylesheet" href="../assets/css/gallery-sharing.css">
+   
     <style>
         /* Ensure toast container has proper positioning */
         #toastContainer {
@@ -857,7 +860,8 @@
     <script src="../assets/js/header-auth.js"></script>
     <script src="../assets/js/notification-system.js"></script>
     <script src="../assets/js/gallery-view.js"></script>
-
+    <script src="../assets/js/gallery-sharing.js"></script>
+    <script src="../assets/js/gallery-share-modal.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             // Initialize Firebase region
@@ -999,13 +1003,19 @@
             }
             
             // Share gallery button
+    
+           // Share gallery button
             const shareGalleryBtn = document.getElementById('shareGalleryBtn');
             if (shareGalleryBtn) {
                 shareGalleryBtn.addEventListener('click', function() {
-                    if (window.galleryView && window.galleryView.showShareGalleryModal) {
+                    if (window.GalleryShareModal && galleryData) {
+                        window.GalleryShareModal.open(galleryData);
+                    } else if (window.galleryView && window.galleryView.showShareGalleryModal) {
                         window.galleryView.showShareGalleryModal();
                     } else {
-                        alert('Gallery sharing functionality is coming soon!');
+                        // Include gallery-share-modal.html and its JavaScript files first
+                        console.error('Gallery sharing module not loaded. Make sure to include the necessary files.');
+                        alert('Please make sure the gallery sharing module is properly loaded.');
                     }
                 });
             }
