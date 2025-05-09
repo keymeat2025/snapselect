@@ -393,6 +393,87 @@
         .upload-file-item:last-child {
             border-bottom: none;
         }
+        
+        /* Owner controls styles */
+        .owner-controls {
+            margin-bottom: 20px;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+        }
+        
+        .owner-action-btn {
+            margin-right: 10px;
+        }
+        
+        .sync-progress-container {
+            margin-top: 15px;
+        }
+        
+        .progress {
+            height: 8px;
+            background-color: var(--background-light);
+            border-radius: 4px;
+            overflow: hidden;
+            margin-bottom: 8px;
+        }
+        
+        .progress-bar {
+            height: 100%;
+            background-color: var(--primary-color);
+            transition: width 0.3s;
+        }
+        
+        .sync-progress-text {
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+        
+        .loading-indicator {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+        
+        .spinner {
+            border: 3px solid rgba(0,0,0,0.1);
+            border-top: 3px solid var(--primary-color);
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+            margin-bottom: 10px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .loading-text {
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+        
+        .load-more-container {
+            text-align: center;
+            margin: 20px 0;
+        }
+        
+        .filter-group {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .sync-results {
+            margin-top: 15px;
+            padding: 10px;
+            background-color: #f5f5f5;
+            border-radius: 4px;
+            font-size: 14px;
+        }
     </style>
 </head>
 <body>
@@ -496,11 +577,18 @@
             <!-- Gallery content section -->
             <section class="gallery-content-section">
                 <div class="gallery-filters">
-                    <select id="sortFilter" class="filter-dropdown">
-                        <option value="newest">Newest First</option>
-                        <option value="oldest">Oldest First</option>
-                        <option value="name">Name (A-Z)</option>
-                    </select>
+                    <div class="filter-group">
+                        <select id="sortFilter" class="filter-dropdown">
+                            <option value="newest">Newest First</option>
+                            <option value="oldest">Oldest First</option>
+                            <option value="name">Name (A-Z)</option>
+                        </select>
+                        <select id="statusFilter" class="filter-dropdown" title="Filter photos by status">
+                            <option value="active" selected>Active Photos</option>
+                            <option value="deleted">Deleted Photos</option>
+                            <option value="processing">Processing Photos</option>
+                        </select>
+                    </div>
                     <div class="view-toggle">
                         <button id="gridViewBtn" class="view-btn active" title="Grid View">
                             <i class="fas fa-th"></i>
@@ -508,6 +596,20 @@
                         <button id="listViewBtn" class="view-btn" title="List View">
                             <i class="fas fa-list"></i>
                         </button>
+                    </div>
+                </div>
+
+                <!-- Owner controls panel -->
+                <div class="owner-controls" id="ownerControlsPanel" style="display: none;">
+                    <button id="syncPhotosBtn" class="btn outline-btn owner-action-btn">
+                        <i class="fas fa-sync"></i> Sync with Storage
+                    </button>
+                    <div class="sync-progress-container" id="syncProgressContainer" style="display: none;">
+                        <div class="progress">
+                            <div id="syncProgressBar" class="progress-bar" role="progressbar" style="width: 0%;" 
+                                aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+                        </div>
+                        <div id="syncProgressText" class="sync-progress-text">0/0 files processed</div>
                     </div>
                 </div>
 
@@ -520,6 +622,17 @@
                         <p>Upload photos to get started with this gallery</p>
                         <button id="emptyStateUploadBtn" class="btn primary">Upload Photos</button>
                     </div>
+                </div>
+                
+                <!-- Loading indicator and load more button -->
+                <div id="photosLoadingIndicator" class="loading-indicator" style="display: none;">
+                    <div class="spinner"></div>
+                    <div class="loading-text">Loading more photos...</div>
+                </div>
+                <div id="loadMoreContainer" class="load-more-container" style="display: none;">
+                    <button id="loadMoreBtn" class="btn outline-btn load-more-btn">
+                        <i class="fas fa-plus"></i> Load More Photos
+                    </button>
                 </div>
             </section>
         </div>
@@ -570,6 +683,35 @@
             <div class="modal-footer">
                 <button id="cancelUploadBtn" class="btn outline">Cancel</button>
                 <button id="startUploadBtn" class="btn primary">Start Upload</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Storage sync modal -->
+    <div id="syncPhotosModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Sync with Storage</h2>
+                <button class="close-modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="sync-info">
+                    <p>This will scan your Firebase Storage for this gallery and add any missing photos to Firestore.</p>
+                    <p>Note: Only photos within your plan limits will be added.</p>
+                </div>
+                <div class="sync-progress-details">
+                    <h3>Progress</h3>
+                    <div class="progress">
+                        <div id="syncModalProgressBar" class="progress-bar" role="progressbar" style="width: 0%;" 
+                            aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+                    </div>
+                    <div id="syncModalProgressText" class="sync-progress-text">0/0 files processed</div>
+                    <div id="syncResults" class="sync-results"></div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button id="closeSyncModalBtn" class="btn outline-btn">Close</button>
+                <button id="startSyncBtn" class="btn primary-btn">Start Sync</button>
             </div>
         </div>
     </div>
