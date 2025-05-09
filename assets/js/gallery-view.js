@@ -1,6 +1,7 @@
 /**
  * gallery-view.js - Handles displaying and interacting with a photo gallery
  * Updated with pagination, synchronization, plan enforcement, and upload reliability
+ * Enhanced with improved file rejection handling and visualization
  */
 
 // Global variables
@@ -20,6 +21,11 @@ let uploadQueue = [];
 let isUploading = false;
 let uploadPaused = false;
 let currentUploadIndex = 0;
+
+// New file selection variables
+window.allSelectedFiles = []; // All files selected for upload (includes rejected ones)
+window.filesToUpload = []; // Files that passed validation
+window.rejectedFiles = []; // Files that were rejected with reasons
 
 // Constants
 const THUMBNAIL_SIZE = 'md'; // Thumbnail size to use (options: sm, md, lg)
@@ -178,6 +184,24 @@ function setupEventListeners() {
   // Sync button (only for gallery owner)
   const syncPhotosBtn = document.getElementById('syncPhotosBtn');
   if (syncPhotosBtn) syncPhotosBtn.addEventListener('click', syncStorageWithFirestore);
+  
+  // Back to select files button (when all files are rejected)
+  const backToSelectBtn = document.getElementById('backToSelectBtn');
+  if (backToSelectBtn) backToSelectBtn.addEventListener('click', () => {
+    const uploadStep1 = document.getElementById('uploadStep1');
+    const uploadStep2 = document.getElementById('uploadStep2');
+    
+    if (uploadStep1) uploadStep1.style.display = 'block';
+    if (uploadStep2) uploadStep2.style.display = 'none';
+    
+    // Update steps indicator if it exists
+    const uploadSteps = document.querySelectorAll('.upload-step');
+    if (uploadSteps.length >= 2) {
+      uploadSteps[0].classList.add('active');
+      uploadSteps[0].classList.remove('completed');
+      uploadSteps[1].classList.remove('active');
+    }
+  });
 }
 
 // Handle drag over event
@@ -321,6 +345,12 @@ async function loadGalleryData() {
       } else if (percentUsed >= 80) {
         showInfoMessage(`This gallery is at ${percentUsed.toFixed(0)}% of its photo limit (${galleryData.photosCount}/${planLimits.photos})`);
       }
+    }
+    
+    // Update max file size in upload modal if it exists
+    const maxFileSizeEl = document.getElementById('maxFileSize');
+    if (maxFileSizeEl && planLimits) {
+      maxFileSizeEl.textContent = planLimits.maxSize;
     }
     
     return galleryData;
@@ -704,8 +734,22 @@ function showUploadPhotosModal() {
   const pauseUploadBtn = document.getElementById('pauseUploadBtn');
   if (pauseUploadBtn) pauseUploadBtn.style.display = 'none';
   
+  // Hide rejection summary if it exists
+  const rejectionSummary = document.getElementById('rejectionSummary');
+  if (rejectionSummary) rejectionSummary.style.display = 'none';
+  
+  // Reset upload steps if they exist
+  const uploadSteps = document.querySelectorAll('.upload-step');
+  if (uploadSteps.length >= 2) {
+    uploadSteps[0].classList.add('active');
+    uploadSteps[0].classList.remove('completed');
+    uploadSteps[1].classList.remove('active');
+  }
+  
   // Clear stored files
+  window.allSelectedFiles = [];
   window.filesToUpload = [];
+  window.rejectedFiles = [];
   
   // Reset upload state
   uploadQueue = [];
@@ -742,8 +786,20 @@ function cancelUpload(showMessage = true) {
   currentUploadIndex = 0;
   
   // Reset UI
-  const fileList = document.getElementById('uploadFileList');
-  if (fileList) fileList.innerHTML = '';
+// Reset UI
+  const uploadPreview = document.getElementById('uploadPreview');
+  if (uploadPreview) uploadPreview.innerHTML = '';
+  
+  // Reset progress bar
+  const totalProgressBar = document.getElementById('totalProgressBar');
+  if (totalProgressBar) {
+    totalProgressBar.style.width = '0%';
+    totalProgressBar.setAttribute('aria-valuenow', 0);
+  }
+  
+  // Hide progress container
+  const uploadProgressContainer = document.getElementById('uploadProgressContainer');
+  if (uploadProgressContainer) uploadProgressContainer.style.display = 'none';
   
   // Reset buttons
   const startUploadBtn = document.getElementById('startUploadBtn');
@@ -777,76 +833,67 @@ function togglePauseUpload() {
     }
     showInfoMessage('Upload paused');
   }
+  
+  // Update status for the current file
+  if (uploadQueue.length > 0 && currentUploadIndex < uploadQueue.length) {
+    const status = uploadPaused ? 'Paused' : 'Uploading';
+    updateFileStatus(currentUploadIndex, status);
+  }
 }
 
-// Function to apply plan limits to uploads
+// Function to apply plan limits to uploads but preserves the files for display
 function applyPlanLimits(files) {
-  if (!planLimits) return files;
+  if (!planLimits) {
+    planLimits = PLAN_LIMITS[DEFAULT_PLAN];
+  }
+  
+  // This function only filters the queue but doesn't show messages
+  // Messages are shown in handleFiles which is more comprehensive
+  
+  // Clean arrays
+  window.filesToUpload = [];
+  window.rejectedFiles = [];
   
   // Check photo count limit
   const currentPhotoCount = galleryData.photosCount || 0;
   const maxPhotos = planLimits.photos;
-  let allowedFiles = [...files];
-  
-  if ((currentPhotoCount + files.length) > maxPhotos) {
-    const remainingSlots = Math.max(0, maxPhotos - currentPhotoCount);
-    
-    if (remainingSlots === 0) {
-      showErrorMessage(`You've reached your plan limit of ${maxPhotos} photos. Upgrade your plan to upload more.`);
-      return [];
-    } else {
-      showWarningMessage(`Your plan allows ${maxPhotos} photos total. Only the first ${remainingSlots} photos will be uploaded.`);
-      allowedFiles = files.slice(0, remainingSlots);
-    }
-  }
-  
-  // Check file size limit (in MB)
   const maxFileSizeMB = planLimits.maxSize;
-  const oversizedFiles = allowedFiles.filter(file => file.size > (maxFileSizeMB * 1024 * 1024));
   
-  if (oversizedFiles.length > 0) {
-    if (oversizedFiles.length === allowedFiles.length) {
-      showErrorMessage(`All selected files exceed the ${maxFileSizeMB}MB limit for your plan.`);
-      return [];
-    } else {
-      // Filter out oversized files
-      const originalCount = allowedFiles.length;
-      allowedFiles = allowedFiles.filter(file => file.size <= (maxFileSizeMB * 1024 * 1024));
-      showWarningMessage(`${oversizedFiles.length} files exceeded the ${maxFileSizeMB}MB limit and were removed from upload.`);
-      
-      // If no valid files remain, exit
-      if (allowedFiles.length === 0) {
-        return [];
-      }
+  // Available slots
+  const availableSlots = Math.max(0, maxPhotos - currentPhotoCount);
+  
+  // Process each file
+  files.forEach((file, index) => {
+    // Check count limit
+    if (index >= availableSlots) {
+      window.rejectedFiles.push({
+        file: file,
+        reason: `Exceeds gallery limit of ${maxPhotos} photos`
+      });
     }
-  }
+    // Check file size limit
+    else if (file.size > (maxFileSizeMB * 1024 * 1024)) {
+      window.rejectedFiles.push({
+        file: file,
+        reason: `Exceeds size limit of ${maxFileSizeMB}MB`
+      });
+    }
+    // File is good
+    else {
+      window.filesToUpload.push(file);
+    }
+  });
   
-  return allowedFiles;
+  return window.filesToUpload;
 }
 
-// Handle files with early plan validation
+/**
+ * Enhanced handleFiles function to show all files including rejected ones
+ * This function handles the selected files, validates them against plan limits,
+ * and separates them into valid and rejected files with clear reasons
+ */
 function handleFiles(files) {
   if (!files || files.length === 0) return;
-  
-  // PRE-CHECK PLAN LIMITS BEFORE DOING ANYTHING ELSE
-  if (planLimits) {
-    // Check photo count limit
-    const currentPhotoCount = galleryData.photosCount || 0;
-    const maxPhotos = planLimits.photos;
-    const photosToUpload = files.length;
-    
-    if ((currentPhotoCount + photosToUpload) > maxPhotos) {
-      const remainingSlots = Math.max(0, maxPhotos - currentPhotoCount);
-      
-      if (remainingSlots === 0) {
-        showErrorMessage(`You've reached your plan limit of ${maxPhotos} photos. Upgrade your plan to upload more.`);
-        return; // Stop processing completely
-      } else {
-        showWarningMessage(`Your plan allows ${maxPhotos} photos total. Only the first ${remainingSlots} photos will be processed.`);
-        // Continue with limited number of files
-      }
-    }
-  }
   
   // Filter image files only
   const imageFiles = Array.from(files).filter(file => {
@@ -858,14 +905,92 @@ function handleFiles(files) {
     return;
   }
   
-  // Store files for upload
-  window.filesToUpload = imageFiles;
+  // Store all image files for display
+  window.allSelectedFiles = imageFiles;
   
-  // Update upload preview
-  updateUploadPreview(imageFiles);
+  // PRE-CHECK PLAN LIMITS BEFORE FURTHER PROCESSING
+  if (!planLimits) {
+    planLimits = PLAN_LIMITS[DEFAULT_PLAN];
+    console.log('No plan type found, using default plan limits');
+  }
   
-  // Show next step
-  showUploadStatus();
+  // Check photo count limit
+  const currentPhotoCount = galleryData.photosCount || 0;
+  const maxPhotos = planLimits.photos;
+  const maxFileSizeMB = planLimits.maxSize;
+  
+  // Separate valid files from rejected ones
+  window.filesToUpload = [];
+  window.rejectedFiles = [];
+  
+  // Check total count first
+  let availableSlots = Math.max(0, maxPhotos - currentPhotoCount);
+  let countLimited = false;
+  
+  if (imageFiles.length > availableSlots) {
+    countLimited = true;
+    if (availableSlots === 0) {
+      showErrorMessage(`You've reached your plan limit of ${maxPhotos} photos. Upgrade your plan to upload more.`);
+      // Even though we can't upload any, we'll still show all files with rejection reasons
+    } else {
+      showWarningMessage(`Your plan allows ${maxPhotos} photos total. Only the first ${availableSlots} photos will be uploaded.`);
+    }
+  }
+  
+  // Process each file and mark as valid or rejected with reason
+  imageFiles.forEach((file, index) => {
+    let rejected = false;
+    let rejectionReason = '';
+    
+    // Check if we've exceeded count limit
+    if (countLimited && index >= availableSlots) {
+      rejected = true;
+      rejectionReason = `Exceeds gallery limit of ${maxPhotos} photos`;
+    } 
+    // Check file size limit
+    else if (file.size > (maxFileSizeMB * 1024 * 1024)) {
+      rejected = true;
+      rejectionReason = `Exceeds size limit of ${maxFileSizeMB}MB`;
+    }
+    
+    if (rejected) {
+      window.rejectedFiles.push({
+        file: file,
+        reason: rejectionReason
+      });
+    } else {
+      window.filesToUpload.push(file);
+    }
+  });
+  
+  // Show count summary
+  if (window.rejectedFiles.length > 0) {
+    if (window.filesToUpload.length === 0) {
+      // All files rejected - we already showed an error for this case
+    } else {
+      // Some files rejected - display message about rejected count
+      showWarningMessage(`${window.rejectedFiles.length} of ${imageFiles.length} files cannot be uploaded due to plan limitations.`);
+    }
+  }
+  
+  // Update upload preview with both valid and rejected files
+  updateUploadPreview(window.allSelectedFiles);
+  
+  // Show next step if we have at least one valid file
+  if (window.filesToUpload.length > 0) {
+    showUploadStatus();
+  } else {
+    // Keep on first step if all files are rejected
+    const uploadStep1 = document.getElementById('uploadStep1');
+    const uploadStep2 = document.getElementById('uploadStep2');
+    
+    if (uploadStep1) uploadStep1.style.display = 'block';
+    if (uploadStep2) uploadStep2.style.display = 'none';
+    
+    // If we have a back button, show it
+    const backToSelectBtn = document.getElementById('backToSelectBtn');
+    if (backToSelectBtn) backToSelectBtn.style.display = 'inline-block';
+  }
 }
 
 // Handle file select for upload
@@ -900,17 +1025,19 @@ async function startPhotoUpload() {
     isUploading = true;
     uploadPaused = false;
     
-    // Apply plan limits and add to queue
-    const files = applyPlanLimits(window.filesToUpload);
-    if (files.length === 0) return; // All files filtered out by limits
+    // Add files to upload queue - we don't need to apply plan limits again
+    // since we already filtered them in handleFiles
+    uploadQueue = window.filesToUpload;
     
-    // Add files to upload queue
-    uploadQueue = files;
+    // Show progress container
+    const uploadProgressContainer = document.getElementById('uploadProgressContainer');
+    if (uploadProgressContainer) uploadProgressContainer.style.display = 'block';
     
     // Disable upload buttons
     const startUploadBtn = document.getElementById('startUploadBtn');
     const cancelUploadBtn = document.getElementById('cancelUploadBtn');
     const pauseUploadBtn = document.getElementById('pauseUploadBtn');
+    const backToSelectBtn = document.getElementById('backToSelectBtn');
     
     if (startUploadBtn) startUploadBtn.disabled = true;
     if (cancelUploadBtn) cancelUploadBtn.disabled = false;
@@ -918,6 +1045,7 @@ async function startPhotoUpload() {
       pauseUploadBtn.disabled = false;
       pauseUploadBtn.style.display = 'inline-block';
     }
+    if (backToSelectBtn) backToSelectBtn.style.display = 'none';
     
     // Set initial statuses
     for (let i = 0; i < uploadQueue.length; i++) {
@@ -940,7 +1068,9 @@ async function startPhotoUpload() {
   }
 }
 
-// Process upload queue with pause/resume support
+/**
+ * Process upload queue with pause/resume support and improved progress tracking
+ */
 async function processUploadQueue() {
   if (!isUploading || uploadPaused) return;
   
@@ -1121,6 +1251,7 @@ function uploadComplete() {
     hideUploadPhotosModal();
   }, 1500);
 }
+
 // Network monitoring
 window.addEventListener('online', function() {
   if (isUploading && uploadPaused) {
@@ -1149,6 +1280,267 @@ function formatFileSize(bytes) {
   const i = Math.floor(Math.log(bytes) / Math.log(k));
   
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+}
+
+/**
+ * Enhanced updateUploadPreview function to show both valid and rejected files
+ * Displays each file with its status and rejection reason if applicable
+ */
+function updateUploadPreview(files) {
+  const uploadPreview = document.getElementById('uploadPreview');
+  if (!uploadPreview) return;
+  
+  uploadPreview.innerHTML = '';
+  
+  // Create file items for each file
+  files.forEach((file, index) => {
+    // Check if this file is in the rejected list
+    const rejectedInfo = window.rejectedFiles?.find(r => r.file === file);
+    const isRejected = !!rejectedInfo;
+    
+    // Create file item container
+    const fileItem = document.createElement('div');
+    fileItem.className = 'upload-file-item';
+    fileItem.setAttribute('data-index', index);
+    
+    // Add rejected class if needed
+    if (isRejected) {
+      fileItem.classList.add('upload-file-rejected');
+    }
+    
+    // Create elements using a file reader to generate thumbnail
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      // Build the HTML for the file item
+      fileItem.innerHTML = `
+        <div class="upload-file-thumbnail" style="background-image: url('${e.target.result}')">
+          ${isRejected ? '<div class="rejection-overlay"><i class="fas fa-ban"></i></div>' : ''}
+        </div>
+        <div class="upload-file-info">
+          <div class="upload-file-name">${file.name}</div>
+          <div class="upload-file-meta">
+            <span class="upload-file-size">${formatFileSize(file.size)}</span>
+            <span class="upload-file-status ${isRejected ? 'status-rejected' : 'status-waiting'}">
+              ${isRejected ? 'Rejected' : 'Waiting'}
+            </span>
+          </div>
+          ${isRejected ? `<div class="rejection-reason">${rejectedInfo.reason}</div>` : ''}
+        </div>
+        <div class="upload-progress">
+          <div class="upload-progress-bar" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+        </div>
+      `;
+    };
+    
+    // Read the file to generate thumbnail
+    reader.readAsDataURL(file);
+    uploadPreview.appendChild(fileItem);
+  });
+  
+  // Update the counts with more detail
+  const totalCountElement = document.getElementById('uploadTotalCount');
+  if (totalCountElement) {
+    const validFiles = window.filesToUpload?.length || 0;
+    const rejectedFiles = window.rejectedFiles?.length || 0;
+    
+    if (rejectedFiles > 0) {
+      totalCountElement.innerHTML = `${files.length} files selected - <span class="valid-count">${validFiles} valid</span>, <span class="rejected-count">${rejectedFiles} rejected</span>`;
+    } else {
+      totalCountElement.textContent = `${files.length} files selected`;
+    }
+  }
+  
+  // Show a summary of reasons if there are rejected files
+  const rejectionSummary = document.getElementById('rejectionSummary');
+  if (rejectionSummary) {
+    if (window.rejectedFiles && window.rejectedFiles.length > 0) {
+      // Count occurrences of each reason
+      const reasonCounts = {};
+      window.rejectedFiles.forEach(item => {
+        if (!reasonCounts[item.reason]) {
+          reasonCounts[item.reason] = 0;
+        }
+        reasonCounts[item.reason]++;
+      });
+      
+      // Create summary text
+      let summaryHTML = '<div class="rejection-summary-header">Files rejected due to:</div><ul>';
+      for (const reason in reasonCounts) {
+        summaryHTML += `<li>${reasonCounts[reason]} files: ${reason}</li>`;
+      }
+      summaryHTML += '</ul>';
+      
+      rejectionSummary.innerHTML = summaryHTML;
+      rejectionSummary.style.display = 'block';
+    } else {
+      rejectionSummary.style.display = 'none';
+    }
+  }
+}
+
+/**
+ * Enhanced showUploadStatus function to display more detailed upload information
+ * Shows steps and clear indicators for the upload process
+ */
+function showUploadStatus() {
+  const uploadStep1 = document.getElementById('uploadStep1');
+  const uploadStep2 = document.getElementById('uploadStep2');
+  
+  if (uploadStep1) uploadStep1.style.display = 'none';
+  if (uploadStep2) uploadStep2.style.display = 'block';
+  
+  // Update upload steps indicator if it exists
+  const uploadSteps = document.querySelectorAll('.upload-step');
+  if (uploadSteps.length >= 2) {
+    uploadSteps[0].classList.add('completed');
+    uploadSteps[0].classList.remove('active');
+    uploadSteps[1].classList.add('active');
+  }
+  
+  // Update status text
+  const uploadStatusText = document.getElementById('uploadStatusText');
+  if (uploadStatusText) {
+    const validCount = window.filesToUpload?.length || 0;
+    uploadStatusText.textContent = `Ready to upload ${validCount} files`;
+  }
+  
+  // Enable/disable buttons based on valid file count
+  const startUploadBtn = document.getElementById('startUploadBtn');
+  if (startUploadBtn) {
+    const validCount = window.filesToUpload?.length || 0;
+    startUploadBtn.disabled = validCount === 0;
+  }
+  
+  // Show the back button if we have rejected files but no valid ones
+  const backToSelectBtn = document.getElementById('backToSelectBtn');
+  if (backToSelectBtn) {
+    backToSelectBtn.style.display = 
+      (window.rejectedFiles && window.rejectedFiles.length > 0 && 
+       (!window.filesToUpload || window.filesToUpload.length === 0)) ? 'inline-block' : 'none';
+  }
+}
+
+/**
+ * Update file status in the UI with improved styling
+ */
+function updateFileStatus(index, status) {
+  const fileItem = document.querySelector(`.upload-file-item[data-index="${index}"]`);
+  if (!fileItem) return;
+  
+  // Update status text
+  const statusElement = fileItem.querySelector('.upload-file-status');
+  if (statusElement) {
+    statusElement.textContent = status;
+    
+    // Clear existing status classes
+    statusElement.classList.remove('status-waiting', 'status-uploading', 'status-complete', 'status-failed', 'status-rejected', 'status-paused');
+    
+    // Add appropriate status class
+    statusElement.classList.add(`status-${status.toLowerCase()}`);
+  }
+  
+  // Update the file item container class
+  fileItem.classList.remove('waiting', 'uploading', 'complete', 'failed', 'rejected', 'paused');
+  fileItem.classList.add(status.toLowerCase());
+  
+  // Add status icon if needed
+  const statusIcon = fileItem.querySelector('.status-icon');
+  if (!statusIcon) {
+    const metaElement = fileItem.querySelector('.upload-file-meta');
+    if (metaElement && status !== 'Waiting') {
+      const iconElement = document.createElement('span');
+      iconElement.className = 'status-icon';
+      
+      // Choose icon based on status
+      let iconHTML = '';
+      switch(status.toLowerCase()) {
+        case 'uploading':
+          iconHTML = '<i class="fas fa-spinner fa-spin"></i>';
+          break;
+        case 'complete':
+          iconHTML = '<i class="fas fa-check-circle"></i>';
+          break;
+        case 'failed':
+          iconHTML = '<i class="fas fa-times-circle"></i>';
+          break;
+        case 'paused':
+          iconHTML = '<i class="fas fa-pause-circle"></i>';
+          break;
+      }
+      
+      iconElement.innerHTML = iconHTML;
+      metaElement.appendChild(iconElement);
+    }
+  } else if (statusIcon) {
+    // Update existing icon if status changed
+    switch(status.toLowerCase()) {
+      case 'uploading':
+        statusIcon.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+        break;
+      case 'complete':
+        statusIcon.innerHTML = '<i class="fas fa-check-circle"></i>';
+        break;
+      case 'failed':
+        statusIcon.innerHTML = '<i class="fas fa-times-circle"></i>';
+        break;
+      case 'paused':
+        statusIcon.innerHTML = '<i class="fas fa-pause-circle"></i>';
+        break;
+      case 'waiting':
+        statusIcon.innerHTML = '';
+        break;
+    }
+  }
+}
+
+/**
+ * Update file progress in the UI with improved visual feedback
+ */
+function updateFileProgress(index, progress) {
+  const fileItem = document.querySelector(`.upload-file-item[data-index="${index}"]`);
+  if (!fileItem) return;
+  
+  const progressBar = fileItem.querySelector('.upload-progress-bar');
+  if (progressBar) {
+    const percent = Math.round(progress * 100);
+    progressBar.style.width = `${percent}%`;
+    progressBar.setAttribute('aria-valuenow', percent);
+    
+    // Add percentage text inside or next to progress bar for better visibility
+    const progressText = fileItem.querySelector('.progress-text');
+    if (!progressText && percent > 0) {
+      const progressContainer = fileItem.querySelector('.upload-progress');
+      const textElement = document.createElement('div');
+      textElement.className = 'progress-text';
+      textElement.textContent = `${percent}%`;
+      progressContainer.appendChild(textElement);
+    } else if (progressText) {
+      progressText.textContent = `${percent}%`;
+    }
+  }
+}
+// Update total progress in the UI
+function updateTotalProgress() {
+  const progressBars = document.querySelectorAll('.upload-progress-bar');
+  const totalProgressBar = document.getElementById('totalProgressBar');
+  
+  if (!totalProgressBar || progressBars.length === 0) return;
+  
+  let totalProgress = 0;
+  
+  progressBars.forEach(bar => {
+    const value = parseInt(bar.getAttribute('aria-valuenow') || '0', 10);
+    totalProgress += value;
+  });
+  
+  const averageProgress = Math.round(totalProgress / progressBars.length);
+  totalProgressBar.style.width = `${averageProgress}%`;
+  totalProgressBar.setAttribute('aria-valuenow', averageProgress);
+  
+  const progressText = document.getElementById('totalProgressText');
+  if (progressText) {
+    progressText.textContent = `${averageProgress}% Complete`;
+  }
 }
 
 // Enhanced showSuccessMessage with NotificationSystem integration
@@ -1591,108 +1983,6 @@ function showGallerySettingsModal() {
   // - Manage access settings
 }
 
-// Update file status in the UI
-function updateFileStatus(index, status) {
-  const fileItem = document.querySelector(`.upload-file-item[data-index="${index}"]`);
-  if (!fileItem) return;
-  
-  const statusElement = fileItem.querySelector('.upload-file-status');
-  if (statusElement) {
-    statusElement.textContent = status;
-    
-    // Clear existing status classes
-    statusElement.classList.remove('status-waiting', 'status-uploading', 'status-complete', 'status-failed');
-    
-    // Add appropriate status class
-    statusElement.classList.add(`status-${status.toLowerCase()}`);
-  }
-}
-
-// Update file progress in the UI
-function updateFileProgress(index, progress) {
-  const fileItem = document.querySelector(`.upload-file-item[data-index="${index}"]`);
-  if (!fileItem) return;
-  
-  const progressBar = fileItem.querySelector('.upload-progress-bar');
-  if (progressBar) {
-    const percent = Math.round(progress * 100);
-    progressBar.style.width = `${percent}%`;
-    progressBar.setAttribute('aria-valuenow', percent);
-  }
-}
-
-// Update total progress in the UI
-function updateTotalProgress() {
-  const progressBars = document.querySelectorAll('.upload-progress-bar');
-  const totalProgressBar = document.getElementById('totalProgressBar');
-  
-  if (!totalProgressBar || progressBars.length === 0) return;
-  
-  let totalProgress = 0;
-  
-  progressBars.forEach(bar => {
-    const value = parseInt(bar.getAttribute('aria-valuenow') || '0', 10);
-    totalProgress += value;
-  });
-  
-  const averageProgress = Math.round(totalProgress / progressBars.length);
-  totalProgressBar.style.width = `${averageProgress}%`;
-  totalProgressBar.setAttribute('aria-valuenow', averageProgress);
-  
-  const progressText = document.getElementById('totalProgressText');
-  if (progressText) {
-    progressText.textContent = `${averageProgress}% Complete`;
-  }
-}
-
-// Update upload preview in the UI
-function updateUploadPreview(files) {
-  const uploadPreview = document.getElementById('uploadPreview');
-  if (!uploadPreview) return;
-  
-  uploadPreview.innerHTML = '';files.forEach((file, index) => {
-    const fileItem = document.createElement('div');
-    fileItem.className = 'upload-file-item';
-    fileItem.setAttribute('data-index', index);
-    
-    const reader = new FileReader();
-    reader.onload = function(e) {
-      fileItem.innerHTML = `
-        <div class="upload-file-thumbnail" style="background-image: url('${e.target.result}')"></div>
-        <div class="upload-file-info">
-          <div class="upload-file-name">${file.name}</div>
-          <div class="upload-file-meta">
-            <span class="upload-file-size">${formatFileSize(file.size)}</span>
-            <span class="upload-file-status">Waiting</span>
-          </div>
-        </div>
-        <div class="upload-progress">
-          <div class="upload-progress-bar" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
-        </div>
-      `;
-    };
-    
-    reader.readAsDataURL(file);
-    uploadPreview.appendChild(fileItem);
-  });
-  
-  // Update total count
-  const totalCountElement = document.getElementById('uploadTotalCount');
-  if (totalCountElement) {
-    totalCountElement.textContent = `${files.length} files selected`;
-  }
-}
-
-// Show upload status area
-function showUploadStatus() {
-  const uploadStep1 = document.getElementById('uploadStep1');
-  const uploadStep2 = document.getElementById('uploadStep2');
-  
-  if (uploadStep1) uploadStep1.style.display = 'none';
-  if (uploadStep2) uploadStep2.style.display = 'block';
-}
-
-
 // Synchronize Storage with Firestore to ensure all photos are properly tracked
 async function syncStorageWithFirestore() {
   try {
@@ -1919,7 +2209,7 @@ async function syncStorageWithFirestore() {
 
 // Initialize gallery view when document is ready
 document.addEventListener('DOMContentLoaded', function() {
-  console.log('Gallery view initializing with enhanced upload reliability...');
+  console.log('Gallery view initializing with enhanced upload reliability and rejection handling...');
   initGalleryView();
 });
 
