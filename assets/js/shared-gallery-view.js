@@ -1,57 +1,67 @@
 // assets/js/shared-gallery-view.js
 document.addEventListener('DOMContentLoaded', function() {
-    // Initialize Firebase
-    if (!firebase.apps.length) {
-        // Firebase config should be loaded from firebase-config.js
-    }
+    // Make sure Firebase is initialized before using it
+    setTimeout(() => {
+        // This timeout ensures Firebase has time to initialize
+        initSharedGallery();
+    }, 500);
     
-    // Get shared gallery ID from URL
-    const urlParams = new URLSearchParams(window.location.search);
-    const shareId = urlParams.get('id');
-    
-    if (!shareId) {
-        showToast('Invalid gallery link.', 'error');
-        return;
-    }
-    
-    // Check if gallery exists and if it requires a password
-    const db = firebase.firestore();
-    db.collection('sharedGalleries').where('shareId', '==', shareId)
-        .get()
-        .then(snapshot => {
-            if (snapshot.empty) {
-                showToast('Gallery not found or access has been revoked.', 'error');
-                return;
-            }
-            
-            const sharedGallery = snapshot.docs[0].data();
-            
-            if (sharedGallery.passwordProtected) {
-                // Show password screen
-                document.getElementById('passwordScreen').style.display = 'block';
+    function initSharedGallery() {
+        // Check if Firebase is initialized
+        if (!firebase.apps.length) {
+            console.error("Firebase not initialized!");
+            showToast('Error: Firebase not initialized. Please try again later.', 'error');
+            return;
+        }
+        
+        // Get shared gallery ID from URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const shareId = urlParams.get('id');
+        
+        if (!shareId) {
+            showToast('Invalid gallery link.', 'error');
+            return;
+        }
+        
+        // Check if gallery exists and if it requires a password
+        const db = firebase.firestore();
+        db.collection('sharedGalleries').where('shareId', '==', shareId)
+            .get()
+            .then(snapshot => {
+                if (snapshot.empty) {
+                    showToast('Gallery not found or access has been revoked.', 'error');
+                    return;
+                }
                 
-                // Set up password form
-                const submitBtn = document.getElementById('submitPasswordBtn');
-                submitBtn.addEventListener('click', function() {
-                    const password = document.getElementById('galleryPassword').value;
+                const sharedGallery = snapshot.docs[0].data();
+                
+                if (sharedGallery.passwordProtected) {
+                    // Show password screen
+                    document.getElementById('passwordScreen').style.display = 'block';
                     
-                    if (password === sharedGallery.password) {
-                        // Password correct, show gallery
-                        loadGallery(sharedGallery.galleryId);
-                    } else {
-                        // Show error
-                        document.getElementById('passwordError').style.display = 'block';
-                    }
-                });
-            } else {
-                // No password required, load gallery directly
-                loadGallery(sharedGallery.galleryId);
-            }
-        })
-        .catch(error => {
-            console.error('Error checking gallery:', error);
-            showToast('Error loading gallery. Please try again.', 'error');
-        });
+                    // Set up password form
+                    const submitBtn = document.getElementById('submitPasswordBtn');
+                    submitBtn.addEventListener('click', function() {
+                        const password = document.getElementById('galleryPassword').value;
+                        
+                        if (password === sharedGallery.password) {
+                            // Password correct, show gallery
+                            loadGallery(sharedGallery.galleryId);
+                        } else {
+                            // Show error
+                            document.getElementById('passwordError').style.display = 'block';
+                        }
+                    });
+                } else {
+                    // No password required, load gallery directly
+                    loadGallery(sharedGallery.galleryId);
+                }
+            })
+            .catch(error => {
+                console.error('Error checking gallery:', error);
+                showToast('Error loading gallery. Please try again.', 'error');
+            });
+    }
     
     function loadGallery(galleryId) {
         // Hide password screen
@@ -61,6 +71,7 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('galleryContainer').style.display = 'block';
         
         // Get gallery details
+        const db = firebase.firestore();
         db.collection('galleries').doc(galleryId)
             .get()
             .then(doc => {
@@ -88,6 +99,10 @@ document.addEventListener('DOMContentLoaded', function() {
                                 const photoElement = createPhotoElement(photo, doc.id);
                                 photosGrid.appendChild(photoElement);
                             });
+                        })
+                        .catch(error => {
+                            console.error('Error loading photos:', error);
+                            showToast('Error loading photos. Please try again.', 'error');
                         });
                 } else {
                     showToast('Gallery not found.', 'error');
