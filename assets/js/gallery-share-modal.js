@@ -26,7 +26,11 @@ const GalleryShareModal = {
     const passwordSection = document.getElementById('passwordSection');
     if (passwordToggle && passwordSection) {
       passwordToggle.addEventListener('change', function() {
-        passwordSection.style.display = this.checked ? 'block' : 'none';
+        if (this.checked) {
+          passwordSection.classList.remove('hidden');
+        } else {
+          passwordSection.classList.add('hidden');
+        }
       });
     }
     
@@ -104,7 +108,7 @@ const GalleryShareModal = {
   // Display share link for a gallery
   displayShareLink: function(shareId) {
     // Create the URL to the standalone shared gallery page
-    const shareUrl = `${window.location.origin}/pages/html/shared-gallery-view.html?id=${shareId}`;
+    const shareUrl = `${window.location.origin}/pages/html/view-shared-gallery.html?id=${shareId}`;
     
     // Update the UI
     const urlDisplay = document.getElementById('shareUrlDisplay');
