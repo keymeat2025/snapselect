@@ -39,13 +39,6 @@
             display: none;
         }
         
-        /* Fix for logo in header */
-        .logo-text {
-            font-size: 24px;
-            font-weight: bold;
-            color: #333;
-        }
-        
         /* Toast notification styles */
         .toast-container {
             position: fixed;
@@ -88,6 +81,27 @@
             from { opacity: 1; }
             to { opacity: 0; }
         }
+        
+        /* Loading indicator */
+        .loading-indicator {
+            text-align: center;
+            margin: 100px auto;
+        }
+        
+        .spinner {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            border-left-color: #3498db;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
     </style>
 </head>
 <body>
@@ -104,8 +118,14 @@
     </header>
 
     <main>
-        <!-- Password protection screen -->
-        <div id="passwordScreen" class="password-container">
+        <!-- Loading indicator -->
+        <div id="loadingIndicator" class="loading-indicator">
+            <div class="spinner"></div>
+            <p>Loading gallery...</p>
+        </div>
+        
+        <!-- Password protection screen (initially hidden) -->
+        <div id="passwordScreen" class="password-container" style="display: none;">
             <h2>Protected Gallery</h2>
             <p>This gallery is password protected. Please enter the password to view it.</p>
             <div id="passwordError" class="error-message">Incorrect password. Please try again.</div>
@@ -113,7 +133,7 @@
             <button id="submitPasswordBtn" class="btn primary">View Gallery</button>
         </div>
         
-        <!-- Gallery container (hidden initially) -->
+        <!-- Gallery container (initially hidden) -->
         <div id="galleryContainer" class="gallery-container" style="display: none;">
             <h1 id="galleryTitle">Shared Gallery</h1>
             <div id="photosGrid" class="photos-grid">
@@ -134,10 +154,10 @@
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js"></script>
     
-    <!-- Firebase initialization -->
+    <!-- Firebase configuration -->
     <script src="../../assets/js/firebase-config.js"></script>
     
-    <!-- Application scripts -->
+    <!-- Shared gallery view script -->
     <script src="../../assets/js/shared-gallery-view.js"></script>
 </body>
 </html>
