@@ -1,4 +1,3 @@
-//shared-gallery-view.html
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -84,7 +83,40 @@
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js"></script>
+    
+    <!-- Make sure this path matches your actual Firebase config file -->
     <script src="../../assets/js/firebase-config.js"></script>
+    
+    <!-- Explicit Firebase initialization -->
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Check if Firebase is already initialized
+        if (!firebase.apps.length) {
+            // If your config is in a separate file, make sure it's loaded
+            // before this script runs
+            try {
+                // This assumes your firebase-config.js exports a firebaseConfig object
+                // If it doesn't, you'll need to define it here
+                const firebaseConfig = {
+                    // Your Firebase configuration
+                    apiKey: "YOUR_API_KEY",
+                    authDomain: "YOUR_AUTH_DOMAIN",
+                    projectId: "YOUR_PROJECT_ID",
+                    storageBucket: "YOUR_STORAGE_BUCKET",
+                    messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+                    appId: "YOUR_APP_ID"
+                };
+                
+                // Initialize Firebase
+                firebase.initializeApp(firebaseConfig);
+                console.log("Firebase initialized successfully");
+            } catch (error) {
+                console.error("Error initializing Firebase:", error);
+            }
+        }
+    });
+    </script>
+    
     <script src="../../assets/js/shared-gallery-view.js"></script>
 </body>
 </html>
