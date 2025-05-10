@@ -1033,85 +1033,70 @@
             }
         });
     </script>
+
     <script>
+      // Patch for the Share Gallery button to ensure it works with the new standalone approach
       document.addEventListener('DOMContentLoaded', function() {
-        // Initialize owner controls visibility
-        function initOwnerControls() {
-          const ownerControlsPanel = document.getElementById('ownerControlsPanel');
-          const currentUser = firebase.auth().currentUser;
-          
-          if (ownerControlsPanel && currentUser) {
-            const urlParams = new URLSearchParams(window.location.search);
-            const galleryId = urlParams.get('id');
-            
-            if (galleryId) {
-              // Check if current user is the owner
-              firebase.firestore().collection('galleries').doc(galleryId).get()
-                .then(doc => {
-                  if (doc.exists && doc.data().photographerId === currentUser.uid) {
-                    ownerControlsPanel.style.display = 'block';
-                  }
-                })
-                .catch(error => {
-                  console.error('Error checking gallery ownership:', error);
-                });
-            }
-          }
-        }
+        const shareGalleryBtn = document.getElementById('shareGalleryBtn');
         
-        // Sync button event handler
-        const syncPhotosBtn = document.getElementById('syncPhotosBtn');
-        if (syncPhotosBtn) {
-          syncPhotosBtn.addEventListener('click', function() {
-            if (window.galleryView && window.galleryView.syncStorageWithFirestore) {
-              // Show progress container
-              const syncProgressContainer = document.getElementById('syncProgressContainer');
-              if (syncProgressContainer) syncProgressContainer.style.display = 'block';
-              
-              // Call the sync function
-              window.galleryView.syncStorageWithFirestore();
+        if (shareGalleryBtn) {
+          shareGalleryBtn.addEventListener('click', function() {
+            // Check if galleryData is available in the global scope
+            if (window.galleryData) {
+              // Use GalleryShareModal if available
+              if (window.GalleryShareModal) {
+                window.GalleryShareModal.open(window.galleryData);
+              } else {
+                console.error('Gallery Share Modal not loaded');
+                alert('Gallery sharing module is not loaded properly.');
+              }
             } else {
-              alert('Sync function not available');
-            }
-          });
-        }
-        
-        // Load more button event handler
-        const loadMoreBtn = document.getElementById('loadMoreBtn');
-        if (loadMoreBtn) {
-          loadMoreBtn.addEventListener('click', function() {
-            if (window.galleryView && window.galleryView.loadMorePhotos) {
-              window.galleryView.loadMorePhotos();
-            } else {
-              console.error('Load more function not available');
-            }
-          });
-        }
-        
-        // Status filter event handler
-        const statusFilter = document.getElementById('statusFilter');
-        if (statusFilter) {
-          statusFilter.addEventListener('change', function() {
-            const photosContainer = document.getElementById('photosContainer');
-            if (photosContainer) {
-              // Clear container and show loading
-              photosContainer.innerHTML = '<div class="loading-photos">Loading photos...</div>';
+              // If galleryData is not available, try to get gallery ID from URL
+              const urlParams = new URLSearchParams(window.location.search);
+              const galleryId = urlParams.get('id');
               
-              // Reset loaded photos
-              window.photosList = [];
-              window.lastVisiblePhoto = null;
-              window.allPhotosLoaded = false;
-              
-              // Reload with new filter
-              if (window.galleryView && window.galleryView.loadGalleryPhotos) {
-                window.galleryView.loadGalleryPhotos(true);
+              if (galleryId) {
+                // Get gallery data from Firestore
+                try {
+                  firebase.firestore().collection('galleries').doc(galleryId).get()
+                    .then(doc => {
+                      if (doc.exists) {
+                        // Create gallery data object
+                        const galleryData = {
+                          id: doc.id,
+                          ...doc.data()
+                        };
+                        
+                        // Store in global scope for future use
+                        window.galleryData = galleryData;
+                        
+                        // Open share modal
+                        if (window.GalleryShareModal) {
+                          window.GalleryShareModal.open(galleryData);
+                        } else {
+                          console.error('Gallery Share Modal not loaded');
+                          alert('Gallery sharing module is not loaded properly.');
+                        }
+                      } else {
+                        console.error('Gallery not found');
+                        alert('Gallery not found. Please refresh the page and try again.');
+                      }
+                    })
+                    .catch(error => {
+                      console.error('Error fetching gallery:', error);
+                      alert('Error loading gallery data. Please try again.');
+                    });
+                } catch (error) {
+                  console.error('Firebase not available:', error);
+                  alert('Error: Firebase is not initialized properly.');
+                }
+              } else {
+                console.error('Gallery ID not found in URL');
+                alert('Gallery ID not found. Please refresh the page and try again.');
               }
             }
           });
         }
-        
-        // Initialize after delay to make sure Firebase Auth is ready
-        setTimeout(initOwnerControls, 1000);
       });
     </script>
 </body>
