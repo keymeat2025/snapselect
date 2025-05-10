@@ -1,5 +1,4 @@
 // assets/js/gallery-share-modal.js
-
 // Gallery Share Modal implementation
 const GalleryShareModal = {
   currentGalleryId: null,
