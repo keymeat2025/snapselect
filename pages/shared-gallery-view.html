@@ -1,0 +1,90 @@
+//shared-gallery-view.html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shared Gallery - SnapSelect</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="../../assets/css/variables.css">
+    <link rel="stylesheet" href="../../assets/css/main.css">
+    <link rel="stylesheet" href="../../assets/css/gallery-view.css">
+    <style>
+        .password-container {
+            max-width: 400px;
+            margin: 100px auto;
+            padding: 30px;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 20px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        
+        .gallery-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .password-input {
+            width: 100%;
+            padding: 12px;
+            margin: 15px 0;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        
+        .error-message {
+            color: #e74c3c;
+            margin-bottom: 15px;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div id="toastContainer" class="toast-container"></div>
+    
+    <header>
+        <div class="container">
+            <nav>
+                <a href="../../index.html" class="logo">
+                    <div class="logo-text">SnapSelect</div>
+                </a>
+            </nav>
+        </div>
+    </header>
+
+    <main>
+        <!-- Password protection screen -->
+        <div id="passwordScreen" class="password-container">
+            <h2>Protected Gallery</h2>
+            <p>This gallery is password protected. Please enter the password to view it.</p>
+            <div id="passwordError" class="error-message">Incorrect password. Please try again.</div>
+            <input type="password" id="galleryPassword" class="password-input" placeholder="Enter password">
+            <button id="submitPasswordBtn" class="btn primary">View Gallery</button>
+        </div>
+        
+        <!-- Gallery container (hidden initially) -->
+        <div id="galleryContainer" class="gallery-container" style="display: none;">
+            <h1 id="galleryTitle">Shared Gallery</h1>
+            <div id="photosGrid" class="photos-grid">
+                <!-- Photos will be loaded here -->
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <div class="container">
+            <p class="copyright">&copy; 2025 SnapSelect. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <!-- Scripts -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js"></script>
+    <script src="../../assets/js/firebase-config.js"></script>
+    <script src="../../assets/js/shared-gallery-view.js"></script>
+</body>
+</html>
