@@ -107,8 +107,9 @@ const GalleryShareModal = {
   
   // Display share link for a gallery
   displayShareLink: function(shareId) {
-    // Create the URL to the standalone shared gallery page
-    const shareUrl = `${window.location.origin}/pages/html/view-shared-gallery.html?id=${shareId}`;
+    // Create the URL to the client gallery view page with share parameter
+    // THIS IS THE KEY CHANGE - Match the URL format in your example
+    const shareUrl = `${window.location.origin}/snapselect/pages/client-gallery-view.html?share=${shareId}`;
     
     // Update the UI
     const urlDisplay = document.getElementById('shareUrlDisplay');
@@ -144,8 +145,8 @@ const GalleryShareModal = {
         return;
       }
       
-      // Generate a random share ID
-      const shareId = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+      // Generate a random share ID - shortened for URL readability
+      const shareId = Math.random().toString(36).substring(2, 15);
       
       // Save to Firestore
       const db = firebase.firestore();
