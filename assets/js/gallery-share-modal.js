@@ -125,6 +125,7 @@ const GalleryShareModal = {
   },
   
   // Share a gallery
+  // Updated shareGallery function for gallery-share-modal.js
   shareGallery: function() {
     try {
       // Get form values
@@ -145,43 +146,59 @@ const GalleryShareModal = {
         return;
       }
       
-      // Generate a random share ID - shortened for URL readability
-      const shareId = Math.random().toString(36).substring(2, 15);
-      
-      // Save to Firestore
+      // Get the current gallery data to retrieve client information
       const db = firebase.firestore();
       
-      db.collection('sharedGalleries').add({
-        galleryId: this.currentGalleryId,
-        shareId: shareId,
-        passwordProtected: passwordProtected,
-        password: passwordProtected ? password : '',
-        createdAt: firebase.firestore.FieldValue.serverTimestamp()
-      })
-      .then(() => {
-        console.log("Gallery shared successfully");
-        
-        // Display the share link
-        this.displayShareLink(shareId);
-        
-        // Show revoke button
-        const revokeBtn = document.getElementById('revokeAccessBtn');
-        if (revokeBtn) {
-          revokeBtn.classList.remove('hidden');
-        }
-        
-        // Show success message
-        this.showToast('Gallery shared successfully!', 'success');
-      })
-      .catch(error => {
-        console.error("Error sharing gallery:", error);
-        this.showToast('Error sharing gallery. Please try again.', 'error');
-      });
+      db.collection('galleries').doc(this.currentGalleryId).get()
+        .then(doc => {
+          if (!doc.exists) {
+            throw new Error("Gallery not found");
+          }
+          
+          const galleryData = doc.data();
+          const clientId = galleryData.clientId;
+          
+          if (!clientId) {
+            throw new Error("No client associated with this gallery");
+          }
+          
+          // Generate a random share ID
+          const shareId = Math.random().toString(36).substring(2, 15);
+          
+          // Save to Firestore with client ID
+          return db.collection('sharedGalleries').add({
+            galleryId: this.currentGalleryId,
+            shareId: shareId,
+            clientId: clientId, // Include client ID to restrict access
+            passwordProtected: passwordProtected,
+            password: passwordProtected ? password : '',
+            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+          });
+        })
+        .then(docRef => {
+          console.log("Gallery shared successfully");
+          
+          // Display the share link
+          this.displayShareLink(shareId);
+          
+          // Show revoke button
+          const revokeBtn = document.getElementById('revokeAccessBtn');
+          if (revokeBtn) {
+            revokeBtn.classList.remove('hidden');
+          }
+          
+          // Show success message
+          this.showToast('Gallery shared successfully!', 'success');
+        })
+        .catch(error => {
+          console.error("Error sharing gallery:", error);
+          this.showToast('Error sharing gallery: ' + error.message, 'error');
+        });
     } catch (error) {
       console.error("Firebase not available:", error);
       this.showToast('Error: Firebase not initialized.', 'error');
     }
-  },
+  }
   
   // Revoke access to a shared gallery
   revokeAccess: function() {
