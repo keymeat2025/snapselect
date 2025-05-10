@@ -1963,24 +1963,18 @@ function handleSortChange(e) {
   renderPhotos();
 }
 
-// Show share gallery modal (placeholder)
-function showShareGalleryModal() {
-  alert('Gallery sharing functionality would be implemented here');
-  // In a real implementation, this would show a modal with options to:
-  // - Generate a share link
-  // - Set password protection
-  // - Set expiration date
-  // - Send email invites
-}
 
-// Show gallery settings modal (placeholder)
-function showGallerySettingsModal() {
-  alert('Gallery settings functionality would be implemented here');
-  // In a real implementation, this would show a modal with options to:
-  // - Rename gallery
-  // - Update description
-  // - Change thumbnail
-  // - Manage access settings
+
+  // Show share gallery modal
+function showShareGalleryModal() {
+  // Check if our new share modal component is available
+  if (window.GalleryShareModal) {
+    // Open the modal with current gallery data
+    window.GalleryShareModal.open(galleryData);
+  } else {
+    // Fallback for backward compatibility
+    alert('Gallery sharing functionality is coming soon!');
+  }
 }
 
 // Synchronize Storage with Firestore to ensure all photos are properly tracked
