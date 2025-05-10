@@ -3,6 +3,7 @@
  * For photographers to create and manage shared gallery links
  */
 
+
 class GallerySharing {
   constructor() {
     this.db = firebase.firestore();
@@ -19,12 +20,15 @@ class GallerySharing {
     this.revokeAccessBtn = document.getElementById('revokeAccessBtn');
     
     // Bind methods
-    this.initSharing = this.initSharing.bind(this);
+    this.init = this.init.bind(this);
     this.createShareLink = this.createShareLink.bind(this);
     this.updateShareSettings = this.updateShareSettings.bind(this);
     this.revokeAccess = this.revokeAccess.bind(this);
     this.copyShareLink = this.copyShareLink.bind(this);
     this.checkPlanLimits = this.checkPlanLimits.bind(this);
+    this.loadGalleryData = this.loadGalleryData.bind(this);
+    this.loadSharingUI = this.loadSharingUI.bind(this);
+    this.addEventListeners = this.addEventListeners.bind(this);
     
     // Initialize
     this.init();
@@ -38,7 +42,9 @@ class GallerySharing {
         this.loadGalleryData();
         this.addEventListeners();
       } else {
-        window.location.href = '/snapselect/pages/login.html';
+        console.log('User not authenticated');
+        // You might want to redirect to login page or handle this differently
+        // window.location.href = '/snapselect/pages/login.html';
       }
     });
   }
