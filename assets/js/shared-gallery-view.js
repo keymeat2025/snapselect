@@ -1,4 +1,4 @@
-// assets/js/shared-gallery-view.js
+//assets/js/shared-gallery-view.js
 
 // Initialize when Firebase is ready
 function initSharedGalleryView() {
