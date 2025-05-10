@@ -3,7 +3,6 @@
  * For photographers to create and manage shared gallery links
  */
 
-
 class GallerySharing {
   constructor() {
     this.db = firebase.firestore();
@@ -13,11 +12,14 @@ class GallerySharing {
     this.currentGallery = null;
     
     // DOM Elements
-    this.shareGalleryBtn = document.getElementById('shareGalleryBtn');
     this.shareSettingsForm = document.getElementById('shareSettingsForm');
     this.shareUrlDisplay = document.getElementById('shareUrlDisplay');
     this.copyLinkBtn = document.getElementById('copyLinkBtn');
+    this.shareWhatsAppBtn = document.getElementById('shareWhatsAppBtn');
+    this.shareEmailBtn = document.getElementById('shareEmailBtn');
     this.revokeAccessBtn = document.getElementById('revokeAccessBtn');
+    this.passwordProtection = document.getElementById('passwordProtection');
+    this.passwordSection = document.getElementById('passwordSection');
     
     // Bind methods
     this.init = this.init.bind(this);
@@ -25,10 +27,13 @@ class GallerySharing {
     this.updateShareSettings = this.updateShareSettings.bind(this);
     this.revokeAccess = this.revokeAccess.bind(this);
     this.copyShareLink = this.copyShareLink.bind(this);
-    this.checkPlanLimits = this.checkPlanLimits.bind(this);
+    this.shareViaWhatsApp = this.shareViaWhatsApp.bind(this);
+    this.shareViaEmail = this.shareViaEmail.bind(this);
     this.loadGalleryData = this.loadGalleryData.bind(this);
     this.loadSharingUI = this.loadSharingUI.bind(this);
     this.addEventListeners = this.addEventListeners.bind(this);
+    this.togglePasswordSection = this.togglePasswordSection.bind(this);
+    this.showNotification = this.showNotification.bind(this);
     
     // Initialize
     this.init();
@@ -36,6 +41,7 @@ class GallerySharing {
   
   // Initialize the sharing functionality
   init() {
+    console.log('Initializing GallerySharing...');
     firebase.auth().onAuthStateChanged(user => {
       if (user) {
         this.currentUser = user;
@@ -43,8 +49,6 @@ class GallerySharing {
         this.addEventListeners();
       } else {
         console.log('User not authenticated');
-        // You might want to redirect to login page or handle this differently
-        // window.location.href = '/snapselect/pages/login.html';
       }
     });
   }
@@ -80,140 +84,201 @@ class GallerySharing {
   
   // Load the sharing UI
   loadSharingUI() {
+    console.log('Loading sharing UI for gallery:', this.currentGallery);
+    
     // Update form with current settings
     if (this.currentGallery.isShared) {
-      document.getElementById('passwordProtection').checked = this.currentGallery.passwordProtected;
-      document.getElementById('expiryDate').value = this.currentGallery.expiryDate ? 
-        new Date(this.currentGallery.expiryDate.toDate()).toISOString().substr(0, 10) : '';
-      document.getElementById('maxSelections').value = this.currentGallery.maxSelections || '';
-      document.getElementById('requireApproval').checked = this.currentGallery.requireApproval;
-      document.getElementById('preventDownload').checked = this.currentGallery.preventDownload;
-      document.getElementById('watermarkEnabled').checked = this.currentGallery.watermarkEnabled;
+      // Update share link display
+      if (this.shareUrlDisplay && this.currentGallery.shareLink) {
+        this.shareUrlDisplay.value = this.currentGallery.shareLink;
+      }
       
-      // Show share link if available
-      if (this.currentGallery.shareLink) {
-        this.shareUrlDisplay.textContent = this.currentGallery.shareLink;
-        this.shareUrlDisplay.parentElement.classList.remove('hidden');
+      // Update form controls
+      if (this.passwordProtection) {
+        this.passwordProtection.checked = this.currentGallery.passwordProtected || false;
+        this.togglePasswordSection();
+      }
+      
+      const expiryDate = document.getElementById('expiryDate');
+      if (expiryDate && this.currentGallery.expiryDate) {
+        const date = this.currentGallery.expiryDate.toDate ? 
+                    this.currentGallery.expiryDate.toDate() : 
+                    new Date(this.currentGallery.expiryDate);
+        expiryDate.value = date.toISOString().substr(0, 10);
+      }
+      
+      const preventDownload = document.getElementById('preventDownload');
+      if (preventDownload) {
+        preventDownload.checked = this.currentGallery.preventDownload !== false; // Default to true
+      }
+      
+      const watermarkEnabled = document.getElementById('watermarkEnabled');
+      if (watermarkEnabled) {
+        watermarkEnabled.checked = this.currentGallery.watermarkEnabled !== false; // Default to true
+      }
+      
+      // Show revoke access button
+      if (this.revokeAccessBtn) {
+        this.revokeAccessBtn.classList.remove('hidden');
+      }
+      
+      // Update submit button text
+      const submitBtn = document.getElementById('shareGallerySubmitBtn');
+      if (submitBtn) {
+        submitBtn.textContent = 'Update Settings';
+      }
+    } else {
+      // Gallery not shared yet
+      if (this.shareUrlDisplay) {
+        this.shareUrlDisplay.value = '';
+        this.shareUrlDisplay.placeholder = 'Create a share link first';
+      }
+      
+      // Hide revoke access button
+      if (this.revokeAccessBtn) {
+        this.revokeAccessBtn.classList.add('hidden');
+      }
+      
+      // Set submit button text
+      const submitBtn = document.getElementById('shareGallerySubmitBtn');
+      if (submitBtn) {
+        submitBtn.textContent = 'Create Share Link';
       }
     }
   }
   
   // Add event listeners
   addEventListeners() {
-    if (this.shareGalleryBtn) {
-      this.shareGalleryBtn.addEventListener('click', this.createShareLink);
-    }
-    
+    // Share settings form
     if (this.shareSettingsForm) {
       this.shareSettingsForm.addEventListener('submit', (e) => {
         e.preventDefault();
-        this.updateShareSettings();
+        if (this.currentGallery && this.currentGallery.isShared) {
+          this.updateShareSettings();
+        } else {
+          this.createShareLink();
+        }
       });
     }
     
+    // Password toggle
+    if (this.passwordProtection) {
+      this.passwordProtection.addEventListener('change', this.togglePasswordSection);
+    }
+    
+    // Copy link button
     if (this.copyLinkBtn) {
       this.copyLinkBtn.addEventListener('click', this.copyShareLink);
     }
     
+    // WhatsApp share button
+    if (this.shareWhatsAppBtn) {
+      this.shareWhatsAppBtn.addEventListener('click', this.shareViaWhatsApp);
+    }
+    
+    // Email share button
+    if (this.shareEmailBtn) {
+      this.shareEmailBtn.addEventListener('click', this.shareViaEmail);
+    }
+    
+    // Revoke access button
     if (this.revokeAccessBtn) {
       this.revokeAccessBtn.addEventListener('click', this.revokeAccess);
     }
   }
   
-  // Check if user's plan allows sharing
-  checkPlanLimits() {
-    return new Promise((resolve, reject) => {
-      // Get client plan info
-      this.db.collection('client-plans')
-        .where('clientId', '==', this.currentGallery.clientId)
-        .where('photographerId', '==', this.currentUser.uid)
-        .orderBy('purchaseDate', 'desc')
-        .limit(1)
-        .get()
-        .then(snapshot => {
-          if (snapshot.empty) {
-            reject(new Error('No active plan found for this client'));
-            return;
-          }
-          
-          const plan = snapshot.docs[0].data();
-          const now = new Date();
-          
-          // Check if plan is expired
-          if (plan.expiryDate && plan.expiryDate.toDate() < now) {
-            reject(new Error('Client plan has expired. Please renew the plan to share this gallery.'));
-            return;
-          }
-          
-          // All checks passed
-          resolve(plan);
-        })
-        .catch(error => {
-          console.error('Error checking plan limits:', error);
-          reject(error);
-        });
-    });
+  // Toggle password section visibility
+  togglePasswordSection() {
+    if (!this.passwordProtection || !this.passwordSection) return;
+    
+    if (this.passwordProtection.checked) {
+      this.passwordSection.classList.remove('hidden');
+    } else {
+      this.passwordSection.classList.add('hidden');
+    }
   }
   
   // Create a share link for the gallery
   createShareLink() {
-    if (!this.currentGallery) return;
+    if (!this.currentGallery) {
+      this.showNotification('error', 'Gallery Not Found', 'Could not find gallery information.');
+      return;
+    }
     
-    this.checkPlanLimits()
-      .then(plan => {
-        // Generate a unique share ID
-        const shareId = this.db.collection('client-shared-galleries').doc().id;
-        
-        // Get form values
-        const passwordProtected = document.getElementById('passwordProtection').checked;
-        const password = passwordProtected ? document.getElementById('password').value : null;
-        const expiryDateStr = document.getElementById('expiryDate').value;
-        const expiryDate = expiryDateStr ? firebase.firestore.Timestamp.fromDate(new Date(expiryDateStr)) : null;
-        const maxSelections = parseInt(document.getElementById('maxSelections').value) || null;
-        const requireApproval = document.getElementById('requireApproval').checked;
-        const preventDownload = document.getElementById('preventDownload').checked;
-        const watermarkEnabled = document.getElementById('watermarkEnabled').checked;
-        
-        // Construct share link
-        const baseUrl = window.location.origin;
-        const shareLink = `${baseUrl}/snapselect/pages/client-gallery-view.html?share=${shareId}`;
-        
-        // Create shared gallery document
-        const sharedGalleryData = {
-          id: shareId,
-          galleryId: this.currentGallery.id,
-          clientId: this.currentGallery.clientId,
-          photographerId: this.currentUser.uid,
-          shareLink: shareLink,
-          passwordProtected: passwordProtected,
-          password: password ? this.hashPassword(password) : null,
-          expiryDate: expiryDate,
-          created: firebase.firestore.FieldValue.serverTimestamp(),
-          lastAccessed: null,
-          accessCount: 0,
-          status: 'active'
-        };
-        
-        // Update gallery document
-        const galleryUpdateData = {
-          isShared: true,
-          shareLink: shareLink,
-          passwordProtected: passwordProtected,
-          expiryDate: expiryDate,
-          maxSelections: maxSelections,
-          requireApproval: requireApproval,
-          preventDownload: preventDownload,
-          watermarkEnabled: watermarkEnabled,
-          updated: firebase.firestore.FieldValue.serverTimestamp()
-        };
-        
-        // Create a batch write
-        const batch = this.db.batch();
-        batch.set(this.db.collection('client-shared-galleries').doc(shareId), sharedGalleryData);
-        batch.update(this.db.collection('galleries').doc(this.currentGallery.id), galleryUpdateData);
-        
-        return batch.commit();
-      })
+    console.log('Creating share link for gallery:', this.currentGallery.id);
+    
+    // Generate a unique share ID
+    const shareId = this.db.collection('client-shared-galleries').doc().id;
+    
+    // Get form values
+    const passwordProtection = document.getElementById('passwordProtection');
+    const password = document.getElementById('password');
+    const expiryDate = document.getElementById('expiryDate');
+    const preventDownload = document.getElementById('preventDownload');
+    const watermarkEnabled = document.getElementById('watermarkEnabled');
+    
+    if (!passwordProtection || !preventDownload || !watermarkEnabled) {
+      console.error('Form elements not found');
+      return;
+    }
+    
+    const passwordProtected = passwordProtection.checked;
+    const passwordValue = passwordProtected && password ? password.value : null;
+    const expiryDateValue = expiryDate.value ? 
+      firebase.firestore.Timestamp.fromDate(new Date(expiryDate.value)) : null;
+      
+    // Validate password if protection is enabled
+    if (passwordProtected && (!passwordValue || passwordValue.length < 4)) {
+      this.showNotification('warning', 'Invalid Password', 'Please enter a password with at least 4 characters.');
+      return;
+    }
+    
+    // Construct share link
+    const baseUrl = window.location.origin;
+    const shareLink = `${baseUrl}/snapselect/pages/client-gallery-view.html?share=${shareId}`;
+    
+    // Create shared gallery document
+    const sharedGalleryData = {
+      id: shareId,
+      galleryId: this.currentGallery.id,
+      clientId: this.currentGallery.clientId,
+      photographerId: this.currentUser.uid,
+      shareLink: shareLink,
+      passwordProtected: passwordProtected,
+      password: passwordValue ? this.hashPassword(passwordValue) : null,
+      expiryDate: expiryDateValue,
+      preventDownload: preventDownload.checked,
+      watermarkEnabled: watermarkEnabled.checked,
+      created: firebase.firestore.FieldValue.serverTimestamp(),
+      lastAccessed: null,
+      accessCount: 0,
+      status: 'active'
+    };
+    
+    // Update gallery document
+    const galleryUpdateData = {
+      isShared: true,
+      shareLink: shareLink,
+      passwordProtected: passwordProtected,
+      expiryDate: expiryDateValue,
+      preventDownload: preventDownload.checked,
+      watermarkEnabled: watermarkEnabled.checked,
+      updated: firebase.firestore.FieldValue.serverTimestamp()
+    };
+    
+    // Disable submit button
+    const submitBtn = document.getElementById('shareGallerySubmitBtn');
+    if (submitBtn) {
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Creating...';
+    }
+    
+    // Create a batch write
+    const batch = this.db.batch();
+    batch.set(this.db.collection('client-shared-galleries').doc(shareId), sharedGalleryData);
+    batch.update(this.db.collection('galleries').doc(this.currentGallery.id), galleryUpdateData);
+    
+    batch.commit()
       .then(() => {
         // Reload gallery data
         return this.db.collection('galleries').doc(this.currentGallery.id).get();
@@ -227,26 +292,32 @@ class GallerySharing {
         // Update UI
         this.loadSharingUI();
         
+        // Re-enable submit button
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.textContent = 'Update Settings';
+        }
+        
         // Show success notification
-        if (window.NotificationSystem) {
-          window.NotificationSystem.showNotification(
-            'success',
-            'Gallery Shared',
-            `Gallery "${this.currentGallery.name}" has been shared successfully.`
-          );
+        this.showNotification('success', 'Gallery Shared', 'Your gallery has been shared successfully. You can now copy the link and share it with your client.');
+        
+        // Highlight the share link
+        if (this.shareUrlDisplay) {
+          this.shareUrlDisplay.select();
+          this.shareUrlDisplay.focus();
         }
       })
       .catch(error => {
         console.error('Error creating share link:', error);
         
-        // Show error notification
-        if (window.NotificationSystem) {
-          window.NotificationSystem.showNotification(
-            'error',
-            'Sharing Failed',
-            error.message || 'Failed to share gallery. Please try again.'
-          );
+        // Re-enable submit button
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.textContent = 'Create Share Link';
         }
+        
+        // Show error notification
+        this.showNotification('error', 'Sharing Failed', 'Failed to create gallery share link. Please try again.');
       });
   }
   
@@ -258,17 +329,42 @@ class GallerySharing {
   
   // Update sharing settings
   updateShareSettings() {
-    if (!this.currentGallery || !this.currentGallery.isShared) return;
+    if (!this.currentGallery || !this.currentGallery.isShared) {
+      this.showNotification('error', 'Gallery Not Shared', 'Cannot update settings for a gallery that is not shared.');
+      return;
+    }
+    
+    console.log('Updating share settings for gallery:', this.currentGallery.id);
     
     // Get form values
-    const passwordProtected = document.getElementById('passwordProtection').checked;
-    const password = passwordProtected ? document.getElementById('password').value : null;
-    const expiryDateStr = document.getElementById('expiryDate').value;
-    const expiryDate = expiryDateStr ? firebase.firestore.Timestamp.fromDate(new Date(expiryDateStr)) : null;
-    const maxSelections = parseInt(document.getElementById('maxSelections').value) || null;
-    const requireApproval = document.getElementById('requireApproval').checked;
-    const preventDownload = document.getElementById('preventDownload').checked;
-    const watermarkEnabled = document.getElementById('watermarkEnabled').checked;
+    const passwordProtection = document.getElementById('passwordProtection');
+    const password = document.getElementById('password');
+    const expiryDate = document.getElementById('expiryDate');
+    const preventDownload = document.getElementById('preventDownload');
+    const watermarkEnabled = document.getElementById('watermarkEnabled');
+    
+    if (!passwordProtection || !preventDownload || !watermarkEnabled) {
+      console.error('Form elements not found');
+      return;
+    }
+    
+    const passwordProtected = passwordProtection.checked;
+    const passwordValue = passwordProtected && password && password.value ? password.value : null;
+    const expiryDateValue = expiryDate.value ? 
+      firebase.firestore.Timestamp.fromDate(new Date(expiryDate.value)) : null;
+    
+    // Validate password if protection is enabled and password is changed
+    if (passwordProtected && passwordValue && passwordValue.length < 4) {
+      this.showNotification('warning', 'Invalid Password', 'Please enter a password with at least 4 characters.');
+      return;
+    }
+    
+    // Disable submit button
+    const submitBtn = document.getElementById('shareGallerySubmitBtn');
+    if (submitBtn) {
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Updating...';
+    }
     
     // Find the shared gallery document
     this.db.collection('client-shared-galleries')
@@ -279,27 +375,36 @@ class GallerySharing {
       .then(snapshot => {
         if (snapshot.empty) {
           console.error('No active shared gallery found');
-          return;
+          throw new Error('No active shared gallery found');
         }
         
         const sharedGalleryDoc = snapshot.docs[0];
         const sharedGalleryId = sharedGalleryDoc.id;
         
+        // Determine if password needs updating
+        let newPassword = sharedGalleryDoc.data().password;
+        if (passwordProtected && passwordValue) {
+          newPassword = this.hashPassword(passwordValue);
+        } else if (!passwordProtected) {
+          newPassword = null;
+        }
+        
         // Update shared gallery document
         const sharedGalleryUpdateData = {
           passwordProtected: passwordProtected,
-          password: passwordProtected && password ? this.hashPassword(password) : sharedGalleryDoc.data().password,
-          expiryDate: expiryDate
+          password: newPassword,
+          expiryDate: expiryDateValue,
+          preventDownload: preventDownload.checked,
+          watermarkEnabled: watermarkEnabled.checked,
+          updated: firebase.firestore.FieldValue.serverTimestamp()
         };
         
         // Update gallery document
         const galleryUpdateData = {
           passwordProtected: passwordProtected,
-          expiryDate: expiryDate,
-          maxSelections: maxSelections,
-          requireApproval: requireApproval,
-          preventDownload: preventDownload,
-          watermarkEnabled: watermarkEnabled,
+          expiryDate: expiryDateValue,
+          preventDownload: preventDownload.checked,
+          watermarkEnabled: watermarkEnabled.checked,
           updated: firebase.firestore.FieldValue.serverTimestamp()
         };
         
@@ -311,35 +416,46 @@ class GallerySharing {
         return batch.commit();
       })
       .then(() => {
-        // Show success notification
-        if (window.NotificationSystem) {
-          window.NotificationSystem.showNotification(
-            'success',
-            'Settings Updated',
-            'Gallery sharing settings have been updated successfully.'
-          );
+        // Re-enable submit button
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.textContent = 'Update Settings';
         }
+        
+        // Show success notification
+        this.showNotification('success', 'Settings Updated', 'Gallery sharing settings have been updated successfully.');
       })
       .catch(error => {
         console.error('Error updating share settings:', error);
         
-        // Show error notification
-        if (window.NotificationSystem) {
-          window.NotificationSystem.showNotification(
-            'error',
-            'Update Failed',
-            'Failed to update sharing settings. Please try again.'
-          );
+        // Re-enable submit button
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.textContent = 'Update Settings';
         }
+        
+        // Show error notification
+        this.showNotification('error', 'Update Failed', 'Failed to update sharing settings. Please try again.');
       });
   }
   
   // Revoke gallery access
   revokeAccess() {
-    if (!this.currentGallery || !this.currentGallery.isShared) return;
-    
-    if (!confirm('Are you sure you want to revoke access to this gallery? Clients will no longer be able to view or select photos.')) {
+    if (!this.currentGallery || !this.currentGallery.isShared) {
+      this.showNotification('error', 'Gallery Not Shared', 'Cannot revoke access for a gallery that is not shared.');
       return;
+    }
+    
+    if (!confirm('Are you sure you want to revoke access to this gallery? Clients will no longer be able to view photos.')) {
+      return;
+    }
+    
+    console.log('Revoking access for gallery:', this.currentGallery.id);
+    
+    // Disable the button
+    if (this.revokeAccessBtn) {
+      this.revokeAccessBtn.disabled = true;
+      this.revokeAccessBtn.textContent = 'Revoking...';
     }
     
     // Find the shared gallery document
@@ -350,7 +466,7 @@ class GallerySharing {
       .then(snapshot => {
         if (snapshot.empty) {
           console.error('No active shared gallery found');
-          return;
+          throw new Error('No active shared gallery found');
         }
         
         // Create a batch write
@@ -379,54 +495,208 @@ class GallerySharing {
         this.currentGallery.shareLink = null;
         
         // Update UI
-        this.shareUrlDisplay.textContent = '';
-        this.shareUrlDisplay.parentElement.classList.add('hidden');
+        this.loadSharingUI();
+        
+        // Re-enable button
+        if (this.revokeAccessBtn) {
+          this.revokeAccessBtn.disabled = false;
+          this.revokeAccessBtn.textContent = 'Revoke Access';
+          this.revokeAccessBtn.classList.add('hidden');
+        }
         
         // Show success notification
-        if (window.NotificationSystem) {
-          window.NotificationSystem.showNotification(
-            'success',
-            'Access Revoked',
-            'Gallery sharing has been revoked successfully.'
-          );
-        }
+        this.showNotification('success', 'Access Revoked', 'Gallery sharing has been revoked successfully.');
       })
+      
       .catch(error => {
         console.error('Error revoking access:', error);
         
-        // Show error notification
-        if (window.NotificationSystem) {
-          window.NotificationSystem.showNotification(
-            'error',
-            'Revoke Failed',
-            'Failed to revoke gallery sharing. Please try again.'
-          );
+        // Re-enable button
+        if (this.revokeAccessBtn) {
+          this.revokeAccessBtn.disabled = false;
+          this.revokeAccessBtn.textContent = 'Revoke Access';
         }
+        
+        // Show error notification
+        this.showNotification('error', 'Revoke Failed', 'Failed to revoke gallery sharing. Please try again.');
       });
   }
   
   // Copy share link to clipboard
   copyShareLink() {
-    if (!this.currentGallery || !this.currentGallery.shareLink) return;
+    if (!this.currentGallery || !this.currentGallery.shareLink) {
+      this.showNotification('warning', 'No Link Available', 'Create a share link first.');
+      return;
+    }
     
-    navigator.clipboard.writeText(this.currentGallery.shareLink)
-      .then(() => {
-        // Show success notification
-        if (window.NotificationSystem) {
-          window.NotificationSystem.showNotification(
-            'success',
-            'Link Copied',
-            'Gallery link has been copied to clipboard.'
-          );
-        }
-      })
-      .catch(error => {
-        console.error('Error copying link to clipboard:', error);
-      });
+    const shareLink = this.currentGallery.shareLink;
+    
+    // Try to use the newer clipboard API
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(shareLink)
+        .then(() => {
+          this.showNotification('success', 'Link Copied', 'Gallery link has been copied to clipboard.');
+        })
+        .catch(err => {
+          console.error('Could not copy text:', err);
+          // Fall back to the older method
+          this.copyToClipboardFallback(shareLink);
+        });
+    } else {
+      // Fall back to the older method for browsers that don't support clipboard API
+      this.copyToClipboardFallback(shareLink);
+    }
+  }
+  
+  // Fallback method for copying to clipboard
+  copyToClipboardFallback(text) {
+    const textArea = document.createElement('textarea');
+    textArea.value = text;
+    
+    // Make the textarea out of viewport
+    textArea.style.position = 'fixed';
+    textArea.style.left = '-999999px';
+    textArea.style.top = '-999999px';
+    document.body.appendChild(textArea);
+    textArea.focus();
+    textArea.select();
+    
+    try {
+      const successful = document.execCommand('copy');
+      if (successful) {
+        this.showNotification('success', 'Link Copied', 'Gallery link has been copied to clipboard.');
+      } else {
+        this.showNotification('error', 'Copy Failed', 'Could not copy to clipboard. Please select and copy the link manually.');
+      }
+    } catch (err) {
+      console.error('Fallback: Could not copy text:', err);
+      this.showNotification('error', 'Copy Failed', 'Could not copy to clipboard. Please select and copy the link manually.');
+    }
+    
+    document.body.removeChild(textArea);
+  }
+  
+  // Share via WhatsApp
+  shareViaWhatsApp() {
+    if (!this.currentGallery || !this.currentGallery.shareLink) {
+      this.showNotification('warning', 'No Link Available', 'Create a share link first.');
+      return;
+    }
+    
+    const shareLink = this.currentGallery.shareLink;
+    const galleryName = this.currentGallery.name || 'photo gallery';
+    
+    // Create WhatsApp message
+    let message = `I've shared my ${galleryName} with you. Click the link to view: ${shareLink}`;
+    
+    // Add password info if protected
+    if (this.currentGallery.passwordProtected) {
+      message += "\n\nThis gallery is password protected. I will send you the password separately.";
+    }
+    
+    // Add expiry info if set
+    if (this.currentGallery.expiryDate) {
+      const expiryDate = this.currentGallery.expiryDate.toDate ? 
+                        this.currentGallery.expiryDate.toDate().toLocaleDateString() : 
+                        new Date(this.currentGallery.expiryDate).toLocaleDateString();
+      message += `\n\nThis link will expire on ${expiryDate}.`;
+    }
+    
+    // Create WhatsApp URL
+    const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
+    
+    // Open WhatsApp in new tab
+    window.open(whatsappUrl, '_blank');
+    
+    // Log the share
+    this.logShare('whatsapp');
+  }
+  
+  // Share via Email
+  shareViaEmail() {
+    if (!this.currentGallery || !this.currentGallery.shareLink) {
+      this.showNotification('warning', 'No Link Available', 'Create a share link first.');
+      return;
+    }
+    
+    const shareLink = this.currentGallery.shareLink;
+    const galleryName = this.currentGallery.name || 'Photo Gallery';
+    const photographerName = this.currentUser.displayName || this.currentUser.email || 'Your photographer';
+    
+    // Create email subject and body
+    const subject = `Your photo gallery "${galleryName}" is ready`;
+    let body = `Hello,\n\nI've shared my photo gallery "${galleryName}" with you. Click the link below to view your photos:\n\n${shareLink}\n\n`;
+    
+    // Add password info if protected
+    if (this.currentGallery.passwordProtected) {
+      body += "This gallery is password protected. I will send you the password separately.\n\n";
+    }
+    
+    // Add expiry info if set
+    if (this.currentGallery.expiryDate) {
+      const expiryDate = this.currentGallery.expiryDate.toDate ? 
+                        this.currentGallery.expiryDate.toDate().toLocaleDateString() : 
+                        new Date(this.currentGallery.expiryDate).toLocaleDateString();
+      body += `This link will expire on ${expiryDate}.\n\n`;
+    }
+    
+    body += `Best regards,\n${photographerName}`;
+    
+    // Create mailto URL
+    const mailtoUrl = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    
+    // Try to open the default email client
+    const emailWindow = window.open(mailtoUrl);
+    
+    // Check if email client opened successfully
+    if (!emailWindow || emailWindow.closed || typeof emailWindow.closed === 'undefined') {
+      // Email client didn't open, show instructions
+      this.showNotification('info', 'Email Client Not Available', 'Your default email client could not be opened. The link has been copied to clipboard - paste it into your email manually.');
+      // Copy the link to clipboard as fallback
+      this.copyToClipboardFallback(shareLink);
+    } else {
+      // Log the share
+      this.logShare('email');
+    }
+  }
+  
+  // Log share activity
+  logShare(method) {
+    if (!this.currentGallery || !this.currentUser) return;
+    
+    // Create a log entry in Firestore
+    this.db.collection('gallery_share_logs').add({
+      galleryId: this.currentGallery.id,
+      photographerId: this.currentUser.uid,
+      shareMethod: method,
+      timestamp: firebase.firestore.FieldValue.serverTimestamp()
+    })
+    .catch(error => {
+      console.error('Error logging share:', error);
+    });
+  }
+  
+  // Helper method to show notifications
+  showNotification(type, title, message = '') {
+    if (window.NotificationSystem && typeof window.NotificationSystem.showNotification === 'function') {
+      window.NotificationSystem.showNotification(type, title, message);
+    } else {
+      // Fallback if notification system is not available
+      console.log(`${type.toUpperCase()}: ${title} - ${message}`);
+      alert(`${title}: ${message}`);
+    }
   }
 }
 
 // Initialize on document ready
 document.addEventListener('DOMContentLoaded', function() {
+  // Add FontAwesome if not already loaded
+  if (!document.querySelector('link[href*="font-awesome"]')) {
+    const link = document.createElement('link');
+    link.rel = 'stylesheet';
+    link.href = 'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css';
+    document.head.appendChild(link);
+  }
+  
   window.GallerySharing = new GallerySharing();
 });
