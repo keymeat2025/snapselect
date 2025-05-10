@@ -2,13 +2,11 @@
  * gallery-share-modal.js - Handles the gallery sharing modal functionality
  * This script manages the share modal UI and interactions
  */
-
 class GalleryShareModal {
   constructor() {
     // DOM Elements
     this.modal = document.getElementById('shareGalleryModal');
     this.closeModalBtns = document.querySelectorAll('#shareGalleryModal .close-modal');
-    this.shareGalleryBtn = document.getElementById('shareGalleryBtn');
     
     // State
     this.currentGallery = null;
@@ -30,23 +28,6 @@ class GalleryShareModal {
     if (this.closeModalBtns) {
       this.closeModalBtns.forEach(btn => {
         btn.addEventListener('click', this.close);
-      });
-    }
-    
-    // Add event listener for share gallery button
-    if (this.shareGalleryBtn) {
-      this.shareGalleryBtn.addEventListener('click', () => {
-        // When the share button is clicked, we need the gallery data
-        if (window.galleryView && window.galleryView.loadGalleryData) {
-          // Use the existing galleryData from galleryView
-          const galleryData = window.galleryData;
-          if (galleryData) {
-            this.open(galleryData);
-          } else {
-            console.error('Gallery data is not available');
-            alert('Gallery information is not available. Please try again.');
-          }
-        }
       });
     }
     
