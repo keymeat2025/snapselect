@@ -108,44 +108,6 @@
 .share-instructions {
   font-size: 13px;
   color: #666;
-  margin-bottom: 15px;
-}
-
-/* Quick Share Buttons */
-.quick-share-buttons {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  margin-top: 15px;
-}
-
-.share-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 8px 15px;
-  flex: 1;
-  min-width: 120px;
-}
-
-.share-btn i {
-  margin-right: 8px;
-  font-size: 16px;
-}
-
-.share-btn.disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-/* WhatsApp button */
-.share-btn .fa-whatsapp {
-  color: #25D366;
-}
-
-/* Email button */
-.share-btn .fa-envelope {
-  color: #4285F4;
 }
 
 .share-settings-section {
