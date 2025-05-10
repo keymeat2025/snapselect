@@ -1,178 +1,203 @@
 // assets/js/gallery-share-modal.js
 
-// Initialize when Firebase is ready
-function initGalleryShareModal() {
-  const GalleryShareModal = {
-    currentGalleryId: null,
+// Gallery Share Modal implementation
+const GalleryShareModal = {
+  currentGalleryId: null,
+  
+  initialize: function() {
+    console.log("Initializing Gallery Share Modal");
+    this.setupEventListeners();
+  },
+  
+  setupEventListeners: function() {
+    // Get form elements
+    const shareForm = document.getElementById('shareSettingsForm');
+    const passwordToggle = document.getElementById('passwordProtection');
+    const passwordSection = document.getElementById('passwordSection');
+    const revokeBtn = document.getElementById('revokeAccessBtn');
+    const copyLinkBtn = document.getElementById('copyLinkBtn');
     
-    open: function(galleryData) {
-      this.currentGalleryId = galleryData.id;
-      const modal = document.getElementById('shareGalleryModal');
-      if (modal) {
-        modal.style.display = 'block';
+    // Setup form submission
+    if (shareForm) {
+      shareForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        GalleryShareModal.shareGallery();
+      });
+    }
+    
+    // Setup password toggle
+    if (passwordToggle && passwordSection) {
+      passwordToggle.addEventListener('change', function() {
+        if (this.checked) {
+          passwordSection.classList.remove('hidden');
+        } else {
+          passwordSection.classList.add('hidden');
+        }
+      });
+    }
+    
+    // Setup revoke button
+    if (revokeBtn) {
+      revokeBtn.addEventListener('click', function() {
+        if (confirm('Are you sure you want to revoke access to this gallery?')) {
+          GalleryShareModal.revokeAccess();
+        }
+      });
+    }
+    
+    // Setup copy link button
+    if (copyLinkBtn) {
+      copyLinkBtn.addEventListener('click', function() {
+        const urlInput = document.getElementById('shareUrlDisplay');
+        if (urlInput) {
+          urlInput.select();
+          document.execCommand('copy');
+          showToast('Link copied to clipboard!', 'success');
+        }
+      });
+    }
+  },
+  
+  open: function(galleryData) {
+    console.log("Opening share modal for gallery:", galleryData);
+    this.currentGalleryId = galleryData.id;
+    
+    const modal = document.getElementById('shareGalleryModal');
+    if (modal) {
+      modal.style.display = 'block';
+      this.checkSharingStatus();
+    } else {
+      console.error("Share gallery modal not found");
+    }
+  },
+  
+  checkSharingStatus: function() {
+    console.log("Checking sharing status for gallery:", this.currentGalleryId);
+    
+    // Get Firestore instance from firebaseServices
+    const db = window.firebaseServices.db;
+    
+    // Check if gallery is already shared
+    db.collection('sharedGalleries').where('galleryId', '==', this.currentGalleryId)
+      .get()
+      .then(snapshot => {
+        console.log("Found shared gallery entries:", snapshot.size);
         
-        // Check if gallery is already shared
-        this.checkSharingStatus();
-      } else {
-        console.error("Share gallery modal not found in the DOM");
-      }
-    },
-    
-    checkSharingStatus: function() {
-      // Check Firestore to see if gallery is already shared
-      const db = window.firebaseServices.db;
-      db.collection('sharedGalleries').where('galleryId', '==', this.currentGalleryId)
-        .get()
-        .then(snapshot => {
-          if (!snapshot.empty) {
-            // Gallery is already shared, show the URL
-            const shareData = snapshot.docs[0].data();
-            this.displayShareLink(shareData.shareId);
-            // Show revoke button
-            const revokeBtn = document.getElementById('revokeAccessBtn');
-            if (revokeBtn) {
-              revokeBtn.classList.remove('hidden');
-            }
+        if (!snapshot.empty) {
+          // Gallery is already shared, show the URL
+          const shareData = snapshot.docs[0].data();
+          this.displayShareLink(shareData.shareId);
+          
+          // Show revoke button
+          const revokeBtn = document.getElementById('revokeAccessBtn');
+          if (revokeBtn) {
+            revokeBtn.classList.remove('hidden');
           }
-        })
-        .catch(error => {
-          console.error("Error checking sharing status:", error);
-        });
-    },
-    
-    displayShareLink: function(shareId) {
-      const shareUrl = `${window.location.origin}/pages/html/shared-gallery-view.html?id=${shareId}`;
-      const urlDisplay = document.getElementById('shareUrlDisplay');
-      if (urlDisplay) {
-        urlDisplay.value = shareUrl;
-        const shareLinkSection = document.getElementById('shareLinkSection');
-        if (shareLinkSection) {
-          shareLinkSection.classList.remove('hidden');
         }
-      } else {
-        console.error("Share URL display element not found");
-      }
-    },
-    
-    shareGallery: function() {
-      const passwordInput = document.getElementById('password');
-      const passwordProtectionCheckbox = document.getElementById('passwordProtection');
-      
-      if (!passwordInput || !passwordProtectionCheckbox) {
-        console.error("Password input elements not found");
-        return;
-      }
-      
-      const password = passwordInput.value;
-      const passwordProtected = passwordProtectionCheckbox.checked;
-      
-      // Generate a random shareId
-      const shareId = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
-      
-      console.log("Sharing gallery with ID:", this.currentGalleryId);
-      console.log("Password protected:", passwordProtected);
-      
-      // Save sharing info to Firestore
-      const db = window.firebaseServices.db;
-      db.collection('sharedGalleries').add({
-        galleryId: this.currentGalleryId,
-        shareId: shareId,
-        passwordProtected: passwordProtected,
-        password: passwordProtected ? password : '',
-        createdAt: firebase.firestore.FieldValue.serverTimestamp()
-      })
-      .then(() => {
-        console.log("Gallery shared successfully with shareId:", shareId);
-        this.displayShareLink(shareId);
-        const revokeBtn = document.getElementById('revokeAccessBtn');
-        if (revokeBtn) {
-          revokeBtn.classList.remove('hidden');
-        }
-        
-        // Show success message
-        showToast('Gallery shared successfully!', 'success');
       })
       .catch(error => {
-        console.error('Error sharing gallery:', error);
-        showToast('Error sharing gallery. Please try again.', 'error');
+        console.error("Error checking sharing status:", error);
       });
-    },
+  },
+  
+  displayShareLink: function(shareId) {
+    console.log("Displaying share link for shareId:", shareId);
     
-    revokeAccess: function() {
-      const db = window.firebaseServices.db;
-      db.collection('sharedGalleries').where('galleryId', '==', this.currentGalleryId)
-        .get()
-        .then(snapshot => {
-          if (!snapshot.empty) {
-            // Delete all sharing records for this gallery
-            const batch = db.batch();
-            snapshot.docs.forEach(doc => batch.delete(doc.ref));
-            return batch.commit();
-          }
-        })
-        .then(() => {
-          const shareLinkSection = document.getElementById('shareLinkSection');
-          const revokeBtn = document.getElementById('revokeAccessBtn');
-          if (shareLinkSection) shareLinkSection.classList.add('hidden');
-          if (revokeBtn) revokeBtn.classList.add('hidden');
-          showToast('Gallery access revoked.', 'success');
-        })
-        .catch(error => {
-          console.error('Error revoking access:', error);
-          showToast('Error revoking access. Please try again.', 'error');
-        });
+    const shareUrl = `${window.location.origin}/pages/html/shared-gallery-view.html?id=${shareId}`;
+    const urlDisplay = document.getElementById('shareUrlDisplay');
+    
+    if (urlDisplay) {
+      urlDisplay.value = shareUrl;
+      const shareLinkSection = document.getElementById('shareLinkSection');
+      if (shareLinkSection) {
+        shareLinkSection.classList.remove('hidden');
+      }
     }
-  };
-
-  // Initialize event listeners
-  const shareForm = document.getElementById('shareSettingsForm');
-  const passwordToggle = document.getElementById('passwordProtection');
-  const passwordSection = document.getElementById('passwordSection');
-  const revokeBtn = document.getElementById('revokeAccessBtn');
-  const copyLinkBtn = document.getElementById('copyLinkBtn');
+  },
   
-  if (shareForm) {
-    shareForm.addEventListener('submit', function(e) {
-      e.preventDefault();
-      GalleryShareModal.shareGallery();
-    });
-  }
-  
-  if (passwordToggle) {
-    passwordToggle.addEventListener('change', function() {
-      if (this.checked && passwordSection) {
-        passwordSection.classList.remove('hidden');
-      } else if (passwordSection) {
-        passwordSection.classList.add('hidden');
+  shareGallery: function() {
+    console.log("Sharing gallery:", this.currentGalleryId);
+    
+    // Get form values
+    const passwordInput = document.getElementById('password');
+    const passwordProtectionCheckbox = document.getElementById('passwordProtection');
+    
+    if (!passwordInput || !passwordProtectionCheckbox) {
+      console.error("Password input elements not found");
+      return;
+    }
+    
+    const password = passwordInput.value;
+    const passwordProtected = passwordProtectionCheckbox.checked;
+    
+    // Generate a random shareId
+    const shareId = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+    
+    // Get Firestore instance from firebaseServices
+    const db = window.firebaseServices.db;
+    
+    // Save sharing info to Firestore
+    db.collection('sharedGalleries').add({
+      galleryId: this.currentGalleryId,
+      shareId: shareId,
+      passwordProtected: passwordProtected,
+      password: passwordProtected ? password : '',
+      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    })
+    .then(() => {
+      console.log("Gallery shared successfully with shareId:", shareId);
+      this.displayShareLink(shareId);
+      
+      // Show revoke button
+      const revokeBtn = document.getElementById('revokeAccessBtn');
+      if (revokeBtn) {
+        revokeBtn.classList.remove('hidden');
       }
+      
+      // Show success message
+      showToast('Gallery shared successfully!', 'success');
+    })
+    .catch(error => {
+      console.error('Error sharing gallery:', error);
+      showToast('Error sharing gallery. Please try again.', 'error');
     });
-  }
+  },
   
-  if (revokeBtn) {
-    revokeBtn.addEventListener('click', function() {
-      if (confirm('Are you sure you want to revoke access to this gallery?')) {
-        GalleryShareModal.revokeAccess();
-      }
-    });
+  revokeAccess: function() {
+    console.log("Revoking access for gallery:", this.currentGalleryId);
+    
+    // Get Firestore instance from firebaseServices
+    const db = window.firebaseServices.db;
+    
+    // Find and delete all sharing records for this gallery
+    db.collection('sharedGalleries').where('galleryId', '==', this.currentGalleryId)
+      .get()
+      .then(snapshot => {
+        if (!snapshot.empty) {
+          // Delete all sharing records for this gallery
+          const batch = db.batch();
+          snapshot.docs.forEach(doc => batch.delete(doc.ref));
+          return batch.commit();
+        }
+      })
+      .then(() => {
+        // Hide share elements
+        const shareLinkSection = document.getElementById('shareLinkSection');
+        const revokeBtn = document.getElementById('revokeAccessBtn');
+        if (shareLinkSection) shareLinkSection.classList.add('hidden');
+        if (revokeBtn) revokeBtn.classList.add('hidden');
+        
+        // Show success message
+        showToast('Gallery access revoked.', 'success');
+      })
+      .catch(error => {
+        console.error('Error revoking access:', error);
+        showToast('Error revoking access. Please try again.', 'error');
+      });
   }
-  
-  if (copyLinkBtn) {
-    copyLinkBtn.addEventListener('click', function() {
-      const urlInput = document.getElementById('shareUrlDisplay');
-      if (urlInput) {
-        urlInput.select();
-        document.execCommand('copy');
-        showToast('Link copied to clipboard!', 'success');
-      }
-    });
-  }
+};
 
-  // Export the module
-  window.GalleryShareModal = GalleryShareModal;
-  console.log("Gallery Share Modal module initialized");
-}
-
-// Helper function to show toast notifications
+// Toast notification helper
 function showToast(message, type = 'info') {
   const toastContainer = document.getElementById('toastContainer');
   if (!toastContainer) return;
@@ -192,21 +217,26 @@ function showToast(message, type = 'info') {
   }, 3000);
 }
 
-// Register initialization with Firebase ready system
+// Initialize the module when Firebase is ready
+function initGalleryShareModal() {
+  GalleryShareModal.initialize();
+  window.GalleryShareModal = GalleryShareModal;
+  console.log("Gallery Share Modal initialized and exported to window");
+}
+
+// Register with Firebase ready system following your established pattern
 if (window.firebaseServices && window.firebaseServices.db) {
   // Firebase already initialized
-  console.log('Firebase already available, initializing gallery share modal');
+  console.log('Firebase services available, initializing gallery share modal');
   initGalleryShareModal();
 } else if (typeof window.onFirebaseReady === 'function') {
-  // Firebase ready but we missed the initialization event
-  console.log('Firebase initialized with callback function, registering gallery share modal init');
+  // Firebase ready with callback function
   window.onFirebaseReady(initGalleryShareModal);
 } else if (Array.isArray(window.onFirebaseReady)) {
-  // Firebase not ready yet
-  console.log('Firebase not ready, queuing gallery share modal initialization');
+  // Firebase not ready yet, register with queue
   window.onFirebaseReady.push(initGalleryShareModal);
 } else {
   // Create the queue if it doesn't exist
-  console.log('Creating Firebase ready queue with gallery share modal initialization');
   window.onFirebaseReady = [initGalleryShareModal];
+  console.log('Created Firebase ready queue with gallery share modal initialization');
 }
