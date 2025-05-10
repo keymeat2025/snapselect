@@ -1,91 +1,154 @@
-/**
- * gallery-share-modal.js - Handles the gallery sharing modal functionality
- * This script manages the share modal UI and interactions
- */
-class GalleryShareModal {
-  constructor() {
-    // DOM Elements
-    this.modal = document.getElementById('shareGalleryModal');
-    this.closeModalBtns = document.querySelectorAll('#shareGalleryModal .close-modal');
-    
-    // State
-    this.currentGallery = null;
-    
-    // Bind methods
-    this.init = this.init.bind(this);
-    this.open = this.open.bind(this);
-    this.close = this.close.bind(this);
-    
-    // Initialize
-    this.init();
-  }
+// assets/js/gallery-share-modal.js
+const GalleryShareModal = {
+  currentGalleryId: null,
   
-  // Initialize the modal
-  init() {
-    console.log('Initializing GalleryShareModal...');
+  open: function(galleryData) {
+    this.currentGalleryId = galleryData.id;
+    const modal = document.getElementById('shareGalleryModal');
+    modal.style.display = 'block';
     
-    // Add event listeners for close buttons
-    if (this.closeModalBtns) {
-      this.closeModalBtns.forEach(btn => {
-        btn.addEventListener('click', this.close);
+    // Check if gallery is already shared
+    this.checkSharingStatus();
+  },
+  
+  checkSharingStatus: function() {
+    // Check Firestore to see if gallery is already shared
+    const db = firebase.firestore();
+    db.collection('sharedGalleries').where('galleryId', '==', this.currentGalleryId)
+      .get()
+      .then(snapshot => {
+        if (!snapshot.empty) {
+          // Gallery is already shared, show the URL
+          const shareData = snapshot.docs[0].data();
+          this.displayShareLink(shareData.shareId);
+          // Show revoke button
+          document.getElementById('revokeAccessBtn').classList.remove('hidden');
+        }
       });
-    }
+  },
+  
+  displayShareLink: function(shareId) {
+    const shareUrl = `${window.location.origin}/pages/html/shared-gallery-view.html?id=${shareId}`;
+    const urlDisplay = document.getElementById('shareUrlDisplay');
+    urlDisplay.value = shareUrl;
+    document.getElementById('shareLinkSection').classList.remove('hidden');
+  },
+  
+  shareGallery: function() {
+    const password = document.getElementById('password').value;
+    const passwordProtected = document.getElementById('passwordProtection').checked;
     
-    // Close when clicking outside modal content
-    window.addEventListener('click', (e) => {
-      if (e.target === this.modal) {
-        this.close();
-      }
+    // Generate a random shareId
+    const shareId = Math.random().toString(36).substring(2, 15);
+    
+    // Save sharing info to Firestore
+    const db = firebase.firestore();
+    db.collection('sharedGalleries').add({
+      galleryId: this.currentGalleryId,
+      shareId: shareId,
+      passwordProtected: passwordProtected,
+      password: passwordProtected ? password : '',
+      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    })
+    .then(() => {
+      this.displayShareLink(shareId);
+      document.getElementById('revokeAccessBtn').classList.remove('hidden');
+      
+      // Show success message
+      showToast('Gallery shared successfully!', 'success');
+    })
+    .catch(error => {
+      console.error('Error sharing gallery:', error);
+      showToast('Error sharing gallery. Please try again.', 'error');
     });
-    
-    // Escape key to close modal
-    window.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape' && this.modal && this.modal.style.display === 'block') {
-        this.close();
+  },
+  
+  revokeAccess: function() {
+    const db = firebase.firestore();
+    db.collection('sharedGalleries').where('galleryId', '==', this.currentGalleryId)
+      .get()
+      .then(snapshot => {
+        if (!snapshot.empty) {
+          // Delete all sharing records for this gallery
+          const batch = db.batch();
+          snapshot.docs.forEach(doc => batch.delete(doc.ref));
+          return batch.commit();
+        }
+      })
+      .then(() => {
+        document.getElementById('shareLinkSection').classList.add('hidden');
+        document.getElementById('revokeAccessBtn').classList.add('hidden');
+        showToast('Gallery access revoked.', 'success');
+      })
+      .catch(error => {
+        console.error('Error revoking access:', error);
+        showToast('Error revoking access. Please try again.', 'error');
+      });
+  }
+};
+
+// Initialize event listeners
+document.addEventListener('DOMContentLoaded', function() {
+  const shareForm = document.getElementById('shareSettingsForm');
+  const passwordToggle = document.getElementById('passwordProtection');
+  const passwordSection = document.getElementById('passwordSection');
+  const revokeBtn = document.getElementById('revokeAccessBtn');
+  const copyLinkBtn = document.getElementById('copyLinkBtn');
+  
+  if (shareForm) {
+    shareForm.addEventListener('submit', function(e) {
+      e.preventDefault();
+      GalleryShareModal.shareGallery();
+    });
+  }
+  
+  if (passwordToggle) {
+    passwordToggle.addEventListener('change', function() {
+      if (this.checked) {
+        passwordSection.classList.remove('hidden');
+      } else {
+        passwordSection.classList.add('hidden');
       }
     });
   }
   
-  // Open the share modal with gallery data
-  open(galleryData) {
-    if (!this.modal || !galleryData) {
-      console.error('Modal or gallery data not available', { modal: !!this.modal, galleryData: !!galleryData });
-      return;
-    }
-    
-    console.log('Opening share modal for gallery:', galleryData.id);
-    
-    this.currentGallery = galleryData;
-    
-    // Display the modal
-    this.modal.style.display = 'block';
-    
-    // Make sure GallerySharing has the latest gallery data
-    if (window.GallerySharing) {
-      // Force a refresh of the sharing UI
-      window.GallerySharing.currentGallery = galleryData;
-      window.GallerySharing.loadSharingUI();
-    } else {
-      console.error('GallerySharing module not found');
-      // Display a warning in the modal
-      const shareUrlDisplay = document.getElementById('shareUrlDisplay');
-      if (shareUrlDisplay) {
-        shareUrlDisplay.value = '';
-        shareUrlDisplay.placeholder = 'Sharing module not loaded properly';
+  if (revokeBtn) {
+    revokeBtn.addEventListener('click', function() {
+      if (confirm('Are you sure you want to revoke access to this gallery?')) {
+        GalleryShareModal.revokeAccess();
       }
-    }
+    });
   }
   
-  // Close the share modal
-  close() {
-    if (!this.modal) return;
-    
-    console.log('Closing share modal');
-    this.modal.style.display = 'none';
+  if (copyLinkBtn) {
+    copyLinkBtn.addEventListener('click', function() {
+      const urlInput = document.getElementById('shareUrlDisplay');
+      urlInput.select();
+      document.execCommand('copy');
+      showToast('Link copied to clipboard!', 'success');
+    });
   }
+});
+
+// Helper function to show toast notifications
+function showToast(message, type = 'info') {
+  const toastContainer = document.getElementById('toastContainer');
+  if (!toastContainer) return;
+  
+  const toast = document.createElement('div');
+  toast.className = `toast toast-${type}`;
+  toast.textContent = message;
+  
+  toastContainer.appendChild(toast);
+  
+  // Remove toast after 3 seconds
+  setTimeout(() => {
+    toast.classList.add('fadeOut');
+    setTimeout(() => {
+      toast.remove();
+    }, 300);
+  }, 3000);
 }
 
-// Initialize the share modal when document is ready
-document.addEventListener('DOMContentLoaded', function() {
-  window.GalleryShareModal = new GalleryShareModal();
-});
+// Export the module
+window.GalleryShareModal = GalleryShareModal;
