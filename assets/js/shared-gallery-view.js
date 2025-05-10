@@ -1,5 +1,4 @@
 // assets/js/shared-gallery-view.js
-
 // Function to load the shared gallery
 function initSharedGalleryView() {
   console.log("Initializing shared gallery view");
