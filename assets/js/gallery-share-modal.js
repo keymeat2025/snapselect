@@ -198,7 +198,7 @@ const GalleryShareModal = {
       console.error("Firebase not available:", error);
       this.showToast('Error: Firebase not initialized.', 'error');
     }
-  }
+  },
   
   // Revoke access to a shared gallery
   revokeAccess: function() {
