@@ -3,14 +3,39 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Client Gallery - SnapSelect</title>
+    <title>Shared Gallery - SnapSelect</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- Include your CSS here -->
     <style>
-        /* Your existing styles... */
+        /* Basic styles */
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f5f5f5;
+            color: #333;
+        }
         
-        /* Add styles for client login */
-        .login-container {
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+        
+        /* Header */
+        header {
+            background-color: #fff;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            padding: 15px 0;
+        }
+        
+        .logo-text {
+            font-size: 24px;
+            font-weight: bold;
+            color: #3498db;
+        }
+        
+        /* Password screen */
+        .password-container {
             max-width: 400px;
             margin: 100px auto;
             padding: 30px;
@@ -20,13 +45,157 @@
             text-align: center;
         }
         
-        .login-input {
+        .password-input {
             width: 100%;
             padding: 12px;
-            margin: 10px 0;
+            margin: 15px 0;
             border: 1px solid #ddd;
             border-radius: 4px;
             box-sizing: border-box;
+        }
+        
+        .btn {
+            padding: 12px 20px;
+            background-color: #3498db;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        
+        .btn:hover {
+            background-color: #2980b9;
+        }
+        
+        .error-message {
+            color: #e74c3c;
+            margin: 10px 0;
+            display: none;
+        }
+        
+        /* Gallery container */
+        .gallery-container {
+            max-width: 1200px;
+            margin: 30px auto;
+            padding: 20px;
+        }
+        
+        /* Photo grid */
+        .photos-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+        
+        .photo-item {
+            background-color: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            transition: transform 0.2s;
+        }
+        
+        .photo-item:hover {
+            transform: translateY(-5px);
+        }
+        
+        .photo-container {
+            height: 200px;
+            width: 100%;
+            background-size: cover;
+            background-position: center;
+            position: relative;
+            cursor: pointer;
+        }
+        
+        .photo-details {
+            padding: 12px;
+        }
+        
+        .photo-name {
+            font-weight: 500;
+            margin-bottom: 5px;
+        }
+        
+        .photo-date {
+            font-size: 12px;
+            color: #777;
+        }
+        
+        /* Toast notifications */
+        .toast-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+        }
+        
+        .toast {
+            padding: 12px 20px;
+            margin-bottom: 10px;
+            border-radius: 4px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            color: white;
+            animation: slideIn 0.3s ease;
+        }
+        
+        .toast-success {
+            background-color: #27ae60;
+        }
+        
+        .toast-error {
+            background-color: #e74c3c;
+        }
+        
+        .toast-info {
+            background-color: #3498db;
+        }
+        
+        .toast.fadeOut {
+            animation: fadeOut 0.3s ease;
+        }
+        
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        
+        @keyframes fadeOut {
+            from { opacity: 1; }
+            to { opacity: 0; }
+        }
+        
+        /* Loading spinner */
+        .loading-indicator {
+            text-align: center;
+            margin: 100px auto;
+        }
+        
+        .spinner {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            border-left-color: #3498db;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        /* Footer */
+        footer {
+            margin-top: 50px;
+            padding: 20px 0;
+            background-color: #f9f9f9;
+            text-align: center;
+            color: #777;
+            font-size: 14px;
         }
     </style>
 </head>
@@ -36,7 +205,7 @@
     <header>
         <div class="container">
             <nav>
-                <a href="../index.html" class="logo">
+                <a href="../../index.html" class="logo">
                     <div class="logo-text">SnapSelect</div>
                 </a>
             </nav>
@@ -48,16 +217,6 @@
         <div id="loadingIndicator" class="loading-indicator">
             <div class="spinner"></div>
             <p>Loading gallery...</p>
-        </div>
-        
-        <!-- Client login screen (initially hidden) -->
-        <div id="loginScreen" class="login-container" style="display: none;">
-            <h2>Client Access</h2>
-            <p>Please login to view this gallery</p>
-            <div id="loginError" class="error-message">Invalid email or password. Please try again.</div>
-            <input type="email" id="clientEmail" class="login-input" placeholder="Email">
-            <input type="password" id="clientPassword" class="login-input" placeholder="Password">
-            <button id="clientLoginBtn" class="btn">Login</button>
         </div>
         
         <!-- Password protection screen (initially hidden) -->
@@ -92,7 +251,7 @@
     
     <!-- Inline script to load the gallery -->
     <script>
-        // Initialize Firebase and check the shared gallery
+        // Firebase initialization
         (function() {
             // Firebase configuration
             const firebaseConfig = {
@@ -105,66 +264,26 @@
                 measurementId: "G-J5XGE71VF6"
             };
             
-            // Initialize Firebase directly
+            // Initialize Firebase
             try {
                 if (firebase.apps.length === 0) {
                     firebase.initializeApp(firebaseConfig);
                     console.log("Firebase initialized successfully");
                 }
                 
-                // Check if user is already logged in
-                firebase.auth().onAuthStateChanged(function(user) {
-                    if (user) {
-                        // User is signed in, check if they can access this gallery
-                        checkGalleryAccess(user);
-                    } else {
-                        // No user is signed in, show the login screen
-                        document.getElementById('loadingIndicator').style.display = 'none';
-                        document.getElementById('loginScreen').style.display = 'block';
-                        
-                        // Set up login button
-                        document.getElementById('clientLoginBtn').addEventListener('click', function() {
-                            clientLogin();
-                        });
-                    }
-                });
-                
+                // Continue with gallery loading
+                loadSharedGallery();
             } catch (error) {
                 console.error("Error initializing Firebase:", error);
                 showError("Failed to initialize the gallery. Please try again later.");
             }
         })();
         
-        // Function to handle client login
-        function clientLogin() {
-            const email = document.getElementById('clientEmail').value;
-            const password = document.getElementById('clientPassword').value;
-            
-            if (!email || !password) {
-                document.getElementById('loginError').textContent = "Please enter both email and password.";
-                document.getElementById('loginError').style.display = 'block';
-                return;
-            }
-            
-            // Sign in with Firebase Auth
-            firebase.auth().signInWithEmailAndPassword(email, password)
-                .then(userCredential => {
-                    // Signed in successfully
-                    const user = userCredential.user;
-                    checkGalleryAccess(user);
-                })
-                .catch(error => {
-                    console.error("Login error:", error);
-                    document.getElementById('loginError').textContent = error.message;
-                    document.getElementById('loginError').style.display = 'block';
-                });
-        }
-        
-        // Function to check if the logged-in user can access this gallery
-        function checkGalleryAccess(user) {
+        // Load shared gallery - SIMPLIFIED PASSWORD-ONLY VERSION
+        function loadSharedGallery() {
             // Get shared gallery ID from URL
             const urlParams = new URLSearchParams(window.location.search);
-            const shareId = urlParams.get('share');
+            const shareId = urlParams.get('share'); // FIXED: Using 'share' instead of 'id'
             
             if (!shareId) {
                 showError("Invalid gallery link. No share ID provided.");
@@ -177,9 +296,12 @@
             const db = firebase.firestore();
             
             // Find the shared gallery by ID
-            db.collection('sharedGalleries').where('shareId', '==', shareId)
+            db.collection('sharedGalleries')
+                .where('shareId', '==', shareId)
                 .get()
                 .then(snapshot => {
+                    console.log("Query completed, found:", snapshot.size, "documents");
+                    
                     if (snapshot.empty) {
                         showError("Gallery not found or access has been revoked.");
                         return;
@@ -188,53 +310,33 @@
                     const sharedGallery = snapshot.docs[0].data();
                     console.log("Found shared gallery:", sharedGallery);
                     
-                    // Check if this client is authorized to view this gallery
-                    return db.collection('clients').doc(user.uid).get()
-                        .then(clientDoc => {
-                            if (!clientDoc.exists) {
-                                throw new Error("Client not found.");
-                            }
+                    // Hide loading indicator
+                    document.getElementById('loadingIndicator').style.display = 'none';
+                    
+                    if (sharedGallery.passwordProtected) {
+                        // Show password screen
+                        document.getElementById('passwordScreen').style.display = 'block';
+                        
+                        // Set up password form submission
+                        document.getElementById('submitPasswordBtn').addEventListener('click', function() {
+                            const password = document.getElementById('galleryPassword').value;
                             
-                            const clientData = clientDoc.data();
-                            
-                            // Check if this client is allowed to view this gallery
-                            if (clientData.id !== sharedGallery.clientId) {
-                                throw new Error("You do not have permission to view this gallery.");
-                            }
-                            
-                            // Client is authorized, proceed to load gallery
-                            // Hide login screen
-                            document.getElementById('loginScreen').style.display = 'none';
-                            document.getElementById('loadingIndicator').style.display = 'none';
-                            
-                            if (sharedGallery.passwordProtected) {
-                                // Show password screen
-                                document.getElementById('passwordScreen').style.display = 'block';
-                                
-                                // Set up password form submission
-                                document.getElementById('submitPasswordBtn').addEventListener('click', function() {
-                                    const password = document.getElementById('galleryPassword').value;
-                                    
-                                    if (password === sharedGallery.password) {
-                                        // Password correct, load the gallery
-                                        loadGalleryContent(sharedGallery.galleryId);
-                                    } else {
-                                        // Show error
-                                        document.getElementById('passwordError').style.display = 'block';
-                                    }
-                                });
-                            } else {
-                                // No password needed, load gallery directly
+                            if (password === sharedGallery.password) {
+                                // Password correct, load the gallery
                                 loadGalleryContent(sharedGallery.galleryId);
+                            } else {
+                                // Show error
+                                document.getElementById('passwordError').style.display = 'block';
                             }
                         });
+                    } else {
+                        // No password needed, load gallery directly
+                        loadGalleryContent(sharedGallery.galleryId);
+                    }
                 })
                 .catch(error => {
-                    console.error("Error checking gallery access:", error);
-                    showError("Error: " + error.message);
-                    
-                    // Sign out the user if they're not authorized
-                    firebase.auth().signOut();
+                    console.error("Error fetching shared gallery:", error);
+                    showError("Error loading gallery: " + error.message);
                 });
         }
         
@@ -290,12 +392,12 @@
                         })
                         .catch(error => {
                             console.error("Error loading photos:", error);
-                            showError("Error loading photos. Please try again.");
+                            showError("Error loading photos: " + error.message);
                         });
                 })
                 .catch(error => {
                     console.error("Error loading gallery details:", error);
-                    showError("Error loading gallery details. Please try again.");
+                    showError("Error loading gallery details: " + error.message);
                 });
         }
         
