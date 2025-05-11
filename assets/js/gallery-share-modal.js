@@ -126,6 +126,8 @@ const GalleryShareModal = {
   
   // Share a gallery
   // Updated shareGallery function for gallery-share-modal.js
+  
+  // Share a gallery
   shareGallery: function() {
     try {
       // Get form values
@@ -148,6 +150,8 @@ const GalleryShareModal = {
       
       // Get the current gallery data to retrieve client information
       const db = firebase.firestore();
+      const self = this; // Store reference to 'this' for use in promise callbacks
+      let shareId; // Declare shareId variable to be used across promise chain
       
       db.collection('galleries').doc(this.currentGalleryId).get()
         .then(doc => {
@@ -163,11 +167,11 @@ const GalleryShareModal = {
           }
           
           // Generate a random share ID
-          const shareId = Math.random().toString(36).substring(2, 15);
+          shareId = Math.random().toString(36).substring(2, 15);
           
           // Save to Firestore with client ID
           return db.collection('sharedGalleries').add({
-            galleryId: this.currentGalleryId,
+            galleryId: self.currentGalleryId,
             shareId: shareId,
             clientId: clientId, // Include client ID to restrict access
             passwordProtected: passwordProtected,
@@ -179,7 +183,7 @@ const GalleryShareModal = {
           console.log("Gallery shared successfully");
           
           // Display the share link
-          this.displayShareLink(shareId);
+          self.displayShareLink(shareId);
           
           // Show revoke button
           const revokeBtn = document.getElementById('revokeAccessBtn');
@@ -188,11 +192,11 @@ const GalleryShareModal = {
           }
           
           // Show success message
-          this.showToast('Gallery shared successfully!', 'success');
+          self.showToast('Gallery shared successfully!', 'success');
         })
         .catch(error => {
           console.error("Error sharing gallery:", error);
-          this.showToast('Error sharing gallery: ' + error.message, 'error');
+          self.showToast('Error sharing gallery: ' + error.message, 'error');
         });
     } catch (error) {
       console.error("Firebase not available:", error);
