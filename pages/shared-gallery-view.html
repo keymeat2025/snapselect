@@ -283,7 +283,7 @@
         function loadSharedGallery() {
             // Get shared gallery ID from URL
             const urlParams = new URLSearchParams(window.location.search);
-            const shareId = urlParams.get('id');
+            const shareId = urlParams.get('share');
             
             if (!shareId) {
                 showError("Invalid gallery link. No gallery ID provided.");
