@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Redirecting...</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            text-align: center;
+            padding: 50px;
+            background: #f5f5f5;
+        }
+        .loader {
+            display: inline-block;
+            width: 30px;
+            height: 30px;
+            border: 3px solid rgba(0,0,0,.3);
+            border-radius: 50%;
+            border-top-color: #000;
+            animation: spin 1s ease-in-out infinite;
+            margin-bottom: 20px;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        p {
+            color: #333;
+            margin: 20px 0;
+        }
+    </style>
+    <script>
+        // Function to handle gallery URL patterns and redirect
+        function handleGalleryRedirect() {
+            // Extract the pathname
+            const path = window.location.pathname;
+            
+            // Gallery URL pattern: /{studioName}/gallery/{galleryId}
+            const galleryPattern = /^\/([^\/]+)\/gallery\/([^\/]+)\/?$/;
+            const match = path.match(galleryPattern);
+            
+            if (match) {
+                // It's a gallery URL
+                const studioName = match[1];
+                const galleryId = match[2];
+                
+                console.log("Detected gallery URL pattern:");
+                console.log("Studio Name:", studioName);
+                console.log("Gallery ID:", galleryId);
+                
+                // Redirect to the client gallery page with parameters
+                window.location.href = '/pages/client-gallery.html?studio=' + 
+                                      encodeURIComponent(studioName) + 
+                                      '&share=' + encodeURIComponent(galleryId);
+                return true;
+            }
+            
+            // If we get here, it's not a gallery URL
+            console.log("Not a gallery URL pattern:", path);
+            
+            // Redirect to homepage for any other 404
+            if (!path.includes('/pages/')) {
+                window.location.href = '/';
+                return true;
+            }
+            
+            return false;
+        }
+        
+        // Run the redirect handler
+        document.addEventListener('DOMContentLoaded', function() {
+            setTimeout(function() {
+                if (!handleGalleryRedirect()) {
+                    // If no redirect happened, show a message
+                    document.getElementById('message').innerHTML = 
+                        'Page not found. <a href="/">Return to homepage</a>';
+                }
+            }, 500); // Small delay to show the loading animation
+        });
+    </script>
+</head>
+<body>
+    <div class="loader"></div>
+    <p id="message">Redirecting to the correct page...</p>
+</body>
+</html>
