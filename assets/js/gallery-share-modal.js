@@ -134,90 +134,69 @@ const GalleryShareModal = {
   },
   
   // Share a gallery
+  
   shareGallery: function() {
-    try {
-      // Get form values
-      const passwordInput = document.getElementById('password');
-      const passwordProtectionCheckbox = document.getElementById('passwordProtection');
-      
-      if (!passwordInput || !passwordProtectionCheckbox) {
-        console.error("Password input elements not found");
-        return;
-      }
-      
-      const password = passwordInput.value;
-      const passwordProtected = passwordProtectionCheckbox.checked;
-      
-      // Validation for password protected galleries
-      if (passwordProtected && !password) {
-        this.showToast('Please enter a password for your protected gallery.', 'error');
-        return;
-      }
-      
-      // Get authenticated user
-      const currentUser = firebase.auth().currentUser;
-      if (!currentUser) {
-        this.showToast('Please log in to share galleries.', 'error');
-        return;
-      }
-      
-      // Generate a random share ID
-      const shareId = Math.random().toString(36).substring(2, 15);
-      
-      // Get additional gallery info for security
-      const db = firebase.firestore();
-      const self = this; // Store reference to 'this' for use in promise callbacks
-      
-      // First get the gallery details to verify ownership and get clientId
-      db.collection('galleries').doc(this.currentGalleryId).get()
-        .then(doc => {
-          if (!doc.exists) {
-            throw new Error("Gallery not found");
+      try {
+          // Get form values
+          const passwordInput = document.getElementById('password');
+          const passwordProtectionCheckbox = document.getElementById('passwordProtection');
+          
+          if (!passwordInput || !passwordProtectionCheckbox) {
+              console.error("Password input elements not found");
+              return;
           }
           
-          const galleryData = doc.data();
+          const password = passwordInput.value;
+          const passwordProtected = passwordProtectionCheckbox.checked;
           
-          // Verify that the current user is the owner of this gallery
-          if (galleryData.photographerId !== currentUser.uid) {
-            throw new Error("You do not have permission to share this gallery");
+          // Validation for password protected galleries
+          if (passwordProtected && !password) {
+              this.showToast('Please enter a password for your protected gallery.', 'error');
+              return;
           }
           
-          // Create share record with complete information
-          return db.collection('galleryShares').add({
-            galleryId: self.currentGalleryId,
-            shareId: shareId,
-            photographerId: currentUser.uid,
-            clientId: galleryData.clientId || null, // Include client ID if available
-            galleryName: galleryData.name || "Shared Gallery",
-            passwordProtected: passwordProtected,
-            password: passwordProtected ? password : '',
-            createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-            status: 'active'
+          // Generate a random share ID
+          const shareId = Math.random().toString(36).substring(2, 15);
+          
+          // Save to Firestore - use the collection name that matches your database
+          const db = firebase.firestore();
+          const self = this; // Store reference to 'this' for use in promise callbacks
+          
+          // Make sure to log the gallery ID and share ID
+          console.log("Sharing gallery ID:", this.currentGalleryId);
+          console.log("Generated share ID:", shareId);
+          
+          db.collection('galleryShares').add({  // Use the same collection name as in your database
+              galleryId: this.currentGalleryId,
+              shareId: shareId,
+              passwordProtected: passwordProtected,
+              password: passwordProtected ? password : '',
+              createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+              status: "active"
+          })
+          .then(() => {
+              console.log("Gallery shared successfully with ID:", shareId);
+              
+              // Display the share link - using the shareId from outer scope
+              self.displayShareLink(shareId);
+              
+              // Show revoke button
+              const revokeBtn = document.getElementById('revokeAccessBtn');
+              if (revokeBtn) {
+                  revokeBtn.classList.remove('hidden');
+              }
+              
+              // Show success message
+              self.showToast('Gallery shared successfully!', 'success');
+          })
+          .catch(error => {
+              console.error("Error sharing gallery:", error);
+              self.showToast('Error sharing gallery: ' + error.message, 'error');
           });
-        })
-        .then(() => {
-          console.log("Gallery shared successfully with ID:", shareId);
-          
-          // Display the share link - using the shareId from outer scope
-          self.displayShareLink(shareId);
-          
-          // Show revoke button
-          const revokeBtn = document.getElementById('revokeAccessBtn');
-          if (revokeBtn) {
-            revokeBtn.classList.remove('hidden');
-          }
-          
-          // Show success message
-          self.showToast('Gallery shared successfully!', 'success');
-        })
-        .catch(error => {
-          console.error("Error sharing gallery:", error);
-          self.showToast('Error sharing gallery: ' + error.message, 'error');
-        });
-    } catch (error) {
-      console.error("Firebase not available:", error);
-      this.showToast('Error: Firebase not initialized.', 'error');
-    }
+      } catch (error) {
+          console.error("Firebase not available:", error);
+          this.showToast('Error: Firebase not initialized.', 'error');
+      }
   },
   
   // Revoke access to a shared gallery
