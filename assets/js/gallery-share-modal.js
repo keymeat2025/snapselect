@@ -212,6 +212,8 @@ const GalleryShareModal = {
   },
   
   // Prompt to update photographer profile - Updated to redirect to settings page
+
+    // Prompt to update photographer profile
   promptToUpdateProfile: function(existingData) {
     const userConfirmed = confirm("You need to complete your profile before sharing galleries. Update profile now?");
     
@@ -227,7 +229,6 @@ const GalleryShareModal = {
       }
       
       // Redirect to settings page with return parameter
-
       window.location.href = '/snapselect/pages/settings.html?return=' + returnUrl;
     }
   },
