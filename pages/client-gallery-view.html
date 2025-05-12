@@ -197,6 +197,38 @@
             color: #777;
             font-size: 14px;
         }
+        
+        /* Accessibility improvements */
+        .photo-item:focus-within {
+            outline: 3px solid #3498db;
+        }
+        
+        .photo-container:focus {
+            outline: none;
+            box-shadow: inset 0 0 0 3px #3498db;
+        }
+        
+        /* Error page */
+        .error-page {
+            text-align: center;
+            max-width: 600px;
+            margin: 100px auto;
+            padding: 30px;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            display: none;
+        }
+        
+        .error-icon {
+            font-size: 48px;
+            color: #e74c3c;
+            margin-bottom: 20px;
+        }
+        
+        .retry-btn {
+            margin-top: 20px;
+        }
     </style>
 </head>
 <body>
@@ -219,12 +251,22 @@
             <p>Loading gallery...</p>
         </div>
         
+        <!-- Error page -->
+        <div id="errorPage" class="error-page">
+            <div class="error-icon">
+                <i class="fas fa-exclamation-circle"></i>
+            </div>
+            <h2>Something went wrong</h2>
+            <p id="errorMessage">We couldn't load the gallery. Please try again later.</p>
+            <button id="retryBtn" class="btn retry-btn">Try Again</button>
+        </div>
+        
         <!-- Password protection screen (initially hidden) -->
         <div id="passwordScreen" class="password-container" style="display: none;">
             <h2>Protected Gallery</h2>
             <p>This gallery is password protected. Please enter the password to view it.</p>
             <div id="passwordError" class="error-message">Incorrect password. Please try again.</div>
-            <input type="password" id="galleryPassword" class="password-input" placeholder="Enter password">
+            <input type="password" id="galleryPassword" class="password-input" placeholder="Enter password" aria-label="Gallery password">
             <button id="submitPasswordBtn" class="btn">View Gallery</button>
         </div>
         
@@ -279,9 +321,6 @@
             }
         })();
         
-      
-     // Load shared gallery - SECURE VERSION
-   
         // Load shared gallery
         function loadSharedGallery() {
             // Get shared gallery ID from URL
@@ -289,21 +328,28 @@
             const shareId = urlParams.get('share');
             
             if (!shareId) {
-                showError("Invalid gallery link. No share ID provided.");
+                showPageError("Invalid gallery link. No share ID provided.");
                 return;
             }
             
             console.log("Looking for shared gallery with ID:", shareId);
             
+            // Set a timeout for loading
+            const loadingTimeout = setTimeout(() => {
+                if (document.getElementById('loadingIndicator').style.display !== 'none') {
+                    showPageError("Gallery is taking too long to load. Please try again later.");
+                }
+            }, 15000); // 15 seconds timeout
+            
             // Get reference to Firestore
             const db = firebase.firestore();
             
-            // Check both collections to ensure compatibility
-            db.collection('galleryShares')  // Use the collection name from your Firestore
+            // Check first collection
+            db.collection('galleryShares')
                 .where('shareId', '==', shareId)
                 .get()
                 .then(snapshot => {
-                    console.log("Query completed, found:", snapshot.size, "documents");
+                    console.log("Query completed for galleryShares, found:", snapshot.size, "documents");
                     
                     if (snapshot.empty) {
                         console.log("No shares found in galleryShares, checking sharedGalleries...");
@@ -314,11 +360,13 @@
                             .get();
                     }
                     
+                    // Clear the timeout since we found data
+                    clearTimeout(loadingTimeout);
                     return snapshot;
                 })
                 .then(snapshot => {
                     if (snapshot.empty) {
-                        showError("Gallery not found or access has been revoked.");
+                        showPageError("Gallery not found or access has been revoked.");
                         return;
                     }
                     
@@ -332,31 +380,62 @@
                         // Show password screen
                         document.getElementById('passwordScreen').style.display = 'block';
                         
+                        // Focus the password input for accessibility
+                        document.getElementById('galleryPassword').focus();
+                        
                         // Set up password form submission
-                        document.getElementById('submitPasswordBtn').addEventListener('click', function() {
-                            const password = document.getElementById('galleryPassword').value;
-                            
-                            if (password === sharedGallery.password) {
-                                // Password correct, load the gallery
-                                loadGalleryContent(sharedGallery.galleryId);
-                            } else {
-                                // Show error
-                                document.getElementById('passwordError').style.display = 'block';
-                            }
-                        });
+                        setupPasswordHandling(sharedGallery);
                     } else {
                         // No password needed, load gallery directly
-                        loadGalleryContent(sharedGallery.galleryId);
+                        loadGalleryContent(sharedGallery.galleryId, sharedGallery.photographerId);
                     }
                 })
                 .catch(error => {
+                    clearTimeout(loadingTimeout);
                     console.error("Error fetching shared gallery:", error);
-                    showError("Error loading gallery: " + error.message);
+                    showPageError("Error loading gallery: " + error.message);
                 });
         }
+        
+        // Setup password handling
+        function setupPasswordHandling(sharedGallery) {
+            // Function to handle password submission
+            const handlePasswordSubmit = function() {
+                const password = document.getElementById('galleryPassword').value;
+                const passwordError = document.getElementById('passwordError');
+                
+                // Hide previous errors
+                passwordError.style.display = 'none';
+                
+                if (!password) {
+                    passwordError.textContent = 'Please enter a password.';
+                    passwordError.style.display = 'block';
+                    return;
+                }
+                
+                if (password === sharedGallery.password) {
+                    // Password correct, load the gallery
+                    loadGalleryContent(sharedGallery.galleryId, sharedGallery.photographerId);
+                } else {
+                    // Show error
+                    passwordError.textContent = 'Incorrect password. Please try again.';
+                    passwordError.style.display = 'block';
+                    
+                    // Clear the password field
+                    document.getElementById('galleryPassword').value = '';
+                    document.getElementById('galleryPassword').focus();
+                }
+            };
             
-            // Start checking collections
-            checkCollections(['galleryShares', 'sharedGalleries'], 0);
+            // Set up button click handler
+            document.getElementById('submitPasswordBtn').addEventListener('click', handlePasswordSubmit);
+            
+            // Set up enter key handler for password input
+            document.getElementById('galleryPassword').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    handlePasswordSubmit();
+                }
+            });
         }
         
         // Load gallery content with additional security
@@ -377,7 +456,7 @@
                 .get()
                 .then(doc => {
                     if (!doc.exists) {
-                        showError("Gallery not found.");
+                        showPageError("Gallery not found.");
                         return;
                     }
                     
@@ -386,7 +465,7 @@
                     
                     // Security check: Verify the gallery belongs to the correct photographer
                     if (photographerId && gallery.photographerId !== photographerId) {
-                        showError("Gallery access error: Photographer mismatch.");
+                        showPageError("Gallery access error: Photographer mismatch.");
                         return;
                     }
                     
@@ -394,35 +473,46 @@
                     document.getElementById('galleryTitle').textContent = gallery.name || 'Shared Gallery';
                     
                     // Load photos with added security
-                    db.collection('photos')
-                        .where('galleryId', '==', galleryId)
-                        .where('status', '==', 'active')
-                        .limit(20)
-                        .get()
-                        .then(snapshot => {
-                            const photosGrid = document.getElementById('photosGrid');
-                            photosGrid.innerHTML = '';
-                            
-                            if (snapshot.empty) {
-                                photosGrid.innerHTML = '<p>No photos in this gallery yet.</p>';
-                                return;
-                            }
-                            
-                            // Create elements for each photo
-                            snapshot.forEach(doc => {
-                                const photo = doc.data();
-                                const photoElement = createPhotoElement(photo);
-                                photosGrid.appendChild(photoElement);
-                            });
-                        })
-                        .catch(error => {
-                            console.error("Error loading photos:", error);
-                            showError("Error loading photos: " + error.message);
-                        });
+                    loadGalleryPhotos(galleryId, db);
                 })
                 .catch(error => {
                     console.error("Error loading gallery details:", error);
-                    showError("Error loading gallery details: " + error.message);
+                    showPageError("Error loading gallery details: " + error.message);
+                });
+        }
+        
+        // Load gallery photos
+        function loadGalleryPhotos(galleryId, db) {
+            // Show loading toast
+            showToast("Loading photos...", 'info');
+            
+            db.collection('photos')
+                .where('galleryId', '==', galleryId)
+                .where('status', '==', 'active')
+                .limit(50) // Increased limit for better gallery experience
+                .get()
+                .then(snapshot => {
+                    const photosGrid = document.getElementById('photosGrid');
+                    photosGrid.innerHTML = '';
+                    
+                    if (snapshot.empty) {
+                        photosGrid.innerHTML = '<p>No photos in this gallery yet.</p>';
+                        return;
+                    }
+                    
+                    // Create elements for each photo
+                    snapshot.forEach(doc => {
+                        const photo = doc.data();
+                        const photoElement = createPhotoElement(photo);
+                        photosGrid.appendChild(photoElement);
+                    });
+                    
+                    // Show success toast
+                    showToast("Gallery loaded successfully", 'success');
+                })
+                .catch(error => {
+                    console.error("Error loading photos:", error);
+                    showError("Error loading photos: " + error.message);
                 });
         }
         
@@ -434,6 +524,9 @@
             const photoContainer = document.createElement('div');
             photoContainer.className = 'photo-container';
             photoContainer.style.backgroundImage = `url(${photo.thumbnailUrl || photo.url})`;
+            photoContainer.setAttribute('tabindex', '0'); // Make focusable for keyboard navigation
+            photoContainer.setAttribute('role', 'img');
+            photoContainer.setAttribute('aria-label', photo.name || 'Photo');
             
             const photoDetails = document.createElement('div');
             photoDetails.className = 'photo-details';
@@ -456,18 +549,49 @@
             photoItem.appendChild(photoDetails);
             
             // Make photo clickable to view larger version
-            photoContainer.addEventListener('click', function() {
+            const openPhoto = function() {
                 window.open(photo.url, '_blank');
+            };
+            
+            // Click handler
+            photoContainer.addEventListener('click', openPhoto);
+            
+            // Keyboard handler for accessibility
+            photoContainer.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    openPhoto();
+                }
             });
             
             return photoItem;
         }
         
-        // Show error message
-        function showError(message) {
-            // Hide loading indicator
-            document.getElementById('loadingIndicator').style.display = 'none';
+        // Show page error (full page error)
+        function showPageError(message) {
+            console.error("Page error:", message);
             
+            // Hide loading indicator and other containers
+            document.getElementById('loadingIndicator').style.display = 'none';
+            document.getElementById('passwordScreen').style.display = 'none';
+            document.getElementById('galleryContainer').style.display = 'none';
+            
+            // Show error page
+            const errorPage = document.getElementById('errorPage');
+            errorPage.style.display = 'block';
+            
+            // Set error message
+            document.getElementById('errorMessage').textContent = message;
+            
+            // Setup retry button
+            document.getElementById('retryBtn').addEventListener('click', function() {
+                // Reload the page
+                window.location.reload();
+            });
+        }
+        
+        // Show error message as toast
+        function showError(message) {
             // Show toast notification
             showToast(message, 'error');
         }
@@ -480,15 +604,18 @@
             toast.className = `toast toast-${type}`;
             toast.textContent = message;
             
+            // Add aria-live for accessibility
+            toast.setAttribute('aria-live', type === 'error' ? 'assertive' : 'polite');
+            
             toastContainer.appendChild(toast);
             
-            // Remove toast after 3 seconds
+            // Remove toast after 4 seconds (a bit longer for better readability)
             setTimeout(() => {
                 toast.classList.add('fadeOut');
                 setTimeout(() => {
                     toast.remove();
                 }, 300);
-            }, 3000);
+            }, 4000);
         }
     </script>
 </body>
