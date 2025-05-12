@@ -227,7 +227,8 @@ const GalleryShareModal = {
       }
       
       // Redirect to settings page with return parameter
-      window.location.href = '/pages/settings.html?return=' + returnUrl;
+
+      window.location.href = '/snapselect/pages/settings.html?return=' + returnUrl;
     }
   },
   
