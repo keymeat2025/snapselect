@@ -103,6 +103,7 @@
                 <div class="form-group">
                     <label for="studio-name">Studio Name</label>
                     <div class="input-icon-wrapper"><i class="fas fa-camera input-icon"></i><input type="text" id="studio-name" class="input-with-icon" placeholder="Enter a Studio Name" required></div>
+                    <div class="field-hint">Only lowercase letters, numbers, and hyphens</div>
                 </div>
                 <div class="form-group">
                     <label for="owner-name">Owner Name</label>
@@ -148,6 +149,14 @@
                 <i class="fas fa-check-circle success-icon"></i>
                 <div class="success-title">Profile Updated!</div>
                 <div class="success-text">Your SnapSelect account information has been updated successfully.</div>
+            </div>
+            
+            <div class="notification-message" style="display:block">
+                <div class="notification-title">
+                    <i class="fas fa-info-circle notification-icon"></i>
+                    <span>Important Information</span>
+                </div>
+                <p>You will now be redirected back to continue sharing your gallery.</p>
             </div>
             
             <button type="button" class="btn" id="back-to-dashboard-btn" style="max-width:250px; margin:30px auto 0">
