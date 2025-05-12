@@ -229,6 +229,32 @@
         .retry-btn {
             margin-top: 20px;
         }
+        
+        /* Studio information */
+        .studio-info {
+            margin-bottom: 20px;
+            padding: 15px;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        .studio-info h2 {
+            margin-top: 0;
+            margin-bottom: 10px;
+            color: #333;
+        }
+        
+        .studio-info p {
+            margin: 5px 0;
+            color: #666;
+        }
+        
+        .studio-info .contact {
+            margin-top: 15px;
+            font-size: 14px;
+            color: #777;
+        }
     </style>
 </head>
 <body>
@@ -263,7 +289,7 @@
         
         <!-- Password protection screen (initially hidden) -->
         <div id="passwordScreen" class="password-container" style="display: none;">
-            <h2>Protected Gallery</h2>
+            <h2 id="passwordGalleryTitle">Protected Gallery</h2>
             <p>This gallery is password protected. Please enter the password to view it.</p>
             <div id="passwordError" class="error-message">Incorrect password. Please try again.</div>
             <input type="password" id="galleryPassword" class="password-input" placeholder="Enter password" aria-label="Gallery password">
@@ -272,7 +298,14 @@
         
         <!-- Gallery container (initially hidden) -->
         <div id="galleryContainer" class="gallery-container" style="display: none;">
-            <h1 id="galleryTitle">Shared Gallery</h1>
+            <div id="studioInfo" class="studio-info">
+                <h2 id="studioName">Photography Studio</h2>
+                <p id="galleryTitle">Shared Gallery</p>
+                <div class="contact">
+                    <p id="studioContact">Contact information will appear here if available</p>
+                </div>
+            </div>
+            
             <div id="photosGrid" class="photos-grid">
                 <!-- Photos will be loaded here -->
             </div>
@@ -281,7 +314,7 @@
 
     <footer>
         <div class="container">
-            <p>&copy; 2025 SnapSelect. All rights reserved.</p>
+            <p>&copy; <span id="currentYear">2025</span> SnapSelect. All rights reserved.</p>
         </div>
     </footer>
 
@@ -293,6 +326,92 @@
     
     <!-- Inline script to load the gallery -->
     <script>
+        // Access control for client gallery
+        function checkGalleryAccess() {
+            // Get gallery parameters
+            const urlParams = new URLSearchParams(window.location.search);
+            
+            // Look for different possible ID parameters
+            const galleryId = urlParams.get('id') || urlParams.get('galleryId');
+            const shareId = urlParams.get('share');
+            
+            // If no ID is present, can't proceed
+            if (!galleryId && !shareId) {
+                showPageError("Invalid gallery link. No gallery ID or share ID provided.");
+                return false;
+            }
+            
+            // If we have a direct gallery ID
+            if (galleryId) {
+                // Check if access has been granted via password
+                const accessToken = sessionStorage.getItem(`gallery_access_${galleryId}`);
+                
+                if (!accessToken) {
+                    console.log("Direct gallery access attempted without authentication");
+                    // Look for the studio name and share ID
+                    try {
+                        const actualGalleryId = sessionStorage.getItem('actual_gallery_id') || galleryId;
+                        findStudioAndShareInfo(actualGalleryId);
+                        return false;
+                    } catch (error) {
+                        console.error("Error redirecting to password page:", error);
+                        showPageError("Authentication error. Please try accessing through the shared link.");
+                        return false;
+                    }
+                }
+            }
+            
+            // If we have a share ID, we'll verify it during regular loading
+            
+            return true;
+        }
+        
+        // Function to find studio and share information for a gallery
+        function findStudioAndShareInfo(galleryId) {
+            // If Firebase is available, look up the information
+            if (typeof firebase !== 'undefined' && firebase.apps.length) {
+                const db = firebase.firestore();
+                
+                // Find gallery shares for this gallery
+                db.collection('galleryShares')
+                    .where('galleryId', '==', galleryId)
+                    .limit(1)
+                    .get()
+                    .then(snapshot => {
+                        if (!snapshot.empty) {
+                            const shareData = snapshot.docs[0].data();
+                            const shareId = shareData.shareId;
+                            
+                            // Find the photographer
+                            return db.collection('photographer')
+                                .where('uid', '==', shareData.photographerId)
+                                .limit(1)
+                                .get()
+                                .then(photoSnapshot => {
+                                    if (!photoSnapshot.empty) {
+                                        const photographerData = photoSnapshot.docs[0].data();
+                                        const studioName = photographerData.studioName;
+                                        
+                                        // Redirect with studio name
+                                        window.location.href = `/${studioName}/gallery/${shareId}`;
+                                    } else {
+                                        // Fallback to basic redirect
+                                        window.location.href = `/client-gallery.html?share=${shareId}`;
+                                    }
+                                });
+                        } else {
+                            showPageError("Gallery access denied. Please use the shared link provided by the photographer.");
+                        }
+                    })
+                    .catch(error => {
+                        console.error("Error finding share info:", error);
+                        showPageError("Error accessing gallery. Please try again later.");
+                    });
+            } else {
+                showPageError("Gallery access denied. Firebase not initialized.");
+            }
+        }
+
         // Firebase initialization
         (function() {
             // Firebase configuration
@@ -313,8 +432,14 @@
                     console.log("Firebase initialized successfully");
                 }
                 
-                // Continue with gallery loading
-                loadSharedGallery();
+                // Update current year in footer
+                document.getElementById('currentYear').textContent = new Date().getFullYear();
+                
+                // Check access before proceeding
+                if (checkGalleryAccess()) {
+                    // Continue with gallery loading
+                    loadSharedGallery();
+                }
             } catch (error) {
                 console.error("Error initializing Firebase:", error);
                 showError("Failed to initialize the gallery. Please try again later.");
@@ -323,12 +448,22 @@
         
         // Load shared gallery
         function loadSharedGallery() {
-            // Get shared gallery ID from URL
+            // Get gallery parameters
             const urlParams = new URLSearchParams(window.location.search);
+            
+            // Check for direct gallery ID first
+            const directGalleryId = urlParams.get('id') || urlParams.get('galleryId');
+            if (directGalleryId) {
+                console.log("Direct gallery access with ID:", directGalleryId);
+                loadGalleryDirect(directGalleryId);
+                return;
+            }
+            
+            // Otherwise, look for share ID
             const shareId = urlParams.get('share');
             
             if (!shareId) {
-                showPageError("Invalid gallery link. No share ID provided.");
+                showPageError("Invalid gallery link. No parameters provided.");
                 return;
             }
             
@@ -373,20 +508,38 @@
                     const sharedGallery = snapshot.docs[0].data();
                     console.log("Found shared gallery:", sharedGallery);
                     
+                    // Store the actual gallery ID in session storage
+                    sessionStorage.setItem('actual_gallery_id', sharedGallery.galleryId);
+                    
                     // Hide loading indicator
                     document.getElementById('loadingIndicator').style.display = 'none';
                     
                     if (sharedGallery.passwordProtected) {
+                        // Check if we already have access
+                        const accessGranted = sessionStorage.getItem(`gallery_access_${shareId}`);
+                        if (accessGranted) {
+                            // Already authenticated, load gallery
+                            loadGalleryContent(sharedGallery.galleryId, sharedGallery.photographerId);
+                            return;
+                        }
+                        
                         // Show password screen
                         document.getElementById('passwordScreen').style.display = 'block';
+                        
+                        // Update password screen title if we have gallery info
+                        updatePasswordScreenTitle(sharedGallery.galleryId);
                         
                         // Focus the password input for accessibility
                         document.getElementById('galleryPassword').focus();
                         
                         // Set up password form submission
-                        setupPasswordHandling(sharedGallery);
+                        setupPasswordHandling(sharedGallery, shareId);
                     } else {
                         // No password needed, load gallery directly
+                        // First, store access in session storage
+                        sessionStorage.setItem(`gallery_access_${shareId}`, 'granted');
+                        
+                        // Load gallery content
                         loadGalleryContent(sharedGallery.galleryId, sharedGallery.photographerId);
                     }
                 })
@@ -397,8 +550,43 @@
                 });
         }
         
+        // Update the password screen title with gallery info if available
+        function updatePasswordScreenTitle(galleryId) {
+            try {
+                const db = firebase.firestore();
+                
+                db.collection('galleries').doc(galleryId)
+                    .get()
+                    .then(doc => {
+                        if (doc.exists) {
+                            const gallery = doc.data();
+                            const titleElement = document.getElementById('passwordGalleryTitle');
+                            if (titleElement && gallery.name) {
+                                titleElement.textContent = gallery.name;
+                            }
+                        }
+                    })
+                    .catch(error => {
+                        console.error("Error fetching gallery for password screen:", error);
+                    });
+            } catch (error) {
+                console.error("Error updating password screen title:", error);
+            }
+        }
+        
+        // Load gallery directly with ID
+        function loadGalleryDirect(galleryId) {
+            console.log("Loading gallery directly with ID:", galleryId);
+            
+            // Hide loading indicator
+            document.getElementById('loadingIndicator').style.display = 'none';
+            
+            // Load gallery content
+            loadGalleryContent(galleryId);
+        }
+        
         // Setup password handling
-        function setupPasswordHandling(sharedGallery) {
+        function setupPasswordHandling(sharedGallery, shareId) {
             // Function to handle password submission
             const handlePasswordSubmit = function() {
                 const password = document.getElementById('galleryPassword').value;
@@ -414,7 +602,10 @@
                 }
                 
                 if (password === sharedGallery.password) {
-                    // Password correct, load the gallery
+                    // Password correct, store access token in session storage
+                    sessionStorage.setItem(`gallery_access_${shareId}`, 'granted');
+                    
+                    // Load the gallery
                     loadGalleryContent(sharedGallery.galleryId, sharedGallery.photographerId);
                 } else {
                     // Show error
@@ -472,12 +663,77 @@
                     // Set gallery title
                     document.getElementById('galleryTitle').textContent = gallery.name || 'Shared Gallery';
                     
+                    // Get photographer details
+                    loadPhotographerDetails(gallery.photographerId);
+                    
                     // Load photos with added security
                     loadGalleryPhotos(galleryId, db);
                 })
                 .catch(error => {
                     console.error("Error loading gallery details:", error);
                     showPageError("Error loading gallery details: " + error.message);
+                });
+        }
+        
+        // Load photographer details
+        function loadPhotographerDetails(photographerId) {
+            if (!photographerId) {
+                console.log("No photographer ID provided");
+                return;
+            }
+            
+            const db = firebase.firestore();
+            
+            // Try to find the photographer in the new collection name
+            db.collection('photographer')
+                .where('uid', '==', photographerId)
+                .limit(1)
+                .get()
+                .then(snapshot => {
+                    if (snapshot.empty) {
+                        console.log("No photographer found with ID:", photographerId);
+                        return;
+                    }
+                    
+                    const photographerData = snapshot.docs[0].data();
+                    console.log("Photographer details:", photographerData);
+                    
+                    // Update studio information
+                    const studioNameElement = document.getElementById('studioName');
+                    if (studioNameElement) {
+                        studioNameElement.textContent = photographerData.studioName || photographerData.ownerName || 'Photography Studio';
+                    }
+                    
+                    // Update contact information
+                    const studioContactElement = document.getElementById('studioContact');
+                    if (studioContactElement) {
+                        let contactText = "";
+                        
+                        if (photographerData.ownerName) {
+                            contactText += `${photographerData.ownerName}`;
+                        }
+                        
+                        if (photographerData.ownerEmail) {
+                            contactText += ` | Email: ${photographerData.ownerEmail}`;
+                        }
+                        
+                        if (photographerData.ownerNumber) {
+                            contactText += ` | Phone: ${photographerData.ownerNumber}`;
+                        }
+                        
+                        if (photographerData.studioAddress) {
+                            contactText += ` | Address: ${photographerData.studioAddress}`;
+                            
+                            if (photographerData.studioPincode) {
+                                contactText += `, ${photographerData.studioPincode}`;
+                            }
+                        }
+                        
+                        studioContactElement.textContent = contactText || 'No contact information available';
+                    }
+                })
+                .catch(error => {
+                    console.error("Error loading photographer details:", error);
                 });
         }
         
