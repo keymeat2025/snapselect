@@ -279,11 +279,12 @@
             }
         })();
         
-        // Load shared gallery - SIMPLIFIED PASSWORD-ONLY VERSION
+      
+     // Load shared gallery - SECURE VERSION
         function loadSharedGallery() {
             // Get shared gallery ID from URL
             const urlParams = new URLSearchParams(window.location.search);
-            const shareId = urlParams.get('share'); // FIXED: Using 'share' instead of 'id'
+            const shareId = urlParams.get('share');
             
             if (!shareId) {
                 showError("Invalid gallery link. No share ID provided.");
@@ -295,53 +296,69 @@
             // Get reference to Firestore
             const db = firebase.firestore();
             
-            // Find the shared gallery by ID
-            db.collection('sharedGalleries')
-                .where('shareId', '==', shareId)
-                .get()
-                .then(snapshot => {
-                    console.log("Query completed, found:", snapshot.size, "documents");
-                    
-                    if (snapshot.empty) {
-                        showError("Gallery not found or access has been revoked.");
-                        return;
-                    }
-                    
-                    const sharedGallery = snapshot.docs[0].data();
-                    console.log("Found shared gallery:", sharedGallery);
-                    
-                    // Hide loading indicator
-                    document.getElementById('loadingIndicator').style.display = 'none';
-                    
-                    if (sharedGallery.passwordProtected) {
-                        // Show password screen
-                        document.getElementById('passwordScreen').style.display = 'block';
+            // Find the shared gallery by ID - Try both collection names for compatibility
+            function checkCollections(collections, index) {
+                if (index >= collections.length) {
+                    showError("Gallery not found or access has been revoked.");
+                    return;
+                }
+                
+                const collectionName = collections[index];
+                console.log(`Checking collection: ${collectionName}`);
+                
+                db.collection(collectionName)
+                    .where('shareId', '==', shareId)
+                    .where('status', '==', 'active')  // Only get active shares
+                    .get()
+                    .then(snapshot => {
+                        console.log(`Query completed in ${collectionName}, found:`, snapshot.size, "documents");
                         
-                        // Set up password form submission
-                        document.getElementById('submitPasswordBtn').addEventListener('click', function() {
-                            const password = document.getElementById('galleryPassword').value;
+                        if (snapshot.empty) {
+                            // Try next collection
+                            checkCollections(collections, index + 1);
+                            return;
+                        }
+                        
+                        const sharedGallery = snapshot.docs[0].data();
+                        console.log("Found shared gallery:", sharedGallery);
+                        
+                        // Hide loading indicator
+                        document.getElementById('loadingIndicator').style.display = 'none';
+                        
+                        if (sharedGallery.passwordProtected) {
+                            // Show password screen
+                            document.getElementById('passwordScreen').style.display = 'block';
                             
-                            if (password === sharedGallery.password) {
-                                // Password correct, load the gallery
-                                loadGalleryContent(sharedGallery.galleryId);
-                            } else {
-                                // Show error
-                                document.getElementById('passwordError').style.display = 'block';
-                            }
-                        });
-                    } else {
-                        // No password needed, load gallery directly
-                        loadGalleryContent(sharedGallery.galleryId);
-                    }
-                })
-                .catch(error => {
-                    console.error("Error fetching shared gallery:", error);
-                    showError("Error loading gallery: " + error.message);
-                });
+                            // Set up password form submission
+                            document.getElementById('submitPasswordBtn').addEventListener('click', function() {
+                                const password = document.getElementById('galleryPassword').value;
+                                
+                                if (password === sharedGallery.password) {
+                                    // Password correct, load the gallery
+                                    loadGalleryContent(sharedGallery.galleryId, sharedGallery.photographerId);
+                                } else {
+                                    // Show error
+                                    document.getElementById('passwordError').style.display = 'block';
+                                }
+                            });
+                        } else {
+                            // No password needed, load gallery directly
+                            loadGalleryContent(sharedGallery.galleryId, sharedGallery.photographerId);
+                        }
+                    })
+                    .catch(error => {
+                        console.error(`Error fetching shared gallery from ${collectionName}:`, error);
+                        // Try next collection
+                        checkCollections(collections, index + 1);
+                    });
+            }
+            
+            // Start checking collections
+            checkCollections(['galleryShares', 'sharedGalleries'], 0);
         }
         
-        // Load gallery content
-        function loadGalleryContent(galleryId) {
+        // Load gallery content with additional security
+        function loadGalleryContent(galleryId, photographerId) {
             console.log("Loading gallery content for ID:", galleryId);
             
             // Hide password screen if visible
@@ -353,7 +370,7 @@
             // Get reference to Firestore
             const db = firebase.firestore();
             
-            // Get gallery details
+            // Get gallery details with additional security check
             db.collection('galleries').doc(galleryId)
                 .get()
                 .then(doc => {
@@ -365,10 +382,16 @@
                     const gallery = doc.data();
                     console.log("Gallery details:", gallery);
                     
+                    // Security check: Verify the gallery belongs to the correct photographer
+                    if (photographerId && gallery.photographerId !== photographerId) {
+                        showError("Gallery access error: Photographer mismatch.");
+                        return;
+                    }
+                    
                     // Set gallery title
                     document.getElementById('galleryTitle').textContent = gallery.name || 'Shared Gallery';
                     
-                    // Load photos
+                    // Load photos with added security
                     db.collection('photos')
                         .where('galleryId', '==', galleryId)
                         .where('status', '==', 'active')
