@@ -65,26 +65,35 @@ const GalleryShareModal = {
     // Store the gallery ID
     this.currentGalleryId = galleryData.id;
     
-    // First validate photographer details
-    this.validatePhotographerDetails((isValid, photographerData) => {
-      if (isValid) {
-        // Show photographer details in the modal header or relevant location
+    // First fetch and validate photographer details
+    this.fetchPhotographerProfile((photographerData) => {
+      if (photographerData) {
+        // Display photographer details in the modal
         this.displayPhotographerName(photographerData);
         
-        // Show the modal
-        const modal = document.getElementById('shareGalleryModal');
-        if (modal) {
-          modal.style.display = 'block';
-          
-          // Check if gallery is already shared
-          this.checkSharingStatus();
+        // Check if all required fields are present
+        if (this.validateRequiredFields(photographerData)) {
+          // Show the modal
+          const modal = document.getElementById('shareGalleryModal');
+          if (modal) {
+            modal.style.display = 'block';
+            
+            // Check if gallery is already shared
+            this.checkSharingStatus();
+          }
+        } else {
+          // Missing required fields, prompt to update
+          this.promptToUpdateProfile(photographerData);
         }
+      } else {
+        // No photographer profile found, prompt to create one
+        this.promptToUpdateProfile(null);
       }
     });
   },
   
-  // Validate photographer details before sharing
-  validatePhotographerDetails: function(callback) {
+  // Fetch photographer profile from Firestore
+  fetchPhotographerProfile: function(callback) {
     try {
       const db = firebase.firestore();
       const currentUser = firebase.auth().currentUser;
@@ -94,66 +103,86 @@ const GalleryShareModal = {
         return;
       }
       
-      // Find photographer by UID
-      db.collection('photographers')
-        .where('uid', '==', currentUser.uid)
-        .limit(1)
+      console.log("Looking for photographer profile with UID:", currentUser.uid);
+      
+      // Query the photographer collection (singular)
+      db.collection('photographer')
         .get()
         .then(snapshot => {
           if (snapshot.empty) {
-            // No profile found, prompt to create
-            this.showToast("Please complete your profile before sharing", "warning");
-            this.promptToUpdateProfile(null);
-            if (callback) callback(false, null);
+            console.log("No photographers found in collection");
+            if (callback) callback(null);
             return;
           }
           
-          const photographerData = snapshot.docs[0].data();
-          console.log("Found photographer profile:", photographerData);
+          console.log("Found", snapshot.size, "photographers in collection");
           
-          // Check required fields
-          const requiredFields = ['studioName', 'ownerName', 'ownerEmail', 'ownerNumber'];
-          const missingFields = [];
+          // Find the photographer with matching UID
+          let photographerData = null;
           
-          requiredFields.forEach(field => {
-            if (!photographerData[field] || photographerData[field].trim() === '') {
-              missingFields.push(field);
+          snapshot.forEach(doc => {
+            const data = doc.data();
+            console.log("Checking photographer:", data);
+            
+            if (data.uid === currentUser.uid) {
+              console.log("Found matching photographer:", data);
+              photographerData = data;
+              photographerData.id = doc.id; // Save the document ID
             }
           });
           
-          if (missingFields.length > 0) {
-            // Missing required fields
-            const fieldsStr = missingFields.join(', ');
-            this.showToast(`Please update your profile (missing: ${fieldsStr})`, "warning");
-            this.promptToUpdateProfile(photographerData);
-            if (callback) callback(false, photographerData);
-            return;
+          if (photographerData) {
+            if (callback) callback(photographerData);
+          } else {
+            console.log("No photographer found with UID:", currentUser.uid);
+            if (callback) callback(null);
           }
-          
-          // All required fields present
-          if (callback) callback(true, photographerData);
         })
         .catch(error => {
-          console.error("Error validating photographer details:", error);
+          console.error("Error fetching photographers:", error);
           this.showToast("Error checking your profile", "error");
-          if (callback) callback(false, null);
+          if (callback) callback(null);
         });
     } catch (error) {
-      console.error("Error in validatePhotographerDetails:", error);
-      this.showToast("Error: Could not validate profile", "error");
-      if (callback) callback(false, null);
+      console.error("Error in fetchPhotographerProfile:", error);
+      this.showToast("Error: Could not fetch profile", "error");
+      if (callback) callback(null);
     }
+  },
+  
+  // Validate if all required fields are present
+  validateRequiredFields: function(photographerData) {
+    if (!photographerData) return false;
+    
+    const requiredFields = ['studioName', 'ownerName', 'ownerEmail', 'ownerNumber'];
+    const missingFields = [];
+    
+    requiredFields.forEach(field => {
+      if (!photographerData[field] || photographerData[field].trim() === '') {
+        missingFields.push(field);
+      }
+    });
+    
+    if (missingFields.length > 0) {
+      const fieldsStr = missingFields.join(', ');
+      this.showToast(`Please update your profile (missing: ${fieldsStr})`, "warning");
+      return false;
+    }
+    
+    return true;
   },
   
   // Display photographer name in the modal
   displayPhotographerName: function(photographerData) {
     if (!photographerData) return;
     
+    console.log("Displaying photographer data:", photographerData);
+    
     // Try to find the modal title or header to add the name
     const modalTitle = document.querySelector('#shareGalleryModal .modal-title');
     if (modalTitle) {
       // Add photographer name to modal title
-      modalTitle.textContent = `Share Gallery - ${photographerData.studioName}`;
+      modalTitle.textContent = `Share Gallery - ${photographerData.studioName || 'No Studio Name'}`;
     }
     
     // Add a simple profile info section if not present
@@ -181,6 +210,8 @@ const GalleryShareModal = {
           <p><strong>Studio:</strong> ${photographerData.studioName || 'Not set'}</p>
           <p><strong>Owner:</strong> ${photographerData.ownerName || 'Not set'} 
             (${photographerData.ownerEmail || 'No email'}, ${photographerData.ownerNumber || 'No phone'})</p>
+          <p><strong>Address:</strong> ${photographerData.studioAddress || 'Not set'}, 
+            ${photographerData.studioPincode || 'No pincode'}</p>
         </div>
       `;
     }
@@ -357,25 +388,18 @@ const GalleryShareModal = {
         return;
       }
       
+      // Add UID to profile data
+      profileData.uid = currentUser.uid;
+      
       // Show loading state
       errorElement.textContent = "Saving profile...";
       errorElement.style.color = "blue";
       
-      // Update or create profile
-      if (existingData) {
-        // Update existing profile
-        db.collection('photographers')
-          .where('uid', '==', currentUser.uid)
-          .limit(1)
-          .get()
-          .then(snapshot => {
-            if (snapshot.empty) {
-              throw new Error("Profile not found");
-            }
-            
-            // Update existing document
-            return snapshot.docs[0].ref.update(profileData);
-          })
+      if (existingData && existingData.id) {
+        // Update existing document
+        db.collection('photographer')
+          .doc(existingData.id)
+          .update(profileData)
           .then(() => {
             console.log("Profile updated successfully");
             this.handleProfileUpdateSuccess();
@@ -386,13 +410,11 @@ const GalleryShareModal = {
             errorElement.style.color = "red";
           });
       } else {
-        // Create new profile
-        // Add UID field to the data
-        profileData.uid = currentUser.uid;
+        // Create new document
+        // Add registration date for new profiles
         profileData.registrationDate = firebase.firestore.FieldValue.serverTimestamp();
         
-        // Add new document
-        db.collection('photographers')
+        db.collection('photographer')
           .add(profileData)
           .then(() => {
             console.log("Profile created successfully");
@@ -470,48 +492,10 @@ const GalleryShareModal = {
   // Display share link for a gallery
   displayShareLink: function(shareId) {
     try {
-      const db = firebase.firestore();
-      const currentUser = firebase.auth().currentUser;
-      
-      if (!currentUser) {
-        console.error("No authenticated user found");
-        return;
-      }
-      
-      // Get the photographer's studio name from their profile
-      db.collection('photographers')
-        .where('uid', '==', currentUser.uid)
-        .limit(1)
-        .get()
-        .then(snapshot => {
-          if (snapshot.empty) {
-            throw new Error("Photographer profile not found");
-          }
-          
-          const photographerData = snapshot.docs[0].data();
-          const studioName = photographerData.studioName;
-          
-          if (!studioName) {
-            throw new Error("Studio name not found in profile");
-          }
-          
-          // Create the URL with studio name
-          const shareUrl = `${window.location.origin}/${studioName}/gallery/${shareId}`;
-          
-          // Update the UI
-          const urlDisplay = document.getElementById('shareUrlDisplay');
-          if (urlDisplay) {
-            urlDisplay.value = shareUrl;
-            
-            // Show the share link section
-            const shareLinkSection = document.getElementById('shareLinkSection');
-            if (shareLinkSection) {
-              shareLinkSection.classList.remove('hidden');
-            }
-          }
-        })
-        .catch(error => {
-          console.error("Error getting studio name:", error);
+      // Get the photographer profile to get the studio name
+      this.fetchPhotographerProfile((photographerData) => {
+        if (!photographerData || !photographerData.studioName) {
+          console.error("No valid photographer profile or studio name found");
           
           // Fallback to original URL format
           const shareUrl = `${window.location.origin}/snapselect/pages/client-gallery-view.html?share=${shareId}`;
@@ -524,7 +508,24 @@ const GalleryShareModal = {
               shareLinkSection.classList.remove('hidden');
             }
           }
-        });
+          return;
+        }
+        
+        // Create the URL with studio name
+        const shareUrl = `${window.location.origin}/${photographerData.studioName}/gallery/${shareId}`;
+        
+        // Update the UI
+        const urlDisplay = document.getElementById('shareUrlDisplay');
+        if (urlDisplay) {
+          urlDisplay.value = shareUrl;
+          
+          // Show the share link section
+          const shareLinkSection = document.getElementById('shareLinkSection');
+          if (shareLinkSection) {
+            shareLinkSection.classList.remove('hidden');
+          }
+        }
+      });
     } catch (error) {
       console.error("Error in displayShareLink:", error);
       this.showToast('Error generating share link.', 'error');
@@ -555,7 +556,7 @@ const GalleryShareModal = {
       // Generate a random share ID
       const shareId = Math.random().toString(36).substring(2, 15);
       
-      // Save to Firestore - use the collection name that matches your database
+      // Save to Firestore
       const db = firebase.firestore();
       const currentUser = firebase.auth().currentUser;
       const self = this; // Store reference to 'this' for use in promise callbacks
@@ -569,7 +570,7 @@ const GalleryShareModal = {
       console.log("Sharing gallery ID:", this.currentGalleryId);
       console.log("Generated share ID:", shareId);
       
-      db.collection('galleryShares').add({  // Use the same collection name that matches your database
+      db.collection('galleryShares').add({
         galleryId: this.currentGalleryId,
         photographerId: currentUser.uid,
         shareId: shareId,
