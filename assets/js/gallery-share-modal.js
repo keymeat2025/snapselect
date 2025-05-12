@@ -58,7 +58,7 @@ const GalleryShareModal = {
     }
   },
   
-  // Check if photographer has a studio name
+  // Check if photographer has a studio name in their profile
   checkStudioName: function(callback) {
     try {
       const db = firebase.firestore();
@@ -69,24 +69,35 @@ const GalleryShareModal = {
         return;
       }
       
+      // Query photographers collection using the uid field matching current user
       db.collection('photographers')
-        .doc(currentUser.uid)
+        .where('uid', '==', currentUser.uid)
+        .limit(1)
         .get()
-        .then(doc => {
-          if (!doc.exists || !doc.data().studioName) {
-            // No studio name set, show prompt to set one
-            this.promptForStudioName();
+        .then(snapshot => {
+          if (snapshot.empty) {
+            // No photographer profile found
+            this.promptForStudioName(null); // Pass null to indicate new profile
+            return;
+          }
+          
+          const photographerData = snapshot.docs[0].data();
+          
+          // Check if studio name exists and is not empty
+          if (!photographerData.studioName || photographerData.studioName.trim() === '') {
+            // Studio name not set, show prompt with existing data
+            this.promptForStudioName(photographerData);
             return;
           }
           
           // Studio name exists, proceed with callback
           if (typeof callback === 'function') {
-            callback(doc.data().studioName);
+            callback(photographerData.studioName);
           }
         })
         .catch(error => {
           console.error("Error checking studio name:", error);
-          this.showToast("Error checking profile", "error");
+          this.showToast("Error checking photographer profile", "error");
         });
     } catch (error) {
       console.error("Firebase not available:", error);
@@ -95,7 +106,7 @@ const GalleryShareModal = {
   },
 
   // Prompt user to set studio name
-  promptForStudioName: function() {
+  promptForStudioName: function(existingData) {
     // Hide any existing modal first
     const existingModal = document.getElementById('shareGalleryModal');
     if (existingModal) {
@@ -116,7 +127,7 @@ const GalleryShareModal = {
           <form id="quickStudioNameForm">
             <div class="form-group">
               <label for="quickStudioName">Studio Name</label>
-              <input type="text" id="quickStudioName" placeholder="e.g. jane-smith-photography" required>
+              <input type="text" id="quickStudioName" placeholder="e.g. santhiya-studio" required>
               <small>Use lowercase letters, numbers, and hyphens only (3-30 characters)</small>
               <div id="quickStudioNameError" class="error-message"></div>
             </div>
@@ -135,8 +146,16 @@ const GalleryShareModal = {
       const form = promptModal.querySelector('form');
       form.addEventListener('submit', (e) => {
         e.preventDefault();
-        this.saveStudioName();
+        this.saveStudioName(existingData);
       });
+    }
+    
+    // Pre-fill with existing data if available
+    if (existingData) {
+      const studioNameInput = document.getElementById('quickStudioName');
+      if (studioNameInput && existingData.studioName) {
+        studioNameInput.value = existingData.studioName;
+      }
     }
     
     // Show the prompt
@@ -144,7 +163,7 @@ const GalleryShareModal = {
   },
 
   // Save studio name from quick form
-  saveStudioName: function() {
+  saveStudioName: function(existingData) {
     try {
       const studioNameInput = document.getElementById('quickStudioName');
       const errorElement = document.getElementById('quickStudioNameError');
@@ -174,48 +193,43 @@ const GalleryShareModal = {
         return;
       }
       
-      // Check if the document exists first
-      db.collection('photographers')
-        .doc(currentUser.uid)
-        .get()
-        .then(doc => {
-          if (doc.exists) {
-            // Update existing document
-            return db.collection('photographers')
-              .doc(currentUser.uid)
-              .update({
+      // Check if we have existing data
+      if (existingData) {
+        // Update existing photographer document
+        db.collection('photographers')
+          .where('uid', '==', currentUser.uid)
+          .limit(1)
+          .get()
+          .then(snapshot => {
+            if (!snapshot.empty) {
+              const docRef = snapshot.docs[0].ref;
+              return docRef.update({
                 studioName: studioName,
-                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                // Keep other fields unchanged
               });
-          } else {
-            // Create new document
-            return db.collection('photographers')
-              .doc(currentUser.uid)
-              .set({
-                studioName: studioName,
-                displayName: currentUser.displayName || 'Photographer',
-                email: currentUser.email,
-                createdAt: firebase.firestore.FieldValue.serverTimestamp()
-              });
-          }
-        })
-        .then(() => {
-          // Hide the prompt
-          const promptModal = document.getElementById('studioNamePrompt');
-          if (promptModal) {
-            promptModal.style.display = 'none';
-          }
-          
-          // Show the share modal
-          this.open({ id: this.currentGalleryId });
-          
-          // Show success message
-          this.showToast("Studio name saved successfully!", "success");
-        })
-        .catch(error => {
-          console.error("Error saving studio name:", error);
-          errorElement.textContent = "Error saving studio name. Please try again.";
-        });
+            } else {
+              // Should not happen, but handle it gracefully
+              return this.createNewPhotographerProfile(studioName);
+            }
+          })
+          .then(() => {
+            this.handleStudioNameSaveSuccess();
+          })
+          .catch(error => {
+            console.error("Error updating studio name:", error);
+            errorElement.textContent = "Error saving studio name. Please try again.";
+          });
+      } else {
+        // Create new photographer profile
+        this.createNewPhotographerProfile(studioName)
+          .then(() => {
+            this.handleStudioNameSaveSuccess();
+          })
+          .catch(error => {
+            console.error("Error creating photographer profile:", error);
+            errorElement.textContent = "Error creating profile. Please try again.";
+          });
+      }
     } catch (error) {
       console.error("Error in saveStudioName:", error);
       const errorElement = document.getElementById('quickStudioNameError');
@@ -223,6 +237,58 @@ const GalleryShareModal = {
         errorElement.textContent = "An unexpected error occurred. Please try again.";
       }
     }
+  },
+  
+  // Create a new photographer profile
+  createNewPhotographerProfile: function(studioName) {
+    return new Promise((resolve, reject) => {
+      try {
+        const db = firebase.firestore();
+        const currentUser = firebase.auth().currentUser;
+        
+        if (!currentUser) {
+          reject(new Error("No authenticated user found"));
+          return;
+        }
+        
+        // Create new document with all required fields
+        db.collection('photographers').add({
+          uid: currentUser.uid,
+          ownerName: currentUser.displayName || '',
+          ownerEmail: currentUser.email || '',
+          ownerNumber: '',
+          studioName: studioName,
+          studioAddress: '',
+          studioPincode: '',
+          registrationDate: firebase.firestore.FieldValue.serverTimestamp()
+        })
+        .then(() => {
+          resolve();
+        })
+        .catch(error => {
+          console.error("Error creating photographer profile:", error);
+          reject(error);
+        });
+      } catch (error) {
+        console.error("Firebase not available:", error);
+        reject(error);
+      }
+    });
+  },
+  
+  // Handle successful studio name save
+  handleStudioNameSaveSuccess: function() {
+    // Hide the prompt
+    const promptModal = document.getElementById('studioNamePrompt');
+    if (promptModal) {
+      promptModal.style.display = 'none';
+    }
+    
+    // Show the share modal
+    this.open({ id: this.currentGalleryId });
+    
+    // Show success message
+    this.showToast("Studio name saved successfully!", "success");
   },
   
   // Open the modal for a gallery
@@ -296,15 +362,22 @@ const GalleryShareModal = {
         return;
       }
       
+      // Get the photographer's studio name from their profile
       db.collection('photographers')
-        .doc(currentUser.uid)
+        .where('uid', '==', currentUser.uid)
+        .limit(1)
         .get()
-        .then(doc => {
-          if (!doc.exists) {
+        .then(snapshot => {
+          if (snapshot.empty) {
             throw new Error("Photographer profile not found");
           }
           
-          const studioName = doc.data().studioName;
+          const photographerData = snapshot.docs[0].data();
+          const studioName = photographerData.studioName;
+          
+          if (!studioName) {
+            throw new Error("Studio name not found in profile");
+          }
           
           // Create the URL with studio name
           const shareUrl = `${window.location.origin}/${studioName}/gallery/${shareId}`;
