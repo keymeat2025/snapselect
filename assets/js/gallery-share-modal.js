@@ -79,8 +79,18 @@ const GalleryShareModal = {
   checkSharingStatus: function() {
     try {
       const db = firebase.firestore();
+      const currentUser = firebase.auth().currentUser;
       
-      db.collection('sharedGalleries').where('galleryId', '==', this.currentGalleryId)
+      if (!currentUser) {
+        console.error("No authenticated user found");
+        this.showToast("Please log in to share galleries", "error");
+        return;
+      }
+      
+      // Use photographerId and galleryId combination for more secure sharing
+      db.collection('galleryShares')
+        .where('galleryId', '==', this.currentGalleryId)
+        .where('photographerId', '==', currentUser.uid)
         .get()
         .then(snapshot => {
           if (!snapshot.empty) {
@@ -144,39 +154,66 @@ const GalleryShareModal = {
         return;
       }
       
+      // Get authenticated user
+      const currentUser = firebase.auth().currentUser;
+      if (!currentUser) {
+        this.showToast('Please log in to share galleries.', 'error');
+        return;
+      }
+      
       // Generate a random share ID
       const shareId = Math.random().toString(36).substring(2, 15);
       
-      // Save to Firestore - SIMPLIFIED VERSION without client ID requirement
+      // Get additional gallery info for security
       const db = firebase.firestore();
       const self = this; // Store reference to 'this' for use in promise callbacks
       
-      db.collection('sharedGalleries').add({
-        galleryId: this.currentGalleryId,
-        shareId: shareId,
-        passwordProtected: passwordProtected,
-        password: passwordProtected ? password : '',
-        createdAt: firebase.firestore.FieldValue.serverTimestamp()
-      })
-      .then(() => {
-        console.log("Gallery shared successfully");
-        
-        // Display the share link - using the shareId from outer scope
-        self.displayShareLink(shareId);
-        
-        // Show revoke button
-        const revokeBtn = document.getElementById('revokeAccessBtn');
-        if (revokeBtn) {
-          revokeBtn.classList.remove('hidden');
-        }
-        
-        // Show success message
-        self.showToast('Gallery shared successfully!', 'success');
-      })
-      .catch(error => {
-        console.error("Error sharing gallery:", error);
-        self.showToast('Error sharing gallery: ' + error.message, 'error');
-      });
+      // First get the gallery details to verify ownership and get clientId
+      db.collection('galleries').doc(this.currentGalleryId).get()
+        .then(doc => {
+          if (!doc.exists) {
+            throw new Error("Gallery not found");
+          }
+          
+          const galleryData = doc.data();
+          
+          // Verify that the current user is the owner of this gallery
+          if (galleryData.photographerId !== currentUser.uid) {
+            throw new Error("You do not have permission to share this gallery");
+          }
+          
+          // Create share record with complete information
+          return db.collection('galleryShares').add({
+            galleryId: self.currentGalleryId,
+            shareId: shareId,
+            photographerId: currentUser.uid,
+            clientId: galleryData.clientId || null, // Include client ID if available
+            galleryName: galleryData.name || "Shared Gallery",
+            passwordProtected: passwordProtected,
+            password: passwordProtected ? password : '',
+            createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+            status: 'active'
+          });
+        })
+        .then(() => {
+          console.log("Gallery shared successfully with ID:", shareId);
+          
+          // Display the share link - using the shareId from outer scope
+          self.displayShareLink(shareId);
+          
+          // Show revoke button
+          const revokeBtn = document.getElementById('revokeAccessBtn');
+          if (revokeBtn) {
+            revokeBtn.classList.remove('hidden');
+          }
+          
+          // Show success message
+          self.showToast('Gallery shared successfully!', 'success');
+        })
+        .catch(error => {
+          console.error("Error sharing gallery:", error);
+          self.showToast('Error sharing gallery: ' + error.message, 'error');
+        });
     } catch (error) {
       console.error("Firebase not available:", error);
       this.showToast('Error: Firebase not initialized.', 'error');
@@ -187,9 +224,18 @@ const GalleryShareModal = {
   revokeAccess: function() {
     try {
       const db = firebase.firestore();
+      const currentUser = firebase.auth().currentUser;
       const self = this; // Store reference to 'this' for use in promise callbacks
       
-      db.collection('sharedGalleries').where('galleryId', '==', this.currentGalleryId)
+      if (!currentUser) {
+        this.showToast('Please log in to manage gallery access.', 'error');
+        return;
+      }
+      
+      // Look for shares by this photographer for this gallery
+      db.collection('galleryShares')
+        .where('galleryId', '==', this.currentGalleryId)
+        .where('photographerId', '==', currentUser.uid)
         .get()
         .then(snapshot => {
           if (snapshot.empty) {
