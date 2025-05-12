@@ -58,6 +58,173 @@ const GalleryShareModal = {
     }
   },
   
+  // Check if photographer has a studio name
+  checkStudioName: function(callback) {
+    try {
+      const db = firebase.firestore();
+      const currentUser = firebase.auth().currentUser;
+      
+      if (!currentUser) {
+        this.showToast("Please log in to share galleries", "error");
+        return;
+      }
+      
+      db.collection('photographers')
+        .doc(currentUser.uid)
+        .get()
+        .then(doc => {
+          if (!doc.exists || !doc.data().studioName) {
+            // No studio name set, show prompt to set one
+            this.promptForStudioName();
+            return;
+          }
+          
+          // Studio name exists, proceed with callback
+          if (typeof callback === 'function') {
+            callback(doc.data().studioName);
+          }
+        })
+        .catch(error => {
+          console.error("Error checking studio name:", error);
+          this.showToast("Error checking profile", "error");
+        });
+    } catch (error) {
+      console.error("Firebase not available:", error);
+      this.showToast("Error: Firebase not initialized.", "error");
+    }
+  },
+
+  // Prompt user to set studio name
+  promptForStudioName: function() {
+    // Hide any existing modal first
+    const existingModal = document.getElementById('shareGalleryModal');
+    if (existingModal) {
+      existingModal.style.display = 'none';
+    }
+    
+    // Create studio name prompt if it doesn't exist
+    let promptModal = document.getElementById('studioNamePrompt');
+    if (!promptModal) {
+      promptModal = document.createElement('div');
+      promptModal.id = 'studioNamePrompt';
+      promptModal.className = 'modal';
+      promptModal.innerHTML = `
+        <div class="modal-content">
+          <span class="close">&times;</span>
+          <h2>Set Your Studio Name</h2>
+          <p>Before sharing galleries, please set your studio name. This will be used in your gallery URLs.</p>
+          <form id="quickStudioNameForm">
+            <div class="form-group">
+              <label for="quickStudioName">Studio Name</label>
+              <input type="text" id="quickStudioName" placeholder="e.g. jane-smith-photography" required>
+              <small>Use lowercase letters, numbers, and hyphens only (3-30 characters)</small>
+              <div id="quickStudioNameError" class="error-message"></div>
+            </div>
+            <button type="submit" class="btn">Save and Continue</button>
+          </form>
+        </div>
+      `;
+      document.body.appendChild(promptModal);
+      
+      // Add event listeners
+      const closeBtn = promptModal.querySelector('.close');
+      closeBtn.addEventListener('click', () => {
+        promptModal.style.display = 'none';
+      });
+      
+      const form = promptModal.querySelector('form');
+      form.addEventListener('submit', (e) => {
+        e.preventDefault();
+        this.saveStudioName();
+      });
+    }
+    
+    // Show the prompt
+    promptModal.style.display = 'block';
+  },
+
+  // Save studio name from quick form
+  saveStudioName: function() {
+    try {
+      const studioNameInput = document.getElementById('quickStudioName');
+      const errorElement = document.getElementById('quickStudioNameError');
+      
+      if (!studioNameInput || !errorElement) return;
+      
+      const studioName = studioNameInput.value.trim();
+      
+      // Simple validation
+      if (studioName.length < 3 || studioName.length > 30) {
+        errorElement.textContent = 'Studio name must be between 3 and 30 characters';
+        return;
+      }
+      
+      // Validate characters (lowercase letters, numbers, hyphens)
+      if (!/^[a-z0-9-]+$/.test(studioName)) {
+        errorElement.textContent = 'Only lowercase letters, numbers, and hyphens are allowed';
+        return;
+      }
+      
+      // Save to database
+      const db = firebase.firestore();
+      const currentUser = firebase.auth().currentUser;
+      
+      if (!currentUser) {
+        errorElement.textContent = "You must be logged in to save settings";
+        return;
+      }
+      
+      // Check if the document exists first
+      db.collection('photographers')
+        .doc(currentUser.uid)
+        .get()
+        .then(doc => {
+          if (doc.exists) {
+            // Update existing document
+            return db.collection('photographers')
+              .doc(currentUser.uid)
+              .update({
+                studioName: studioName,
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+              });
+          } else {
+            // Create new document
+            return db.collection('photographers')
+              .doc(currentUser.uid)
+              .set({
+                studioName: studioName,
+                displayName: currentUser.displayName || 'Photographer',
+                email: currentUser.email,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+              });
+          }
+        })
+        .then(() => {
+          // Hide the prompt
+          const promptModal = document.getElementById('studioNamePrompt');
+          if (promptModal) {
+            promptModal.style.display = 'none';
+          }
+          
+          // Show the share modal
+          this.open({ id: this.currentGalleryId });
+          
+          // Show success message
+          this.showToast("Studio name saved successfully!", "success");
+        })
+        .catch(error => {
+          console.error("Error saving studio name:", error);
+          errorElement.textContent = "Error saving studio name. Please try again.";
+        });
+    } catch (error) {
+      console.error("Error in saveStudioName:", error);
+      const errorElement = document.getElementById('quickStudioNameError');
+      if (errorElement) {
+        errorElement.textContent = "An unexpected error occurred. Please try again.";
+      }
+    }
+  },
+  
   // Open the modal for a gallery
   open: function(galleryData) {
     console.log("Opening share modal for gallery:", galleryData);
@@ -65,14 +232,17 @@ const GalleryShareModal = {
     // Store the gallery ID
     this.currentGalleryId = galleryData.id;
     
-    // Show the modal
-    const modal = document.getElementById('shareGalleryModal');
-    if (modal) {
-      modal.style.display = 'block';
-      
-      // Check if gallery is already shared
-      this.checkSharingStatus();
-    }
+    // Check if studio name is set before opening modal
+    this.checkStudioName(() => {
+      // Studio name exists, show the modal
+      const modal = document.getElementById('shareGalleryModal');
+      if (modal) {
+        modal.style.display = 'block';
+        
+        // Check if gallery is already shared
+        this.checkSharingStatus();
+      }
+    });
   },
   
   // Check if gallery is already shared
@@ -117,86 +287,131 @@ const GalleryShareModal = {
   
   // Display share link for a gallery
   displayShareLink: function(shareId) {
-    // Create the URL to the client gallery view page with share parameter
-    const shareUrl = `${window.location.origin}/snapselect/pages/client-gallery-view.html?share=${shareId}`;
-    
-    // Update the UI
-    const urlDisplay = document.getElementById('shareUrlDisplay');
-    if (urlDisplay) {
-      urlDisplay.value = shareUrl;
+    try {
+      const db = firebase.firestore();
+      const currentUser = firebase.auth().currentUser;
       
-      // Show the share link section
-      const shareLinkSection = document.getElementById('shareLinkSection');
-      if (shareLinkSection) {
-        shareLinkSection.classList.remove('hidden');
+      if (!currentUser) {
+        console.error("No authenticated user found");
+        return;
       }
+      
+      db.collection('photographers')
+        .doc(currentUser.uid)
+        .get()
+        .then(doc => {
+          if (!doc.exists) {
+            throw new Error("Photographer profile not found");
+          }
+          
+          const studioName = doc.data().studioName;
+          
+          // Create the URL with studio name
+          const shareUrl = `${window.location.origin}/${studioName}/gallery/${shareId}`;
+          
+          // Update the UI
+          const urlDisplay = document.getElementById('shareUrlDisplay');
+          if (urlDisplay) {
+            urlDisplay.value = shareUrl;
+            
+            // Show the share link section
+            const shareLinkSection = document.getElementById('shareLinkSection');
+            if (shareLinkSection) {
+              shareLinkSection.classList.remove('hidden');
+            }
+          }
+        })
+        .catch(error => {
+          console.error("Error getting studio name:", error);
+          
+          // Fallback to original URL format
+          const shareUrl = `${window.location.origin}/snapselect/pages/client-gallery-view.html?share=${shareId}`;
+          
+          const urlDisplay = document.getElementById('shareUrlDisplay');
+          if (urlDisplay) {
+            urlDisplay.value = shareUrl;
+            const shareLinkSection = document.getElementById('shareLinkSection');
+            if (shareLinkSection) {
+              shareLinkSection.classList.remove('hidden');
+            }
+          }
+        });
+    } catch (error) {
+      console.error("Error in displayShareLink:", error);
+      this.showToast('Error generating share link.', 'error');
     }
   },
   
   // Share a gallery
-  
   shareGallery: function() {
-      try {
-          // Get form values
-          const passwordInput = document.getElementById('password');
-          const passwordProtectionCheckbox = document.getElementById('passwordProtection');
-          
-          if (!passwordInput || !passwordProtectionCheckbox) {
-              console.error("Password input elements not found");
-              return;
-          }
-          
-          const password = passwordInput.value;
-          const passwordProtected = passwordProtectionCheckbox.checked;
-          
-          // Validation for password protected galleries
-          if (passwordProtected && !password) {
-              this.showToast('Please enter a password for your protected gallery.', 'error');
-              return;
-          }
-          
-          // Generate a random share ID
-          const shareId = Math.random().toString(36).substring(2, 15);
-          
-          // Save to Firestore - use the collection name that matches your database
-          const db = firebase.firestore();
-          const self = this; // Store reference to 'this' for use in promise callbacks
-          
-          // Make sure to log the gallery ID and share ID
-          console.log("Sharing gallery ID:", this.currentGalleryId);
-          console.log("Generated share ID:", shareId);
-          
-          db.collection('galleryShares').add({  // Use the same collection name as in your database
-              galleryId: this.currentGalleryId,
-              shareId: shareId,
-              passwordProtected: passwordProtected,
-              password: passwordProtected ? password : '',
-              createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-              status: "active"
-          })
-          .then(() => {
-              console.log("Gallery shared successfully with ID:", shareId);
-              
-              // Display the share link - using the shareId from outer scope
-              self.displayShareLink(shareId);
-              
-              // Show revoke button
-              const revokeBtn = document.getElementById('revokeAccessBtn');
-              if (revokeBtn) {
-                  revokeBtn.classList.remove('hidden');
-              }
-              
-              // Show success message
-              self.showToast('Gallery shared successfully!', 'success');
-          })
-          .catch(error => {
-              console.error("Error sharing gallery:", error);
-              self.showToast('Error sharing gallery: ' + error.message, 'error');
-          });
-      } catch (error) {
-          console.error("Firebase not available:", error);
-          this.showToast('Error: Firebase not initialized.', 'error');
+    try {
+      // Get form values
+      const passwordInput = document.getElementById('password');
+      const passwordProtectionCheckbox = document.getElementById('passwordProtection');
+      
+      if (!passwordInput || !passwordProtectionCheckbox) {
+        console.error("Password input elements not found");
+        return;
       }
+      
+      const password = passwordInput.value;
+      const passwordProtected = passwordProtectionCheckbox.checked;
+      
+      // Validation for password protected galleries
+      if (passwordProtected && !password) {
+        this.showToast('Please enter a password for your protected gallery.', 'error');
+        return;
+      }
+      
+      // Generate a random share ID
+      const shareId = Math.random().toString(36).substring(2, 15);
+      
+      // Save to Firestore - use the collection name that matches your database
+      const db = firebase.firestore();
+      const currentUser = firebase.auth().currentUser;
+      const self = this; // Store reference to 'this' for use in promise callbacks
+      
+      if (!currentUser) {
+        this.showToast("Please log in to share galleries", "error");
+        return;
+      }
+      
+      // Make sure to log the gallery ID and share ID
+      console.log("Sharing gallery ID:", this.currentGalleryId);
+      console.log("Generated share ID:", shareId);
+      
+      db.collection('galleryShares').add({  // Use the same collection name as in your database
+        galleryId: this.currentGalleryId,
+        photographerId: currentUser.uid,
+        shareId: shareId,
+        passwordProtected: passwordProtected,
+        password: passwordProtected ? password : '',
+        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+        status: "active"
+      })
+      .then(() => {
+        console.log("Gallery shared successfully with ID:", shareId);
+        
+        // Display the share link - using the shareId from outer scope
+        self.displayShareLink(shareId);
+        
+        // Show revoke button
+        const revokeBtn = document.getElementById('revokeAccessBtn');
+        if (revokeBtn) {
+          revokeBtn.classList.remove('hidden');
+        }
+        
+        // Show success message
+        self.showToast('Gallery shared successfully!', 'success');
+      })
+      .catch(error => {
+        console.error("Error sharing gallery:", error);
+        self.showToast('Error sharing gallery: ' + error.message, 'error');
+      });
+    } catch (error) {
+      console.error("Firebase not available:", error);
+      this.showToast('Error: Firebase not initialized.', 'error');
+    }
   },
   
   // Revoke access to a shared gallery
