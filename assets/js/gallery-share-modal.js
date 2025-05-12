@@ -34,7 +34,7 @@ const GalleryShareModal = {
       });
     }
     
-    /* Copy link button
+    //Copy link button
     const copyLinkBtn = document.getElementById('copyLinkBtn');
     if (copyLinkBtn) {
       copyLinkBtn.addEventListener('click', () => {
@@ -45,7 +45,7 @@ const GalleryShareModal = {
           this.showToast('Link copied to clipboard!', 'success');
         }
       });
-    }*/
+    }
     
     // Share via WhatsApp button
     const shareWhatsAppBtn = document.getElementById('shareWhatsAppBtn');
