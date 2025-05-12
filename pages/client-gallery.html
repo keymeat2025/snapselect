@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Protected Gallery | SnapSelect</title>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Montserrat', sans-serif;
+            background-color: #f5f5f5;
+            color: #333;
+            line-height: 1.6;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        header {
+            background-color: white;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            padding: 15px 0;
+            text-align: center;
+        }
+        
+        .logo {
+            max-width: 200px;
+            height: auto;
+        }
+        
+        main {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        
+        .container {
+            width: 100%;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .gallery-access {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .gallery-image {
+            flex: 1;
+            min-width: 300px;
+            background-size: cover;
+            background-position: center;
+            min-height: 400px;
+            position: relative;
+        }
+        
+        .image-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.2);
+            display: flex;
+            align-items: flex-end;
+            padding: 30px;
+        }
+        
+        .gallery-info {
+            color: white;
+            text-shadow: 0 1px 3px rgba(0,0,0,0.3);
+        }
+        
+        .gallery-info h2 {
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+        
+        .gallery-info p {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+        
+        .password-form {
+            flex: 1;
+            min-width: 300px;
+            padding: 40px;
+        }
+        
+        .password-form h1 {
+            margin-bottom: 10px;
+            font-weight: 500;
+            font-size: 24px;
+            color: #333;
+        }
+        
+        .form-description {
+            margin-bottom: 25px;
+            color: #666;
+            font-size: 15px;
+        }
+        
+        .input-group {
+            margin-bottom: 25px;
+        }
+        
+        .input-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 14px;
+            color: #555;
+            font-weight: 500;
+        }
+        
+        .input-group input {
+            width: 100%;
+            padding: 12px 15px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            font-family: 'Montserrat', sans-serif;
+        }
+        
+        .input-group input:focus {
+            border-color: #4a6fdc;
+            box-shadow: 0 0 0 2px rgba(74, 111, 220, 0.2);
+            outline: none;
+        }
+        
+        .btn {
+            background-color: #4a6fdc;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 4px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background 0.3s ease;
+            font-weight: 500;
+            font-family: 'Montserrat', sans-serif;
+            width: 100%;
+        }
+        
+        .btn:hover {
+            background-color: #3d5cba;
+        }
+        
+        .error-message {
+            color: #e74c3c;
+            font-size: 14px;
+            margin-top: 15px;
+            display: none;
+        }
+        
+        .error-message.visible {
+            display: block;
+        }
+        
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+        
+        .loading.visible {
+            display: block;
+        }
+        
+        .spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid rgba(74, 111, 220, 0.3);
+            border-radius: 50%;
+            border-top-color: #4a6fdc;
+            animation: spin 1s ease-in-out infinite;
+            margin-right: 10px;
+            vertical-align: middle;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        footer {
+            background-color: white;
+            text-align: center;
+            padding: 20px;
+            margin-top: auto;
+            border-top: 1px solid #eee;
+        }
+        
+        .footer-content {
+            font-size: 13px;
+            color: #777;
+        }
+        
+        .footer-content a {
+            color: #4a6fdc;
+            text-decoration: none;
+        }
+        
+        .footer-content a:hover {
+            text-decoration: underline;
+        }
+        
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .gallery-image {
+                min-height: 200px;
+            }
+            
+            .password-form {
+                padding: 30px;
+            }
+        }
+    </style>
+    
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <img src="../assets/images/logo.png" alt="SnapSelect" class="logo" onerror="this.src='https://via.placeholder.com/200x60?text=SnapSelect'">
+        </div>
+    </header>
+    
+    <main>
+        <div class="container">
+            <div class="gallery-access">
+                <div class="gallery-image" id="galleryPreview">
+                    <div class="image-overlay">
+                        <div class="gallery-info">
+                            <h2 id="galleryTitle">Protected Gallery</h2>
+                            <p id="studioInfo">Photography Collection</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="password-form">
+                    <h1>Protected Gallery</h1>
+                    <p class="form-description">This gallery is password protected. Please enter the password provided by your photographer to view the images.</p>
+                    
+                    <form id="galleryAccessForm">
+                        <div class="input-group">
+                            <label for="gallery-password">Gallery Password</label>
+                            <input type="password" id="gallery-password" name="password" required autocomplete="off">
+                        </div>
+                        
+                        <button type="submit" class="btn">Enter Gallery</button>
+                        
+                        <div id="loading-message" class="loading">
+                            <span class="spinner"></span> Verifying password...
+                        </div>
+                        
+                        <div id="error-message" class="error-message">
+                            Incorrect password. Please try again or contact your photographer for assistance.
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </main>
+    
+    <footer>
+        <div class="container">
+            <div class="footer-content">
+                &copy; <span id="current-year">2023</span> SnapSelect. All Rights Reserved. | <a href="#">Privacy Policy</a> | <a href="#">Contact</a>
+            </div>
+        </div>
+    </footer>
+    
+    <script>
+        // Firebase configuration - replace with your project's config
+        const firebaseConfig = {
+            apiKey: "YOUR_API_KEY",
+            authDomain: "YOUR_AUTH_DOMAIN",
+            projectId: "YOUR_PROJECT_ID",
+            storageBucket: "YOUR_STORAGE_BUCKET",
+            messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+            appId: "YOUR_APP_ID"
+        };
+        
+        // Initialize Firebase
+        if (typeof firebase !== 'undefined') {
+            if (!firebase.apps.length) {
+                firebase.initializeApp(firebaseConfig);
+            }
+        }
+        
+        // Universal route handling function
+        function getGalleryParams() {
+            let studioName, galleryId;
+            
+            // Method 1: Check if we're on a direct page with query params
+            const urlParams = new URLSearchParams(window.location.search);
+            const queryStudio = urlParams.get('studio');
+            const queryShare = urlParams.get('share');
+            
+            if (queryStudio && queryShare) {
+                return {
+                    studioName: decodeURIComponent(queryStudio),
+                    galleryId: queryShare
+                };
+            }
+            
+            // Method 2: Check if we're on a pretty URL path
+            const path = window.location.pathname;
+            const galleryPattern = /^\/([^\/]+)\/gallery\/([^\/]+)\/?$/;
+            const match = path.match(galleryPattern);
+            
+            if (match) {
+                return {
+                    studioName: decodeURIComponent(match[1]),
+                    galleryId: match[2]
+                };
+            }
+            
+            // Method 3: Legacy URL format
+            const legacyId = urlParams.get('id') || urlParams.get('galleryId');
+            if (legacyId) {
+                return {
+                    studioName: null,
+                    galleryId: legacyId
+                };
+            }
+            
+            // No valid gallery parameters found
+            return null;
+        }
+        
+        // Update page content with gallery info
+        function updatePageContent() {
+            // Update current year in footer
+            document.getElementById('current-year').textContent = new Date().getFullYear();
+            
+            const params = getGalleryParams();
+            console.log("Gallery parameters:", params);
+            
+            if (!params) {
+                console.error("No gallery parameters found");
+                window.location.href = '/'; // Redirect to homepage if no parameters
+                return;
+            }
+            
+            // Update page title
+            if (params.studioName) {
+                document.title = `Protected Gallery | ${params.studioName}`;
+                
+                // Update studio name in gallery info
+                const studioInfoElement = document.getElementById('studioInfo');
+                if (studioInfoElement) {
+                    studioInfoElement.textContent = `Collection by ${params.studioName}`;
+                }
+            }
+            
+            // Try to fetch gallery metadata from Firebase
+            if (typeof firebase !== 'undefined' && firebase.apps.length) {
+                const db = firebase.firestore();
+                
+                db.collection('galleryShares')
+                    .where('shareId', '==', params.galleryId)
+                    .limit(1)
+                    .get()
+                    .then(snapshot => {
+                        if (!snapshot.empty) {
+                            const shareData = snapshot.docs[0].data();
+                            
+                            // Get the actual gallery ID
+                            const actualGalleryId = shareData.galleryId;
+                            
+                            // Fetch the gallery details
+                            return db.collection('galleries')
+                                .doc(actualGalleryId)
+                                .get()
+                                .then(doc => {
+                                    if (doc.exists) {
+                                        const galleryData = doc.data();
+                                        
+                                        // Update gallery title
+                                        const titleElement = document.getElementById('galleryTitle');
+                                        if (titleElement && galleryData.name) {
+                                            titleElement.textContent = galleryData.name;
+                                        }
+                                        
+                                        // Update preview image if available
+                                        const previewElement = document.getElementById('galleryPreview');
+                                        if (previewElement && galleryData.coverImage) {
+                                            previewElement.style.backgroundImage = `url('${galleryData.coverImage}')`;
+                                        }
+                                    }
+                                });
+                        }
+                    })
+                    .catch(error => {
+                        console.error("Error fetching gallery data:", error);
+                    });
+            }
+        }
+        
+        // Verify gallery password
+        function verifyPassword(password, galleryId) {
+            return new Promise((resolve, reject) => {
+                if (!password || !galleryId) {
+                    reject(new Error("Missing password or gallery ID"));
+                    return;
+                }
+                
+                if (typeof firebase === 'undefined' || !firebase.apps.length) {
+                    reject(new Error("Firebase not initialized"));
+                    return;
+                }
+                
+                const db = firebase.firestore();
+                
+                db.collection('galleryShares')
+                    .where('shareId', '==', galleryId)
+                    .limit(1)
+                    .get()
+                    .then(snapshot => {
+                        if (snapshot.empty) {
+                            reject(new Error("Gallery not found"));
+                            return;
+                        }
+                        
+                        const shareData = snapshot.docs[0].data();
+                        
+                        // Check if gallery is password protected
+                        if (!shareData.passwordProtected) {
+                            // No password required
+                            resolve({
+                                success: true,
+                                galleryId: shareData.galleryId
+                            });
+                            return;
+                        }
+                        
+                        // Check if password matches
+                        if (shareData.password === password) {
+                            resolve({
+                                success: true,
+                                galleryId: shareData.galleryId
+                            });
+                        } else {
+                            reject(new Error("Incorrect password"));
+                        }
+                    })
+                    .catch(error => {
+                        console.error("Error verifying password:", error);
+                        reject(error);
+                    });
+            });
+        }
+        
+        // Handle form submission
+        document.getElementById('galleryAccessForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const params = getGalleryParams();
+            if (!params || !params.galleryId) {
+                showError("Gallery not found");
+                return;
+            }
+            
+            const password = document.getElementById('gallery-password').value;
+            const loadingElement = document.getElementById('loading-message');
+            const errorElement = document.getElementById('error-message');
+            
+            // Hide error, show loading
+            errorElement.classList.remove('visible');
+            loadingElement.classList.add('visible');
+            
+            // Disable form while processing
+            const submitButton = this.querySelector('button[type="submit"]');
+            submitButton.disabled = true;
+            
+            verifyPassword(password, params.galleryId)
+                .then(result => {
+                    console.log("Password verification successful:", result);
+                    
+                    // Store access token in sessionStorage
+                    sessionStorage.setItem(`gallery_access_${params.galleryId}`, 'granted');
+                    sessionStorage.setItem(`actual_gallery_id`, result.galleryId);
+                    
+                    // Redirect to the gallery view
+                    window.location.href = `/pages/client-gallery-view.html?id=${result.galleryId}`;
+                })
+                .catch(error => {
+                    console.error("Password verification failed:", error);
+                    
+                    // Hide loading, show error
+                    loadingElement.classList.remove('visible');
+                    errorElement.classList.add('visible');
+                    
+                    // Clear password field
+                    document.getElementById('gallery-password').value = '';
+                    
+                    // Re-enable form
+                    submitButton.disabled = false;
+                });
+        });
+        
+        // Show error message
+        function showError(message) {
+            const errorElement = document.getElementById('error-message');
+            if (errorElement) {
+                errorElement.textContent = message;
+                errorElement.classList.add('visible');
+            }
+        }
+        
+        // Initialize page
+        document.addEventListener('DOMContentLoaded', updatePageContent);
+    </script>
+</body>
+</html>
