@@ -252,10 +252,7 @@ const GalleryShareModal = {
           if (!snapshot.empty) {
             // Gallery is already shared, show the URL
             const shareData = snapshot.docs[0].data();
-            const shareId = shareData.shareId;
-            
-            // Make sure we're using the shareId, not the document ID
-            this.displayShareLink(shareId);
+            this.displayShareLink(shareData.shareId);
             
             // Show revoke button
             const revokeBtn = document.getElementById('revokeAccessBtn');
@@ -277,24 +274,82 @@ const GalleryShareModal = {
   // Display share link for a gallery
   displayShareLink: function(shareId) {
     try {
-      const domain = window.location.origin;
+      const db = firebase.firestore();
+      const currentUser = firebase.auth().currentUser;
       
-      // Use the SIMPLIFIED direct URL format with the share ID
-      const shareUrl = `${domain}/snapselect/pages/client-gallery-view.html?share=${shareId}`;
-      
-      // Update the UI
-      const urlDisplay = document.getElementById('shareUrlDisplay');
-      if (urlDisplay) {
-        urlDisplay.value = shareUrl;
-        
-        // Show the share link section
-        const shareLinkSection = document.getElementById('shareLinkSection');
-        if (shareLinkSection) {
-          shareLinkSection.classList.remove('hidden');
-        }
-        
-        console.log("Share link displayed:", shareUrl);
+      if (!currentUser) {
+        console.error("No authenticated user found");
+        return;
       }
+      
+      console.log("Getting studio name for share link, UID:", currentUser.uid);
+      
+      // Get the photographer's studio name from their profile
+      db.collection('photographer')
+        .get()
+        .then(snapshot => {
+          if (snapshot.empty) {
+            throw new Error("No photographers found in collection");
+          }
+          
+          // Find the photographer with matching UID
+          let photographerData = null;
+          
+          snapshot.forEach(doc => {
+            const data = doc.data();
+            if (data.uid === currentUser.uid) {
+              photographerData = data;
+            }
+          });
+          
+          if (!photographerData) {
+            throw new Error("Photographer profile not found");
+          }
+          
+          const studioName = photographerData.studioName;
+          
+          if (!studioName) {
+            throw new Error("Studio name not found in profile");
+          }
+          
+          console.log("Found studio name for share link:", studioName);
+          
+          // Create the URL with studio name - using the FULL DOMAIN
+          // This ensures the URL works even when accessed from a different page
+          const domain = window.location.origin;
+          const shareUrl = `${domain}/${studioName}/gallery/${shareId}`;
+          
+          // Update the UI
+          const urlDisplay = document.getElementById('shareUrlDisplay');
+          if (urlDisplay) {
+            urlDisplay.value = shareUrl;
+            
+            // Show the share link section
+            const shareLinkSection = document.getElementById('shareLinkSection');
+            if (shareLinkSection) {
+              shareLinkSection.classList.remove('hidden');
+            }
+            
+            console.log("Share link displayed:", shareUrl);
+          }
+        })
+        .catch(error => {
+          console.error("Error getting studio name:", error);
+          
+          // Fallback to original URL format
+          const domain = window.location.origin;
+          const shareUrl = `${domain}/pages/client-gallery-view.html?share=${shareId}`;
+          
+          const urlDisplay = document.getElementById('shareUrlDisplay');
+          if (urlDisplay) {
+            urlDisplay.value = shareUrl;
+            const shareLinkSection = document.getElementById('shareLinkSection');
+            if (shareLinkSection) {
+              shareLinkSection.classList.remove('hidden');
+            }
+            console.log("Using fallback share link:", shareUrl);
+          }
+        });
     } catch (error) {
       console.error("Error in displayShareLink:", error);
       this.showToast('Error generating share link.', 'error');
@@ -349,11 +404,11 @@ const GalleryShareModal = {
       // Create a timestamp for share creation
       const timestamp = firebase.firestore.FieldValue.serverTimestamp();
       
-      // CRITICAL CHANGE: Use the generated shareId as the document ID
-      db.collection('galleryShares').doc(shareId).set({
+      // Add share document to Firestore
+      db.collection('galleryShares').add({
         galleryId: this.currentGalleryId,
         photographerId: currentUser.uid,
-        shareId: shareId, // This is now redundant but kept for compatibility
+        shareId: shareId,
         passwordProtected: passwordProtected,
         password: passwordProtected ? password : '',
         createdAt: timestamp,
@@ -364,7 +419,7 @@ const GalleryShareModal = {
       .then(() => {
         console.log("Gallery shared successfully with ID:", shareId);
         
-        // Display the share link - using the shareId
+        // Display the share link - using the shareId from outer scope
         self.displayShareLink(shareId);
         
         // Show revoke button
