@@ -48,7 +48,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     
                     // After a delay, redirect to dashboard
                     setTimeout(() => {
-                        window.location.href = 'director-dashboard.html';
+                        window.location.href = 'nexus-dashboard.html';
                     }, 2000);
                 }, 1500);
                 
@@ -87,7 +87,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     
                     // Redirect to dashboard after a short delay to show the success message
                     setTimeout(() => {
-                        window.location.href = 'director-dashboard.html';
+                        window.location.href = 'nexus-dashboard.html';
                     }, 2000);
                 })
                 .catch((error) => {
@@ -172,7 +172,7 @@ document.addEventListener('DOMContentLoaded', function() {
             firebase.auth().onAuthStateChanged(function(user) {
                 if (user) {
                     // Redirect to dashboard if already authenticated
-                    window.location.href = 'director-dashboard.html';
+                    window.location.href = 'nexus-dashboard.html';
                 }
             });
         }
