@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SnapSelect - Director Dashboard</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Using existing CSS files -->
+    <link rel="stylesheet" href="assets/css/variables.css">
+    <link rel="stylesheet" href="assets/css/main.css">
+    <link rel="stylesheet" href="assets/css/animations.css">
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f5f8fa;
+            margin: 0;
+            padding: 20px;
+        }
+        
+        .dashboard-container {
+            max-width: 800px;
+            margin: 50px auto;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .welcome-icon {
+            font-size: 64px;
+            color: #3f51b5;
+            margin-bottom: 20px;
+        }
+        
+        h1 {
+            color: #333;
+            margin-bottom: 15px;
+        }
+        
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 18px;
+        }
+        
+        .success-message {
+            background-color: #e7f7ed;
+            border-left: 4px solid #28a745;
+            color: #155724;
+            padding: 15px;
+            border-radius: 4px;
+            margin-bottom: 30px;
+            text-align: left;
+            display: flex;
+            align-items: center;
+        }
+        
+        .success-message i {
+            font-size: 24px;
+            margin-right: 15px;
+        }
+        
+        .btn {
+            display: inline-block;
+            background-color: #3f51b5;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 6px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: background-color 0.3s;
+            margin: 10px;
+            border: none;
+            cursor: pointer;
+        }
+        
+        .btn:hover {
+            background-color: #303f9f;
+        }
+        
+        .btn-outline {
+            background-color: transparent;
+            color: #3f51b5;
+            border: 1px solid #3f51b5;
+        }
+        
+        .btn-outline:hover {
+            background-color: #f0f2ff;
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard-container">
+        <div class="welcome-icon">
+            <i class="fas fa-user-shield"></i>
+        </div>
+        
+        <h1>Welcome, Director!</h1>
+        <p class="subtitle">You've successfully logged into the SnapSelect Director Portal</p>
+        
+        <div class="success-message">
+            <i class="fas fa-check-circle"></i>
+            <div>
+                <strong>Authentication Successful</strong>
+                <p>You now have access to all director privileges and controls.</p>
+            </div>
+        </div>
+        
+        <div>
+            <button id="logoutBtn" class="btn">Logout</button>
+            <a href="director-portal.html" class="btn btn-outline">Back to Login</a>
+        </div>
+    </div>
+
+    <script>
+        // Simple logout functionality
+        document.getElementById('logoutBtn').addEventListener('click', function() {
+            // Clear session storage
+            sessionStorage.removeItem('directorAuthenticated');
+            sessionStorage.removeItem('authTimestamp');
+            
+            // Redirect to login page
+            window.location.href = 'director-portal.html';
+        });
+    </script>
+</body>
+</html>
