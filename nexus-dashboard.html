@@ -1863,7 +1863,7 @@
             let filteredPhotographers = photographers;
             
             // Default to showing only approved photographers
-            if (statusFilter === 'all') {
+            if (statusFilter !== 'all') {
               
                 filteredPhotographers = filteredPhotographers.filter(p => p.status === statusFilter);
             }
@@ -1946,8 +1946,7 @@
                 const statusClass = photographer.status === 'approved' ? 'status-active' : 
                                   photographer.status === 'pending' ? 'status-pending' : 'status-inactive';
                                   
-                const statusLabel = photographer.status === 'approved' ? 'Approved' : 
-                                  photographer.status === 'pending' ? 'Pending' : 'Rejected';
+                const statusLabel = photographer.status === 'approved' ? 'Active' : 'Inactive';
                 
                 tableHtml += `
                     <tr data-id="${photographer.id}">
