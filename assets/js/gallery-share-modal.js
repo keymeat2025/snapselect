@@ -36,7 +36,18 @@ const GalleryShareModal = {
       });
     }
     
-    // Copy Link Button functionality removed
+    //Copy link button
+    const copyLinkBtn = document.getElementById('copyLinkBtn');
+    if (copyLinkBtn) {
+      copyLinkBtn.addEventListener('click', () => {
+        const urlInput = document.getElementById('shareUrlDisplay');
+        if (urlInput) {
+          urlInput.select();
+          document.execCommand('copy');
+          this.showToast('Link copied to clipboard!', 'success');
+        }
+      });
+    }
     
     // Share via WhatsApp button
     const shareWhatsAppBtn = document.getElementById('shareWhatsAppBtn');
@@ -356,7 +367,6 @@ const GalleryShareModal = {
     this.currentShareUrl = shareUrl;
     this.currentShareId = shareId;
     
-    
     // Enable sharing buttons if they exist
     const shareButtons = document.querySelectorAll('.share-btn');
     shareButtons.forEach(btn => {
@@ -389,10 +399,20 @@ const GalleryShareModal = {
         return;
       }
       
-      // Get expiry date if provided
+      // Get expiry date if provided or set default 7 days expiry
       let expiryDateValue = null;
       if (expiryDate && expiryDate.value) {
         expiryDateValue = firebase.firestore.Timestamp.fromDate(new Date(expiryDate.value));
+      } else {
+        // Set default expiry date to 7 days from now
+        const defaultExpiryDate = new Date();
+        defaultExpiryDate.setDate(defaultExpiryDate.getDate() + 7);
+        expiryDateValue = firebase.firestore.Timestamp.fromDate(defaultExpiryDate);
+        
+        // Update the expiry date input field with the default value
+        if (expiryDate) {
+          expiryDate.value = defaultExpiryDate.toISOString().substr(0, 10);
+        }
       }
       
       // Get download and watermark settings
