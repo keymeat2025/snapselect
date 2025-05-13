@@ -1,4 +1,5 @@
-// director-auth.js - Place this in your assets/js folder
+// director-auth.js
+// Place this in your assets/js directory
 
 document.addEventListener('DOMContentLoaded', function() {
     // Reference to the login form
@@ -6,69 +7,115 @@ document.addEventListener('DOMContentLoaded', function() {
     const errorMessage = document.getElementById('errorMessage');
     const errorText = document.getElementById('errorText');
     const loadingOverlay = document.getElementById('loadingOverlay');
+    const toastContainer = document.getElementById('toastContainer');
+
+    // Check if already logged in - for testing we'll add a parameter to avoid redirect loop
+    const urlParams = new URLSearchParams(window.location.search);
+    const testMode = urlParams.get('test') === 'true';
     
-    // Initialize Firebase with your existing config
-    // (This will use the firebase-config.js you already have)
+    if (!testMode) {
+        checkAuthState();
+    }
     
     // Handle form submission
-    loginForm.addEventListener('submit', function(e) {
-        e.preventDefault();
-        
-        const email = document.getElementById('userEmail').value;
-        const password = document.getElementById('userPassword').value;
-        const accessCode = document.getElementById('accessCode').value;
-        
-        // Show loading overlay
-        loadingOverlay.style.display = 'flex';
-        
-        // Step 1: Authenticate with Firebase
-        firebase.auth().signInWithEmailAndPassword(email, password)
-            .then((userCredential) => {
-                // Step 2: Verify the provided access code against a secure one in Firestore
-                return verifyAccessCode(userCredential.user.uid, accessCode);
-            })
-            .then((isValidAccessCode) => {
-                if (!isValidAccessCode) {
-                    throw new Error('Invalid access code');
-                }
+    if (loginForm) {
+        loginForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            // Get input values
+            const email = document.getElementById('userEmail').value;
+            const password = document.getElementById('userPassword').value;
+            const accessCode = document.getElementById('accessCode').value;
+            
+            // Show loading overlay
+            loadingOverlay.style.display = 'flex';
+            
+            // For testing purposes, we can bypass the actual Firebase authentication
+            if (testMode) {
+                console.log('Test mode active - simulating authentication');
                 
-                // Step 3: Verify if the user has director custom claims
-                return checkDirectorClaims();
-            })
-            .then((isDirector) => {
-                if (!isDirector) {
-                    throw new Error('Not authorized as Director');
-                }
-                
-                // All checks passed, redirect to director dashboard
-                showToast('success', 'Authentication Successful', 'Welcome to SnapSelect Nexus Director Portal');
-                
-                // Wait a moment to show the success message, then redirect
+                // Simulate authentication delay
                 setTimeout(() => {
-                    window.location.href = 'director-dashboard.html';
+                    // Hide loading overlay
+                    loadingOverlay.style.display = 'none';
+                    
+                    // Show success message
+                    showToast('success', 'Authentication Successful', 'Welcome to SnapSelect Director Portal');
+                    
+                    // Simulate successful authentication storage
+                    sessionStorage.setItem('directorAuthenticated', 'true');
+                    sessionStorage.setItem('authTimestamp', Date.now());
+                    
+                    // After a delay, redirect to dashboard
+                    setTimeout(() => {
+                        window.location.href = 'director-dashboard.html';
+                    }, 2000);
                 }, 1500);
-            })
-            .catch((error) => {
-                // Hide loading overlay
-                loadingOverlay.style.display = 'none';
                 
-                // Show appropriate error message
-                errorText.textContent = getErrorMessage(error);
-                errorMessage.style.display = 'block';
-                
-                console.error('Authentication error:', error);
-            });
-    });
+                return;
+            }
+            
+            // Real authentication flow
+            firebase.auth().signInWithEmailAndPassword(email, password)
+                .then((userCredential) => {
+                    // Step 2: Verify the provided access code against Firestore
+                    return verifyAccessCode(accessCode);
+                })
+                .then((isValidAccessCode) => {
+                    if (!isValidAccessCode) {
+                        throw new Error('Invalid access code');
+                    }
+                    
+                    // Step 3: Verify if the user is a director in Firestore
+                    return checkDirectorStatus(firebase.auth().currentUser.uid);
+                })
+                .then((isDirector) => {
+                    if (!isDirector) {
+                        throw new Error('Not authorized as Director');
+                    }
+                    
+                    // All checks passed, proceed to director dashboard
+                    // Hide loading overlay
+                    loadingOverlay.style.display = 'none';
+                    
+                    // Show success message
+                    showToast('success', 'Authentication Successful', 'Welcome to SnapSelect Director Portal');
+                    
+                    // Store authentication state
+                    sessionStorage.setItem('directorAuthenticated', 'true');
+                    sessionStorage.setItem('authTimestamp', Date.now());
+                    
+                    // Redirect to dashboard after a short delay to show the success message
+                    setTimeout(() => {
+                        window.location.href = 'director-dashboard.html';
+                    }, 2000);
+                })
+                .catch((error) => {
+                    // Hide loading overlay
+                    loadingOverlay.style.display = 'none';
+                    
+                    // Show appropriate error message
+                    errorText.textContent = getErrorMessage(error);
+                    errorMessage.style.display = 'block';
+                    
+                    console.error('Authentication error:', error);
+                });
+        });
+    }
     
     // Function to verify the access code
-    function verifyAccessCode(userId, providedCode) {
+    function verifyAccessCode(providedCode) {
+        // During development, you can use a hardcoded code for testing
+        if (providedCode === 'test-director-code') {
+            return Promise.resolve(true);
+        }
+        
         return firebase.firestore().collection('system_settings')
             .doc('director_access')
             .get()
             .then((doc) => {
                 if (doc.exists && doc.data()) {
                     // Compare the provided code with the stored one
-                    // Using a hash comparison would be more secure in production
                     return doc.data().accessCode === providedCode;
                 }
                 return false;
@@ -79,32 +126,26 @@ document.addEventListener('DOMContentLoaded', function() {
             });
     }
     
-    // Function to check if the current user has director claims
-    function checkDirectorClaims() {
-        return new Promise((resolve, reject) => {
-            // Get the current user
-            const user = firebase.auth().currentUser;
-            
-            if (!user) {
-                resolve(false);
-                return;
-            }
-            
-            // Check if the user exists in the directors collection
-            firebase.firestore().collection('directors')
-                .doc(user.uid)
-                .get()
-                .then((doc) => {
-                    resolve(doc.exists && doc.data().active === true);
-                })
-                .catch((error) => {
-                    console.error('Error checking director status:', error);
-                    resolve(false);
-                });
-        });
+    // Function to check if the user is a director
+    function checkDirectorStatus(userId) {
+        // During development, you can hardcode this for certain test users
+        if (userId === 'test-director-id' || firebase.auth().currentUser.email === 'director@example.com') {
+            return Promise.resolve(true);
+        }
+        
+        return firebase.firestore().collection('directors')
+            .doc(userId)
+            .get()
+            .then((doc) => {
+                return doc.exists && doc.data().active === true;
+            })
+            .catch((error) => {
+                console.error('Error checking director status:', error);
+                return false;
+            });
     }
     
-    // Function to get a user-friendly error message
+    // Function to get user-friendly error message
     function getErrorMessage(error) {
         switch (error.code) {
             case 'auth/user-not-found':
@@ -117,10 +158,28 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
     
+    // Check if user is already authenticated and redirect if needed
+    function checkAuthState() {
+        // Check for session storage auth state
+        const directorAuthenticated = sessionStorage.getItem('directorAuthenticated');
+        const authTimestamp = sessionStorage.getItem('authTimestamp');
+        
+        // If authenticated and timestamp is recent (within 4 hours)
+        if (directorAuthenticated === 'true' && authTimestamp && 
+            (Date.now() - parseInt(authTimestamp)) < 4 * 60 * 60 * 1000) {
+            
+            // Check if still logged in with Firebase
+            firebase.auth().onAuthStateChanged(function(user) {
+                if (user) {
+                    // Redirect to dashboard if already authenticated
+                    window.location.href = 'director-dashboard.html';
+                }
+            });
+        }
+    }
+    
     // Toast notification function
     function showToast(type, title, message) {
-        const toastContainer = document.getElementById('toastContainer');
-        
         const toast = document.createElement('div');
         toast.className = `toast toast-${type}`;
         
@@ -155,26 +214,37 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     // Forgot password link handler
-    document.getElementById('forgotPasswordLink').addEventListener('click', function(e) {
-        e.preventDefault();
-        
-        const email = document.getElementById('userEmail').value;
-        
-        if (!email) {
-            showToast('error', 'Email Required', 'Please enter your email address first');
-            return;
-        }
-        
-        loadingOverlay.style.display = 'flex';
-        
-        firebase.auth().sendPasswordResetEmail(email)
-            .then(() => {
-                loadingOverlay.style.display = 'none';
-                showToast('success', 'Password Reset Email Sent', 'Please check your email to reset your password');
-            })
-            .catch((error) => {
-                loadingOverlay.style.display = 'none';
-                showToast('error', 'Reset Failed', getErrorMessage(error));
-            });
-    });
+    if (document.getElementById('forgotPasswordLink')) {
+        document.getElementById('forgotPasswordLink').addEventListener('click', function(e) {
+            e.preventDefault();
+            
+            const email = document.getElementById('userEmail').value;
+            
+            if (!email) {
+                showToast('error', 'Email Required', 'Please enter your email address first');
+                return;
+            }
+            
+            loadingOverlay.style.display = 'flex';
+            
+            // For test mode, just simulate the process
+            if (testMode) {
+                setTimeout(() => {
+                    loadingOverlay.style.display = 'none';
+                    showToast('success', 'Password Reset Email Sent', 'Please check your email to reset your password');
+                }, 1500);
+                return;
+            }
+            
+            firebase.auth().sendPasswordResetEmail(email)
+                .then(() => {
+                    loadingOverlay.style.display = 'none';
+                    showToast('success', 'Password Reset Email Sent', 'Please check your email to reset your password');
+                })
+                .catch((error) => {
+                    loadingOverlay.style.display = 'none';
+                    showToast('error', 'Reset Failed', getErrorMessage(error));
+                });
+        });
+    }
 });
