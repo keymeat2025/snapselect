@@ -1,4 +1,3 @@
-//nexus-dashboard.html
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -6,127 +5,1218 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SnapSelect - Director Dashboard</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- Using existing CSS files -->
-    <link rel="stylesheet" href="../assets/css/variables.css">
-    <link rel="stylesheet" href="../assets/css/main.css">
-    <link rel="stylesheet" href="../assets/css/animations.css">
-
-    <script src="/assets/js/firebase-config.js"></script>
-    <script src="../assets/js/director-auth.js"></script>
     <style>
+        :root {
+            --color-primary: #3f51b5;
+            --color-primary-dark: #303f9f;
+            --color-accent: #ff4081;
+            --color-success: #28a745;
+            --color-warning: #ffc107;
+            --color-danger: #dc3545;
+            --color-info: #17a2b8;
+            --color-text-dark: #333;
+            --color-text-light: #666;
+            --color-border: #e0e0e0;
+            --color-bg-light: #f5f8fa;
+        }
+        
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #f5f8fa;
-            margin: 0;
-            padding: 20px;
+            background-color: var(--color-bg-light);
+            color: var(--color-text-dark);
+            line-height: 1.6;
         }
         
-        .dashboard-container {
-            max-width: 800px;
-            margin: 50px auto;
-            background-color: white;
-            border-radius: 8px;
+        /* Header Styles */
+        header {
+            background-color: #fff;
             box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-            padding: 30px;
-            text-align: center;
+            padding: 0 20px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            height: 70px;
         }
         
-        .welcome-icon {
-            font-size: 64px;
-            color: #3f51b5;
-            margin-bottom: 20px;
+        nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            height: 100%;
+            max-width: 1400px;
+            margin: 0 auto;
         }
         
-        h1 {
-            color: #333;
-            margin-bottom: 15px;
+        .logo {
+            display: flex;
+            align-items: center;
+            text-decoration: none;
         }
         
-        .subtitle {
-            color: #666;
-            margin-bottom: 30px;
-            font-size: 18px;
+        .logo-text {
+            font-size: 22px;
+            font-weight: 700;
+            color: var(--color-primary);
         }
         
-        .success-message {
-            background-color: #e7f7ed;
-            border-left: 4px solid #28a745;
-            color: #155724;
-            padding: 15px;
+        .nexus-badge {
+            display: inline-block;
+            background-color: var(--color-accent);
+            color: white;
+            padding: 3px 8px;
             border-radius: 4px;
-            margin-bottom: 30px;
-            text-align: left;
+            font-size: 0.7rem;
+            font-weight: 600;
+            margin-left: 8px;
+        }
+        
+        .right-nav {
             display: flex;
             align-items: center;
         }
         
-        .success-message i {
-            font-size: 24px;
+        /* User Menu */
+        .user-menu {
+            position: relative;
+        }
+        
+        .user-menu-btn {
+            display: flex;
+            align-items: center;
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 8px 12px;
+            border-radius: 4px;
+            transition: background-color 0.2s;
+        }
+        
+        .user-menu-btn:hover {
+            background-color: rgba(0, 0, 0, 0.05);
+        }
+        
+        .avatar-placeholder {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background-color: var(--color-primary);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            margin-right: 10px;
+        }
+        
+        .user-name {
+            margin-right: 8px;
+            font-weight: 500;
+        }
+        
+        .user-dropdown {
+            position: absolute;
+            top: 100%;
+            right: 0;
+            background-color: white;
+            border-radius: 4px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            width: 180px;
+            display: none;
+            z-index: 10;
+        }
+        
+        .user-dropdown.show {
+            display: block;
+            animation: fadeIn 0.2s;
+        }
+        
+        .user-dropdown a {
+            display: block;
+            padding: 12px 15px;
+            text-decoration: none;
+            color: var(--color-text-dark);
+            transition: background-color 0.2s;
+        }
+        
+        .user-dropdown a:hover {
+            background-color: rgba(0, 0, 0, 0.05);
+        }
+        
+        /* Notification System */
+        .notification-container {
+            position: relative;
             margin-right: 15px;
         }
         
-        .btn {
-            display: inline-block;
-            background-color: #3f51b5;
-            color: white;
-            padding: 12px 24px;
-            border-radius: 6px;
-            text-decoration: none;
-            font-weight: 600;
-            transition: background-color 0.3s;
-            margin: 10px;
+        .notification-btn {
+            background: none;
             border: none;
+            font-size: 18px;
+            color: var(--color-text-light);
+            cursor: pointer;
+            padding: 8px;
+            border-radius: 50%;
+            position: relative;
+            transition: background-color 0.2s;
+        }
+        
+        .notification-btn:hover {
+            background-color: rgba(0, 0, 0, 0.05);
+        }
+        
+        .notification-badge {
+            position: absolute;
+            top: 0;
+            right: 0;
+            background-color: var(--color-danger);
+            color: white;
+            border-radius: 50%;
+            width: 18px;
+            height: 18px;
+            font-size: 11px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+        }
+        
+        .notification-dropdown {
+            position: absolute;
+            top: 100%;
+            right: 0;
+            background-color: white;
+            border-radius: 4px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            width: 320px;
+            display: none;
+            z-index: 10;
+        }
+        
+        .notification-dropdown.show {
+            display: block;
+            animation: fadeIn 0.2s;
+        }
+        
+        .notification-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px;
+            border-bottom: 1px solid var(--color-border);
+        }
+        
+        .notification-header h3 {
+            margin: 0;
+            font-size: 16px;
+        }
+        
+        .mark-all-read {
+            background: none;
+            border: none;
+            color: var(--color-primary);
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 500;
+        }
+        
+        .notification-list {
+            max-height: 350px;
+            overflow-y: auto;
+        }
+        
+        .notification-item {
+            padding: 12px 15px;
+            border-bottom: 1px solid var(--color-border);
+            transition: background-color 0.2s;
             cursor: pointer;
         }
         
-        .btn:hover {
-            background-color: #303f9f;
+        .notification-item:hover {
+            background-color: rgba(0, 0, 0, 0.02);
         }
         
-        .btn-outline {
-            background-color: transparent;
-            color: #3f51b5;
-            border: 1px solid #3f51b5;
+        .notification-item.unread {
+            background-color: rgba(63, 81, 181, 0.05);
         }
         
-        .btn-outline:hover {
-            background-color: #f0f2ff;
+        .notification-item:last-child {
+            border-bottom: none;
+        }
+        
+        .notification-content {
+            margin-bottom: 5px;
+        }
+        
+        .notification-time {
+            font-size: 12px;
+            color: var(--color-text-light);
+        }
+        
+        /* Main Content */
+        main {
+            display: flex;
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+        
+        /* Sidebar */
+        .nexus-sidebar {
+            width: 250px;
+            min-height: calc(100vh - 70px);
+            background-color: white;
+            border-right: 1px solid var(--color-border);
+            position: sticky;
+            top: 70px;
+            padding: 20px 0;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+        }
+        
+        .nexus-sidebar-menu {
+            list-style: none;
+        }
+        
+        .nexus-sidebar-menu h3 {
+            color: var(--color-text-light);
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            padding: 12px 20px;
+            margin-top: 15px;
+        }
+        
+        .nexus-sidebar-item {
+            margin-bottom: 2px;
+        }
+        
+        .nexus-sidebar-link {
+            display: flex;
+            align-items: center;
+            padding: 12px 20px;
+            color: var(--color-text-dark);
+            text-decoration: none;
+            transition: all 0.2s;
+        }
+        
+        .nexus-sidebar-link:hover {
+            background-color: rgba(63, 81, 181, 0.05);
+        }
+        
+        .nexus-sidebar-link.active {
+            background-color: rgba(63, 81, 181, 0.1);
+            color: var(--color-primary);
+            font-weight: 600;
+            border-left: 3px solid var(--color-primary);
+        }
+        
+        .nexus-sidebar-icon {
+            margin-right: 10px;
+            width: 18px;
+            text-align: center;
+        }
+        
+        /* Main Content Area */
+        .nexus-content {
+            flex: 1;
+            padding: 30px 0 30px 30px;
+        }
+        
+        .content-header {
+            margin-bottom: 25px;
+        }
+        
+        .content-title {
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+        
+        .content-subtitle {
+            color: var(--color-text-light);
+        }
+        
+        /* Dashboard Cards */
+        .dashboard-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .dashboard-card {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+            padding: 20px;
+            transition: transform 0.2s;
+        }
+        
+        .dashboard-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+        }
+        
+        .card-icon {
+            width: 50px;
+            height: 50px;
+            border-radius: 12px;
+            background-color: rgba(63, 81, 181, 0.1);
+            color: var(--color-primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+            margin-bottom: 15px;
+        }
+        
+        .card-icon.warning {
+            background-color: rgba(255, 193, 7, 0.1);
+            color: var(--color-warning);
+        }
+        
+        .card-icon.success {
+            background-color: rgba(40, 167, 69, 0.1);
+            color: var(--color-success);
+        }
+        
+        .card-icon.danger {
+            background-color: rgba(220, 53, 69, 0.1);
+            color: var(--color-danger);
+        }
+        
+        .card-value {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+        
+        .card-label {
+            color: var(--color-text-light);
+            font-size: 14px;
+        }
+        
+        .card-trend {
+            display: flex;
+            align-items: center;
+            margin-top: 10px;
+            font-size: 14px;
+        }
+        
+        .trend-up {
+            color: var(--color-success);
+        }
+        
+        .trend-down {
+            color: var(--color-danger);
+        }
+        
+        .card-trend i {
+            margin-right: 5px;
+        }
+        
+        /* Data Tables */
+        .data-table-container {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+            margin-bottom: 30px;
+            overflow: hidden;
+        }
+        
+        .data-table-header {
+            padding: 20px;
+            border-bottom: 1px solid var(--color-border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .data-table-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin: 0;
+        }
+        
+        .data-table-actions {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        .data-table th {
+            text-align: left;
+            padding: 12px 20px;
+            background-color: #f9f9f9;
+            color: var(--color-text-light);
+            font-weight: 600;
+            font-size: 14px;
+            border-bottom: 1px solid var(--color-border);
+        }
+        
+        .data-table td {
+            padding: 12px 20px;
+            border-bottom: 1px solid var(--color-border);
+        }
+        
+        .data-table tr:last-child td {
+            border-bottom: none;
+        }
+        
+        .data-table tr:hover {
+            background-color: rgba(63, 81, 181, 0.02);
+        }
+        
+        .status-pill {
+            display: inline-block;
+            padding: 5px 10px;
+            border-radius: 100px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        
+        .status-active {
+            background-color: #e7f7ed;
+            color: var(--color-success);
+        }
+        
+        .status-inactive {
+            background-color: #f8d7da;
+            color: var(--color-danger);
+        }
+        
+        .status-pending {
+            background-color: #fff3cd;
+            color: var(--color-warning);
+        }
+        
+        .action-btn {
+            background: none;
+            border: none;
+            color: var(--color-primary);
+            cursor: pointer;
+            padding: 5px 8px;
+            border-radius: 4px;
+            transition: background-color 0.2s;
+        }
+        
+        .action-btn:hover {
+            background-color: rgba(63, 81, 181, 0.1);
+        }
+        
+        .action-btn.warning {
+            color: var(--color-warning);
+        }
+        
+        .action-btn.warning:hover {
+            background-color: rgba(255, 193, 7, 0.1);
+        }
+        
+        .action-btn.danger {
+            color: var(--color-danger);
+        }
+        
+        .action-btn.danger:hover {
+            background-color: rgba(220, 53, 69, 0.1);
+        }
+        
+        /* System Logs */
+        .system-log {
+            background-color: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 4px;
+            padding: 15px;
+            height: 400px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 13px;
+            line-height: 1.5;
+        }
+        
+        .log-entry {
+            margin-bottom: 8px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #e9ecef;
+        }
+        
+        .log-timestamp {
+            color: #6c757d;
+            margin-right: 10px;
+        }
+        
+        .log-level {
+            display: inline-block;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 11px;
+            font-weight: bold;
+            margin-right: 8px;
+        }
+        
+        .log-level.info {
+            background-color: #cce5ff;
+            color: #0d6efd;
+        }
+        
+        .log-level.warning {
+            background-color: #fff3cd;
+            color: #ffc107;
+        }
+        
+        .log-level.error {
+            background-color: #f8d7da;
+            color: #dc3545;
+        }
+        
+        /* Toast Notifications */
+        #toastContainer {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 9999;
+        }
+        
+        .toast {
+            padding: 15px 20px;
+            margin-bottom: 10px;
+            border-radius: 4px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            display: flex;
+            align-items: center;
+            animation: slideInRight 0.3s, fadeOut 0.5s 5s forwards;
+            max-width: 350px;
+        }
+        
+        .toast-success {
+            background-color: #e7f7ed;
+            border-left: 4px solid #28a745;
+            color: #155724;
+        }
+        
+        .toast-error {
+            background-color: #f8d7da;
+            border-left: 4px solid #dc3545;
+            color: #721c24;
+        }
+        
+        .toast-info {
+            background-color: #e1ecf8;
+            border-left: 4px solid #007bff;
+            color: #0c5460;
+        }
+        
+        .toast-icon {
+            margin-right: 10px;
+            font-size: 20px;
+        }
+        
+        .toast-content {
+            flex: 1;
+        }
+        
+        .toast-title {
+            font-weight: 700;
+            margin-bottom: 3px;
+        }
+        
+        /* Animation Keyframes */
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        @keyframes slideInRight {
+            from { transform: translateX(100%); }
+            to { transform: translateX(0); }
+        }
+        
+        @keyframes fadeOut {
+            from { opacity: 1; }
+            to { opacity: 0; }
+        }
+        
+        /* Responsive Styles */
+        @media screen and (max-width: 768px) {
+            .nexus-sidebar {
+                position: fixed;
+                left: -250px;
+                transition: left 0.3s;
+                z-index: 90;
+                height: 100vh;
+            }
+            
+            .nexus-sidebar.open {
+                left: 0;
+            }
+            
+            .nexus-content {
+                padding: 20px;
+                width: 100%;
+            }
+            
+            .dashboard-cards {
+                grid-template-columns: 1fr;
+            }
+            
+            .data-table-container {
+                overflow-x: auto;
+            }
+            
+            .hamburger {
+                display: block;
+                cursor: pointer;
+                font-size: 22px;
+            }
         }
     </style>
 </head>
 <body>
-    <div class="dashboard-container">
-        <div class="welcome-icon">
-            <i class="fas fa-user-shield"></i>
+    <!-- Toast Container for Notifications -->
+    <div id="toastContainer"></div>
+
+    <header>
+        <nav>
+            <a href="#" class="logo">
+                <div class="logo-text">SnapSelect</div>
+                <span class="nexus-badge">Nexus</span>
+            </a>
+            
+            <div class="right-nav">
+                <!-- Notification Bell -->
+                <div class="notification-container">
+                    <button id="notificationBtn" class="notification-btn">
+                        <i class="fas fa-bell"></i>
+                        <span id="notificationCount" class="notification-badge">3</span>
+                    </button>
+                    
+                    <div id="notificationDropdown" class="notification-dropdown">
+                        <div class="notification-header">
+                            <h3>Notifications</h3>
+                            <button id="markAllReadBtn" class="mark-all-read">Mark all as read</button>
+                        </div>
+                        <div class="notification-list">
+                            <div class="notification-item unread">
+                                <div class="notification-content">New photographer application received from John Smith</div>
+                                <div class="notification-time">2 hours ago</div>
+                            </div>
+                            <div class="notification-item unread">
+                                <div class="notification-content">Monthly revenue report is ready for review</div>
+                                <div class="notification-time">Yesterday</div>
+                            </div>
+                            <div class="notification-item unread">
+                                <div class="notification-content">System update scheduled for tomorrow at 2:00 AM</div>
+                                <div class="notification-time">2 days ago</div>
+                            </div>
+                            <div class="notification-item">
+                                <div class="notification-content">Client feedback survey results are now available</div>
+                                <div class="notification-time">1 week ago</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- User Menu -->
+                <div class="user-menu">
+                    <button class="user-menu-btn" id="userMenuBtn">
+                        <div class="avatar-placeholder">D</div>
+                        <span class="user-name">Director</span>
+                        <i class="fas fa-chevron-down"></i>
+                    </button>
+                    <div class="user-dropdown" id="userDropdown">
+                        <a href="#"><i class="fas fa-user-circle"></i> Profile</a>
+                        <a href="#"><i class="fas fa-cog"></i> Settings</a>
+                        <a href="#" id="logoutBtn"><i class="fas fa-sign-out-alt"></i> Logout</a>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="hamburger">
+                <i class="fas fa-bars"></i>
+            </div>
+        </nav>
+    </header>
+
+    <main>
+        <!-- Sidebar Navigation -->
+        <div class="nexus-sidebar">
+            <ul class="nexus-sidebar-menu">
+                <h3>Main</h3>
+                <li class="nexus-sidebar-item">
+                    <a href="#" class="nexus-sidebar-link active" data-section="dashboard">
+                        <span class="nexus-sidebar-icon"><i class="fas fa-chart-line"></i></span>
+                        Dashboard
+                    </a>
+                </li>
+                <li class="nexus-sidebar-item">
+                    <a href="#" class="nexus-sidebar-link" data-section="photographers">
+                        <span class="nexus-sidebar-icon"><i class="fas fa-camera"></i></span>
+                        Photographers
+                    </a>
+                </li>
+                <li class="nexus-sidebar-item">
+                    <a href="#" class="nexus-sidebar-link" data-section="clients">
+                        <span class="nexus-sidebar-icon"><i class="fas fa-users"></i></span>
+                        Clients
+                    </a>
+                </li>
+                
+                <h3>Management</h3>
+                <li class="nexus-sidebar-item">
+                    <a href="#" class="nexus-sidebar-link" data-section="subscriptions">
+                        <span class="nexus-sidebar-icon"><i class="fas fa-tag"></i></span>
+                        Subscriptions
+                    </a>
+                </li>
+                <li class="nexus-sidebar-item">
+                    <a href="#" class="nexus-sidebar-link" data-section="payments">
+                        <span class="nexus-sidebar-icon"><i class="fas fa-credit-card"></i></span>
+                        Payments
+                    </a>
+                </li>
+                
+                <h3>System</h3>
+                <li class="nexus-sidebar-item">
+                    <a href="#" class="nexus-sidebar-link" data-section="staff">
+                        <span class="nexus-sidebar-icon"><i class="fas fa-user-shield"></i></span>
+                        Staff Management
+                    </a>
+                </li>
+                <li class="nexus-sidebar-item">
+                    <a href="#" class="nexus-sidebar-link" data-section="logs">
+                        <span class="nexus-sidebar-icon"><i class="fas fa-list"></i></span>
+                        System Logs
+                    </a>
+                </li>
+                <li class="nexus-sidebar-item">
+                    <a href="#" class="nexus-sidebar-link" data-section="settings">
+                        <span class="nexus-sidebar-icon"><i class="fas fa-cog"></i></span>
+                        Settings
+                    </a>
+                </li>
+            </ul>
         </div>
         
-        <h1>Welcome, Director!</h1>
-        <p class="subtitle">You've successfully logged into the SnapSelect Nexus Portal</p>
-        
-        <div class="success-message">
-            <i class="fas fa-check-circle"></i>
-            <div>
-                <strong>Authentication Successful</strong>
-                <p>You now have access to all director privileges and controls.</p>
+        <!-- Main Content Area -->
+        <div class="nexus-content">
+            <div class="content-header">
+                <h1 class="content-title">Dashboard Overview</h1>
+                <p class="content-subtitle">Welcome back to your SnapSelect Nexus portal. Here's what's happening today.</p>
+            </div>
+            
+            <!-- Dashboard Cards -->
+            <div class="dashboard-cards">
+                <div class="dashboard-card">
+                    <div class="card-icon">
+                        <i class="fas fa-camera"></i>
+                    </div>
+                    <div class="card-value">247</div>
+                    <div class="card-label">Active Photographers</div>
+                    <div class="card-trend trend-up">
+                        <i class="fas fa-arrow-up"></i> 12% this month
+                    </div>
+                </div>
+                
+                <div class="dashboard-card">
+                    <div class="card-icon success">
+                        <i class="fas fa-users"></i>
+                    </div>
+                    <div class="card-value">1,893</div>
+                    <div class="card-label">Total Clients</div>
+                    <div class="card-trend trend-up">
+                        <i class="fas fa-arrow-up"></i> 8% this month
+                    </div>
+                </div>
+                
+                <div class="dashboard-card">
+                    <div class="card-icon warning">
+                        <i class="fas fa-images"></i>
+                    </div>
+                    <div class="card-value">12,456</div>
+                    <div class="card-label">Images Delivered</div>
+                    <div class="card-trend trend-up">
+                        <i class="fas fa-arrow-up"></i> 5% this week
+                    </div>
+                </div>
+                
+                <div class="dashboard-card">
+                    <div class="card-icon success">
+                        <i class="fas fa-dollar-sign"></i>
+                    </div>
+                    <div class="card-value">$48,295</div>
+                    <div class="card-label">Monthly Revenue</div>
+                    <div class="card-trend trend-up">
+                        <i class="fas fa-arrow-up"></i> 15% this month
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Recent Photographers Table -->
+            <div class="data-table-container">
+                <div class="data-table-header">
+                    <h2 class="data-table-title">Recent Photographer Applications</h2>
+                    <div class="data-table-actions">
+                        <div class="search-container">
+                            <i class="fas fa-search search-icon"></i>
+                            <input type="text" class="search-input" placeholder="Search photographers...">
+                        </div>
+                    </div>
+                </div>
+                
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Specialty</th>
+                            <th>Location</th>
+                            <th>Applied Date</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>John Smith</td>
+                            <td>Wedding Photography</td>
+                            <td>New York, NY</td>
+                            <td>May 12, 2025</td>
+                            <td><span class="status-pill status-pending">Pending</span></td>
+                            <td>
+                                <button class="action-btn"><i class="fas fa-eye"></i></button>
+                                <button class="action-btn"><i class="fas fa-check"></i></button>
+                                <button class="action-btn danger"><i class="fas fa-times"></i></button>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>Sarah Johnson</td>
+                            <td>Portrait Photography</td>
+                            <td>Los Angeles, CA</td>
+                            <td>May 10, 2025</td>
+                            <td><span class="status-pill status-active">Approved</span></td>
+                            <td>
+                                <button class="action-btn"><i class="fas fa-eye"></i></button>
+                                <button class="action-btn"><i class="fas fa-edit"></i></button>
+                                <button class="action-btn warning"><i class="fas fa-pause"></i></button>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>Michael Chen</td>
+                            <td>Commercial Photography</td>
+                            <td>Chicago, IL</td>
+                            <td>May 09, 2025</td>
+                            <td><span class="status-pill status-pending">Pending</span></td>
+                            <td>
+                                <button class="action-btn"><i class="fas fa-eye"></i></button>
+                                <button class="action-btn"><i class="fas fa-check"></i></button>
+                                <button class="action-btn danger"><i class="fas fa-times"></i></button>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>Emily Rodriguez</td>
+                            <td>Event Photography</td>
+                            <td>Miami, FL</td>
+                            <td>May 08, 2025</td>
+                            <td><span class="status-pill status-inactive">Rejected</span></td>
+                            <td>
+                                <button class="action-btn"><i class="fas fa-eye"></i></button>
+                                <button class="action-btn"><i class="fas fa-redo"></i></button>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>David Wilson</td>
+                            <td>Architecture Photography</td>
+                            <td>Seattle, WA</td>
+                            <td>May 07, 2025</td>
+                            <td><span class="status-pill status-active">Approved</span></td>
+                            <td>
+                                <button class="action-btn"><i class="fas fa-eye"></i></button>
+                                <button class="action-btn"><i class="fas fa-edit"></i></button>
+                                <button class="action-btn warning"><i class="fas fa-pause"></i></button>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Recent Client Activity -->
+            <div class="data-table-container">
+                <div class="data-table-header">
+                    <h2 class="data-table-title">Recent Client Activity</h2>
+                    <div class="data-table-actions">
+                        <button class="btn">Export Report</button>
+                        <div class="search-container">
+                            <i class="fas fa-search search-icon"></i>
+                            <input type="text" class="search-input" placeholder="Search clients...">
+                        </div>
+                    </div>
+                </div>
+                
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Client</th>
+                            <th>Activity</th>
+                            <th>Photographer</th>
+                            <th>Date</th>
+                            <th>Amount</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Acme Corporation</td>
+                            <td>Product Photoshoot</td>
+                            <td>Sarah Johnson</td>
+                            <td>May 12, 2025</td>
+                            <td>$1,250</td>
+                            <td><span class="status-pill status-active">Completed</span></td>
+                        </tr>
+                        <tr>
+                            <td>Highland Events</td>
+                            <td>Corporate Event Coverage</td>
+                            <td>David Wilson</td>
+                            <td>May 11, 2025</td>
+                            <td>$2,800</td>
+                            <td><span class="status-pill status-pending">In Progress</span></td>
+                        </tr>
+                        <tr>
+                            <td>Maria Garcia</td>
+                            <td>Wedding Photography</td>
+                            <td>John Smith</td>
+                            <td>May 10, 2025</td>
+                            <td>$3,500</td>
+                            <td><span class="status-pill status-active">Completed</span></td>
+                        </tr>
+                        <tr>
+                            <td>TechStart Inc.</td>
+                            <td>Team Headshots</td>
+                            <td>Michael Chen</td>
+                            <td>May 09, 2025</td>
+                            <td>$950</td>
+                            <td><span class="status-pill status-pending">Scheduled</span></td>
+                        </tr>
+                        <tr>
+                            <td>Oceanview Resort</td>
+                            <td>Property Photography</td>
+                            <td>Emily Rodriguez</td>
+                            <td>May 08, 2025</td>
+                            <td>$1,800</td>
+                            <td><span class="status-pill status-active">Completed</span></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- System Logs Section -->
+            <div class="data-table-container">
+                <div class="data-table-header">
+                    <h2 class="data-table-title">System Activity Logs</h2>
+                    <div class="data-table-actions">
+                        <button class="btn">Download Logs</button>
+                        <button class="btn">Clear Logs</button>
+                    </div>
+                </div>
+                
+                <div class="system-log">
+                    <div class="log-entry">
+                        <span class="log-timestamp">2025-05-13 09:45:23</span>
+                        <span class="log-level info">INFO</span>
+                        <span class="log-message">User login: director@snapselect.com (IP: 192.168.1.105)</span>
+                    </div>
+                    <div class="log-entry">
+                        <span class="log-timestamp">2025-05-13 09:42:18</span>
+                        <span class="log-level info">INFO</span>
+                        <span class="log-message">Payment processed: Invoice #INV-2025-0589 for $1,250.00</span>
+                    </div>
+                    <div class="log-entry">
+                        <span class="log-timestamp">2025-05-13 09:38:54</span>
+                        <span class="log-level warning">WARNING</span>
+                        <span class="log-message">Failed login attempt: admin@snapselect.com (IP: 203.0.113.42)</span>
+                    </div>
+                    <div class="log-entry">
+                        <span class="log-timestamp">2025-05-13 09:35:07</span>
+                        <span class="log-level info">INFO</span>
+                        <span class="log-message">New photographer application submitted by John Smith</span>
+                    </div>
+                    <div class="log-entry">
+                        <span class="log-timestamp">2025-05-13 09:30:22</span>
+                        <span class="log-level info">INFO</span>
+                        <span class="log-message">Photographer status updated: Sarah Johnson (Approved)</span>
+                    </div>
+                    <div class="log-entry">
+                        <span class="log-timestamp">2025-05-13 09:25:15</span>
+                        <span class="log-level error">ERROR</span>
+                        <span class="log-message">Database connection timeout (Error: #DB-5032)</span>
+                    </div>
+                    <div class="log-entry">
+                        <span class="log-timestamp">2025-05-13 09:18:42</span>
+                        <span class="log-level info">INFO</span>
+                        <span class="log-message">System backup completed successfully (Size: 4.2GB)</span>
+                    </div>
+                    <div class="log-entry">
+                        <span class="log-timestamp">2025-05-13 09:15:10</span>
+                        <span class="log-level info">INFO</span>
+                        <span class="log-message">Scheduled system backup started</span>
+                    </div>
+                    <div class="log-entry">
+                        <span class="log-timestamp">2025-05-13 09:10:33</span>
+                        <span class="log-level warning">WARNING</span>
+                        <span class="log-message">Storage space below 20% (16.5GB remaining)</span>
+                    </div>
+                    <div class="log-entry">
+                        <span class="log-timestamp">2025-05-13 09:05:48</span>
+                        <span class="log-level info">INFO</span>
+                        <span class="log-message">Monthly financial report generated successfully</span>
+                    </div>
+                </div>
             </div>
         </div>
-        
-        <div>
-            <button id="logoutBtn" class="btn">Logout</button>
-            <a href="nexus-portal.html" class="btn btn-outline">Back to Login</a>
-        </div>
-    </div>
+    </main>
 
     <script>
-        // Simple logout functionality
-        document.getElementById('logoutBtn').addEventListener('click', function() {
-            // Clear session storage
-            sessionStorage.removeItem('directorAuthenticated');
-            sessionStorage.removeItem('authTimestamp');
-            
-            // Redirect to login page
-            window.location.href = 'nexus-portal.html';
+        // Toggle user dropdown
+        document.getElementById('userMenuBtn').addEventListener('click', function() {
+            document.getElementById('userDropdown').classList.toggle('show');
         });
+        
+        // Toggle notification dropdown
+        document.getElementById('notificationBtn').addEventListener('click', function() {
+            document.getElementById('notificationDropdown').classList.toggle('show');
+        });
+        
+        // Close dropdowns when clicking outside
+        window.addEventListener('click', function(event) {
+            if (!event.target.matches('.user-menu-btn') && !event.target.closest('.user-menu-btn')) {
+                var dropdown = document.getElementById('userDropdown');
+                if (dropdown.classList.contains('show')) {
+                    dropdown.classList.remove('show');
+                }
+            }
+            
+            if (!event.target.matches('.notification-btn') && !event.target.closest('.notification-btn')) {
+                var dropdown = document.getElementById('notificationDropdown');
+                if (dropdown.classList.contains('show')) {
+                    dropdown.classList.remove('show');
+                }
+            }
+        });
+        
+        // Navigation tabs functionality
+        document.querySelectorAll('.nexus-sidebar-link').forEach(function(link) {
+            link.addEventListener('click', function(e) {
+                e.preventDefault();
+                
+                // Remove active class from all links
+                document.querySelectorAll('.nexus-sidebar-link').forEach(function(link) {
+                    link.classList.remove('active');
+                });
+                
+                // Add active class to clicked link
+                this.classList.add('active');
+                
+                // Here you would typically load the corresponding section content
+                // For demo purposes, we'll just show a toast notification
+                showToast('Navigation', 'Switched to ' + this.textContent.trim() + ' section', 'info');
+            });
+        });
+        
+        // Mark all notifications as read
+        document.getElementById('markAllReadBtn').addEventListener('click', function() {
+            document.querySelectorAll('.notification-item').forEach(function(item) {
+                item.classList.remove('unread');
+            });
+            
+            document.getElementById('notificationCount').textContent = '0';
+            showToast('Notifications', 'All notifications marked as read', 'success');
+        });
+        
+        // Logout functionality
+        document.getElementById('logoutBtn').addEventListener('click', function(e) {
+            e.preventDefault();
+            
+            // Show a loading overlay
+            document.getElementById('loadingOverlay').style.display = 'flex';
+            
+            // Simulate logout delay
+            setTimeout(function() {
+                // Clear session storage
+                sessionStorage.removeItem('directorAuthenticated');
+                sessionStorage.removeItem('authTimestamp');
+                
+                // Redirect to login page
+                window.location.href = 'nexus-portal.html';
+            }, 1000);
+        });
+        
+        // Show toast notification function
+        function showToast(title, message, type) {
+            var toastContainer = document.getElementById('toastContainer');
+            
+            var toast = document.createElement('div');
+            toast.className = 'toast toast-' + type;
+            
+            var iconClass = 'info-circle';
+            if (type === 'success') iconClass = 'check-circle';
+            if (type === 'error') iconClass = 'exclamation-circle';
+            
+            toast.innerHTML = `
+                <div class="toast-icon">
+                    <i class="fas fa-${iconClass}"></i>
+                </div>
+                <div class="toast-content">
+                    <div class="toast-title">${title}</div>
+                    <div class="toast-message">${message}</div>
+                </div>
+                <button class="toast-close">
+                    <i class="fas fa-times"></i>
+                </button>
+            `;
+            
+            toastContainer.appendChild(toast);
+            
+            // Remove toast after animation ends
+            setTimeout(function() {
+                toast.remove();
+            }, 5000);
+            
+            // Close toast when clicking the close button
+            toast.querySelector('.toast-close').addEventListener('click', function() {
+                toast.remove();
+            });
+        }
+        
+        // Mobile menu toggle
+        document.querySelector('.hamburger').addEventListener('click', function() {
+            document.querySelector('.nexus-sidebar').classList.toggle('open');
+        });
+        
+        // Show a welcome toast on load
+        window.addEventListener('load', function() {
+            setTimeout(function() {
+                showToast('Welcome', 'You\'ve successfully logged into the SnapSelect Nexus Portal', 'success');
+            }, 1000);
+        });
+        
+        // Create a simulated loading overlay for demo purposes
+        function simulateLoading(message, duration) {
+            var loadingOverlay = document.getElementById('loadingOverlay');
+            document.querySelector('.loading-text').textContent = message || 'Loading...';
+            
+            loadingOverlay.style.display = 'flex';
+            
+            setTimeout(function() {
+                loadingOverlay.style.display = 'none';
+            }, duration || 1500);
+        }
     </script>
 </body>
 </html>
