@@ -1861,7 +1861,7 @@
             // Apply filters
             let filteredPhotographers = photographers;
             
-            / Default to showing only approved photographers
+            // Default to showing only approved photographers
             if (statusFilter === 'all' || !statusFilter) {
                 filteredPhotographers = filteredPhotographers.filter(p => p.status === 'approved');
             } else {
