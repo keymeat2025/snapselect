@@ -1,10 +1,9 @@
-//portal.html
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SnapSelect - Portal</title>
+    <title>SnapSelect - Nexus Director Portal</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Using the same CSS files from the photographer dashboard for consistency -->
     <link rel="stylesheet" href="../assets/css/variables.css">
@@ -19,6 +18,18 @@
             padding: 5px 10px;
             border-radius: 4px;
             font-size: 0.8rem;
+            font-weight: 600;
+            margin-left: 8px;
+            vertical-align: middle;
+        }
+        
+        .admin-badge {
+            display: inline-block;
+            background-color: #dc3545;
+            color: white;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 0.7rem;
             font-weight: 600;
             margin-left: 8px;
             vertical-align: middle;
@@ -226,6 +237,64 @@
             from { opacity: 1; }
             to { opacity: 0; }
         }
+
+        /* Enhanced security indicators */
+        .security-indicator {
+            margin-top: 20px;
+            text-align: center;
+            font-size: 0.8rem;
+            color: var(--color-text-light);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .security-indicator i {
+            margin-right: 5px;
+            color: var(--color-primary);
+        }
+
+        /* Two-factor code input */
+        .code-input-container {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+            justify-content: center;
+        }
+
+        .code-input {
+            width: 50px;
+            height: 60px;
+            font-size: 24px;
+            text-align: center;
+            border: 1px solid var(--color-border);
+            border-radius: 6px;
+            background-color: var(--color-bg-light);
+        }
+
+        .code-input:focus {
+            border-color: var(--color-primary);
+            outline: none;
+            box-shadow: 0 0 0 2px rgba(63, 81, 181, 0.2);
+        }
+
+        /* Security warning */
+        .security-warning {
+            display: flex;
+            align-items: center;
+            background-color: rgba(255, 193, 7, 0.1);
+            color: #856404;
+            padding: 10px 15px;
+            margin-bottom: 20px;
+            font-size: 14px;
+            border-radius: 4px;
+            border-left: 4px solid #ffc107;
+        }
+
+        .security-warning i {
+            margin-right: 10px;
+            font-size: 18px;
+        }
     </style>
 </head>
 <body>
@@ -244,6 +313,7 @@
                 <a href="../../index.html" class="logo">
                     <div class="logo-text">SnapSelect</div>
                     <span class="portal-badge">Nexus</span>
+                    <span class="admin-badge">DIRECTOR</span>
                 </a>
                 <div class="right-nav">
                     <a href="../../index.html" class="btn-link">Back to Homepage</a>
@@ -255,33 +325,45 @@
     <main>
         <div class="container">
             <div class="portal-login-container">
-                <h1>Nexus Portal</h1>
+                <h1>Nexus Director Portal</h1>
+                
+                <div class="security-warning">
+                    <i class="fas fa-shield-alt"></i>
+                    <span>This is a secured area. Unauthorized access attempts are logged and monitored.</span>
+                </div>
+                
                 <div id="errorMessage" class="error-message">
                     <i class="fas fa-exclamation-circle"></i>
                     <span id="errorText">Invalid credentials. Please try again.</span>
                 </div>
-                <form id="portalLoginForm" class="portal-login-form">
+                
+                <form id="directorLoginForm" class="portal-login-form">
                     <div class="form-group">
-                        <label for="userEmail">Email</label>
-                        <input type="email" id="userEmail" placeholder="Enter your email" required>
+                        <label for="userEmail">Director Email</label>
+                        <input type="email" id="userEmail" placeholder="Enter your director email" required>
                     </div>
                     <div class="form-group">
-                        <label for="userPassword">Password</label>
-                        <input type="password" id="userPassword" placeholder="Enter your password" required>
+                        <label for="userPassword">Director Password</label>
+                        <input type="password" id="userPassword" placeholder="Enter your director password" required>
                     </div>
                     <div class="form-group">
-                        <label for="accessCode">Access Code</label>
-                        <input type="password" id="accessCode" placeholder="Enter nexus access code" required>
+                        <label for="accessCode">Nexus Access Code</label>
+                        <input type="password" id="accessCode" placeholder="Enter nexus director access code" required>
                     </div>
                     <div class="form-footer">
                         <button type="submit" class="portal-login-btn">
-                            <i class="fas fa-sign-in-alt"></i> Secure Login
+                            <i class="fas fa-lock"></i> Secure Authentication
                         </button>
                     </div>
                     <div class="form-help">
                         <a href="#" id="forgotPasswordLink">Forgot Password?</a>
                     </div>
                 </form>
+                
+                <div class="security-indicator">
+                    <i class="fas fa-shield-alt"></i>
+                    <span>Triple-layer secured authentication</span>
+                </div>
             </div>
         </div>
     </main>
@@ -305,6 +387,6 @@
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-functions-compat.js"></script>
     <script src="../assets/js/firebase-config.js"></script>
-    <script src="assets/js/portal.js"></script>
+    <script src="../assets/js/director-auth.js"></script>
 </body>
 </html>
