@@ -36,18 +36,7 @@ const GalleryShareModal = {
       });
     }
     
-    //Copy link button
-    const copyLinkBtn = document.getElementById('copyLinkBtn');
-    if (copyLinkBtn) {
-      copyLinkBtn.addEventListener('click', () => {
-        const urlInput = document.getElementById('shareUrlDisplay');
-        if (urlInput) {
-          urlInput.select();
-          document.execCommand('copy');
-          this.showToast('Link copied to clipboard!', 'success');
-        }
-      });
-    }
+    // Copy Link Button functionality removed
     
     // Share via WhatsApp button
     const shareWhatsAppBtn = document.getElementById('shareWhatsAppBtn');
