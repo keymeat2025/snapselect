@@ -255,6 +255,62 @@
             font-size: 14px;
             color: #777;
         }
+
+        /* Photo modal navigation buttons */
+        .modal-nav-button {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            background-color: rgba(255, 255, 255, 0.3);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            font-size: 24px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            z-index: 1001;
+        }
+
+        .modal-nav-button:hover {
+            background-color: rgba(255, 255, 255, 0.5);
+        }
+
+        .modal-prev {
+            left: 20px;
+        }
+
+        .modal-next {
+            right: 20px;
+        }
+
+        /* Close button */
+        .modal-close {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background-color: rgba(255, 255, 255, 0.3);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            font-size: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            z-index: 1001;
+        }
+
+        .modal-close:hover {
+            background-color: rgba(255, 255, 255, 0.5);
+        }
     </style>
 </head>
 <body>
@@ -326,6 +382,9 @@
     
     <!-- Inline script to load the gallery -->
     <script>
+        // Variable to store all gallery photos
+        let allGalleryPhotos = [];
+        
         // Access control for client gallery
         function checkGalleryAccess() {
             // Get gallery parameters
@@ -756,9 +815,11 @@
                         return;
                     }
                     
+                    // Store all photos in the global array
+                    allGalleryPhotos = snapshot.docs.map(doc => doc.data());
+                    
                     // Create elements for each photo
-                    snapshot.forEach(doc => {
-                        const photo = doc.data();
+                    allGalleryPhotos.forEach(photo => {
                         const photoElement = createPhotoElement(photo);
                         photosGrid.appendChild(photoElement);
                     });
@@ -805,16 +866,20 @@
             photoItem.appendChild(photoDetails);
             
             // Make photo clickable to view larger version
-    
             const openPhoto = function() {
-                // Create a modal/overlay to show the full-size image
+                // Find the index of this photo in the gallery
+                const currentPhotoIndex = allGalleryPhotos.findIndex(p => 
+                    p.url === photo.url || (p.id && p.id === photo.id)
+                );
+                
+                // Create a modal/overlay
                 const overlay = document.createElement('div');
                 overlay.style.position = 'fixed';
                 overlay.style.top = '0';
                 overlay.style.left = '0';
                 overlay.style.width = '100%';
                 overlay.style.height = '100%';
-                overlay.style.backgroundColor = 'rgba(0,0,0,0.8)';
+                overlay.style.backgroundColor = 'rgba(0,0,0,0.9)';
                 overlay.style.zIndex = '1000';
                 overlay.style.display = 'flex';
                 overlay.style.justifyContent = 'center';
@@ -823,13 +888,104 @@
                 // Create the image element
                 const img = document.createElement('img');
                 img.src = photo.url;
-                img.style.maxHeight = '90%';
-                img.style.maxWidth = '90%';
+                img.style.maxHeight = '85%';
+                img.style.maxWidth = '85%';
                 img.style.objectFit = 'contain';
                 
-                // Close the overlay when clicking on it
+                // Add previous button (if not the first photo)
+                if (currentPhotoIndex > 0) {
+                    const prevButton = document.createElement('button');
+                    prevButton.className = 'modal-nav-button modal-prev';
+                    prevButton.innerHTML = '<i class="fas fa-chevron-left"></i>';
+                    prevButton.setAttribute('aria-label', 'Previous photo');
+                    prevButton.addEventListener('click', function(e) {
+                        e.stopPropagation(); // Prevent closing the modal
+                        
+                        // Navigate to previous photo
+                        document.body.removeChild(overlay);
+                        const prevPhoto = allGalleryPhotos[currentPhotoIndex - 1];
+                        
+                        // Create a new modal for the previous photo
+                        const prevPhotoElement = createPhotoElement(prevPhoto);
+                        prevPhotoElement.querySelector('.photo-container').click();
+                    });
+                    overlay.appendChild(prevButton);
+                }
+                
+                // Add next button (if not the last photo)
+                if (currentPhotoIndex < allGalleryPhotos.length - 1) {
+                    const nextButton = document.createElement('button');
+                    nextButton.className = 'modal-nav-button modal-next';
+                    nextButton.innerHTML = '<i class="fas fa-chevron-right"></i>';
+                    nextButton.setAttribute('aria-label', 'Next photo');
+                    nextButton.addEventListener('click', function(e) {
+                        e.stopPropagation(); // Prevent closing the modal
+                        
+                        // Navigate to next photo
+                        document.body.removeChild(overlay);
+                        const nextPhoto = allGalleryPhotos[currentPhotoIndex + 1];
+                        
+                        // Create a new modal for the next photo
+                        const nextPhotoElement = createPhotoElement(nextPhoto);
+                        nextPhotoElement.querySelector('.photo-container').click();
+                    });
+                    overlay.appendChild(nextButton);
+                }
+                
+                // Add a close button
+                const closeButton = document.createElement('button');
+                closeButton.className = 'modal-close';
+                closeButton.innerHTML = '<i class="fas fa-times"></i>';
+                closeButton.setAttribute('aria-label', 'Close');
+                closeButton.addEventListener('click', function(e) {
+                    e.stopPropagation(); // Prevent bubbling to overlay click
+                    document.body.removeChild(overlay);
+                });
+                overlay.appendChild(closeButton);
+                
+                // Add photo name/caption
+                if (photo.name) {
+                    const photoCaption = document.createElement('div');
+                    photoCaption.style.position = 'absolute';
+                    photoCaption.style.bottom = '20px';
+                    photoCaption.style.left = '0';
+                    photoCaption.style.width = '100%';
+                    photoCaption.style.textAlign = 'center';
+                    photoCaption.style.color = 'white';
+                    photoCaption.style.padding = '10px';
+                    photoCaption.style.backgroundColor = 'rgba(0,0,0,0.5)';
+                    photoCaption.textContent = photo.name;
+                    overlay.appendChild(photoCaption);
+                }
+                
+                // Add keyboard navigation
+                overlay.tabIndex = 0; // Make the overlay focusable
+                overlay.focus(); // Focus on the overlay
+                overlay.addEventListener('keydown', function(e) {
+                    if (e.key === 'Escape') {
+                        document.body.removeChild(overlay);
+                    } else if (e.key === 'ArrowLeft' && currentPhotoIndex > 0) {
+                        document.body.removeChild(overlay);
+                        const prevPhoto = allGalleryPhotos[currentPhotoIndex - 1];
+                        const prevPhotoElement = createPhotoElement(prevPhoto);
+                        prevPhotoElement.querySelector('.photo-container').click();
+                    } else if (e.key === 'ArrowRight' && currentPhotoIndex < allGalleryPhotos.length - 1) {
+                        document.body.removeChild(overlay);
+                        const nextPhoto = allGalleryPhotos[currentPhotoIndex + 1];
+                        const nextPhotoElement = createPhotoElement(nextPhoto);
+                        nextPhotoElement.querySelector('.photo-container').click();
+                    }
+                });
+                
+                // Close the overlay when clicking outside the image
                 overlay.addEventListener('click', function() {
                     document.body.removeChild(overlay);
+                });
+                
+          
+// Prevent clicks on the image from closing the overlay
+                img.addEventListener('click', function(e) {
+                    e.stopPropagation();
                 });
                 
                 overlay.appendChild(img);
