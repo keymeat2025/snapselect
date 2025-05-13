@@ -353,8 +353,9 @@ const GalleryShareModal = {
     }
     
     // Store the URL and shareId for other sharing methods
-    this.currentShareUrl = shareUrl;
+    
     this.currentShareId = shareId;
+    this.currentShareUrl = shareUrl;
     
     // Enable sharing buttons if they exist
     const shareButtons = document.querySelectorAll('.share-btn');
