@@ -41,22 +41,10 @@ const GalleryShareModal = {
     if (copyLinkBtn) {
       copyLinkBtn.addEventListener('click', () => {
         const urlInput = document.getElementById('shareUrlDisplay');
-        if (urlInput && urlInput.value) {
+        if (urlInput) {
           urlInput.select();
           document.execCommand('copy');
           this.showToast('Link copied to clipboard!', 'success');
-        } else if (this.currentShareUrl) {
-          // Fallback if the input field is empty but we have the URL stored
-          navigator.clipboard.writeText(this.currentShareUrl)
-            .then(() => {
-              this.showToast('Link copied to clipboard!', 'success');
-            })
-            .catch(err => {
-              console.error('Failed to copy: ', err);
-              this.showToast('Failed to copy link', 'error');
-            });
-        } else {
-          this.showToast('No share link available. Please share the gallery first.', 'warning');
         }
       });
     }
