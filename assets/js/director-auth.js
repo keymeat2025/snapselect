@@ -90,28 +90,15 @@ document.addEventListener('DOMContentLoaded', function() {
                 return;
             }
             
-            // Get the ID token with fresh claims
-            user.getIdTokenResult(true)
-                .then((idTokenResult) => {
-                    // Check if the user has the director claim
-                    if (idTokenResult.claims.director === true) {
-                        resolve(true);
-                    } else {
-                        // Alternative check: look for the user in a specific directors collection
-                        firebase.firestore().collection('directors')
-                            .doc(user.uid)
-                            .get()
-                            .then((doc) => {
-                                resolve(doc.exists && doc.data().active === true);
-                            })
-                            .catch((error) => {
-                                console.error('Error checking director status:', error);
-                                resolve(false);
-                            });
-                    }
+            // Check if the user exists in the directors collection
+            firebase.firestore().collection('directors')
+                .doc(user.uid)
+                .get()
+                .then((doc) => {
+                    resolve(doc.exists && doc.data().active === true);
                 })
                 .catch((error) => {
-                    console.error('Error getting ID token:', error);
+                    console.error('Error checking director status:', error);
                     resolve(false);
                 });
         });
