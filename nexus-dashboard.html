@@ -1139,22 +1139,72 @@
             showToast('Notifications', 'All notifications marked as read', 'success');
         });
         
-        // Logout functionality
+        // Comprehensive logout functionality
         document.getElementById('logoutBtn').addEventListener('click', function(e) {
             e.preventDefault();
             
-            // Show a loading overlay
-            document.getElementById('loadingOverlay').style.display = 'flex';
+            // Show a loading overlay with logout message
+            var loadingOverlay = document.getElementById('loadingOverlay');
+            document.querySelector('.loading-text').textContent = 'Logging out...';
+            loadingOverlay.style.display = 'flex';
             
-            // Simulate logout delay
-            setTimeout(function() {
-                // Clear session storage
+            // Create a function to handle the actual logout process
+            function performLogout() {
+                // 1. Clear all authentication-related session storage
                 sessionStorage.removeItem('directorAuthenticated');
                 sessionStorage.removeItem('authTimestamp');
+                sessionStorage.removeItem('directorId');
+                sessionStorage.removeItem('directorName');
+                sessionStorage.removeItem('directorRole');
+                sessionStorage.removeItem('directorPermissions');
                 
-                // Redirect to login page
-                window.location.href = 'nexus-portal.html';
-            }, 1000);
+                // 2. Clear any auth cookies if they exist
+                document.cookie.split(";").forEach(function(c) {
+                    document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/");
+                });
+                
+                // 3. If using Firebase auth, sign out from Firebase
+                if (typeof firebase !== 'undefined' && firebase.auth) {
+                    firebase.auth().signOut().then(function() {
+                        // Firebase logout successful, continue with redirect
+                        redirectToLogin();
+                    }).catch(function(error) {
+                        // Even if Firebase logout fails, still redirect to login
+                        console.error("Firebase logout error:", error);
+                        redirectToLogin();
+                    });
+                } else {
+                    // If not using Firebase, just redirect
+                    redirectToLogin();
+                }
+            }
+            
+            // Function to redirect to login page
+            function redirectToLogin() {
+                // Optional: Send logout request to server to invalidate server-side session
+                fetch('/api/auth/logout', {
+                    method: 'POST',
+                    credentials: 'include',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                }).catch(function(error) {
+                    // If server request fails, still proceed with logout
+                    console.error("Server logout request error:", error);
+                }).finally(function() {
+                    // Show toast notification
+                    showToast('Logout', 'You have been successfully logged out', 'success');
+                    
+                    // Delay redirect slightly to show the toast
+                    setTimeout(function() {
+                        // Redirect to login page
+                        window.location.href = 'nexus-portal.html';
+                    }, 1500);
+                });
+            }
+            
+            // For demo purposes, add a slight delay before logout to show the loading overlay
+            setTimeout(performLogout, 1000);
         });
         
         // Show toast notification function
