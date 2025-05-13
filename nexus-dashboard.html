@@ -5,14 +5,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SnapSelect - Director Dashboard</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- Firebase SDK -->
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+
     
-    <!-- Your Firebase configuration -->
-    <script src="../assets/js/firebase-config.js"></script>
-    <script src="firebase-auth.js"></script>
+   <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-functions-compat.js"></script>
+    <script src="assets/js/firebase-config.js"></script>
+    <script src="assets/js/firebase-auth.js"></script>
+    <script src="assets/js/firebase-db.js"></script>
     <style>
         :root {
             --color-primary: #3f51b5;
@@ -761,7 +763,12 @@
 <body>
     <!-- Toast Container for Notifications -->
     <div id="toastContainer"></div>
-
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="loading-overlay">
+        <div class="loading-spinner"></div>
+        <div class="loading-text">Loading...</div>
+    </div>
+    
     <header>
         <nav>
             <a href="#" class="logo">
@@ -1386,7 +1393,13 @@
         // Firebase initialization and photographers section implementation
 
         document.addEventListener('DOMContentLoaded', function() {
+              // Initialize Firebase region
+            if (firebase && firebase.functions) {
+                firebase.app().functions("asia-south1");
+            }
+                    
             // Initialize the photographers section
+            
             initializePhotographersSection();
         });
         function initializePhotographersSection() {
