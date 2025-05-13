@@ -34,73 +34,10 @@
             color: #3498db;
         }
         
-        /* Loading overlay */
-        #loadingOverlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(255, 255, 255, 0.9);
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            z-index: 1000;
-        }
-        
-        .loading-spinner {
-            border: 4px solid rgba(0, 0, 0, 0.1);
-            border-left-color: #3498db;
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            animation: spin 1s linear infinite;
-            margin: 0 auto 20px;
-        }
-        
-        /* Error container */
-        #errorContainer {
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background-color: white;
-            padding: 30px;
-            border-radius: 8px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
-            text-align: center;
-            z-index: 1001;
-            max-width: 400px;
-            width: 90%;
-        }
-        
-        .error-icon {
-            font-size: 48px;
-            color: #e74c3c;
-            margin-bottom: 20px;
-        }
-        
-        .error-dismiss {
-            margin-top: 20px;
-        }
-        
-        /* Password screens */
-        #passwordOverlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(245, 245, 245, 0.95);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            z-index: 990;
-        }
-        
+        /* Password screen */
         .password-container {
             max-width: 400px;
+            margin: 100px auto;
             padding: 30px;
             background-color: white;
             border-radius: 8px;
@@ -108,7 +45,7 @@
             text-align: center;
         }
         
-        .password-container input {
+        .password-input {
             width: 100%;
             padding: 12px;
             margin: 15px 0;
@@ -117,133 +54,31 @@
             box-sizing: border-box;
         }
         
-        /* Expired gallery message */
-        #galleryExpiredMsg {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(245, 245, 245, 0.95);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            z-index: 990;
+        .btn {
+            padding: 12px 20px;
+            background-color: #3498db;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
         }
         
-        .expiry-content {
-            max-width: 400px;
-            padding: 30px;
-            background-color: white;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            text-align: center;
+        .btn:hover {
+            background-color: #2980b9;
         }
         
-        /* Gallery info */
-        #galleryInfo {
-            margin-bottom: 20px;
-            padding: 20px;
-            background-color: white;
-            border-radius: 8px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        .error-message {
+            color: #e74c3c;
+            margin: 10px 0;
+            display: none;
         }
         
-        #galleryInfo h1 {
-            margin-top: 0;
-            margin-bottom: 10px;
-            color: #333;
-        }
-        
-        #galleryInfo p {
-            margin: 5px 0;
-            color: #666;
-        }
-        
-        #expiryInfo {
-            margin-top: 10px;
-            padding: 8px 12px;
-            background-color: #f8f9fa;
-            border-left: 3px solid #3498db;
-            font-size: 14px;
-        }
-        
-        /* Main gallery container */
+        /* Gallery container */
         .gallery-container {
             max-width: 1200px;
             margin: 30px auto;
             padding: 20px;
-            background-color: white;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        }
-        
-        /* Gallery actions */
-        .gallery-actions {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-            flex-wrap: wrap;
-            gap: 10px;
-        }
-        
-        .gallery-stats {
-            font-size: 14px;
-            color: #666;
-        }
-        
-        .view-controls {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        
-        /* Buttons */
-        .btn {
-            padding: 10px 15px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 15px;
-            transition: all 0.2s;
-            border: none;
-        }
-        
-        .primary-btn {
-            background-color: #3498db;
-            color: white;
-        }
-        
-        .primary-btn:hover {
-            background-color: #2980b9;
-        }
-        
-        .outline-btn {
-            background-color: transparent;
-            border: 1px solid #3498db;
-            color: #3498db;
-        }
-        
-        .outline-btn:hover {
-            background-color: #f0f7fc;
-        }
-        
-        .icon-btn {
-            padding: 8px;
-            background-color: transparent;
-        }
-        
-        .icon-btn.active {
-            background-color: #e1f0fa;
-            color: #3498db;
-        }
-        
-        /* Form controls */
-        select, input[type="text"] {
-            padding: 8px 12px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            font-size: 14px;
         }
         
         /* Photo grid */
@@ -251,13 +86,7 @@
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
             gap: 20px;
-        }
-        
-        /* List view */
-        .photos-list {
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
+            margin-top: 20px;
         }
         
         .photo-item {
@@ -274,258 +103,84 @@
         
         .photo-container {
             height: 200px;
+            width: 100%;
             background-size: cover;
             background-position: center;
             position: relative;
             cursor: pointer;
         }
         
-        .photo-item.selected .photo-container::after {
-            content: "✓";
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            width: 24px;
-            height: 24px;
-            background-color: #3498db;
-            color: white;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: bold;
-        }
-        
         .photo-details {
             padding: 12px;
         }
         
-        .no-photos {
-            text-align: center;
-            padding: 40px;
+        .photo-name {
+            font-weight: 500;
+            margin-bottom: 5px;
+        }
+        
+        .photo-date {
+            font-size: 12px;
             color: #777;
-            font-style: italic;
         }
         
-        /* Load more button */
-        .load-more-btn {
-            margin: 30px auto;
-            display: block;
-            padding: 12px 25px;
-        }
-        
-        /* Lightbox */
-        .lightbox {
+        /* Toast notifications */
+        .toast-container {
             position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.9);
+            top: 20px;
+            right: 20px;
             z-index: 1000;
-            display: flex;
-            align-items: center;
-            justify-content: center;
         }
         
-        .lightbox-content {
-            width: 90%;
-            max-width: 1000px;
-            max-height: 90vh;
-            background-color: white;
-            border-radius: 8px;
-            overflow: hidden;
-            display: flex;
-            flex-direction: column;
+        .toast {
+            padding: 12px 20px;
+            margin-bottom: 10px;
+            border-radius: 4px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            color: white;
+            animation: slideIn 0.3s ease;
         }
         
-        .lightbox-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 15px 20px;
-            border-bottom: 1px solid #eee;
+        .toast-success {
+            background-color: #27ae60;
         }
         
-        .lightbox-header h2 {
-            margin: 0;
-            font-size: 18px;
+        .toast-error {
+            background-color: #e74c3c;
         }
         
-        .close-lightbox-btn {
-            background: none;
-            border: none;
-            font-size: 24px;
-            cursor: pointer;
-            color: #777;
+        .toast-info {
+            background-color: #3498db;
         }
         
-        .lightbox-body {
-            flex-grow: 1;
-            overflow: hidden;
-            position: relative;
+        .toast.fadeOut {
+            animation: fadeOut 0.3s ease;
         }
         
-        .lightbox-image-container {
-            display: flex;
-            align-items: center;
-            height: 100%;
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
         }
         
-        .lightbox-image-wrapper {
-            flex-grow: 1;
-            height: 100%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            position: relative;
+        @keyframes fadeOut {
+            from { opacity: 1; }
+            to { opacity: 0; }
         }
         
-        .lightbox-image-wrapper img {
-            max-width: 100%;
-            max-height: 60vh;
-            object-fit: contain;
+        /* Loading spinner */
+        .loading-indicator {
+            text-align: center;
+            margin: 100px auto;
         }
         
-        .nav-btn {
-            background: rgba(255, 255, 255, 0.2);
-            border: none;
-            color: #333;
-            font-size: 18px;
+        .spinner {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            border-left-color: #3498db;
+            border-radius: 50%;
             width: 40px;
             height: 40px;
-            border-radius: 50%;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin: 0 10px;
-            transition: background 0.2s;
-        }
-        
-        .nav-btn:hover {
-            background: rgba(255, 255, 255, 0.4);
-        }
-        
-        .lightbox-footer {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 15px 20px;
-            border-top: 1px solid #eee;
-        }
-        
-        .photo-watermark {
-            position: absolute;
-            bottom: 10px;
-            right: 10px;
-            padding: 5px 10px;
-            background-color: rgba(0, 0, 0, 0.5);
-            color: white;
-            border-radius: 4px;
-            font-size: 12px;
-        }
-        
-        /* Modal */
-        .modal {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.7);
-            z-index: 1001;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        
-        .modal-content {
-            width: 90%;
-            max-width: 500px;
-            background-color: white;
-            border-radius: 8px;
-            overflow: hidden;
-        }
-        
-        .modal-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 15px 20px;
-            border-bottom: 1px solid #eee;
-        }
-        
-        .modal-header h2 {
-            margin: 0;
-            font-size: 18px;
-        }
-        
-        .close-modal-btn {
-            background: none;
-            border: none;
-            font-size: 24px;
-            cursor: pointer;
-            color: #777;
-        }
-        
-        .modal-body {
-            padding: 20px;
-        }
-        
-        .modal-footer {
-            padding: 15px 20px;
-            border-top: 1px solid #eee;
-            display: flex;
-            justify-content: flex-end;
-            gap: 10px;
-        }
-        
-        .form-group {
-            margin-bottom: 15px;
-        }
-        
-        .form-group label {
-            display: block;
-            margin-bottom: 5px;
-            font-weight: 500;
-            color: #555;
-        }
-        
-        .form-group input,
-        .form-group textarea {
-            width: 100%;
-            padding: 10px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            box-sizing: border-box;
-        }
-        
-        .form-group textarea {
-            height: 100px;
-            resize: vertical;
-        }
-        
-        .success-message {
-            text-align: center;
-            padding: 20px;
-        }
-        
-        .success-icon {
-            font-size: 48px;
-            color: #27ae60;
-            margin-bottom: 20px;
-        }
-        
-        /* Utility classes */
-        .hidden {
-            display: none !important;
-        }
-        
-        .error-message {
-            color: #e74c3c;
-            margin: 5px 0;
-            font-size: 14px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
         }
         
         @keyframes spin {
@@ -552,42 +207,58 @@
             outline: none;
             box-shadow: inset 0 0 0 3px #3498db;
         }
+        
+        /* Error page */
+        .error-page {
+            text-align: center;
+            max-width: 600px;
+            margin: 100px auto;
+            padding: 30px;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            display: none;
+        }
+        
+        .error-icon {
+            font-size: 48px;
+            color: #e74c3c;
+            margin-bottom: 20px;
+        }
+        
+        .retry-btn {
+            margin-top: 20px;
+        }
+        
+        /* Studio information */
+        .studio-info {
+            margin-bottom: 20px;
+            padding: 15px;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        .studio-info h2 {
+            margin-top: 0;
+            margin-bottom: 10px;
+            color: #333;
+        }
+        
+        .studio-info p {
+            margin: 5px 0;
+            color: #666;
+        }
+        
+        .studio-info .contact {
+            margin-top: 15px;
+            font-size: 14px;
+            color: #777;
+        }
     </style>
 </head>
 <body>
-    <!-- Loading overlay -->
-    <div id="loadingOverlay" class="hidden">
-        <div class="loading-spinner"></div>
-        <div id="loadingText">Loading...</div>
-    </div>
-    
-    <!-- Error container -->
-    <div id="errorContainer" class="hidden">
-        <div class="error-icon"><i class="fas fa-exclamation-circle"></i></div>
-        <div id="errorMessage"></div>
-        <button class="btn primary-btn error-dismiss">Dismiss</button>
-    </div>
-    
-    <!-- Password overlay -->
-    <div id="passwordOverlay" class="hidden">
-        <div class="password-container">
-            <h2>This gallery is password protected</h2>
-            <form id="passwordForm">
-                <input type="password" id="galleryPassword" placeholder="Enter password">
-                <div id="passwordError" class="error-message hidden">Incorrect password. Please try again.</div>
-                <button type="submit" class="btn primary-btn">Access Gallery</button>
-            </form>
-        </div>
-    </div>
-    
-    <!-- Gallery expired message -->
-    <div id="galleryExpiredMsg" class="hidden">
-        <div class="expiry-content">
-            <h2>This gallery link has expired</h2>
-            <p>The photographer has set an expiration date for this gallery, and it is no longer available.</p>
-            <p>Please contact the photographer for access.</p>
-        </div>
-    </div>
+    <div id="toastContainer" class="toast-container"></div>
     
     <header>
         <div class="container">
@@ -599,113 +270,47 @@
         </div>
     </header>
 
-    <main class="container">
-        <!-- Gallery Info -->
-        <div id="galleryInfo" class="hidden">
-            <h1 id="galleryName"></h1>
-            <p id="photographerName"></p>
-            <p id="galleryDescription"></p>
-            <div id="expiryInfo" class="hidden">
-                <p>This gallery will be available until <span id="expiryDate"></span></p>
-            </div>
+    <main>
+        <!-- Loading indicator -->
+        <div id="loadingIndicator" class="loading-indicator">
+            <div class="spinner"></div>
+            <p>Loading gallery...</p>
         </div>
         
-        <!-- Gallery Container -->
-        <div id="galleryContainer" class="gallery-container hidden">
-            <div class="gallery-actions">
-                <div class="gallery-stats">
-                    <span id="photoCount">0 photos</span>
-                    <span class="selection-info">
-                        <span id="currentSelections">0</span> / <span id="maxSelections">∞</span> selected
-                    </span>
+        <!-- Error page -->
+        <div id="errorPage" class="error-page">
+            <div class="error-icon">
+                <i class="fas fa-exclamation-circle"></i>
+            </div>
+            <h2>Something went wrong</h2>
+            <p id="errorMessage">We couldn't load the gallery. Please try again later.</p>
+            <button id="retryBtn" class="btn retry-btn">Try Again</button>
+        </div>
+        
+        <!-- Password protection screen (initially hidden) -->
+        <div id="passwordScreen" class="password-container" style="display: none;">
+            <h2 id="passwordGalleryTitle">Protected Gallery</h2>
+            <p>This gallery is password protected. Please enter the password to view it.</p>
+            <div id="passwordError" class="error-message">Incorrect password. Please try again.</div>
+            <input type="password" id="galleryPassword" class="password-input" placeholder="Enter password" aria-label="Gallery password">
+            <button id="submitPasswordBtn" class="btn">View Gallery</button>
+        </div>
+        
+        <!-- Gallery container (initially hidden) -->
+        <div id="galleryContainer" class="gallery-container" style="display: none;">
+            <div id="studioInfo" class="studio-info">
+                <h2 id="studioName">Photography Studio</h2>
+                <p id="galleryTitle">Shared Gallery</p>
+                <div class="contact">
+                    <p id="studioContact">Contact information will appear here if available</p>
                 </div>
-                <div class="view-controls">
-                    <button id="gridViewBtn" class="btn icon-btn active" title="Grid View"><i class="fas fa-th"></i></button>
-                    <button id="listViewBtn" class="btn icon-btn" title="List View"><i class="fas fa-list"></i></button>
-                    <select id="sortFilter">
-                        <option value="newest">Newest First</option>
-                        <option value="oldest">Oldest First</option>
-                        <option value="name-asc">Name (A-Z)</option>
-                        <option value="name-desc">Name (Z-A)</option>
-                    </select>
-                    <input type="text" id="searchInput" placeholder="Search photos...">
-                </div>
-                <button id="submitSelectionsBtn" class="btn primary-btn" disabled>Submit Selections</button>
             </div>
             
-            <div id="photoContainer" class="photos-grid"></div>
-            <div id="noPhotosMsg" class="no-photos hidden">No photos found in this gallery.</div>
-            <button id="loadMoreBtn" class="btn outline-btn load-more-btn hidden">Load More Photos</button>
+            <div id="photosGrid" class="photos-grid">
+                <!-- Photos will be loaded here -->
+            </div>
         </div>
     </main>
-    
-    <!-- Lightbox -->
-    <div id="photoLightbox" class="lightbox hidden">
-        <div class="lightbox-content">
-            <div class="lightbox-header">
-                <h2 id="lightboxTitle"></h2>
-                <button id="closeLightboxBtn" class="close-lightbox-btn">&times;</button>
-            </div>
-            <div class="lightbox-body">
-                <div class="lightbox-image-container">
-                    <button id="prevPhotoBtn" class="nav-btn prev-btn"><i class="fas fa-chevron-left"></i></button>
-                    <div class="lightbox-image-wrapper">
-                        <img id="lightboxImage" src="" alt="">
-                        <div id="photoWatermark" class="photo-watermark hidden"></div>
-                    </div>
-                    <button id="nextPhotoBtn" class="nav-btn next-btn"><i class="fas fa-chevron-right"></i></button>
-                </div>
-            </div>
-            <div class="lightbox-footer">
-                <div class="lightbox-info">
-                    <span id="photoNumber"></span>
-                </div>
-                <div class="lightbox-controls">
-                    <button id="selectPhotoBtn" class="btn outline-btn">Select</button>
-                    <button id="deselectPhotoBtn" class="btn outline-btn hidden">Selected</button>
-                </div>
-            </div>
-        </div>
-    </div>
-    
-    <!-- Submission Modal -->
-    <div id="submissionModal" class="modal hidden">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2>Submit Your Selections</h2>
-                <button id="closeSubmissionModalBtn" class="close-modal-btn">&times;</button>
-            </div>
-            <div class="modal-body">
-                <div id="submissionForm">
-                    <p>You have selected <strong id="submissionSelectionCount">0</strong> photos.</p>
-                    <div id="requireApprovalInfo" class="hidden">
-                        <p>Your selections will be sent to the photographer for approval.</p>
-                    </div>
-                    <div class="form-group">
-                        <label for="submissionName">Your Name *</label>
-                        <input type="text" id="submissionName" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="submissionEmail">Your Email *</label>
-                        <input type="email" id="submissionEmail" required>
-                    </div>
-                    <div class="form-group">
-                        <label for="submissionComments">Additional Comments</label>
-                        <textarea id="submissionComments"></textarea>
-                    </div>
-                </div>
-                <div id="successMessage" class="success-message hidden">
-                    <div class="success-icon"><i class="fas fa-check-circle"></i></div>
-                    <h3>Thank you!</h3>
-                    <p>Your selections have been submitted successfully.</p>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button id="cancelSubmissionBtn" class="btn outline-btn">Cancel</button>
-                <button id="confirmSubmissionBtn" class="btn primary-btn">Submit Selections</button>
-            </div>
-        </div>
-    </div>
 
     <footer>
         <div class="container">
@@ -714,28 +319,99 @@
     </footer>
 
     <!-- Firebase SDK Scripts -->
-    /*
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js"></script>
-    */
-        <!-- Firebase SDK -->
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-storage.js"></script>
     
-    <!-- Font Awesome for icons -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
-    
-    <!-- Your gallery viewer script -->
-    <script src="path/to/client-gallery-view.js"></script>
-    
-
-    
-    <!-- Inline script to initialize Firebase -->
+    <!-- Inline script to load the gallery -->
     <script>
+        // Access control for client gallery
+        function checkGalleryAccess() {
+            // Get gallery parameters
+            const urlParams = new URLSearchParams(window.location.search);
+            
+            // Look for different possible ID parameters
+            const galleryId = urlParams.get('id') || urlParams.get('galleryId');
+            const shareId = urlParams.get('share');
+            
+            // If no ID is present, can't proceed
+            if (!galleryId && !shareId) {
+                showPageError("Invalid gallery link. No gallery ID or share ID provided.");
+                return false;
+            }
+            
+            // If we have a direct gallery ID
+            if (galleryId) {
+                // Check if access has been granted via password
+                const accessToken = sessionStorage.getItem(`gallery_access_${galleryId}`);
+                
+                if (!accessToken) {
+                    console.log("Direct gallery access attempted without authentication");
+                    // Look for the studio name and share ID
+                    try {
+                        const actualGalleryId = sessionStorage.getItem('actual_gallery_id') || galleryId;
+                        findStudioAndShareInfo(actualGalleryId);
+                        return false;
+                    } catch (error) {
+                        console.error("Error redirecting to password page:", error);
+                        showPageError("Authentication error. Please try accessing through the shared link.");
+                        return false;
+                    }
+                }
+            }
+            
+            // If we have a share ID, we'll verify it during regular loading
+            
+            return true;
+        }
+        
+        // Function to find studio and share information for a gallery
+        function findStudioAndShareInfo(galleryId) {
+            // If Firebase is available, look up the information
+            if (typeof firebase !== 'undefined' && firebase.apps.length) {
+                const db = firebase.firestore();
+                
+                // Find gallery shares for this gallery
+                db.collection('galleryShares')
+                    .where('galleryId', '==', galleryId)
+                    .limit(1)
+                    .get()
+                    .then(snapshot => {
+                        if (!snapshot.empty) {
+                            const shareData = snapshot.docs[0].data();
+                            const shareId = shareData.shareId;
+                            
+                            // Find the photographer
+                            return db.collection('photographer')
+                                .where('uid', '==', shareData.photographerId)
+                                .limit(1)
+                                .get()
+                                .then(photoSnapshot => {
+                                    if (!photoSnapshot.empty) {
+                                        const photographerData = photoSnapshot.docs[0].data();
+                                        const studioName = photographerData.studioName;
+                                        
+                                        // Redirect with studio name
+                                        window.location.href = `/${studioName}/gallery/${shareId}`;
+                                    } else {
+                                        // Fallback to basic redirect
+                                        window.location.href = `/client-gallery.html?share=${shareId}`;
+                                    }
+                                });
+                        } else {
+                            showPageError("Gallery access denied. Please use the shared link provided by the photographer.");
+                        }
+                    })
+                    .catch(error => {
+                        console.error("Error finding share info:", error);
+                        showPageError("Error accessing gallery. Please try again later.");
+                    });
+            } else {
+                showPageError("Gallery access denied. Firebase not initialized.");
+            }
+        }
+
         // Firebase initialization
         (function() {
             // Firebase configuration
@@ -758,13 +434,445 @@
                 
                 // Update current year in footer
                 document.getElementById('currentYear').textContent = new Date().getFullYear();
+                
+                // Check access before proceeding
+                if (checkGalleryAccess()) {
+                    // Continue with gallery loading
+                    loadSharedGallery();
+                }
             } catch (error) {
                 console.error("Error initializing Firebase:", error);
-                if (typeof showError === 'function') {
-                    showError("Failed to initialize the gallery. Please try again later.");
-                }
+                showError("Failed to initialize the gallery. Please try again later.");
             }
         })();
+        
+        // Load shared gallery
+        function loadSharedGallery() {
+            // Get gallery parameters
+            const urlParams = new URLSearchParams(window.location.search);
+            
+            // Check for direct gallery ID first
+            const directGalleryId = urlParams.get('id') || urlParams.get('galleryId');
+            if (directGalleryId) {
+                console.log("Direct gallery access with ID:", directGalleryId);
+                loadGalleryDirect(directGalleryId);
+                return;
+            }
+            
+            // Otherwise, look for share ID
+            const shareId = urlParams.get('share');
+            
+            if (!shareId) {
+                showPageError("Invalid gallery link. No parameters provided.");
+                return;
+            }
+            
+            console.log("Looking for shared gallery with ID:", shareId);
+            
+            // Set a timeout for loading
+            const loadingTimeout = setTimeout(() => {
+                if (document.getElementById('loadingIndicator').style.display !== 'none') {
+                    showPageError("Gallery is taking too long to load. Please try again later.");
+                }
+            }, 15000); // 15 seconds timeout
+            
+            // Get reference to Firestore
+            const db = firebase.firestore();
+            
+            // Check first collection
+            db.collection('galleryShares')
+                .where('shareId', '==', shareId)
+                .get()
+                .then(snapshot => {
+                    console.log("Query completed for galleryShares, found:", snapshot.size, "documents");
+                    
+                    if (snapshot.empty) {
+                        console.log("No shares found in galleryShares, checking sharedGalleries...");
+                        
+                        // Try the alternative collection name
+                        return db.collection('sharedGalleries')
+                            .where('shareId', '==', shareId)
+                            .get();
+                    }
+                    
+                    // Clear the timeout since we found data
+                    clearTimeout(loadingTimeout);
+                    return snapshot;
+                })
+                .then(snapshot => {
+                    if (snapshot.empty) {
+                        showPageError("Gallery not found or access has been revoked.");
+                        return;
+                    }
+                    
+                    const sharedGallery = snapshot.docs[0].data();
+                    console.log("Found shared gallery:", sharedGallery);
+                    
+                    // Store the actual gallery ID in session storage
+                    sessionStorage.setItem('actual_gallery_id', sharedGallery.galleryId);
+                    
+                    // Hide loading indicator
+                    document.getElementById('loadingIndicator').style.display = 'none';
+                    
+                    if (sharedGallery.passwordProtected) {
+                        // Check if we already have access
+                        const accessGranted = sessionStorage.getItem(`gallery_access_${shareId}`);
+                        if (accessGranted) {
+                            // Already authenticated, load gallery
+                            loadGalleryContent(sharedGallery.galleryId, sharedGallery.photographerId);
+                            return;
+                        }
+                        
+                        // Show password screen
+                        document.getElementById('passwordScreen').style.display = 'block';
+                        
+                        // Update password screen title if we have gallery info
+                        updatePasswordScreenTitle(sharedGallery.galleryId);
+                        
+                        // Focus the password input for accessibility
+                        document.getElementById('galleryPassword').focus();
+                        
+                        // Set up password form submission
+                        setupPasswordHandling(sharedGallery, shareId);
+                    } else {
+                        // No password needed, load gallery directly
+                        // First, store access in session storage
+                        sessionStorage.setItem(`gallery_access_${shareId}`, 'granted');
+                        
+                        // Load gallery content
+                        loadGalleryContent(sharedGallery.galleryId, sharedGallery.photographerId);
+                    }
+                })
+                .catch(error => {
+                    clearTimeout(loadingTimeout);
+                    console.error("Error fetching shared gallery:", error);
+                    showPageError("Error loading gallery: " + error.message);
+                });
+        }
+        
+        // Update the password screen title with gallery info if available
+        function updatePasswordScreenTitle(galleryId) {
+            try {
+                const db = firebase.firestore();
+                
+                db.collection('galleries').doc(galleryId)
+                    .get()
+                    .then(doc => {
+                        if (doc.exists) {
+                            const gallery = doc.data();
+                            const titleElement = document.getElementById('passwordGalleryTitle');
+                            if (titleElement && gallery.name) {
+                                titleElement.textContent = gallery.name;
+                            }
+                        }
+                    })
+                    .catch(error => {
+                        console.error("Error fetching gallery for password screen:", error);
+                    });
+            } catch (error) {
+                console.error("Error updating password screen title:", error);
+            }
+        }
+        
+        // Load gallery directly with ID
+        function loadGalleryDirect(galleryId) {
+            console.log("Loading gallery directly with ID:", galleryId);
+            
+            // Hide loading indicator
+            document.getElementById('loadingIndicator').style.display = 'none';
+            
+            // Load gallery content
+            loadGalleryContent(galleryId);
+        }
+        
+        // Setup password handling
+        function setupPasswordHandling(sharedGallery, shareId) {
+            // Function to handle password submission
+            const handlePasswordSubmit = function() {
+                const password = document.getElementById('galleryPassword').value;
+                const passwordError = document.getElementById('passwordError');
+                
+                // Hide previous errors
+                passwordError.style.display = 'none';
+                
+                if (!password) {
+                    passwordError.textContent = 'Please enter a password.';
+                    passwordError.style.display = 'block';
+                    return;
+                }
+                
+                if (password === sharedGallery.password) {
+                    // Password correct, store access token in session storage
+                    sessionStorage.setItem(`gallery_access_${shareId}`, 'granted');
+                    
+                    // Load the gallery
+                    loadGalleryContent(sharedGallery.galleryId, sharedGallery.photographerId);
+                } else {
+                    // Show error
+                    passwordError.textContent = 'Incorrect password. Please try again.';
+                    passwordError.style.display = 'block';
+                    
+                    // Clear the password field
+                    document.getElementById('galleryPassword').value = '';
+                    document.getElementById('galleryPassword').focus();
+                }
+            };
+            
+            // Set up button click handler
+            document.getElementById('submitPasswordBtn').addEventListener('click', handlePasswordSubmit);
+            
+            // Set up enter key handler for password input
+            document.getElementById('galleryPassword').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    handlePasswordSubmit();
+                }
+            });
+        }
+        
+        // Load gallery content with additional security
+        function loadGalleryContent(galleryId, photographerId) {
+            console.log("Loading gallery content for ID:", galleryId);
+            
+            // Hide password screen if visible
+            document.getElementById('passwordScreen').style.display = 'none';
+            
+            // Show gallery container
+            document.getElementById('galleryContainer').style.display = 'block';
+            
+            // Get reference to Firestore
+            const db = firebase.firestore();
+            
+            // Get gallery details with additional security check
+            db.collection('galleries').doc(galleryId)
+                .get()
+                .then(doc => {
+                    if (!doc.exists) {
+                        showPageError("Gallery not found.");
+                        return;
+                    }
+                    
+                    const gallery = doc.data();
+                    console.log("Gallery details:", gallery);
+                    
+                    // Security check: Verify the gallery belongs to the correct photographer
+                    if (photographerId && gallery.photographerId !== photographerId) {
+                        showPageError("Gallery access error: Photographer mismatch.");
+                        return;
+                    }
+                    
+                    // Set gallery title
+                    document.getElementById('galleryTitle').textContent = gallery.name || 'Shared Gallery';
+                    
+                    // Get photographer details
+                    loadPhotographerDetails(gallery.photographerId);
+                    
+                    // Load photos with added security
+                    loadGalleryPhotos(galleryId, db);
+                })
+                .catch(error => {
+                    console.error("Error loading gallery details:", error);
+                    showPageError("Error loading gallery details: " + error.message);
+                });
+        }
+        
+        // Load photographer details
+        function loadPhotographerDetails(photographerId) {
+            if (!photographerId) {
+                console.log("No photographer ID provided");
+                return;
+            }
+            
+            const db = firebase.firestore();
+            
+            // Try to find the photographer in the new collection name
+            db.collection('photographer')
+                .where('uid', '==', photographerId)
+                .limit(1)
+                .get()
+                .then(snapshot => {
+                    if (snapshot.empty) {
+                        console.log("No photographer found with ID:", photographerId);
+                        return;
+                    }
+                    
+                    const photographerData = snapshot.docs[0].data();
+                    console.log("Photographer details:", photographerData);
+                    
+                    // Update studio information
+                    const studioNameElement = document.getElementById('studioName');
+                    if (studioNameElement) {
+                        studioNameElement.textContent = photographerData.studioName || photographerData.ownerName || 'Photography Studio';
+                    }
+                    
+                    // Update contact information
+                    const studioContactElement = document.getElementById('studioContact');
+                    if (studioContactElement) {
+                        let contactText = "";
+                        
+                        if (photographerData.ownerName) {
+                            contactText += `${photographerData.ownerName}`;
+                        }
+                        
+                        if (photographerData.ownerEmail) {
+                            contactText += ` | Email: ${photographerData.ownerEmail}`;
+                        }
+                        
+                        if (photographerData.ownerNumber) {
+                            contactText += ` | Phone: ${photographerData.ownerNumber}`;
+                        }
+                        
+                        if (photographerData.studioAddress) {
+                            contactText += ` | Address: ${photographerData.studioAddress}`;
+                            
+                            if (photographerData.studioPincode) {
+                                contactText += `, ${photographerData.studioPincode}`;
+                            }
+                        }
+                        
+                        studioContactElement.textContent = contactText || 'No contact information available';
+                    }
+                })
+                .catch(error => {
+                    console.error("Error loading photographer details:", error);
+                });
+        }
+        
+        // Load gallery photos
+        function loadGalleryPhotos(galleryId, db) {
+            // Show loading toast
+            showToast("Loading photos...", 'info');
+            
+            db.collection('photos')
+                .where('galleryId', '==', galleryId)
+                .where('status', '==', 'active')
+                .limit(50) // Increased limit for better gallery experience
+                .get()
+                .then(snapshot => {
+                    const photosGrid = document.getElementById('photosGrid');
+                    photosGrid.innerHTML = '';
+                    
+                    if (snapshot.empty) {
+                        photosGrid.innerHTML = '<p>No photos in this gallery yet.</p>';
+                        return;
+                    }
+                    
+                    // Create elements for each photo
+                    snapshot.forEach(doc => {
+                        const photo = doc.data();
+                        const photoElement = createPhotoElement(photo);
+                        photosGrid.appendChild(photoElement);
+                    });
+                    
+                    // Show success toast
+                    showToast("Gallery loaded successfully", 'success');
+                })
+                .catch(error => {
+                    console.error("Error loading photos:", error);
+                    showError("Error loading photos: " + error.message);
+                });
+        }
+        
+        // Create a photo element
+        function createPhotoElement(photo) {
+            const photoItem = document.createElement('div');
+            photoItem.className = 'photo-item';
+            
+            const photoContainer = document.createElement('div');
+            photoContainer.className = 'photo-container';
+            photoContainer.style.backgroundImage = `url(${photo.thumbnailUrl || photo.url})`;
+            photoContainer.setAttribute('tabindex', '0'); // Make focusable for keyboard navigation
+            photoContainer.setAttribute('role', 'img');
+            photoContainer.setAttribute('aria-label', photo.name || 'Photo');
+            
+            const photoDetails = document.createElement('div');
+            photoDetails.className = 'photo-details';
+            
+            const photoName = document.createElement('div');
+            photoName.className = 'photo-name';
+            photoName.textContent = photo.name || 'Photo';
+            
+            const photoDate = document.createElement('div');
+            photoDate.className = 'photo-date';
+            if (photo.uploadedAt) {
+                const date = photo.uploadedAt.toDate ? photo.uploadedAt.toDate() : new Date(photo.uploadedAt);
+                photoDate.textContent = date.toLocaleDateString();
+            }
+            
+            photoDetails.appendChild(photoName);
+            photoDetails.appendChild(photoDate);
+            
+            photoItem.appendChild(photoContainer);
+            photoItem.appendChild(photoDetails);
+            
+            // Make photo clickable to view larger version
+            const openPhoto = function() {
+                window.open(photo.url, '_blank');
+            };
+            
+            // Click handler
+            photoContainer.addEventListener('click', openPhoto);
+            
+            // Keyboard handler for accessibility
+            photoContainer.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    openPhoto();
+                }
+            });
+            
+            return photoItem;
+        }
+        
+        // Show page error (full page error)
+        function showPageError(message) {
+            console.error("Page error:", message);
+            
+            // Hide loading indicator and other containers
+            document.getElementById('loadingIndicator').style.display = 'none';
+            document.getElementById('passwordScreen').style.display = 'none';
+            document.getElementById('galleryContainer').style.display = 'none';
+            
+            // Show error page
+            const errorPage = document.getElementById('errorPage');
+            errorPage.style.display = 'block';
+            
+            // Set error message
+            document.getElementById('errorMessage').textContent = message;
+            
+            // Setup retry button
+            document.getElementById('retryBtn').addEventListener('click', function() {
+                // Reload the page
+                window.location.reload();
+            });
+        }
+        
+        // Show error message as toast
+        function showError(message) {
+            // Show toast notification
+            showToast(message, 'error');
+        }
+        
+        // Show toast notification
+        function showToast(message, type = 'info') {
+            const toastContainer = document.getElementById('toastContainer');
+            
+            const toast = document.createElement('div');
+            toast.className = `toast toast-${type}`;
+            toast.textContent = message;
+            
+            // Add aria-live for accessibility
+            toast.setAttribute('aria-live', type === 'error' ? 'assertive' : 'polite');
+            
+            toastContainer.appendChild(toast);
+            
+            // Remove toast after 4 seconds (a bit longer for better readability)
+            setTimeout(() => {
+                toast.classList.add('fadeOut');
+                setTimeout(() => {
+                    toast.remove();
+                }, 300);
+            }, 4000);
+        }
     </script>
 </body>
 </html>
