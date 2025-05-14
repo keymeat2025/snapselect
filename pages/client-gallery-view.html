@@ -1975,7 +1975,461 @@
                     showError("Error loading photos: " + error.message);
                 });
         }
+        // Function to stop slideshow
+        function stopSlideshow() {
+            if (slideshowInterval) {
+                clearInterval(slideshowInterval);
+                slideshowInterval = null;
+            }
+        }
         
+        // Navigate to a specific photo in the lightbox
+        function navigateToPhoto(index, lightbox, imageContainer) {
+            if (index < 0 || index >= allGalleryPhotos.length) return;
+            
+            // Update current image with fade effect
+            const currentImg = lightbox.querySelector('.lightbox-image');
+            currentImg.classList.remove('fadeIn');
+            currentImg.classList.add('fadeOut');
+            
+            // Reset zoom level
+            currentImg.style.transform = 'scale(1)';
+            lightbox.querySelector('.zoom-level-text').textContent = '100%';
+            
+            setTimeout(() => {
+                // Update image source
+                const newPhoto = allGalleryPhotos[index];
+                currentImg.src = newPhoto.url;
+                currentImg.dataset.index = index;
+                currentImg.alt = newPhoto.name || 'Gallery photo';
+                
+                // Update caption if exists
+                const caption = imageContainer.querySelector('.photo-caption');
+                if (caption) {
+                    caption.textContent = newPhoto.name || '';
+                }
+                
+                // Update active thumbnail
+                const thumbnailsContainer = lightbox.querySelector('.thumbnails-container');
+                const thumbnails = thumbnailsContainer.querySelectorAll('.thumbnail');
+                thumbnails.forEach((thumb, i) => {
+                    if (i === index) {
+                        thumb.classList.add('active');
+                        thumb.scrollIntoView({ behavior: 'smooth', inline: 'center' });
+                    } else {
+                        thumb.classList.remove('active');
+                    }
+                });
+                
+                // Update navigation buttons
+                const prevButton = lightbox.querySelector('.modal-prev');
+                const nextButton = lightbox.querySelector('.modal-next');
+                
+                if (prevButton) {
+                    prevButton.remove();
+                }
+                
+                if (nextButton) {
+                    nextButton.remove();
+                }
+                
+                // Add prev button if not first photo
+                if (index > 0) {
+                    const newPrevButton = document.createElement('button');
+                    newPrevButton.className = 'modal-nav-button modal-prev';
+                    newPrevButton.innerHTML = '<i class="fas fa-chevron-left"></i>';
+                    newPrevButton.setAttribute('aria-label', 'Previous photo');
+                    newPrevButton.addEventListener('click', function(e) {
+                        e.stopPropagation();
+                        navigateToPhoto(index - 1, lightbox, imageContainer);
+                    });
+                    imageContainer.appendChild(newPrevButton);
+                }
+                
+                // Add next button if not last photo
+                if (index < allGalleryPhotos.length - 1) {
+                    const newNextButton = document.createElement('button');
+                    newNextButton.className = 'modal-nav-button modal-next';
+                    newNextButton.innerHTML = '<i class="fas fa-chevron-right"></i>';
+                    newNextButton.setAttribute('aria-label', 'Next photo');
+                    newNextButton.addEventListener('click', function(e) {
+                        e.stopPropagation();
+                        navigateToPhoto(index + 1, lightbox, imageContainer);
+                    });
+                    imageContainer.appendChild(newNextButton);
+                }
+                
+                // Update rating buttons
+                const photoId = newPhoto.id || newPhoto.url;
+                const ratingButtons = lightbox.querySelectorAll('.rating-btn');
+                ratingButtons.forEach(btn => {
+                    btn.classList.remove('selected');
+                    if (photoRatings[photoId] === btn.getAttribute('data-rating')) {
+                        btn.classList.add('selected');
+                    }
+                });
+                
+                // Fade in the new image
+                currentImg.classList.remove('fadeOut');
+                currentImg.classList.add('fadeIn');
+            }, 300);
+        }
+        
+        // Close the lightbox
+        function closeLightbox() {
+            stopSlideshow();
+            const lightbox = document.getElementById('photoLightbox');
+            if (lightbox) {
+                lightbox.classList.add('fadeOut');
+                setTimeout(() => {
+                    document.body.removeChild(lightbox);
+                }, 300);
+            }
+        }
+        
+        // Toggle slideshow
+        function toggleSlideshow(slideshowButton, lightbox) {
+            const slideshowIcon = slideshowButton.querySelector('i');
+            
+            if (slideshowInterval) {
+                // Stop slideshow
+                stopSlideshow();
+                slideshowIcon.className = 'fas fa-play';
+                slideshowButton.setAttribute('aria-label', 'Start slideshow');
+            } else {
+                // Start slideshow
+                slideshowIcon.className = 'fas fa-pause';
+                slideshowButton.setAttribute('aria-label', 'Pause slideshow');
+                
+                slideshowInterval = setInterval(() => {
+                    const currentImg = lightbox.querySelector('.lightbox-image');
+                    const currentIndex = parseInt(currentImg.dataset.index);
+                    const imageContainer = lightbox.querySelector('.lightbox-image-container');
+                    
+                    if (currentIndex < allGalleryPhotos.length - 1) {
+                        navigateToPhoto(currentIndex + 1, lightbox, imageContainer);
+                    } else {
+                        navigateToPhoto(0, lightbox, imageContainer); // Loop back to first image
+                    }
+                }, 3000); // Change image every 3 seconds
+            }
+        }
+
+                // Open lightbox with enhanced features
+        function openLightbox(photo) {
+            // Stop any running slideshow
+            stopSlideshow();
+            
+            // Find current photo index
+            const currentIndex = allGalleryPhotos.findIndex(p => 
+                p.url === photo.url || (p.id && p.id === photo.id)
+            );
+            
+            // The photo ID for ratings
+            const photoId = photo.id || photo.url;
+            
+            // Create lightbox container
+            const lightbox = document.createElement('div');
+            lightbox.className = 'photo-lightbox';
+            lightbox.id = 'photoLightbox';
+            lightbox.tabIndex = 0; // Make it focusable
+            
+            // Add a toolbar for controls
+            const toolbar = document.createElement('div');
+            toolbar.className = 'lightbox-toolbar';
+            
+            // Slideshow button
+            const slideshowButton = document.createElement('button');
+            slideshowButton.className = 'modal-button';
+            slideshowButton.innerHTML = '<i class="fas fa-play"></i>';
+            slideshowButton.setAttribute('aria-label', 'Start slideshow');
+            slideshowButton.addEventListener('click', function(e) {
+                e.stopPropagation();
+                toggleSlideshow(slideshowButton, lightbox);
+            });
+            toolbar.appendChild(slideshowButton);
+        
+            // Download button
+            const downloadButton = document.createElement('button');
+            downloadButton.className = 'modal-button';
+            downloadButton.innerHTML = '<i class="fas fa-download"></i>';
+            downloadButton.setAttribute('aria-label', 'Download photo');
+            downloadButton.addEventListener('click', function(e) {
+                e.stopPropagation();
+                
+                // Create a download link
+                const link = document.createElement('a');
+                link.href = photo.url;
+                link.download = photo.name || 'photo.jpg';
+                link.target = '_blank';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            });
+            toolbar.appendChild(downloadButton);
+            
+            // Close button
+            const closeButton = document.createElement('button');
+            closeButton.className = 'modal-button';
+            closeButton.innerHTML = '<i class="fas fa-times"></i>';
+            closeButton.setAttribute('aria-label', 'Close');
+            closeButton.addEventListener('click', function(e) {
+                e.stopPropagation();
+                closeLightbox();
+            });
+            toolbar.appendChild(closeButton);
+            
+            lightbox.appendChild(toolbar);
+            
+            // Create image container
+            const imageContainer = document.createElement('div');
+            imageContainer.className = 'lightbox-image-container';
+            
+            // Current zoom level
+            let zoomLevel = 1;
+            
+            // Create zoom controls
+            const zoomControls = document.createElement('div');
+            zoomControls.className = 'zoom-controls';
+            
+            const zoomInBtn = document.createElement('button');
+            zoomInBtn.className = 'zoom-btn';
+            zoomInBtn.innerHTML = '<i class="fas fa-search-plus"></i>';
+            zoomInBtn.setAttribute('aria-label', 'Zoom in');
+            
+            const zoomOutBtn = document.createElement('button');
+            zoomOutBtn.className = 'zoom-btn';
+            zoomOutBtn.innerHTML = '<i class="fas fa-search-minus"></i>';
+            zoomOutBtn.setAttribute('aria-label', 'Zoom out');
+            
+            const zoomLevelDisplay = document.createElement('div');
+            zoomLevelDisplay.style.color = 'white';
+            zoomLevelDisplay.style.textAlign = 'center';
+            zoomLevelDisplay.style.marginTop = '5px';
+            zoomLevelDisplay.className = 'zoom-level-text';
+            zoomLevelDisplay.textContent = '100%';
+            
+            // Add zoom handlers
+            zoomInBtn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                if (zoomLevel < 3) { // Max zoom 3x
+                    zoomLevel += 0.25;
+                    const img = lightbox.querySelector('.lightbox-image');
+                    img.style.transform = `scale(${zoomLevel})`;
+                    zoomLevelDisplay.textContent = `${Math.round(zoomLevel * 100)}%`;
+                }
+            });
+            
+            zoomOutBtn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                if (zoomLevel > 0.5) { // Min zoom 0.5x
+                    zoomLevel -= 0.25;
+                    const img = lightbox.querySelector('.lightbox-image');
+                    img.style.transform = `scale(${zoomLevel})`;
+                    zoomLevelDisplay.textContent = `${Math.round(zoomLevel * 100)}%`;
+                }
+            });
+            
+            zoomControls.appendChild(zoomInBtn);
+            zoomControls.appendChild(zoomOutBtn);
+            zoomControls.appendChild(zoomLevelDisplay);
+            
+            // Create the main image with protection
+            const img = document.createElement('img');
+            img.className = 'lightbox-image fadeIn';
+            img.src = photo.url;
+            img.dataset.index = currentIndex;
+            img.alt = photo.name || 'Gallery photo';
+            img.draggable = false;
+            img.crossOrigin = "anonymous";
+            
+            // Add watermark overlay
+            const watermarkOverlay = document.createElement('div');
+            watermarkOverlay.className = 'image-watermark';
+            imageContainer.appendChild(watermarkOverlay);
+            
+            // Add watermark text
+            const watermarkText = document.createElement('div');
+            watermarkText.className = 'watermark-text';
+            watermarkText.textContent = 'SnapSelect © 2025';
+            imageContainer.appendChild(watermarkText);
+            
+            // Add protection layer
+            const protectionLayer = document.createElement('div');
+            protectionLayer.className = 'protection-layer';
+            protectionLayer.addEventListener('click', function(e) {
+                e.stopPropagation(); // Prevent closing when clicking on protection layer
+            });
+            imageContainer.appendChild(protectionLayer);
+            
+            // Add navigation buttons
+            if (currentIndex > 0) {
+                const prevButton = document.createElement('button');
+                prevButton.className = 'modal-nav-button modal-prev';
+                prevButton.innerHTML = '<i class="fas fa-chevron-left"></i>';
+                prevButton.setAttribute('aria-label', 'Previous photo');
+                prevButton.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    navigateToPhoto(currentIndex - 1, lightbox, imageContainer);
+                });
+                imageContainer.appendChild(prevButton);
+            }
+            
+            if (currentIndex < allGalleryPhotos.length - 1) {
+                const nextButton = document.createElement('button');
+                nextButton.className = 'modal-nav-button modal-next';
+                nextButton.innerHTML = '<i class="fas fa-chevron-right"></i>';
+                nextButton.setAttribute('aria-label', 'Next photo');
+                nextButton.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    navigateToPhoto(currentIndex + 1, lightbox, imageContainer);
+                });
+                imageContainer.appendChild(nextButton);
+            }
+            
+            // Add caption if available
+            if (photo.name) {
+                const caption = document.createElement('div');
+                caption.className = 'photo-caption';
+                caption.style.position = 'absolute';
+                caption.style.bottom = '160px'; // Above ratings and thumbnails
+                caption.style.left = '0';
+                caption.style.width = '100%';
+                caption.style.textAlign = 'center';
+                caption.style.color = 'white';
+                caption.style.padding = '10px';
+                caption.style.backgroundColor = 'rgba(0,0,0,0.5)';
+                caption.textContent = photo.name;
+                caption.style.overflow = 'hidden';
+                caption.style.textOverflow = 'ellipsis';
+                caption.style.whiteSpace = 'normal';
+                caption.style.maxWidth = '100%';
+                imageContainer.appendChild(caption);
+            }
+            
+            // Add rating container
+            const ratingContainer = document.createElement('div');
+            ratingContainer.className = 'rating-container';
+            
+            // Create rating buttons
+            const heartBtn = createRatingButton('❤️', 'Must have', 'heart', photoId);
+            const thumbsUpBtn = createRatingButton('👍', 'Would Like to Have', 'thumbsUp', photoId);
+            const thinkingBtn = createRatingButton('🤔', 'Alternative Option', 'thinking', photoId);
+            const thumbsDownBtn = createRatingButton('👎', 'Not Interested', 'thumbsDown', photoId);
+            
+            ratingContainer.appendChild(heartBtn);
+            ratingContainer.appendChild(thumbsUpBtn);
+            ratingContainer.appendChild(thinkingBtn);
+            ratingContainer.appendChild(thumbsDownBtn);
+            
+            imageContainer.appendChild(img);
+            imageContainer.appendChild(ratingContainer);
+            imageContainer.appendChild(zoomControls);
+            lightbox.appendChild(imageContainer);
+            
+            // Add thumbnails container
+            const thumbnailsContainer = document.createElement('div');
+            thumbnailsContainer.className = 'thumbnails-container';
+            
+            // Add thumbnails for all photos
+            allGalleryPhotos.forEach((p, index) => {
+                const thumb = document.createElement('img');
+                thumb.className = 'thumbnail';
+                thumb.src = p.thumbnailUrl || p.url;
+                thumb.draggable = false;
+                if (index === currentIndex) {
+                    thumb.classList.add('active');
+                }
+                thumb.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    navigateToPhoto(index, lightbox, imageContainer);
+                });
+                thumbnailsContainer.appendChild(thumb);
+            });
+            
+            lightbox.appendChild(thumbnailsContainer);
+            
+            // Add touch swipe functionality for mobile
+            let touchStartX = 0;
+            let touchEndX = 0;
+            
+            lightbox.addEventListener('touchstart', function(e) {
+                touchStartX = e.changedTouches[0].screenX;
+            });
+            
+            lightbox.addEventListener('touchend', function(e) {
+                touchEndX = e.changedTouches[0].screenX;
+                handleSwipe();
+            });
+            
+            function handleSwipe() {
+                const swipeThreshold = 50;
+                if (touchEndX < touchStartX - swipeThreshold && currentIndex < allGalleryPhotos.length - 1) {
+                    // Swipe left - next photo
+                    navigateToPhoto(currentIndex + 1, lightbox, imageContainer);
+                } else if (touchEndX > touchStartX + swipeThreshold && currentIndex > 0) {
+                    // Swipe right - previous photo
+                    navigateToPhoto(currentIndex - 1, lightbox, imageContainer);
+                }
+            }
+            
+            // Handle keyboard navigation
+            lightbox.addEventListener('keydown', function(e) {
+                switch (e.key) {
+                    case 'Escape':
+                        closeLightbox();
+                        break;
+                    case 'ArrowLeft':
+                        if (currentIndex > 0) {
+                            navigateToPhoto(currentIndex - 1, lightbox, imageContainer);
+                        }
+                        break;
+                    case 'ArrowRight':
+                        if (currentIndex < allGalleryPhotos.length - 1) {
+                            navigateToPhoto(currentIndex + 1, lightbox, imageContainer);
+                        }
+                        break;
+                    case ' ': // Space bar
+                        toggleSlideshow(slideshowButton, lightbox);
+                        break;
+                    case '+':
+                        // Zoom in
+                        if (zoomLevel < 3) {
+                            zoomLevel += 0.25;
+                            img.style.transform = `scale(${zoomLevel})`;
+                            zoomLevelDisplay.textContent = `${Math.round(zoomLevel * 100)}%`;
+                        }
+                        break;
+                    case '-':
+                        // Zoom out
+                        if (zoomLevel > 0.5) {
+                            zoomLevel -= 0.25;
+                            img.style.transform = `scale(${zoomLevel})`;
+                            zoomLevelDisplay.textContent = `${Math.round(zoomLevel * 100)}%`;
+                        }
+                        break;
+                }
+            });
+            
+            // Close when clicking on the background (but not on controls)
+            lightbox.addEventListener('click', function(e) {
+                if (e.target === lightbox) {
+                    closeLightbox();
+                }
+            });
+            
+            // Add lightbox to page
+            document.body.appendChild(lightbox);
+            
+            // Focus for keyboard navigation
+            lightbox.focus();
+            
+            // Scroll the active thumbnail into view
+            const activeThumb = thumbnailsContainer.querySelector('.thumbnail.active');
+            if (activeThumb) {
+                activeThumb.scrollIntoView({ behavior: 'smooth', inline: 'center' });
+            }
+        }
         // The rest of your original functions go here without changes
         // These functions don't interact with the rating system:
         // - createPhotoElement 
