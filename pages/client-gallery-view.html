@@ -5,13 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="referrer" content="no-referrer" />
 
-    <meta http-equiv="Content-Security-Policy" content="
+   <meta http-equiv="Content-Security-Policy" content="
     default-src 'self';
     img-src * data: https://*.firebasestorage.app https://firebasestorage.googleapis.com;
     style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com;
     script-src 'self' 'unsafe-inline' https://www.gstatic.com;
     font-src 'self' https://cdnjs.cloudflare.com;
     connect-src 'self' https://firestore.googleapis.com https://*.googleapis.com https://*.firebasestorage.app https://firebasestorage.googleapis.com;
+    font-src 'self' https://cdnjs.cloudflare.com https://use.fontawesome.com;
     ">
     <title>Shared Gallery - SnapSelect</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -403,6 +404,285 @@
             margin-top: 15px;
             font-size: 14px;
             color: #777;
+        }
+                /* Photo lightbox and enhanced features */
+        .photo-lightbox {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.9);
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .lightbox-image-container {
+            position: relative;
+            height: 70%;
+            width: 80%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+        }
+        
+        .lightbox-image {
+            max-height: 100%;
+            max-width: 100%;
+            object-fit: contain;
+            transition: all 0.3s ease;
+        }
+        
+        .lightbox-toolbar {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            display: flex;
+            gap: 15px;
+            z-index: 1001;
+        }
+        
+        .modal-button {
+            background-color: rgba(255, 255, 255, 0.3);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            font-size: 24px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        
+        .modal-button:hover {
+            background-color: rgba(255, 255, 255, 0.5);
+        }
+        
+        .modal-nav-button {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            background-color: rgba(255, 255, 255, 0.3);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            font-size: 24px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            z-index: 1001;
+        }
+        
+        .modal-nav-button:hover {
+            background-color: rgba(255, 255, 255, 0.5);
+        }
+        
+        .modal-prev {
+            left: 20px;
+        }
+        
+        .modal-next {
+            right: 20px;
+        }
+        
+        .thumbnails-container {
+            position: absolute;
+            bottom: 20px;
+            left: 0;
+            width: 100%;
+            height: 90px;
+            display: flex;
+            overflow-x: auto;
+            background-color: rgba(0,0,0,0.7);
+            padding: 15px 0;
+            justify-content: center;
+        }
+        
+        .thumbnail {
+            height: 60px;
+            margin: 0 5px;
+            border: 2px solid transparent;
+            cursor: pointer;
+            opacity: 0.6;
+            transition: all 0.2s ease;
+        }
+        
+        .thumbnail:hover {
+            opacity: 0.9;
+            transform: translateY(-3px);
+        }
+        
+        .thumbnail.active {
+            border-color: #3498db;
+            opacity: 1;
+        }
+        
+        .zoom-controls {
+            position: absolute;
+            bottom: 130px;
+            right: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            z-index: 1001;
+        }
+        
+        .zoom-btn {
+            background-color: rgba(255, 255, 255, 0.3);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            margin: 5px 0;
+            font-size: 16px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+        }
+        
+        .zoom-btn:hover {
+            background-color: rgba(255, 255, 255, 0.5);
+        }
+        
+        .rating-container {
+            position: absolute;
+            bottom: 130px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 15px;
+            background-color: rgba(0,0,0,0.5);
+            padding: 10px 20px;
+            border-radius: 30px;
+            z-index: 1001;
+        }
+        
+        .rating-btn {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            opacity: 0.7;
+            transition: all 0.2s;
+            padding: 5px;
+        }
+        
+        .rating-btn:hover, .rating-btn.selected {
+            opacity: 1;
+            transform: scale(1.2);
+        }
+        
+        .rating-summary {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            background-color: rgba(255, 255, 255, 0.8);
+            padding: 10px 15px;
+            border-radius: 8px;
+            display: flex;
+            gap: 15px;
+            z-index: 999;
+        }
+        
+        .rating-count {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .image-watermark {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" opacity="0.2"><text x="10" y="50" font-family="Arial" font-size="10" fill="white" transform="rotate(-45 50 50)">SnapSelect</text></svg>');
+            pointer-events: none;
+            z-index: 1;
+        }
+        
+        .watermark-text {
+            position: absolute;
+            bottom: 5px;
+            right: 10px;
+            color: rgba(255, 255, 255, 0.3);
+            font-size: 12px;
+            pointer-events: none;
+        }
+        
+        .protection-layer {
+            position: absolute;
+            inset: 0;
+            z-index: 2;
+            background-color: transparent;
+        }
+        
+        /* Animations */
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        @keyframes fadeOut {
+            from { opacity: 1; }
+            to { opacity: 0; }
+        }
+        
+        .fadeIn {
+            animation: fadeIn 0.3s ease-in-out forwards;
+        }
+        
+        .fadeOut {
+            animation: fadeOut 0.3s ease-in-out forwards;
+        }
+        
+        /* Mobile responsiveness */
+        @media (max-width: 768px) {
+            .modal-button {
+                width: 40px;
+                height: 40px;
+                font-size: 18px;
+            }
+            
+            .modal-nav-button {
+                width: 40px;
+                height: 40px;
+                font-size: 18px;
+            }
+            
+            .thumbnails-container {
+                height: 70px;
+            }
+            
+            .thumbnail {
+                height: 40px;
+            }
+            
+            .rating-container {
+                bottom: 110px;
+                gap: 10px;
+            }
+            
+            .rating-btn {
+                font-size: 20px;
+            }
+            
+            .zoom-controls {
+                bottom: 110px;
+            }
         }
     </style>
 </head>
@@ -1192,9 +1472,10 @@
             photoContainer.setAttribute('aria-label', photo.name || 'Photo');
             
             // Add protection layer
-            const protectionLayer = document.createElement('div');
+            /*const protectionLayer = document.createElement('div');
             protectionLayer.className = 'protection-layer';
             photoContainer.appendChild(protectionLayer);
+            */
             
             const photoDetails = document.createElement('div');
             photoDetails.className = 'photo-details';
@@ -1407,6 +1688,25 @@
                 toggleSlideshow(slideshowButton, lightbox);
             });
             toolbar.appendChild(slideshowButton);
+
+                // Download button
+            const downloadButton = document.createElement('button');
+            downloadButton.className = 'modal-button';
+            downloadButton.innerHTML = '<i class="fas fa-download"></i>';
+            downloadButton.setAttribute('aria-label', 'Download photo');
+            downloadButton.addEventListener('click', function(e) {
+                e.stopPropagation();
+                
+                // Create a download link
+                const link = document.createElement('a');
+                link.href = photo.url;
+                link.download = photo.name || 'photo.jpg';
+                link.target = '_blank';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            });
+            toolbar.appendChild(downloadButton);
             
             // Close button
             const closeButton = document.createElement('button');
