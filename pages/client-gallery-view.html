@@ -3,6 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="referrer" content="no-referrer" />
+
+    <meta http-equiv="Content-Security-Policy" content="
+    default-src 'self';
+    img-src * data:;
+    style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com;
+    script-src 'self' 'unsafe-inline' https://www.gstatic.com;
+    font-src 'self' https://cdnjs.cloudflare.com;
+    connect-src 'self' https://firestore.googleapis.com https://*.googleapis.com https://firebasestorage.googleapis.com;
+    ">
     <title>Shared Gallery - SnapSelect</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
@@ -13,6 +23,10 @@
             padding: 0;
             background-color: #f5f5f5;
             color: #333;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
         }
         
         .container {
@@ -33,6 +47,7 @@
             font-weight: bold;
             color: #3498db;
         }
+
         
         /* Password screen */
         .password-container {
@@ -117,12 +132,16 @@
         .photo-name {
             font-weight: 500;
             margin-bottom: 5px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
         }
         
         .photo-date {
             font-size: 12px;
             color: #777;
         }
+
         
         /* Toast notifications */
         .toast-container {
@@ -165,6 +184,136 @@
         @keyframes fadeOut {
             from { opacity: 1; }
             to { opacity: 0; }
+        }
+
+        /* Welcome Dashboard Styles */
+        .welcome-dashboard {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            z-index: 2000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            animation: fadeIn 0.3s ease;
+        }
+        
+        .welcome-container {
+            background-color: white;
+            border-radius: 10px;
+            width: 90%;
+            max-width: 800px;
+            max-height: 90vh;
+            overflow-y: auto;
+            padding: 30px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+        }
+        
+        .welcome-container h1 {
+            color: #3498db;
+            text-align: center;
+            margin-bottom: 25px;
+            font-size: 28px;
+        }
+        
+        .welcome-content {
+            margin-bottom: 30px;
+        }
+        
+        .welcome-section {
+            margin-bottom: 25px;
+        }
+        
+        .welcome-section h2 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 22px;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 8px;
+        }
+        
+        .welcome-section p {
+            line-height: 1.6;
+            color: #555;
+        }
+        
+        .rating-guide {
+            background-color: #f9f9f9;
+            padding: 20px;
+            border-radius: 8px;
+        }
+        
+        .rating-explanation {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+        }
+        
+        .rating-item {
+            display: flex;
+            align-items: center;
+        }
+        
+        .rating-emoji {
+            font-size: 36px;
+            margin-right: 15px;
+        }
+        
+        .rating-info h3 {
+            margin: 0 0 5px 0;
+            font-size: 18px;
+            color: #333;
+        }
+        
+        .rating-info p {
+            margin: 0;
+            font-size: 14px;
+            color: #666;
+        }
+        
+        .welcome-actions {
+            text-align: center;
+        }
+        
+        .btn-primary {
+            background-color: #3498db;
+            color: white;
+            padding: 12px 30px;
+            font-size: 18px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        
+        .btn-primary:hover {
+            background-color: #2980b9;
+        }
+        
+        .welcome-skip {
+            margin-top: 15px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .checkbox {
+            margin-right: 8px;
+        }
+
+        
+        @media (max-width: 768px) {
+            .welcome-container {
+                padding: 20px;
+                width: 95%;
+            }
+            
+            .rating-explanation {
+                grid-template-columns: 1fr;
+            }
         }
         
         /* Loading spinner */
@@ -255,187 +404,74 @@
             font-size: 14px;
             color: #777;
         }
-
-        /* Photo modal navigation buttons */
-        .modal-nav-button {
-            position: absolute;
-            top: 50%;
-            transform: translateY(-50%);
-            background-color: rgba(255, 255, 255, 0.3);
-            color: white;
-            border: none;
-            border-radius: 50%;
-            width: 50px;
-            height: 50px;
-            font-size: 24px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            cursor: pointer;
-            transition: background-color 0.2s;
-            z-index: 1001;
-        }
-
-        .modal-nav-button:hover {
-            background-color: rgba(255, 255, 255, 0.5);
-        }
-
-        .modal-prev {
-            left: 20px;
-        }
-
-        .modal-next {
-            right: 20px;
-        }
-
-        /* Close button */
-        .modal-close {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            background-color: rgba(255, 255, 255, 0.3);
-            color: white;
-            border: none;
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            font-size: 20px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            cursor: pointer;
-            transition: background-color 0.2s;
-            z-index: 1001;
-        }
-
-        .modal-close:hover {
-            background-color: rgba(255, 255, 255, 0.5);
-        }
-                /* Photo lightbox and enhanced features */
-        .photo-lightbox {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0,0,0,0.9);
-            z-index: 1000;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-        }
-        
-        .lightbox-image-container {
-            position: relative;
-            height: 75%;
-            width: 85%;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-        }
-        
-        .lightbox-image {
-            max-height: 100%;
-            max-width: 100%;
-            object-fit: contain;
-            transition: opacity 0.3s ease-in-out;
-        }
-        
-        .thumbnails-container {
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            width: 100%;
-            height: 80px;
-            display: flex;
-            overflow-x: auto;
-            background-color: rgba(0,0,0,0.7);
-            padding: 10px 0;
-        }
-        
-        .thumbnail {
-            height: 60px;
-            margin: 0 5px;
-            border: 2px solid transparent;
-            cursor: pointer;
-            opacity: 0.7;
-            transition: all 0.2s ease;
-        }
-        
-        .thumbnail.active {
-            border-color: #3498db;
-            opacity: 1;
-        }
-        
-        .lightbox-toolbar {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            display: flex;
-            gap: 10px;
-        }
-        
-        .modal-button {
-            background-color: rgba(255, 255, 255, 0.3);
-            color: white;
-            border: none;
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            font-size: 16px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            cursor: pointer;
-            transition: background-color 0.2s;
-            z-index: 1001;
-        }
-        
-        .modal-button:hover {
-            background-color: rgba(255, 255, 255, 0.5);
-        }
-        
-        /* Animation */
-        @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
-        }
-        
-        @keyframes fadeOut {
-            from { opacity: 1; }
-            to { opacity: 0; }
-        }
-        
-        .fadeIn {
-            animation: fadeIn 0.3s ease forwards;
-        }
-        
-        .fadeOut {
-            animation: fadeOut 0.3s ease forwards;
-        }
-        
-        /* Mobile responsiveness */
-        @media (max-width: 768px) {
-            .thumbnails-container {
-                height: 60px;
-            }
-            
-            .thumbnail {
-                height: 40px;
-            }
-            
-            .lightbox-toolbar {
-                top: 10px;
-                right: 10px;
-            }
-        }
-        
     </style>
 </head>
 <body>
+    <!-- Welcome Dashboard (initially hidden) -->
+    <div id="welcomeDashboard" class="welcome-dashboard" style="display: none;">
+        <div class="welcome-container">
+            <h1>Welcome to Your Photo Gallery</h1>
+            <div class="welcome-content">
+                <div class="welcome-section">
+                    <h2>How to Use This Gallery</h2>
+                    <p>This gallery allows you to view and rate photos. Your ratings help the photographer understand your preferences.</p>
+                    <p>Navigate through photos by clicking on thumbnails or using the arrow keys. Zoom in and out for better viewing.</p>
+                </div>
+                
+                <div class="welcome-section rating-guide">
+                    <h2>Rating System Guide</h2>
+                    <div class="rating-explanation">
+                        <div class="rating-item">
+                            <div class="rating-emoji">❤️</div>
+                            <div class="rating-info">
+                                <h3>Must Have</h3>
+                                <p>Photos you absolutely want to include in your final selection.</p>
+                            </div>
+                        </div>
+                        <div class="rating-item">
+                            <div class="rating-emoji">👍</div>
+                            <div class="rating-info">
+                                <h3>Would Like to Have</h3>
+                                <p>Photos you prefer to include if possible.</p>
+                            </div>
+                        </div>
+                        <div class="rating-item">
+                            <div class="rating-emoji">🤔</div>
+                            <div class="rating-info">
+                                <h3>Alternative Option</h3>
+                                <p>Photos you're considering as secondary choices.</p>
+                            </div>
+                        </div>
+                        <div class="rating-item">
+                            <div class="rating-emoji">👎</div>
+                            <div class="rating-info">
+                                <h3>Not Interested</h3>
+                                <p>Photos you don't want to include.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="welcome-actions">
+                <button id="startGalleryBtn" class="btn btn-primary">Begin Viewing Gallery</button>
+                <div class="welcome-skip">
+                    <input type="checkbox" id="dontShowAgain" class="checkbox">
+                    <label for="dontShowAgain">Don't show this again</label>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div id="toastContainer" class="toast-container"></div>
-    
+    <div id="ratingSummary" class="rating-summary" style="display: none;">
+        <div class="rating-count"><span>❤️</span><span id="heartCount">0</span></div>
+        <div class="rating-count"><span>👍</span><span id="thumbsUpCount">0</span></div>
+        <div class="rating-count"><span>🤔</span><span id="thinkingCount">0</span></div>
+        <div class="rating-count"><span>👎</span><span id="thumbsDownCount">0</span></div>
+    </div>
+
+
     <header>
         <div class="container">
             <nav>
@@ -493,8 +529,7 @@
             <p>&copy; <span id="currentYear">2025</span> SnapSelect. All rights reserved.</p>
         </div>
     </footer>
-
-    <!-- Firebase SDK Scripts -->
+<!-- Firebase SDK Scripts -->
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
@@ -502,9 +537,81 @@
     
     <!-- Inline script to load the gallery -->
     <script>
-        // Variable to store all gallery photos
+        // Variable to store all gallery photos and ratings
         let allGalleryPhotos = [];
         let slideshowInterval = null; // For slideshow feature
+        let photoRatings = {}; // Store ratings for each photo
+        let ratingCounts = {
+            heart: 0,
+            thumbsUp: 0,
+            thinking: 0,
+            thumbsDown: 0
+        };
+        
+        // Welcome dashboard functions
+        function showWelcomeDashboard() {
+            const welcomeDashboard = document.getElementById('welcomeDashboard');
+            if (welcomeDashboard) {
+                welcomeDashboard.style.display = 'flex';
+            }
+        }
+
+        function hideWelcomeDashboard() {
+            const welcomeDashboard = document.getElementById('welcomeDashboard');
+            if (welcomeDashboard) {
+                welcomeDashboard.style.display = 'none';
+            }
+        }
+
+        function checkWelcomeDashboardPreference() {
+            // Check if user has opted out of seeing the welcome screen
+            return localStorage.getItem('dontShowWelcomeDashboard') !== 'true';
+        }
+
+        function setupWelcomeDashboard() {
+            const startGalleryBtn = document.getElementById('startGalleryBtn');
+            const dontShowAgainCheckbox = document.getElementById('dontShowAgain');
+            
+            if (startGalleryBtn) {
+                startGalleryBtn.addEventListener('click', function() {
+                    // Check if "don't show again" is checked
+                    if (dontShowAgainCheckbox && dontShowAgainCheckbox.checked) {
+                        localStorage.setItem('dontShowWelcomeDashboard', 'true');
+                    }
+                    
+                    // Hide welcome dashboard
+                    hideWelcomeDashboard();
+                    
+                    // Continue with gallery loading
+                    if (checkGalleryAccess()) {
+                        loadSharedGallery();
+                    }
+                });
+            }
+        }
+        
+        // Disable right-click
+        document.addEventListener('contextmenu', function(e) {
+            e.preventDefault();
+            return false;
+        }, false);
+
+        // Disable keyboard shortcuts
+        document.addEventListener('keydown', function(e) {
+            // Prevent Ctrl+S, Ctrl+U, Ctrl+P, Ctrl+Shift+I, F12
+            if ((e.ctrlKey && ['s','u','p'].includes(e.key.toLowerCase())) || 
+                (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === 'i') || 
+                e.key === 'F12') {
+                e.preventDefault();
+                return false;
+            }
+        });
+
+        // Disable drag and drop
+        document.addEventListener('dragstart', function(e) {
+            e.preventDefault();
+            return false;
+        });
         
         // Access control for client gallery
         function checkGalleryAccess() {
@@ -545,7 +652,108 @@
             
             return true;
         }
+
         
+        // Rating system functions
+        function loadSavedRatings() {
+            try {
+                const savedRatings = localStorage.getItem('photoRatings');
+                if (savedRatings) {
+                    photoRatings = JSON.parse(savedRatings);
+                    updateRatingCounts();
+                }
+            } catch (err) {
+                console.error("Error loading saved ratings:", err);
+            }
+        }
+        
+        function updateRatingCounts() {
+            // Reset counts
+            ratingCounts = {
+                heart: 0,
+                thumbsUp: 0,
+                thinking: 0,
+                thumbsDown: 0
+            };
+            
+            // Count each rating type
+            Object.values(photoRatings).forEach(rating => {
+                if (rating) ratingCounts[rating]++;
+            });
+            
+            // Update display
+            document.getElementById('heartCount').textContent = ratingCounts.heart;
+            document.getElementById('thumbsUpCount').textContent = ratingCounts.thumbsUp;
+            document.getElementById('thinkingCount').textContent = ratingCounts.thinking;
+            document.getElementById('thumbsDownCount').textContent = ratingCounts.thumbsDown;
+            
+            // Show summary if we have any ratings
+            const totalRatings = Object.values(ratingCounts).reduce((a, b) => a + b, 0);
+            document.getElementById('ratingSummary').style.display = totalRatings > 0 ? 'flex' : 'none';
+        }
+        
+        function setPhotoRating(photoId, rating) {
+            // If same rating is clicked again, we'll unselect it
+            if (photoRatings[photoId] === rating) {
+                delete photoRatings[photoId]; // Remove rating
+                showToast(`Rating removed`, 'info');
+            } else {
+                photoRatings[photoId] = rating;
+                showToast(`Photo marked as ${getRatingLabel(rating)}`, 'success');
+            }
+            
+            // Save to localStorage
+            try {
+                localStorage.setItem('photoRatings', JSON.stringify(photoRatings));
+            } catch (err) {
+                console.error("Error saving ratings:", err);
+            }
+            
+            // Update counts
+            updateRatingCounts();
+        }
+        
+        function getRatingLabel(rating) {
+            switch(rating) {
+                case 'heart': return "Must Have";
+                case 'thumbsUp': return "Would Like to Have";
+                case 'thinking': return "Alternative Option";
+                case 'thumbsDown': return "Not Interested";
+                default: return "";
+            }
+        }
+        
+        function createRatingButton(emoji, label, ratingValue, photoId) {
+            const btn = document.createElement('button');
+            btn.className = 'rating-btn';
+            btn.innerHTML = emoji;
+            btn.setAttribute('aria-label', label);
+            btn.setAttribute('data-rating', ratingValue);
+            
+            if (photoRatings[photoId] === ratingValue) {
+                btn.classList.add('selected');
+            }
+            
+            btn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                
+                // Update rating in storage
+                setPhotoRating(photoId, ratingValue);
+                
+                // Update visual selection
+                const ratingBtns = document.querySelectorAll('.rating-btn');
+                ratingBtns.forEach(b => b.classList.remove('selected'));
+                
+                // Only add selected class if we didn't remove the rating
+                if (photoRatings[photoId] === ratingValue) {
+                    btn.classList.add('selected');
+                }
+            });
+            
+            return btn;
+        }
+
+
         // Function to find studio and share information for a gallery
         function findStudioAndShareInfo(galleryId) {
             // If Firebase is available, look up the information
@@ -615,16 +823,28 @@
                 // Update current year in footer
                 document.getElementById('currentYear').textContent = new Date().getFullYear();
                 
-                // Check access before proceeding
-                if (checkGalleryAccess()) {
-                    // Continue with gallery loading
-                    loadSharedGallery();
+                // Load saved ratings
+                loadSavedRatings();
+                
+                // Setup welcome dashboard event listeners
+                setupWelcomeDashboard();
+                
+                // Check if we should show welcome dashboard
+                if (checkWelcomeDashboardPreference()) {
+                    // Show welcome dashboard
+                    showWelcomeDashboard();
+                } else {
+                    // Skip welcome dashboard and check access
+                    if (checkGalleryAccess()) {
+                        loadSharedGallery();
+                    }
                 }
             } catch (error) {
                 console.error("Error initializing Firebase:", error);
                 showError("Failed to initialize the gallery. Please try again later.");
             }
         })();
+
         
         // Load shared gallery
         function loadSharedGallery() {
@@ -729,6 +949,7 @@
                     showPageError("Error loading gallery: " + error.message);
                 });
         }
+
         
         // Update the password screen title with gallery info if available
         function updatePasswordScreenTitle(galleryId) {
@@ -854,6 +1075,7 @@
                     showPageError("Error loading gallery details: " + error.message);
                 });
         }
+
         
         // Load photographer details
         function loadPhotographerDetails(photographerId) {
@@ -954,6 +1176,8 @@
                     showError("Error loading photos: " + error.message);
                 });
         }
+
+
         
         // Create a photo element
         function createPhotoElement(photo) {
@@ -966,6 +1190,11 @@
             photoContainer.setAttribute('tabindex', '0'); // Make focusable for keyboard navigation
             photoContainer.setAttribute('role', 'img');
             photoContainer.setAttribute('aria-label', photo.name || 'Photo');
+            
+            // Add protection layer
+            const protectionLayer = document.createElement('div');
+            protectionLayer.className = 'protection-layer';
+            photoContainer.appendChild(protectionLayer);
             
             const photoDetails = document.createElement('div');
             photoDetails.className = 'photo-details';
@@ -1020,6 +1249,10 @@
             currentImg.classList.remove('fadeIn');
             currentImg.classList.add('fadeOut');
             
+            // Reset zoom level
+            currentImg.style.transform = 'scale(1)';
+            lightbox.querySelector('.zoom-level-text').textContent = '100%';
+            
             setTimeout(() => {
                 // Update image source
                 const newPhoto = allGalleryPhotos[index];
@@ -1028,7 +1261,7 @@
                 currentImg.alt = newPhoto.name || 'Gallery photo';
                 
                 // Update caption if exists
-                const caption = imageContainer.querySelector('div');
+                const caption = imageContainer.querySelector('.photo-caption');
                 if (caption) {
                     caption.textContent = newPhoto.name || '';
                 }
@@ -1044,6 +1277,7 @@
                         thumb.classList.remove('active');
                     }
                 });
+
                 
                 // Update navigation buttons
                 const prevButton = lightbox.querySelector('.modal-prev');
@@ -1083,6 +1317,16 @@
                     imageContainer.appendChild(newNextButton);
                 }
                 
+                // Update rating buttons
+                const photoId = newPhoto.id || newPhoto.url;
+                const ratingButtons = lightbox.querySelectorAll('.rating-btn');
+                ratingButtons.forEach(btn => {
+                    btn.classList.remove('selected');
+                    if (photoRatings[photoId] === btn.getAttribute('data-rating')) {
+                        btn.classList.add('selected');
+                    }
+                });
+                
                 // Fade in the new image
                 currentImg.classList.remove('fadeOut');
                 currentImg.classList.add('fadeIn');
@@ -1099,24 +1343,6 @@
                     document.body.removeChild(lightbox);
                 }, 300);
             }
-        }
-        
-        // Download current photo
-        function downloadCurrentPhoto(lightbox) {
-            const currentImg = lightbox.querySelector('.lightbox-image');
-            const currentIndex = parseInt(currentImg.dataset.index);
-            const photo = allGalleryPhotos[currentIndex];
-            
-            if (!photo || !photo.url) return;
-            
-            // Create temporary link to download
-            const link = document.createElement('a');
-            link.href = photo.url;
-            link.download = photo.name || `photo-${currentIndex+1}.jpg`;
-            link.target = '_blank';
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
         }
         
         // Toggle slideshow
@@ -1146,6 +1372,7 @@
                 }, 3000); // Change image every 3 seconds
             }
         }
+
         
         // Open lightbox with enhanced features
         function openLightbox(photo) {
@@ -1157,8 +1384,10 @@
                 p.url === photo.url || (p.id && p.id === photo.id)
             );
             
+            // The photo ID for ratings
+            const photoId = photo.id || photo.url;
+            
             // Create lightbox container
-
             const lightbox = document.createElement('div');
             lightbox.className = 'photo-lightbox';
             lightbox.id = 'photoLightbox';
@@ -1179,17 +1408,6 @@
             });
             toolbar.appendChild(slideshowButton);
             
-            // Download button
-            const downloadButton = document.createElement('button');
-            downloadButton.className = 'modal-button';
-            downloadButton.innerHTML = '<i class="fas fa-download"></i>';
-            downloadButton.setAttribute('aria-label', 'Download photo');
-            downloadButton.addEventListener('click', function(e) {
-                e.stopPropagation();
-                downloadCurrentPhoto(lightbox);
-            });
-            toolbar.appendChild(downloadButton);
-            
             // Close button
             const closeButton = document.createElement('button');
             closeButton.className = 'modal-button';
@@ -1207,17 +1425,83 @@
             const imageContainer = document.createElement('div');
             imageContainer.className = 'lightbox-image-container';
             
-            // Create the main image
+            // Current zoom level
+            let zoomLevel = 1;
+            
+            // Create zoom controls
+            const zoomControls = document.createElement('div');
+            zoomControls.className = 'zoom-controls';
+            
+            const zoomInBtn = document.createElement('button');
+            zoomInBtn.className = 'zoom-btn';
+            zoomInBtn.innerHTML = '<i class="fas fa-search-plus"></i>';
+            zoomInBtn.setAttribute('aria-label', 'Zoom in');
+            
+            const zoomOutBtn = document.createElement('button');
+            zoomOutBtn.className = 'zoom-btn';
+            zoomOutBtn.innerHTML = '<i class="fas fa-search-minus"></i>';
+            zoomOutBtn.setAttribute('aria-label', 'Zoom out');
+            
+            const zoomLevelDisplay = document.createElement('div');
+            zoomLevelDisplay.style.color = 'white';
+            zoomLevelDisplay.style.textAlign = 'center';
+            zoomLevelDisplay.style.marginTop = '5px';
+            zoomLevelDisplay.className = 'zoom-level-text';
+            zoomLevelDisplay.textContent = '100%';
+            
+            // Add zoom handlers
+            zoomInBtn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                if (zoomLevel < 3) { // Max zoom 3x
+                    zoomLevel += 0.25;
+                    const img = lightbox.querySelector('.lightbox-image');
+                    img.style.transform = `scale(${zoomLevel})`;
+                    zoomLevelDisplay.textContent = `${Math.round(zoomLevel * 100)}%`;
+                }
+            });
+            
+            zoomOutBtn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                if (zoomLevel > 0.5) { // Min zoom 0.5x
+                    zoomLevel -= 0.25;
+                    const img = lightbox.querySelector('.lightbox-image');
+                    img.style.transform = `scale(${zoomLevel})`;
+                    zoomLevelDisplay.textContent = `${Math.round(zoomLevel * 100)}%`;
+                }
+            });
+            
+            zoomControls.appendChild(zoomInBtn);
+            zoomControls.appendChild(zoomOutBtn);
+            zoomControls.appendChild(zoomLevelDisplay);
+
+            
+            // Create the main image with protection
             const img = document.createElement('img');
             img.className = 'lightbox-image fadeIn';
             img.src = photo.url;
             img.dataset.index = currentIndex;
             img.alt = photo.name || 'Gallery photo';
+            img.draggable = false;
+            img.crossOrigin = "anonymous";
             
-            // Prevent closing when clicking on image
-            img.addEventListener('click', function(e) {
-                e.stopPropagation();
+            // Add watermark overlay
+            const watermarkOverlay = document.createElement('div');
+            watermarkOverlay.className = 'image-watermark';
+            imageContainer.appendChild(watermarkOverlay);
+            
+            // Add watermark text
+            const watermarkText = document.createElement('div');
+            watermarkText.className = 'watermark-text';
+            watermarkText.textContent = 'SnapSelect © 2025';
+            imageContainer.appendChild(watermarkText);
+            
+            // Add protection layer
+            const protectionLayer = document.createElement('div');
+            protectionLayer.className = 'protection-layer';
+            protectionLayer.addEventListener('click', function(e) {
+                e.stopPropagation(); // Prevent closing when clicking on protection layer
             });
+            imageContainer.appendChild(protectionLayer);
             
             // Add navigation buttons
             if (currentIndex > 0) {
@@ -1247,8 +1531,9 @@
             // Add caption if available
             if (photo.name) {
                 const caption = document.createElement('div');
+                caption.className = 'photo-caption';
                 caption.style.position = 'absolute';
-                caption.style.bottom = '90px'; // Above thumbnails
+                caption.style.bottom = '160px'; // Above ratings and thumbnails
                 caption.style.left = '0';
                 caption.style.width = '100%';
                 caption.style.textAlign = 'center';
@@ -1256,11 +1541,33 @@
                 caption.style.padding = '10px';
                 caption.style.backgroundColor = 'rgba(0,0,0,0.5)';
                 caption.textContent = photo.name;
+                caption.style.overflow = 'hidden';
+                caption.style.textOverflow = 'ellipsis';
+                caption.style.whiteSpace = 'normal';
+                caption.style.maxWidth = '100%';
                 imageContainer.appendChild(caption);
             }
             
+            // Add rating container
+            const ratingContainer = document.createElement('div');
+            ratingContainer.className = 'rating-container';
+            
+            // Create rating buttons
+            const heartBtn = createRatingButton('❤️', 'Must have', 'heart', photoId);
+            const thumbsUpBtn = createRatingButton('👍', 'Would Like to Have', 'thumbsUp', photoId);
+            const thinkingBtn = createRatingButton('🤔', 'Alternative Option', 'thinking', photoId);
+            const thumbsDownBtn = createRatingButton('👎', 'Not Interested', 'thumbsDown', photoId);
+            
+            ratingContainer.appendChild(heartBtn);
+            ratingContainer.appendChild(thumbsUpBtn);
+            ratingContainer.appendChild(thinkingBtn);
+            ratingContainer.appendChild(thumbsDownBtn);
+            
             imageContainer.appendChild(img);
+            imageContainer.appendChild(ratingContainer);
+            imageContainer.appendChild(zoomControls);
             lightbox.appendChild(imageContainer);
+
             
             // Add thumbnails container
             const thumbnailsContainer = document.createElement('div');
@@ -1271,6 +1578,7 @@
                 const thumb = document.createElement('img');
                 thumb.className = 'thumbnail';
                 thumb.src = p.thumbnailUrl || p.url;
+                thumb.draggable = false;
                 if (index === currentIndex) {
                     thumb.classList.add('active');
                 }
@@ -1326,19 +1634,36 @@
                     case ' ': // Space bar
                         toggleSlideshow(slideshowButton, lightbox);
                         break;
+                    case '+':
+                        // Zoom in
+                        if (zoomLevel < 3) {
+                            zoomLevel += 0.25;
+                            img.style.transform = `scale(${zoomLevel})`;
+                            zoomLevelDisplay.textContent = `${Math.round(zoomLevel * 100)}%`;
+                        }
+                        break;
+                    case '-':
+                        // Zoom out
+                        if (zoomLevel > 0.5) {
+                            zoomLevel -= 0.25;
+                            img.style.transform = `scale(${zoomLevel})`;
+                            zoomLevelDisplay.textContent = `${Math.round(zoomLevel * 100)}%`;
+                        }
+                        break;
                 }
             });
             
-            // Close when clicking on the background
-            lightbox.addEventListener('click', function() {
-                closeLightbox();
+            // Close when clicking on the background (but not on controls)
+            lightbox.addEventListener('click', function(e) {
+                if (e.target === lightbox) {
+                    closeLightbox();
+                }
             });
             
             // Add lightbox to page
             document.body.appendChild(lightbox);
             
             // Focus for keyboard navigation
-
             lightbox.focus();
             
             // Scroll the active thumbnail into view
@@ -1347,6 +1672,7 @@
                 activeThumb.scrollIntoView({ behavior: 'smooth', inline: 'center' });
             }
         }
+
         
         // Show page error (full page error)
         function showPageError(message) {
