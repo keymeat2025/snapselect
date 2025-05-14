@@ -3,6 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="referrer" content="no-referrer" />
+   
+    <meta http-equiv="Content-Security-Policy" content="
+    default-src 'self';
+    img-src 'self' data:;
+    style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com;
+    script-src 'self' 'unsafe-inline' https://www.gstatic.com;
+    font-src 'self' https://cdnjs.cloudflare.com;
+    connect-src 'self' https://firestore.googleapis.com https://*.firebasestorage.googleapis.com;
+    ">
     <title>Shared Gallery - SnapSelect</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
@@ -13,6 +23,10 @@
             padding: 0;
             background-color: #f5f5f5;
             color: #333;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
         }
         
         .container {
@@ -339,7 +353,18 @@
             max-height: 100%;
             max-width: 100%;
             object-fit: contain;
-            transition: opacity 0.3s ease-in-out;
+            transition: all 0.3s ease-in-out;
+            -webkit-user-drag: none;
+            -khtml-user-drag: none;
+            -moz-user-drag: none;
+            -o-user-drag: none;
+            user-drag: none;
+            -webkit-user-select: none;
+            -khtml-user-select: none;
+            -moz-user-select: none;
+            -o-user-select: none;
+            user-select: none;
+            pointer-events: none;
         }
         
         .thumbnails-container {
@@ -361,6 +386,7 @@
             cursor: pointer;
             opacity: 0.7;
             transition: all 0.2s ease;
+            pointer-events: auto;
         }
         
         .thumbnail.active {
@@ -431,11 +457,149 @@
             }
         }
         
+        /* Image protection and watermark */
+        .image-watermark {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: repeating-linear-gradient(
+                45deg,
+                rgba(0, 0, 0, 0.05),
+                rgba(0, 0, 0, 0.05) 10px,
+                rgba(0, 0, 0, 0.07) 10px,
+                rgba(0, 0, 0, 0.07) 20px
+            );
+            pointer-events: none;
+            z-index: 50;
+        }
+        
+        .watermark-text {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) rotate(-45deg);
+            color: rgba(255, 255, 255, 0.3);
+            font-size: 30px;
+            font-weight: bold;
+            white-space: nowrap;
+            pointer-events: none;
+            z-index: 51;
+        }
+        
+        .protection-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 52;
+            cursor: default;
+        }
+        
+        /* Zoom controls */
+        .zoom-controls {
+            position: absolute;
+            bottom: 150px;
+            right: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            z-index: 1002;
+        }
+        
+        .zoom-btn {
+            background-color: rgba(255, 255, 255, 0.3);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            font-size: 16px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            pointer-events: auto;
+        }
+        
+        .zoom-btn:hover {
+            background-color: rgba(255, 255, 255, 0.5);
+        }
+        
+        /* Rating system */
+        .rating-container {
+            position: absolute;
+            bottom: 85px;
+            left: 0;
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            padding: 10px 0;
+            background-color: rgba(0, 0, 0, 0.6);
+            z-index: 1002;
+        }
+        
+        .rating-btn {
+            font-size: 24px;
+            background: rgba(255, 255, 255, 0.1);
+            border: none;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            color: white;
+            pointer-events: auto;
+        }
+        
+        .rating-btn:hover {
+            transform: scale(1.1);
+            background: rgba(255, 255, 255, 0.2);
+        }
+        
+        .rating-btn.selected {
+            transform: scale(1.2);
+            background: rgba(255, 255, 255, 0.3);
+            box-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+        }
+        
+        /* Rating summary */
+        .rating-summary {
+            position: fixed;
+            top: 80px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.6);
+            color: white;
+            border-radius: 8px;
+            padding: 10px 15px;
+            display: flex;
+            gap: 15px;
+            font-size: 14px;
+            z-index: 900;
+        }
+        
+        .rating-count {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
     </style>
 </head>
 <body>
     <div id="toastContainer" class="toast-container"></div>
-    
+    <div id="ratingSummary" class="rating-summary" style="display: none;">
+        <div class="rating-count"><span>❤️</span><span id="heartCount">0</span></div>
+        <div class="rating-count"><span>👍</span><span id="thumbsUpCount">0</span></div>
+        <div class="rating-count"><span>🤔</span><span id="thinkingCount">0</span></div>
+        <div class="rating-count"><span>👎</span><span id="thumbsDownCount">0</span></div>
+    </div>
+
     <header>
         <div class="container">
             <nav>
@@ -502,9 +666,39 @@
     
     <!-- Inline script to load the gallery -->
     <script>
-        // Variable to store all gallery photos
+        // Variable to store all gallery photos and ratings
         let allGalleryPhotos = [];
         let slideshowInterval = null; // For slideshow feature
+        let photoRatings = {}; // Store ratings for each photo
+        let ratingCounts = {
+            heart: 0,
+            thumbsUp: 0,
+            thinking: 0,
+            thumbsDown: 0
+        };
+        
+        // Disable right-click
+        document.addEventListener('contextmenu', function(e) {
+            e.preventDefault();
+            return false;
+        }, false);
+
+        // Disable keyboard shortcuts
+        document.addEventListener('keydown', function(e) {
+            // Prevent Ctrl+S, Ctrl+U, Ctrl+P, Ctrl+Shift+I, F12
+            if ((e.ctrlKey && ['s','u','p'].includes(e.key.toLowerCase())) || 
+                (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === 'i') || 
+                e.key === 'F12') {
+                e.preventDefault();
+                return false;
+            }
+        });
+
+        // Disable drag and drop
+        document.addEventListener('dragstart', function(e) {
+            e.preventDefault();
+            return false;
+        });
         
         // Access control for client gallery
         function checkGalleryAccess() {
@@ -545,6 +739,98 @@
             
             return true;
         }
+        
+        // Rating system functions
+        function loadSavedRatings() {
+            try {
+                const savedRatings = localStorage.getItem('photoRatings');
+                if (savedRatings) {
+                    photoRatings = JSON.parse(savedRatings);
+                    updateRatingCounts();
+                }
+            } catch (err) {
+                console.error("Error loading saved ratings:", err);
+            }
+        }
+        
+        function updateRatingCounts() {
+            // Reset counts
+            ratingCounts = {
+                heart: 0,
+                thumbsUp: 0,
+                thinking: 0,
+                thumbsDown: 0
+            };
+            
+            // Count each rating type
+            Object.values(photoRatings).forEach(rating => {
+                if (rating) ratingCounts[rating]++;
+            });
+            
+            // Update display
+            document.getElementById('heartCount').textContent = ratingCounts.heart;
+            document.getElementById('thumbsUpCount').textContent = ratingCounts.thumbsUp;
+            document.getElementById('thinkingCount').textContent = ratingCounts.thinking;
+            document.getElementById('thumbsDownCount').textContent = ratingCounts.thumbsDown;
+            
+            // Show summary if we have any ratings
+            const totalRatings = Object.values(ratingCounts).reduce((a, b) => a + b, 0);
+            document.getElementById('ratingSummary').style.display = totalRatings > 0 ? 'flex' : 'none';
+        }
+        
+        function setPhotoRating(photoId, rating) {
+            photoRatings[photoId] = rating;
+            
+            // Save to localStorage
+            try {
+                localStorage.setItem('photoRatings', JSON.stringify(photoRatings));
+            } catch (err) {
+                console.error("Error saving ratings:", err);
+            }
+            
+            // Update counts
+            updateRatingCounts();
+            
+            // Show confirmation
+            showToast(`Photo marked as ${getRatingLabel(rating)}`, 'success');
+        }
+        
+        function getRatingLabel(rating) {
+            switch(rating) {
+                case 'heart': return "Must Have";
+                case 'thumbsUp': return "Would Like to Have";
+                case 'thinking': return "Alternative Option";
+                case 'thumbsDown': return "Not Interested";
+                default: return "";
+            }
+        }
+        
+        function createRatingButton(emoji, label, ratingValue, photoId) {
+            const btn = document.createElement('button');
+            btn.className = 'rating-btn';
+            btn.innerHTML = emoji;
+            btn.setAttribute('aria-label', label);
+            btn.setAttribute('data-rating', ratingValue);
+            
+            if (photoRatings[photoId] === ratingValue) {
+                btn.classList.add('selected');
+            }
+            
+            btn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                
+                // Update rating in storage
+                setPhotoRating(photoId, ratingValue);
+                
+                // Update visual selection
+                const ratingBtns = document.querySelectorAll('.rating-btn');
+                ratingBtns.forEach(b => b.classList.remove('selected'));
+                btn.classList.add('selected');
+            });
+            
+            return btn;
+        }
+
         
         // Function to find studio and share information for a gallery
         function findStudioAndShareInfo(galleryId) {
@@ -609,11 +895,15 @@
             try {
                 if (firebase.apps.length === 0) {
                     firebase.initializeApp(firebaseConfig);
+
                     console.log("Firebase initialized successfully");
                 }
                 
                 // Update current year in footer
                 document.getElementById('currentYear').textContent = new Date().getFullYear();
+                
+                // Load saved ratings
+                loadSavedRatings();
                 
                 // Check access before proceeding
                 if (checkGalleryAccess()) {
@@ -954,6 +1244,7 @@
                     showError("Error loading photos: " + error.message);
                 });
         }
+
         
         // Create a photo element
         function createPhotoElement(photo) {
@@ -966,6 +1257,11 @@
             photoContainer.setAttribute('tabindex', '0'); // Make focusable for keyboard navigation
             photoContainer.setAttribute('role', 'img');
             photoContainer.setAttribute('aria-label', photo.name || 'Photo');
+            
+            // Add protection layer
+            const protectionLayer = document.createElement('div');
+            protectionLayer.className = 'protection-layer';
+            photoContainer.appendChild(protectionLayer);
             
             const photoDetails = document.createElement('div');
             photoDetails.className = 'photo-details';
@@ -1020,6 +1316,10 @@
             currentImg.classList.remove('fadeIn');
             currentImg.classList.add('fadeOut');
             
+            // Reset zoom level
+            currentImg.style.transform = 'scale(1)';
+            lightbox.querySelector('.zoom-level-text').textContent = '100%';
+            
             setTimeout(() => {
                 // Update image source
                 const newPhoto = allGalleryPhotos[index];
@@ -1028,7 +1328,7 @@
                 currentImg.alt = newPhoto.name || 'Gallery photo';
                 
                 // Update caption if exists
-                const caption = imageContainer.querySelector('div');
+                const caption = imageContainer.querySelector('.photo-caption');
                 if (caption) {
                     caption.textContent = newPhoto.name || '';
                 }
@@ -1083,6 +1383,16 @@
                     imageContainer.appendChild(newNextButton);
                 }
                 
+                // Update rating buttons
+                const photoId = newPhoto.id || newPhoto.url;
+                const ratingButtons = lightbox.querySelectorAll('.rating-btn');
+                ratingButtons.forEach(btn => {
+                    btn.classList.remove('selected');
+                    if (photoRatings[photoId] === btn.getAttribute('data-rating')) {
+                        btn.classList.add('selected');
+                    }
+                });
+                
                 // Fade in the new image
                 currentImg.classList.remove('fadeOut');
                 currentImg.classList.add('fadeIn');
@@ -1099,24 +1409,6 @@
                     document.body.removeChild(lightbox);
                 }, 300);
             }
-        }
-        
-        // Download current photo
-        function downloadCurrentPhoto(lightbox) {
-            const currentImg = lightbox.querySelector('.lightbox-image');
-            const currentIndex = parseInt(currentImg.dataset.index);
-            const photo = allGalleryPhotos[currentIndex];
-            
-            if (!photo || !photo.url) return;
-            
-            // Create temporary link to download
-            const link = document.createElement('a');
-            link.href = photo.url;
-            link.download = photo.name || `photo-${currentIndex+1}.jpg`;
-            link.target = '_blank';
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
         }
         
         // Toggle slideshow
@@ -1157,8 +1449,10 @@
                 p.url === photo.url || (p.id && p.id === photo.id)
             );
             
+            // The photo ID for ratings
+            const photoId = photo.id || photo.url;
+            
             // Create lightbox container
-
             const lightbox = document.createElement('div');
             lightbox.className = 'photo-lightbox';
             lightbox.id = 'photoLightbox';
@@ -1179,17 +1473,6 @@
             });
             toolbar.appendChild(slideshowButton);
             
-            // Download button
-            const downloadButton = document.createElement('button');
-            downloadButton.className = 'modal-button';
-            downloadButton.innerHTML = '<i class="fas fa-download"></i>';
-            downloadButton.setAttribute('aria-label', 'Download photo');
-            downloadButton.addEventListener('click', function(e) {
-                e.stopPropagation();
-                downloadCurrentPhoto(lightbox);
-            });
-            toolbar.appendChild(downloadButton);
-            
             // Close button
             const closeButton = document.createElement('button');
             closeButton.className = 'modal-button';
@@ -1207,17 +1490,82 @@
             const imageContainer = document.createElement('div');
             imageContainer.className = 'lightbox-image-container';
             
-            // Create the main image
+            // Current zoom level
+            let zoomLevel = 1;
+            
+            // Create zoom controls
+            const zoomControls = document.createElement('div');
+            zoomControls.className = 'zoom-controls';
+            
+            const zoomInBtn = document.createElement('button');
+            zoomInBtn.className = 'zoom-btn';
+            zoomInBtn.innerHTML = '<i class="fas fa-search-plus"></i>';
+            zoomInBtn.setAttribute('aria-label', 'Zoom in');
+            
+            const zoomOutBtn = document.createElement('button');
+            zoomOutBtn.className = 'zoom-btn';
+            zoomOutBtn.innerHTML = '<i class="fas fa-search-minus"></i>';
+            zoomOutBtn.setAttribute('aria-label', 'Zoom out');
+            
+            const zoomLevelDisplay = document.createElement('div');
+            zoomLevelDisplay.style.color = 'white';
+            zoomLevelDisplay.style.textAlign = 'center';
+            zoomLevelDisplay.style.marginTop = '5px';
+            zoomLevelDisplay.className = 'zoom-level-text';
+            zoomLevelDisplay.textContent = '100%';
+            
+            // Add zoom handlers
+            zoomInBtn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                if (zoomLevel < 3) { // Max zoom 3x
+                    zoomLevel += 0.25;
+                    const img = lightbox.querySelector('.lightbox-image');
+                    img.style.transform = `scale(${zoomLevel})`;
+                    zoomLevelDisplay.textContent = `${Math.round(zoomLevel * 100)}%`;
+                }
+            });
+            
+            zoomOutBtn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                if (zoomLevel > 0.5) { // Min zoom 0.5x
+                    zoomLevel -= 0.25;
+                    const img = lightbox.querySelector('.lightbox-image');
+                    img.style.transform = `scale(${zoomLevel})`;
+                    zoomLevelDisplay.textContent = `${Math.round(zoomLevel * 100)}%`;
+                }
+            });
+            
+            zoomControls.appendChild(zoomInBtn);
+            zoomControls.appendChild(zoomOutBtn);
+            zoomControls.appendChild(zoomLevelDisplay);
+            
+            // Create the main image with protection
             const img = document.createElement('img');
             img.className = 'lightbox-image fadeIn';
             img.src = photo.url;
             img.dataset.index = currentIndex;
             img.alt = photo.name || 'Gallery photo';
+            img.draggable = false;
+            img.crossOrigin = "anonymous";
             
-            // Prevent closing when clicking on image
-            img.addEventListener('click', function(e) {
-                e.stopPropagation();
+            // Add watermark overlay
+            const watermarkOverlay = document.createElement('div');
+            watermarkOverlay.className = 'image-watermark';
+            imageContainer.appendChild(watermarkOverlay);
+            
+            // Add watermark text
+            const watermarkText = document.createElement('div');
+            watermarkText.className = 'watermark-text';
+            watermarkText.textContent = 'SnapSelect © 2025';
+            imageContainer.appendChild(watermarkText);
+            
+            // Add protection layer
+            const protectionLayer = document.createElement('div');
+            protectionLayer.className = 'protection-layer';
+            protectionLayer.addEventListener('click', function(e) {
+                e.stopPropagation(); // Prevent closing when clicking on protection layer
             });
+            imageContainer.appendChild(protectionLayer);
             
             // Add navigation buttons
             if (currentIndex > 0) {
@@ -1247,8 +1595,9 @@
             // Add caption if available
             if (photo.name) {
                 const caption = document.createElement('div');
+                caption.className = 'photo-caption';
                 caption.style.position = 'absolute';
-                caption.style.bottom = '90px'; // Above thumbnails
+                caption.style.bottom = '160px'; // Above ratings and thumbnails
                 caption.style.left = '0';
                 caption.style.width = '100%';
                 caption.style.textAlign = 'center';
@@ -1259,7 +1608,24 @@
                 imageContainer.appendChild(caption);
             }
             
+            // Add rating container
+            const ratingContainer = document.createElement('div');
+            ratingContainer.className = 'rating-container';
+            
+            // Create rating buttons
+            const heartBtn = createRatingButton('❤️', 'Must have', 'heart', photoId);
+            const thumbsUpBtn = createRatingButton('👍', 'Would Like to Have', 'thumbsUp', photoId);
+            const thinkingBtn = createRatingButton('🤔', 'Alternative Option', 'thinking', photoId);
+            const thumbsDownBtn = createRatingButton('👎', 'Not Interested', 'thumbsDown', photoId);
+            
+            ratingContainer.appendChild(heartBtn);
+            ratingContainer.appendChild(thumbsUpBtn);
+            ratingContainer.appendChild(thinkingBtn);
+            ratingContainer.appendChild(thumbsDownBtn);
+            
             imageContainer.appendChild(img);
+            imageContainer.appendChild(ratingContainer);
+            imageContainer.appendChild(zoomControls);
             lightbox.appendChild(imageContainer);
             
             // Add thumbnails container
@@ -1271,6 +1637,7 @@
                 const thumb = document.createElement('img');
                 thumb.className = 'thumbnail';
                 thumb.src = p.thumbnailUrl || p.url;
+                thumb.draggable = false;
                 if (index === currentIndex) {
                     thumb.classList.add('active');
                 }
@@ -1312,6 +1679,7 @@
                 switch (e.key) {
                     case 'Escape':
                         closeLightbox();
+
                         break;
                     case 'ArrowLeft':
                         if (currentIndex > 0) {
@@ -1326,19 +1694,36 @@
                     case ' ': // Space bar
                         toggleSlideshow(slideshowButton, lightbox);
                         break;
+                    case '+':
+                        // Zoom in
+                        if (zoomLevel < 3) {
+                            zoomLevel += 0.25;
+                            img.style.transform = `scale(${zoomLevel})`;
+                            zoomLevelDisplay.textContent = `${Math.round(zoomLevel * 100)}%`;
+                        }
+                        break;
+                    case '-':
+                        // Zoom out
+                        if (zoomLevel > 0.5) {
+                            zoomLevel -= 0.25;
+                            img.style.transform = `scale(${zoomLevel})`;
+                            zoomLevelDisplay.textContent = `${Math.round(zoomLevel * 100)}%`;
+                        }
+                        break;
                 }
             });
             
-            // Close when clicking on the background
-            lightbox.addEventListener('click', function() {
-                closeLightbox();
+            // Close when clicking on the background (but not on controls)
+            lightbox.addEventListener('click', function(e) {
+                if (e.target === lightbox) {
+                    closeLightbox();
+                }
             });
             
             // Add lightbox to page
             document.body.appendChild(lightbox);
             
             // Focus for keyboard navigation
-
             lightbox.focus();
             
             // Scroll the active thumbnail into view
