@@ -1195,6 +1195,67 @@
                 });
         }
 
+        // Load photographer details
+        function loadPhotographerDetails(photographerId) {
+            if (!photographerId) {
+                console.log("No photographer ID provided");
+                return;
+            }
+            
+            const db = firebase.firestore();
+            
+            // Try to find the photographer in the collection
+            db.collection('photographer')
+                .where('uid', '==', photographerId)
+                .limit(1)
+                .get()
+                .then(snapshot => {
+                    if (snapshot.empty) {
+                        console.log("No photographer found with ID:", photographerId);
+                        return;
+                    }
+                    
+                    const photographerData = snapshot.docs[0].data();
+                    console.log("Photographer details:", photographerData);
+                    
+                    // Update studio information
+                    const studioNameElement = document.getElementById('studioName');
+                    if (studioNameElement) {
+                        studioNameElement.textContent = photographerData.studioName || photographerData.ownerName || 'Photography Studio';
+                    }
+                    
+                    // Update contact information
+                    const studioContactElement = document.getElementById('studioContact');
+                    if (studioContactElement) {
+                        let contactText = "";
+                        
+                        if (photographerData.ownerName) {
+                            contactText += `${photographerData.ownerName}`;
+                        }
+                        
+                        if (photographerData.ownerEmail) {
+                            contactText += ` | Email: ${photographerData.ownerEmail}`;
+                        }
+                        
+                        if (photographerData.ownerNumber) {
+                            contactText += ` | Phone: ${photographerData.ownerNumber}`;
+                        }
+                        
+                        if (photographerData.studioAddress) {
+                            contactText += ` | Address: ${photographerData.studioAddress}`;
+                            
+                            if (photographerData.studioPincode) {
+                                contactText += `, ${photographerData.studioPincode}`;
+                            }
+                        }
+                        
+                        studioContactElement.textContent = contactText || 'No contact information available';
+                    }
+                })
+                .catch(error => {
+                    console.error("Error loading photographer details:", error);
+                });
+        }
         function updatePasswordScreenTitle(galleryId) {
             try {
                 const db = firebase.firestore();
