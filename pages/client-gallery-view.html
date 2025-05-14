@@ -947,7 +947,8 @@
             }
         }
         
-        function updateRatingCounts() {
+       
+         function updateRatingCounts() {
             // Reset counts
             ratingCounts = {
                 heart: 0,
@@ -958,7 +959,9 @@
             
             // Count each rating type
             Object.values(photoRatings).forEach(rating => {
-                if (rating) ratingCounts[rating]++;
+                if (rating && ratingCounts[rating] !== undefined) {
+                    ratingCounts[rating]++;
+                }
             });
             
             // Update display
@@ -971,9 +974,9 @@
             const totalRatings = Object.values(ratingCounts).reduce((a, b) => a + b, 0);
             document.getElementById('ratingSummary').style.display = totalRatings > 0 ? 'flex' : 'none';
         }
-        
+     
         function setPhotoRating(photoId, rating) {
-            // If same rating is clicked again, we'll unselect it
+    // If same rating is clicked again, we'll unselect it
             if (photoRatings[photoId] === rating) {
                 delete photoRatings[photoId]; // Remove rating
                 showToast(`Rating removed`, 'info');
@@ -991,6 +994,18 @@
             
             // Update counts
             updateRatingCounts();
+            
+            // Update UI in open lightbox if it exists
+            const lightbox = document.getElementById('photoLightbox');
+            if (lightbox) {
+                const ratingButtons = lightbox.querySelectorAll('.rating-btn');
+                ratingButtons.forEach(btn => {
+                    btn.classList.remove('selected');
+                    if (photoRatings[photoId] === btn.getAttribute('data-rating')) {
+                        btn.classList.add('selected');
+                    }
+                });
+            }
         }
         
         function getRatingLabel(rating) {
@@ -1103,8 +1118,17 @@
                 // Update current year in footer
                 document.getElementById('currentYear').textContent = new Date().getFullYear();
                 
-                // Load saved ratings
+             
+
+                                // Load saved ratings
                 loadSavedRatings();
+                
+                // Make sure ratingSummary is initially hidden if no ratings
+                const ratingSummary = document.getElementById('ratingSummary');
+                if (ratingSummary) {
+                    const totalRatings = Object.values(ratingCounts).reduce((a, b) => a + b, 0);
+                    ratingSummary.style.display = totalRatings > 0 ? 'flex' : 'none';
+                }
                 
                 // Setup welcome dashboard event listeners
                 setupWelcomeDashboard();
