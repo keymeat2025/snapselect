@@ -95,7 +95,48 @@
 
     <main>
         <!-- Your existing HTML elements remain the same -->
+    
+        <!-- Loading indicator -->
+        <div id="loadingIndicator" class="loading-indicator">
+            <div class="spinner"></div>
+            <p>Loading gallery...</p>
+        </div>
+        
+        <!-- Error page -->
+        <div id="errorPage" class="error-page">
+            <div class="error-icon">
+                <i class="fas fa-exclamation-circle"></i>
+            </div>
+            <h2>Something went wrong</h2>
+            <p id="errorMessage">We couldn't load the gallery. Please try again later.</p>
+            <button id="retryBtn" class="btn retry-btn">Try Again</button>
+        </div>
+        
+        <!-- Password protection screen (initially hidden) -->
+        <div id="passwordScreen" class="password-container" style="display: none;">
+            <h2 id="passwordGalleryTitle">Protected Gallery</h2>
+            <p>This gallery is password protected. Please enter the password to view it.</p>
+            <div id="passwordError" class="error-message">Incorrect password. Please try again.</div>
+            <input type="password" id="galleryPassword" class="password-input" placeholder="Enter password" aria-label="Gallery password">
+            <button id="submitPasswordBtn" class="btn">View Gallery</button>
+        </div>
+        
+        <!-- Gallery container (initially hidden) -->
+        <div id="galleryContainer" class="gallery-container" style="display: none;">
+            <div id="studioInfo" class="studio-info">
+                <h2 id="studioName">Photography Studio</h2>
+                <p id="galleryTitle">Shared Gallery</p>
+                <div class="contact">
+                    <p id="studioContact">Contact information will appear here if available</p>
+                </div>
+            </div>
+            
+            <div id="photosGrid" class="photos-grid">
+                <!-- Photos will be loaded here -->
+            </div>
+        </div>
     </main>
+    
 
     <footer>
         <div class="container">
@@ -1065,7 +1106,76 @@
                     showPageError("Error loading gallery: " + error.message);
                 });
         }
+
+        function loadGalleryContent(galleryId, photographerId) {
+            console.log("Loading gallery content for ID:", galleryId);
+            
+            // Hide password screen if visible
+            document.getElementById('passwordScreen').style.display = 'none';
+            
+            // Show gallery container
+            document.getElementById('galleryContainer').style.display = 'block';
+            
+            // Get reference to Firestore
+            const db = firebase.firestore();
+            
+            // Get gallery details with additional security check
+            db.collection('galleries').doc(galleryId)
+                .get()
+                .then(doc => {
+                    if (!doc.exists) {
+                        showPageError("Gallery not found.");
+                        return;
+                    }
+                    
+                    const gallery = doc.data();
+                    console.log("Gallery details:", gallery);
+                    
+                    // Security check: Verify the gallery belongs to the correct photographer
+                    if (photographerId && gallery.photographerId !== photographerId) {
+                        showPageError("Gallery access error: Photographer mismatch.");
+                        return;
+                    }
+                    
+                    // Set gallery title
+                    document.getElementById('galleryTitle').textContent = gallery.name || 'Shared Gallery';
+                    
+                    // Get photographer details
+                    loadPhotographerDetails(gallery.photographerId);
+                    
+                    // Load photos with added security
+                    loadGalleryPhotos(galleryId, db);
+                })
+                .catch(error => {
+                    console.error("Error loading gallery details:", error);
+                    showPageError("Error loading gallery details: " + error.message);
+                });
+        }
+
+        function updatePasswordScreenTitle(galleryId) {
+            try {
+                const db = firebase.firestore();
+                
+                db.collection('galleries').doc(galleryId)
+                    .get()
+                    .then(doc => {
+                        if (doc.exists) {
+                            const gallery = doc.data();
+                            const titleElement = document.getElementById('passwordGalleryTitle');
+                            if (titleElement && gallery.name) {
+                                titleElement.textContent = gallery.name;
+                            }
+                        }
+                    })
+                    .catch(error => {
+                        console.error("Error fetching gallery for password screen:", error);
+                    });
+            } catch (error) {
+                console.error("Error updating password screen title:", error);
+            }
+        }
 // Load gallery photos
+        
         function loadGalleryPhotos(galleryId, db) {
             // Show loading toast
             showToast("Loading photos...", 'info');
