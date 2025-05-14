@@ -720,6 +720,27 @@
             gap: 15px;
             z-index: 999;
         }
+        .rating-status {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            background-color: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 10px 15px;
+            border-radius: 5px;
+            z-index: 1002;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            transition: all 0.3s ease;
+        }
+        
+        .lightbox-rating-counter {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
     </style>
 </head>
 <body>
@@ -992,13 +1013,38 @@
 
      
         function setPhotoRating(photoId, rating) {
+           
+            // Track the old rating for counter adjustment
+            const oldRating = photoRatings[photoId];
+            
             // If same rating is clicked again, we'll unselect it
             if (photoRatings[photoId] === rating) {
                 delete photoRatings[photoId]; // Remove rating locally
                 showToast(`Rating removed`, 'info');
+                
+                // Decrement counter in lightbox if visible
+                const counterElement = document.getElementById(`lightbox-${rating}-count`);
+                if (counterElement) {
+                    const currentCount = parseInt(counterElement.textContent);
+                    counterElement.textContent = currentCount - 1;
+                }
             } else {
+                // If changing from one rating to another, update both counters
+                if (oldRating && document.getElementById(`lightbox-${oldRating}-count`)) {
+                    const oldCounterElement = document.getElementById(`lightbox-${oldRating}-count`);
+                    const oldCount = parseInt(oldCounterElement.textContent);
+                    oldCounterElement.textContent = oldCount - 1;
+                }
+                
                 photoRatings[photoId] = rating;
                 showToast(`Photo marked as ${getRatingLabel(rating)}`, 'success');
+                
+                // Increment counter in lightbox if visible
+                const counterElement = document.getElementById(`lightbox-${rating}-count`);
+                if (counterElement) {
+                    const currentCount = parseInt(counterElement.textContent);
+                    counterElement.textContent = currentCount + 1;
+                }
             }
             
             // Save to localStorage immediately
@@ -1023,25 +1069,27 @@
                 });
             }
             
-            // Schedule a delayed sync (debounced)
-            scheduleSyncToFirebase();
+            // Set the flag for pending changes but DON'T schedule sync
+            // (we'll sync only when the lightbox is closed)
+            pendingSync = true;
         }
         
         // Create a function to schedule a delayed sync
+        
+           // Modified scheduleSyncToFirebase to just set the flag without scheduling
         function scheduleSyncToFirebase() {
-            // Clear any existing timeout
-            if (syncTimeout) {
-                clearTimeout(syncTimeout);
-            }
-            
-            // Set a flag that changes are pending
+            // Set the flag that changes are pending
             pendingSync = true;
             
-            // Schedule a new sync with a 3-second delay
-            syncTimeout = setTimeout(() => {
-                syncRatingsToFirebase();
-            }, 3000); // 3 second delay
+            // Clear any existing timeout - we won't be scheduling a new one
+            if (syncTimeout) {
+                clearTimeout(syncTimeout);
+                syncTimeout = null;
+            }
+            
+            // We no longer schedule the timeout since we're only syncing on lightbox close
         }
+        
         
         // Function to batch save ratings to Firebase
         function syncRatingsToFirebase() {
@@ -2077,7 +2125,25 @@
         
         // Close the lightbox
         function closeLightbox() {
+    
+            // Stop any running slideshow
             stopSlideshow();
+            
+            // Force immediate synchronization of any pending ratings
+            if (pendingSync) {
+                // Clear any pending timeout
+                if (syncTimeout) {
+                    clearTimeout(syncTimeout);
+                    syncTimeout = null;
+                }
+                
+                // Show a syncing toast
+                showToast("Syncing your ratings...", 'info');
+                
+                // Immediately sync ratings
+                syncRatingsToFirebase();
+            }
+            
             const lightbox = document.getElementById('photoLightbox');
             if (lightbox) {
                 lightbox.classList.add('fadeOut');
@@ -2116,6 +2182,9 @@
         }
 
                 // Open lightbox with enhanced features
+    
+        
+        // Modified version of openLightbox to add rating indicator at top
         function openLightbox(photo) {
             // Stop any running slideshow
             stopSlideshow();
@@ -2134,11 +2203,82 @@
             lightbox.id = 'photoLightbox';
             lightbox.tabIndex = 0; // Make it focusable
             
-            // Add a toolbar for controls
+            // Add rating status indicator to the top-left corner
+            const ratingStatus = document.createElement('div');
+            ratingStatus.className = 'rating-status';
+            ratingStatus.id = 'lightboxRatingStatus';
+            ratingStatus.style.position = 'fixed';
+            ratingStatus.style.top = '20px';
+            ratingStatus.style.left = '20px';
+            ratingStatus.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
+            ratingStatus.style.color = 'white';
+            ratingStatus.style.padding = '10px 15px';
+            ratingStatus.style.borderRadius = '5px';
+            ratingStatus.style.zIndex = '1002';
+            ratingStatus.style.fontSize = '14px';
+            ratingStatus.style.display = 'flex';
+            ratingStatus.style.alignItems = 'center';
+            ratingStatus.style.gap = '10px';
+            
+            // Create counters for each rating type
+            const ratingTypes = [
+                { name: 'heart', emoji: '❤️', label: 'Must Have' },
+                { name: 'thumbsUp', emoji: '👍', label: 'Would Like to Have' },
+                { name: 'thinking', emoji: '🤔', label: 'Alternative Option' },
+                { name: 'thumbsDown', emoji: '👎', label: 'Not Interested' }
+            ];
+            
+            // Add title to the rating status
+            const statusTitle = document.createElement('span');
+            statusTitle.textContent = 'Your Ratings:';
+            statusTitle.style.fontWeight = 'bold';
+            statusTitle.style.marginRight = '5px';
+            ratingStatus.appendChild(statusTitle);
+            
+            // Count existing ratings
+            const sessionRatings = {
+                heart: 0,
+                thumbsUp: 0,
+                thinking: 0,
+                thumbsDown: 0
+            };
+            
+            // Count existing ratings
+            for (const photoId in photoRatings) {
+                const rating = photoRatings[photoId];
+                if (sessionRatings[rating] !== undefined) {
+                    sessionRatings[rating]++;
+                }
+            }
+            
+            // Create and add counters
+            ratingTypes.forEach(type => {
+                const counter = document.createElement('div');
+                counter.className = 'lightbox-rating-counter';
+                counter.style.display = 'flex';
+                counter.style.alignItems = 'center';
+                counter.style.gap = '5px';
+                
+                const emoji = document.createElement('span');
+                emoji.textContent = type.emoji;
+                
+                const count = document.createElement('span');
+                count.id = `lightbox-${type.name}-count`;
+                count.textContent = sessionRatings[type.name];
+                
+                counter.appendChild(emoji);
+                counter.appendChild(count);
+                ratingStatus.appendChild(counter);
+            });
+            
+            // Add to lightbox
+            lightbox.appendChild(ratingStatus);
+            
+            // Add a toolbar for controls (EXISTING CODE)
             const toolbar = document.createElement('div');
             toolbar.className = 'lightbox-toolbar';
             
-            // Slideshow button
+            // Slideshow button (EXISTING CODE)
             const slideshowButton = document.createElement('button');
             slideshowButton.className = 'modal-button';
             slideshowButton.innerHTML = '<i class="fas fa-play"></i>';
@@ -2149,7 +2289,7 @@
             });
             toolbar.appendChild(slideshowButton);
         
-            // Download button
+            // Download button (EXISTING CODE)
             const downloadButton = document.createElement('button');
             downloadButton.className = 'modal-button';
             downloadButton.innerHTML = '<i class="fas fa-download"></i>';
@@ -2168,7 +2308,7 @@
             });
             toolbar.appendChild(downloadButton);
             
-            // Close button
+            // Close button (EXISTING CODE)
             const closeButton = document.createElement('button');
             closeButton.className = 'modal-button';
             closeButton.innerHTML = '<i class="fas fa-times"></i>';
@@ -2181,14 +2321,14 @@
             
             lightbox.appendChild(toolbar);
             
-            // Create image container
+            // Create image container (EXISTING CODE)
             const imageContainer = document.createElement('div');
             imageContainer.className = 'lightbox-image-container';
             
-            // Current zoom level
+            // Current zoom level (EXISTING CODE)
             let zoomLevel = 1;
             
-            // Create zoom controls
+            // Create zoom controls (EXISTING CODE)
             const zoomControls = document.createElement('div');
             zoomControls.className = 'zoom-controls';
             
@@ -2209,7 +2349,7 @@
             zoomLevelDisplay.className = 'zoom-level-text';
             zoomLevelDisplay.textContent = '100%';
             
-            // Add zoom handlers
+            // Add zoom handlers (EXISTING CODE)
             zoomInBtn.addEventListener('click', function(e) {
                 e.stopPropagation();
                 if (zoomLevel < 3) { // Max zoom 3x
@@ -2234,7 +2374,7 @@
             zoomControls.appendChild(zoomOutBtn);
             zoomControls.appendChild(zoomLevelDisplay);
             
-            // Create the main image with protection
+            // Create the main image with protection (EXISTING CODE)
             const img = document.createElement('img');
             img.className = 'lightbox-image fadeIn';
             img.src = photo.url;
@@ -2243,18 +2383,18 @@
             img.draggable = false;
             img.crossOrigin = "anonymous";
             
-            // Add watermark overlay
+            // Add watermark overlay (EXISTING CODE)
             const watermarkOverlay = document.createElement('div');
             watermarkOverlay.className = 'image-watermark';
             imageContainer.appendChild(watermarkOverlay);
             
-            // Add watermark text
+            // Add watermark text (EXISTING CODE)
             const watermarkText = document.createElement('div');
             watermarkText.className = 'watermark-text';
             watermarkText.textContent = 'SnapSelect © 2025';
             imageContainer.appendChild(watermarkText);
             
-            // Add protection layer
+            // Add protection layer (EXISTING CODE)
             const protectionLayer = document.createElement('div');
             protectionLayer.className = 'protection-layer';
             protectionLayer.addEventListener('click', function(e) {
@@ -2262,7 +2402,7 @@
             });
             imageContainer.appendChild(protectionLayer);
             
-            // Add navigation buttons
+            // Add navigation buttons (EXISTING CODE)
             if (currentIndex > 0) {
                 const prevButton = document.createElement('button');
                 prevButton.className = 'modal-nav-button modal-prev';
@@ -2287,7 +2427,7 @@
                 imageContainer.appendChild(nextButton);
             }
             
-            // Add caption if available
+            // Add caption if available (EXISTING CODE)
             if (photo.name) {
                 const caption = document.createElement('div');
                 caption.className = 'photo-caption';
@@ -2307,11 +2447,11 @@
                 imageContainer.appendChild(caption);
             }
             
-            // Add rating container
+            // Add rating container (EXISTING CODE)
             const ratingContainer = document.createElement('div');
             ratingContainer.className = 'rating-container';
             
-            // Create rating buttons
+            // Create rating buttons (EXISTING CODE)
             const heartBtn = createRatingButton('❤️', 'Must have', 'heart', photoId);
             const thumbsUpBtn = createRatingButton('👍', 'Would Like to Have', 'thumbsUp', photoId);
             const thinkingBtn = createRatingButton('🤔', 'Alternative Option', 'thinking', photoId);
@@ -2327,11 +2467,11 @@
             imageContainer.appendChild(zoomControls);
             lightbox.appendChild(imageContainer);
             
-            // Add thumbnails container
+            // Add thumbnails container (EXISTING CODE)
             const thumbnailsContainer = document.createElement('div');
             thumbnailsContainer.className = 'thumbnails-container';
             
-            // Add thumbnails for all photos
+            // Add thumbnails for all photos (EXISTING CODE)
             allGalleryPhotos.forEach((p, index) => {
                 const thumb = document.createElement('img');
                 thumb.className = 'thumbnail';
@@ -2349,7 +2489,7 @@
             
             lightbox.appendChild(thumbnailsContainer);
             
-            // Add touch swipe functionality for mobile
+            // Add touch swipe functionality for mobile (EXISTING CODE)
             let touchStartX = 0;
             let touchEndX = 0;
             
@@ -2362,7 +2502,9 @@
                 handleSwipe();
             });
             
+            
             function handleSwipe() {
+           
                 const swipeThreshold = 50;
                 if (touchEndX < touchStartX - swipeThreshold && currentIndex < allGalleryPhotos.length - 1) {
                     // Swipe left - next photo
@@ -2373,7 +2515,7 @@
                 }
             }
             
-            // Handle keyboard navigation
+            // Handle keyboard navigation (EXISTING CODE)
             lightbox.addEventListener('keydown', function(e) {
                 switch (e.key) {
                     case 'Escape':
@@ -2411,25 +2553,26 @@
                 }
             });
             
-            // Close when clicking on the background (but not on controls)
+            // Close when clicking on the background (but not on controls) (EXISTING CODE)
             lightbox.addEventListener('click', function(e) {
                 if (e.target === lightbox) {
                     closeLightbox();
                 }
             });
             
-            // Add lightbox to page
+            // Add lightbox to page (EXISTING CODE)
             document.body.appendChild(lightbox);
             
-            // Focus for keyboard navigation
+            // Focus for keyboard navigation (EXISTING CODE)
             lightbox.focus();
             
-            // Scroll the active thumbnail into view
+            // Scroll the active thumbnail into view (EXISTING CODE)
             const activeThumb = thumbnailsContainer.querySelector('.thumbnail.active');
             if (activeThumb) {
                 activeThumb.scrollIntoView({ behavior: 'smooth', inline: 'center' });
             }
         }
+        
         // The rest of your original functions go here without changes
         // These functions don't interact with the rating system:
         // - createPhotoElement 
