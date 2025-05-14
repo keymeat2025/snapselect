@@ -1107,6 +1107,49 @@
                 });
         }
 
+                // Setup password handling
+        function setupPasswordHandling(sharedGallery, shareId) {
+            // Function to handle password submission
+            const handlePasswordSubmit = function() {
+                const password = document.getElementById('galleryPassword').value;
+                const passwordError = document.getElementById('passwordError');
+                
+                // Hide previous errors
+                passwordError.style.display = 'none';
+                
+                if (!password) {
+                    passwordError.textContent = 'Please enter a password.';
+                    passwordError.style.display = 'block';
+                    return;
+                }
+                
+                if (password === sharedGallery.password) {
+                    // Password correct, store access token in session storage
+                    sessionStorage.setItem(`gallery_access_${shareId}`, 'granted');
+                    
+                    // Load the gallery
+                    loadGalleryContent(sharedGallery.galleryId, sharedGallery.photographerId);
+                } else {
+                    // Show error
+                    passwordError.textContent = 'Incorrect password. Please try again.';
+                    passwordError.style.display = 'block';
+                    
+                    // Clear the password field
+                    document.getElementById('galleryPassword').value = '';
+                    document.getElementById('galleryPassword').focus();
+                }
+            };
+            
+            // Set up button click handler
+            document.getElementById('submitPasswordBtn').addEventListener('click', handlePasswordSubmit);
+            
+            // Set up enter key handler for password input
+            document.getElementById('galleryPassword').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    handlePasswordSubmit();
+                }
+            });
+        }
         function loadGalleryContent(galleryId, photographerId) {
             console.log("Loading gallery content for ID:", galleryId);
             
