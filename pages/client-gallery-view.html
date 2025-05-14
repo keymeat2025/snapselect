@@ -741,6 +741,21 @@
             align-items: center;
             gap: 5px;
         }
+        .photo-rating-indicator {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background-color: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 5px;
+            z-index: 1002;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+        }
     </style>
 </head>
 <body>
@@ -1012,8 +1027,10 @@
         }
 
      
-        function setPhotoRating(photoId, rating) {
+     
            
+           // Modified setPhotoRating function to update lightbox counters and rating indicator
+        function setPhotoRating(photoId, rating) {
             // Track the old rating for counter adjustment
             const oldRating = photoRatings[photoId];
             
@@ -1021,6 +1038,15 @@
             if (photoRatings[photoId] === rating) {
                 delete photoRatings[photoId]; // Remove rating locally
                 showToast(`Rating removed`, 'info');
+                
+                // NEW: Remove the rating indicator
+                const lightbox = document.getElementById('photoLightbox');
+                if (lightbox) {
+                    const indicator = lightbox.querySelector('.photo-rating-indicator');
+                    if (indicator) {
+                        indicator.remove();
+                    }
+                }
                 
                 // Decrement counter in lightbox if visible
                 const counterElement = document.getElementById(`lightbox-${rating}-count`);
@@ -1044,6 +1070,12 @@
                 if (counterElement) {
                     const currentCount = parseInt(counterElement.textContent);
                     counterElement.textContent = currentCount + 1;
+                }
+                
+                // NEW: Update the rating indicator
+                const lightbox = document.getElementById('photoLightbox');
+                if (lightbox) {
+                    updatePhotoRatingIndicator(photoId, lightbox);
                 }
             }
             
@@ -2030,8 +2062,74 @@
                 slideshowInterval = null;
             }
         }
+                // New function to update rating indicator
+        function updatePhotoRatingIndicator(photoId, lightbox) {
+            // Remove existing indicator if present
+            const existingIndicator = lightbox.querySelector('.photo-rating-indicator');
+            if (existingIndicator) {
+                existingIndicator.remove();
+            }
+            
+            // Create new indicator if this photo has a rating
+            if (photoRatings[photoId]) {
+                const currentRating = photoRatings[photoId];
+                
+                // Create the indicator element
+                const indicator = document.createElement('div');
+                indicator.className = 'photo-rating-indicator';
+                
+                // Position it in the top-right corner of the image container
+                indicator.style.position = 'absolute';
+                indicator.style.top = '20px';
+                indicator.style.right = '20px';
+                indicator.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
+                indicator.style.color = 'white';
+                indicator.style.padding = '8px 12px';
+                indicator.style.borderRadius = '5px';
+                indicator.style.zIndex = '1002';
+                indicator.style.fontSize = '14px';
+                indicator.style.display = 'flex';
+                indicator.style.alignItems = 'center';
+                indicator.style.gap = '5px';
+                indicator.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.3)';
+                
+                // Add a checkmark
+                const checkmark = document.createElement('span');
+                checkmark.innerHTML = '✓';
+                checkmark.style.color = '#4CAF50';
+                checkmark.style.fontWeight = 'bold';
+                
+                // Add the emoji for the rating
+                const emoji = document.createElement('span');
+                emoji.textContent = getRatingEmoji(currentRating);
+                
+                // Add the label
+                const label = document.createElement('span');
+                label.textContent = getRatingLabel(currentRating);
+                
+                // Add elements to indicator
+                indicator.appendChild(checkmark);
+                indicator.appendChild(emoji);
+                indicator.appendChild(label);
+                
+                // Add to lightbox
+                const imageContainer = lightbox.querySelector('.lightbox-image-container');
+                imageContainer.appendChild(indicator);
+            }
+        }
+
+        // New helper function for ratings
+        function getRatingEmoji(rating) {
+            switch(rating) {
+                case 'heart': return '❤️';
+                case 'thumbsUp': return '👍';
+                case 'thinking': return '🤔';
+                case 'thumbsDown': return '👎';
+                default: return '';
+            }
+        }
         
-        // Navigate to a specific photo in the lightbox
+    // Modified version of navigateToPhoto to show rating indicator
         function navigateToPhoto(index, lightbox, imageContainer) {
             if (index < 0 || index >= allGalleryPhotos.length) return;
             
@@ -2050,6 +2148,9 @@
                 currentImg.src = newPhoto.url;
                 currentImg.dataset.index = index;
                 currentImg.alt = newPhoto.name || 'Gallery photo';
+                
+                // The photo ID for ratings
+                const photoId = newPhoto.id || newPhoto.url;
                 
                 // Update caption if exists
                 const caption = imageContainer.querySelector('.photo-caption');
@@ -2108,7 +2209,6 @@
                 }
                 
                 // Update rating buttons
-                const photoId = newPhoto.id || newPhoto.url;
                 const ratingButtons = lightbox.querySelectorAll('.rating-btn');
                 ratingButtons.forEach(btn => {
                     btn.classList.remove('selected');
@@ -2116,6 +2216,9 @@
                         btn.classList.add('selected');
                     }
                 });
+                
+                // NEW: Update the rating indicator above the image
+                updatePhotoRatingIndicator(photoId, lightbox);
                 
                 // Fade in the new image
                 currentImg.classList.remove('fadeOut');
