@@ -2307,36 +2307,63 @@
             }
         }
 // Load gallery photos
-        
+
         function loadGalleryPhotos(galleryId, db) {
             // Show loading toast
             showToast("Loading photos...", 'info');
             
+            // Create a photo counter element
+            const counterElement = document.createElement('div');
+            counterElement.id = 'photo-counter';
+            counterElement.className = 'photo-count-display';
+            counterElement.style.backgroundColor = 'white';
+            counterElement.style.padding = '10px 15px';
+            counterElement.style.marginBottom = '20px';
+            counterElement.style.borderRadius = '8px';
+            counterElement.style.boxShadow = '0 2px 8px rgba(0,0,0,0.1)';
+            counterElement.style.textAlign = 'center';
+            counterElement.innerHTML = '<strong>Loading photos...</strong>';
+            
+            const photosGrid = document.getElementById('photosGrid');
+            photosGrid.innerHTML = '';
+            
+            // Add the counter at the top of the gallery (before the photos grid)
+            photosGrid.parentNode.insertBefore(counterElement, photosGrid);
+            
+            // Remove the .limit(50) to fetch ALL photos
             db.collection('photos')
                 .where('galleryId', '==', galleryId)
                 .where('status', '==', 'active')
-                .limit(50) // Increased limit for better gallery experience
+                // No limit here - will fetch all photos in the gallery
                 .get()
                 .then(snapshot => {
-                    const photosGrid = document.getElementById('photosGrid');
-                    photosGrid.innerHTML = '';
-                    
                     if (snapshot.empty) {
-                        photosGrid.innerHTML = '<p>No photos in this gallery yet.</p>';
+                        counterElement.innerHTML = '<p>No photos in this gallery yet.</p>';
                         return;
                     }
                     
                     // Store all photos in the global array
                     allGalleryPhotos = snapshot.docs.map(doc => doc.data());
+                    const totalCount = allGalleryPhotos.length;
                     
-                    // Create elements for each photo
-                    allGalleryPhotos.forEach(photo => {
-                        const photoElement = createPhotoElement(photo);
-                        photosGrid.appendChild(photoElement);
-                    });
+                    // Update the counter with total photo count
+                    counterElement.innerHTML = `<strong>Total Photos: ${totalCount}</strong>`;
                     
-                    // Show success toast
-                    showToast("Gallery loaded successfully", 'success');
+                    // If there are many photos, use batched rendering for better performance
+                    if (totalCount > 100) {
+                        // Show first batch immediately, then render the rest
+                        showToast(`Loading ${totalCount} photos in batches...`, 'info');
+                        renderPhotosBatch(allGalleryPhotos, photosGrid, 0, 50);
+                    } else {
+                        // For smaller galleries, render all at once
+                        allGalleryPhotos.forEach(photo => {
+                            const photoElement = createPhotoElement(photo);
+                            photosGrid.appendChild(photoElement);
+                        });
+                        
+                        // Show success toast
+                        showToast(`Gallery loaded with ${totalCount} photos`, 'success');
+                    }
                     
                     // Initialize rating sync and load total ratings
                     initRatingSync();
@@ -2349,6 +2376,79 @@
                     showError("Error loading photos: " + error.message);
                 });
         }
+
+        // FUNCTION 2: Add this new function for batch rendering (for large galleries)
+        function renderPhotosBatch(photos, container, startIndex, batchSize) {
+            // Create a fragment for better performance
+            const fragment = document.createDocumentFragment();
+            
+            // Calculate end index (not exceeding array length)
+            const endIndex = Math.min(startIndex + batchSize, photos.length);
+            
+            // Create elements for this batch
+            for (let i = startIndex; i < endIndex; i++) {
+                const photoElement = createPhotoElement(photos[i]);
+                fragment.appendChild(photoElement);
+            }
+            
+            // Add all elements at once
+            container.appendChild(fragment);
+            
+            // If there are more photos to render, schedule the next batch
+            if (endIndex < photos.length) {
+                // Use setTimeout to avoid freezing the browser
+                setTimeout(() => {
+                    // Show progress
+                    showToast(`Loading photos: ${endIndex} of ${photos.length}`, 'info');
+                    // Process next batch
+                    renderPhotosBatch(photos, container, endIndex, batchSize);
+                }, 50); // Small delay to keep UI responsive
+            } else {
+                // All photos loaded
+                showToast(`All ${photos.length} photos loaded successfully`, 'success');
+            }
+        }
+        
+        // FUNCTION 3: Optional enhancement for showToast to better handle progress messages
+        function showToast(message, type = 'info', isProgress = false) {
+            const toastContainer = document.getElementById('toastContainer');
+            
+            // For progress messages, update existing one if present
+            if (isProgress) {
+                const existingProgress = document.querySelector('.toast-progress');
+                if (existingProgress) {
+                    existingProgress.textContent = message;
+                    return;
+                }
+            }
+            
+            const toast = document.createElement('div');
+            toast.className = `toast toast-${type}`;
+            if (isProgress) {
+                toast.className += ' toast-progress';
+            }
+            toast.textContent = message;
+            
+            // Add aria-live for accessibility
+            toast.setAttribute('aria-live', type === 'error' ? 'assertive' : 'polite');
+            
+            toastContainer.appendChild(toast);
+            
+            // Remove non-progress toasts after 4 seconds
+            if (!isProgress) {
+                setTimeout(() => {
+                    toast.classList.add('fadeOut');
+                    setTimeout(() => {
+                        if (toast.parentNode) {
+                            toast.remove();
+                        }
+                    }, 300);
+                }, 4000);
+            }
+        }
+
+        
+            
         // Function to stop slideshow
         function stopSlideshow() {
             if (slideshowInterval) {
