@@ -911,6 +911,53 @@
                 max-width: 40px;
             }
         }
+        /* Add these styles to your existing CSS */
+        .thumbnail-rating-overlay {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background-color: rgba(0, 0, 0, 0.7);
+            padding: 8px;
+            display: none;
+            z-index: 5;
+            transition: opacity 0.2s ease;
+        }
+        
+        .photo-container:hover .thumbnail-rating-overlay {
+            display: block;
+        }
+        
+        .thumbnail-rating-buttons {
+            display: flex;
+            justify-content: space-around;
+        }
+        
+        .thumbnail-rating-btn {
+            background: none;
+            border: none;
+            font-size: 18px;
+            padding: 5px;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+            color: white;
+            opacity: 0.8;
+        }
+        
+        .thumbnail-rating-btn:hover {
+            transform: scale(1.2);
+            opacity: 1;
+        }
+        
+        .thumbnail-rating-btn.selected {
+            opacity: 1;
+            transform: scale(1.2);
+            text-shadow: 0 0 5px rgba(255, 255, 255, 0.5);
+        }
+        
+        .photo-rated {
+            box-shadow: 0 0 0 3px #3498db;
+        }
     </style>
 </head>
 <body>
@@ -1186,7 +1233,8 @@
            
            // Modified setPhotoRating function to update lightbox counters and rating indicator
         function setPhotoRating(photoId, rating) {
-            // Track the old rating for counter adjustment
+        function setPhotoRating(photoId, rating) {
+    // Track the old rating for counter adjustment
             const oldRating = photoRatings[photoId];
             
             // If same rating is clicked again, we'll unselect it
@@ -1208,6 +1256,16 @@
                 if (counterElement) {
                     const currentCount = parseInt(counterElement.textContent);
                     counterElement.textContent = currentCount - 1;
+                }
+                
+                // NEW: Update the thumbnail element to remove rating indicator
+                const photoElement = document.querySelector(`.photo-item[data-photo-id="${photoId}"]`);
+                if (photoElement) {
+                    photoElement.classList.remove('photo-rated');
+                    const indicator = photoElement.querySelector('.thumbnail-rating-indicator');
+                    if (indicator) {
+                        indicator.remove();
+                    }
                 }
             } else {
                 // If changing from one rating to another, update both counters
@@ -1232,6 +1290,24 @@
                 if (lightbox) {
                     updatePhotoRatingIndicator(photoId, lightbox);
                 }
+                
+                // NEW: Update the thumbnail to show it's rated
+                const photoElement = document.querySelector(`.photo-item[data-photo-id="${photoId}"]`);
+                if (photoElement) {
+                    photoElement.classList.add('photo-rated');
+                    
+                    // Update or create the rating indicator
+                    let indicator = photoElement.querySelector('.thumbnail-rating-indicator');
+                    if (!indicator) {
+                        indicator = document.createElement('div');
+                        indicator.className = 'thumbnail-rating-indicator';
+                        photoElement.querySelector('.photo-container').appendChild(indicator);
+                    }
+                    
+                    // Update indicator content
+                    indicator.innerHTML = `✓ ${getRatingEmoji(rating)}`;
+                    indicator.title = getRatingLabel(rating);
+                }
             }
             
             // Save to localStorage immediately
@@ -1255,8 +1331,19 @@
                     }
                 });
             }
-            // NEW: Refresh the photo grid to update rating indicators
-            refreshPhotoGrid();
+            
+            // NEW: Update the thumbnail rating buttons if they exist
+            const photoElement = document.querySelector(`.photo-item[data-photo-id="${photoId}"]`);
+            if (photoElement) {
+                const thumbnailRatingButtons = photoElement.querySelectorAll('.thumbnail-rating-btn');
+                thumbnailRatingButtons.forEach(btn => {
+                    btn.classList.remove('selected');
+                    if (photoRatings[photoId] === btn.getAttribute('data-rating')) {
+                        btn.classList.add('selected');
+                    }
+                });
+            }
+            
             // Set the flag for pending changes but DON'T schedule sync
             // (we'll sync only when the lightbox is closed)
             pendingSync = true;
@@ -3085,8 +3172,13 @@
         // Create a photo element
 
         function createPhotoElement(photo) {
+      
             const photoItem = document.createElement('div');
             photoItem.className = 'photo-item';
+            
+            // Store photo ID as data attribute for easier reference
+            const photoId = photo.id || photo.url;
+            photoItem.setAttribute('data-photo-id', photoId);
             
             const photoContainer = document.createElement('div');
             photoContainer.className = 'photo-container';
@@ -3094,9 +3186,6 @@
             photoContainer.setAttribute('tabindex', '0'); // Make focusable for keyboard navigation
             photoContainer.setAttribute('role', 'img');
             photoContainer.setAttribute('aria-label', photo.name || 'Photo');
-            
-            // Get the photo ID for checking rating status
-            const photoId = photo.id || photo.url;
             
             // Add rating indicator if this photo has been rated
             if (photoRatings[photoId]) {
@@ -3112,7 +3201,59 @@
                 
                 // Add to photo container
                 photoContainer.appendChild(ratingIndicator);
+                
+                // Add a class to highlight rated photos
+                photoItem.classList.add('photo-rated');
             }
+            
+            // Create thumbnail rating overlay
+            const ratingOverlay = document.createElement('div');
+            ratingOverlay.className = 'thumbnail-rating-overlay';
+            
+            const ratingButtons = document.createElement('div');
+            ratingButtons.className = 'thumbnail-rating-buttons';
+            
+            // Add rating buttons with same options as lightbox
+            const ratingOptions = [
+                { emoji: '❤️', label: 'Must Have', value: 'heart' },
+                { emoji: '👍', label: 'Would Like', value: 'thumbsUp' },
+                { emoji: '🤔', label: 'Alternative', value: 'thinking' },
+                { emoji: '👎', label: 'Not Interested', value: 'thumbsDown' }
+            ];
+            
+            ratingOptions.forEach(option => {
+                const button = document.createElement('button');
+                button.className = 'thumbnail-rating-btn';
+                button.innerHTML = option.emoji;
+                button.title = option.label;
+                button.setAttribute('data-rating', option.value);
+                
+                // Mark as selected if this is the current rating
+                if (photoRatings[photoId] === option.value) {
+                    button.classList.add('selected');
+                }
+                
+                // Add click handler to rate photo directly from thumbnail
+                button.addEventListener('click', function(e) {
+                    e.stopPropagation(); // Prevent opening lightbox
+                    setPhotoRating(photoId, option.value);
+                    
+                    // Update selection state of buttons
+                    ratingButtons.querySelectorAll('.thumbnail-rating-btn').forEach(btn => {
+                        btn.classList.remove('selected');
+                    });
+                    
+                    // If we just toggled off the rating, don't select anything
+                    if (photoRatings[photoId] === option.value) {
+                        button.classList.add('selected');
+                    }
+                });
+                
+                ratingButtons.appendChild(button);
+            });
+            
+            ratingOverlay.appendChild(ratingButtons);
+            photoContainer.appendChild(ratingOverlay);
             
             const photoDetails = document.createElement('div');
             photoDetails.className = 'photo-details';
