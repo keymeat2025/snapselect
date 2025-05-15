@@ -789,6 +789,29 @@
             50% { opacity: 0.5; }
             100% { opacity: 0.3; }
         }
+        .rating-btn-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            position: relative;
+            margin: 0 5px;
+        }
+        
+        .rating-container {
+            display: flex;
+            flex-direction: column;
+            padding: 15px 25px !important;
+        }
+        
+        .rating-btn {
+            position: relative;
+            z-index: 1;
+        }
+        
+        .rating-btn.selected {
+            transform: scale(1.3);
+            opacity: 1;
+        }
     </style>
 </head>
 <body>
@@ -1653,34 +1676,157 @@
         }
 
         
+        
         function createRatingButton(emoji, label, ratingValue, photoId) {
+            // Create a container for the button and its label
+            const btnContainer = document.createElement('div');
+            btnContainer.className = 'rating-btn-container';
+            btnContainer.style.display = 'flex';
+            btnContainer.style.flexDirection = 'column';
+            btnContainer.style.alignItems = 'center';
+            btnContainer.style.gap = '3px';
+            
+            // Create the button itself (same as before)
             const btn = document.createElement('button');
             btn.className = 'rating-btn';
             btn.innerHTML = emoji;
             btn.setAttribute('aria-label', label);
             btn.setAttribute('data-rating', ratingValue);
             
-            if (photoRatings[photoId] === ratingValue) {
+            // Check if this is the currently selected rating
+            const isSelected = photoRatings[photoId] === ratingValue;
+            if (isSelected) {
                 btn.classList.add('selected');
             }
             
+            // Create a label element that shows when selected
+            const ratingLabel = document.createElement('div');
+            ratingLabel.className = 'rating-btn-label';
+            ratingLabel.textContent = label;
+            ratingLabel.style.fontSize = '10px';
+            ratingLabel.style.color = 'white';
+            ratingLabel.style.maxWidth = '60px';
+            ratingLabel.style.textAlign = 'center';
+            ratingLabel.style.overflow = 'hidden';
+            ratingLabel.style.textOverflow = 'ellipsis';
+            ratingLabel.style.whiteSpace = 'nowrap';
+            
+            // Only show the label for the currently selected rating
+            ratingLabel.style.visibility = isSelected ? 'visible' : 'hidden';
+            ratingLabel.style.opacity = isSelected ? '1' : '0';
+            ratingLabel.style.height = isSelected ? 'auto' : '0';
+            ratingLabel.style.transition = 'all 0.2s ease';
+            
+            // Add a selection indicator (checkmark)
+            const selectionIndicator = document.createElement('div');
+            selectionIndicator.className = 'rating-selection-indicator';
+            selectionIndicator.innerHTML = '✓';
+            selectionIndicator.style.fontSize = '12px';
+            selectionIndicator.style.color = '#4CAF50';
+            selectionIndicator.style.fontWeight = 'bold';
+            selectionIndicator.style.position = 'absolute';
+            selectionIndicator.style.top = '-8px';
+            selectionIndicator.style.right = '-8px';
+            selectionIndicator.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
+            selectionIndicator.style.borderRadius = '50%';
+            selectionIndicator.style.width = '20px';
+            selectionIndicator.style.height = '20px';
+            selectionIndicator.style.display = 'flex';
+            selectionIndicator.style.alignItems = 'center';
+            selectionIndicator.style.justifyContent = 'center';
+            selectionIndicator.style.opacity = isSelected ? '1' : '0';
+            selectionIndicator.style.transition = 'opacity 0.2s ease';
+            
+            // Add event handler to button
             btn.addEventListener('click', function(e) {
                 e.stopPropagation();
                 
                 // Update rating in storage
                 setPhotoRating(photoId, ratingValue);
                 
-                // Update visual selection
-                const ratingBtns = document.querySelectorAll('.rating-btn');
-                ratingBtns.forEach(b => b.classList.remove('selected'));
-                
-                // Only add selected class if we didn't remove the rating
-                if (photoRatings[photoId] === ratingValue) {
-                    btn.classList.add('selected');
-                }
+                // Update visual selection of all buttons
+                const allRatingBtnContainers = document.querySelectorAll('.rating-btn-container');
+                allRatingBtnContainers.forEach(container => {
+                    const containerButton = container.querySelector('.rating-btn');
+                    const containerLabel = container.querySelector('.rating-btn-label');
+                    const containerIndicator = container.querySelector('.rating-selection-indicator');
+                    
+                    const isThisButtonSelected = photoRatings[photoId] === containerButton.getAttribute('data-rating');
+                    
+                    // Update button selection state
+                    if (isThisButtonSelected) {
+                        containerButton.classList.add('selected');
+                        containerLabel.style.visibility = 'visible';
+                        containerLabel.style.opacity = '1';
+                        containerLabel.style.height = 'auto';
+                        containerIndicator.style.opacity = '1';
+                    } else {
+                        containerButton.classList.remove('selected');
+                        containerLabel.style.visibility = 'hidden';
+                        containerLabel.style.opacity = '0';
+                        containerLabel.style.height = '0';
+                        containerIndicator.style.opacity = '0';
+                    }
+                });
             });
             
-            return btn;
+            // Add elements to container
+            btnContainer.appendChild(btn);
+            btnContainer.appendChild(selectionIndicator);
+            btnContainer.appendChild(ratingLabel);
+            
+            // Position buttons container
+            btnContainer.style.position = 'relative';
+            
+            return btnContainer;
+        }
+
+        
+        function modifyRatingContainer(ratingContainer, photoId) {
+            // Clear existing content
+            ratingContainer.innerHTML = '';
+            
+            // Make the container bigger to accommodate labels
+            ratingContainer.style.padding = '15px 25px';
+            
+            // Add a title to the rating section
+            const ratingTitle = document.createElement('div');
+            ratingTitle.textContent = 'Rate this photo:';
+            ratingTitle.style.color = 'white';
+            ratingTitle.style.marginBottom = '10px';
+            ratingTitle.style.width = '100%';
+            ratingTitle.style.textAlign = 'center';
+            ratingTitle.style.fontSize = '14px';
+            ratingContainer.appendChild(ratingTitle);
+            
+            // Create a flex container for the buttons
+            const buttonsContainer = document.createElement('div');
+            buttonsContainer.style.display = 'flex';
+            buttonsContainer.style.gap = '20px';
+            buttonsContainer.style.justifyContent = 'center';
+            
+            // Create rating buttons with their labels
+            const heartBtn = createRatingButton('❤️', 'Must Have', 'heart', photoId);
+            const thumbsUpBtn = createRatingButton('👍', 'Would Like', 'thumbsUp', photoId);
+            const thinkingBtn = createRatingButton('🤔', 'Alternative', 'thinking', photoId);
+            const thumbsDownBtn = createRatingButton('👎', 'Not Interested', 'thumbsDown', photoId);
+            
+            buttonsContainer.appendChild(heartBtn);
+            buttonsContainer.appendChild(thumbsUpBtn);
+            buttonsContainer.appendChild(thinkingBtn);
+            buttonsContainer.appendChild(thumbsDownBtn);
+            
+            ratingContainer.appendChild(buttonsContainer);
+        }
+        
+        function enhanceRatingUI(ratingContainer, photoId) {
+            // Modify the rating container with our enhanced UI
+            modifyRatingContainer(ratingContainer, photoId);
+            
+            // Additional modifications to make the rating area more prominent
+            ratingContainer.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
+            ratingContainer.style.borderRadius = '10px';
+            ratingContainer.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.3)';
         }
 
 
@@ -2269,6 +2415,11 @@
                 // NEW: Update the rating indicator above the image
                 updatePhotoRatingIndicator(photoId, lightbox);
                 
+                // Update the rating UI
+                const ratingContainer = lightbox.querySelector('.rating-container');
+                if (ratingContainer) {
+                    enhanceRatingUI(ratingContainer, photoId);
+                }
                 // Fade in the new image
                 currentImg.classList.remove('fadeOut');
                 currentImg.classList.add('fadeIn');
@@ -2599,20 +2750,13 @@
                 imageContainer.appendChild(caption);
             }
             
-            // Add rating container (EXISTING CODE)
+          // Replace with this new code:
+            // Add rating container (MODIFIED)
             const ratingContainer = document.createElement('div');
             ratingContainer.className = 'rating-container';
             
-            // Create rating buttons (EXISTING CODE)
-            const heartBtn = createRatingButton('❤️', 'Must have', 'heart', photoId);
-            const thumbsUpBtn = createRatingButton('👍', 'Would Like to Have', 'thumbsUp', photoId);
-            const thinkingBtn = createRatingButton('🤔', 'Alternative Option', 'thinking', photoId);
-            const thumbsDownBtn = createRatingButton('👎', 'Not Interested', 'thumbsDown', photoId);
-            
-            ratingContainer.appendChild(heartBtn);
-            ratingContainer.appendChild(thumbsUpBtn);
-            ratingContainer.appendChild(thinkingBtn);
-            ratingContainer.appendChild(thumbsDownBtn);
+            // Use our enhanced UI - this one function does all the work
+            enhanceRatingUI(ratingContainer, photoId);
             
             imageContainer.appendChild(img);
             imageContainer.appendChild(ratingContainer);
