@@ -3001,6 +3001,275 @@
                 }, 300);
             }, 4000);
         }
+
+        // Add this function after your openLightbox function to create a draggable overlay
+        
+        function makeOverlayDraggable() {
+            // First, check if there's an existing rating container we can modify
+            const existingRatingContainer = document.querySelector('.rating-container');
+            
+            if (!existingRatingContainer) {
+                console.error("Rating container not found");
+                return;
+            }
+            
+            // Change the existing container to be draggable
+            existingRatingContainer.style.position = 'absolute'; // Change from fixed
+            existingRatingContainer.style.cursor = 'move';
+            existingRatingContainer.style.zIndex = '1005'; // Ensure it's above other elements
+            
+            // Add a drag handle to make it clear this is draggable
+            const dragHandle = document.createElement('div');
+            dragHandle.className = 'drag-handle';
+            dragHandle.innerHTML = '<i class="fas fa-grip-lines"></i>'; // Using Font Awesome icon
+            dragHandle.style.padding = '5px';
+            dragHandle.style.backgroundColor = 'rgba(0, 0, 0, 0.5)';
+            dragHandle.style.color = 'white';
+            dragHandle.style.textAlign = 'center';
+            dragHandle.style.borderTopLeftRadius = '10px';
+            dragHandle.style.borderTopRightRadius = '10px';
+            dragHandle.style.marginBottom = '5px';
+            dragHandle.style.fontSize = '14px';
+            
+            // Add title to show it's draggable
+            const dragTitle = document.createElement('span');
+            dragTitle.textContent = ' Drag to move';
+            dragTitle.style.fontSize = '12px';
+            dragTitle.style.marginLeft = '5px';
+            dragHandle.appendChild(dragTitle);
+            
+            // Insert the handle at the beginning of the rating container
+            existingRatingContainer.insertBefore(dragHandle, existingRatingContainer.firstChild);
+            
+            // Make the container more compact and visually distinct
+            existingRatingContainer.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.5)';
+            existingRatingContainer.style.border = '1px solid rgba(255, 255, 255, 0.2)';
+            
+            // Add a minimize/maximize button
+            const toggleButton = document.createElement('button');
+            toggleButton.className = 'toggle-ratings-btn';
+            toggleButton.innerHTML = '<i class="fas fa-minus"></i>';
+            toggleButton.style.position = 'absolute';
+            toggleButton.style.top = '5px';
+            toggleButton.style.right = '5px';
+            toggleButton.style.background = 'none';
+            toggleButton.style.border = 'none';
+            toggleButton.style.color = 'white';
+            toggleButton.style.fontSize = '14px';
+            toggleButton.style.cursor = 'pointer';
+            toggleButton.style.padding = '2px 5px';
+            
+            // Store original content for later restoration
+            const originalContent = existingRatingContainer.innerHTML;
+            
+            // Add event listener for minimize/maximize
+            toggleButton.addEventListener('click', function(e) {
+                e.stopPropagation();
+                
+                const isMinimized = toggleButton.querySelector('i').classList.contains('fa-plus');
+                if (isMinimized) {
+                    // Restore content
+                    existingRatingContainer.innerHTML = originalContent;
+                    
+                    // Re-add the toggle button since we just replaced all content
+                    toggleButton.querySelector('i').className = 'fas fa-minus';
+                    existingRatingContainer.appendChild(toggleButton);
+                    
+                    // Make sure the drag functionality still works
+                    makeElementDraggable(existingRatingContainer);
+                } else {
+                    // Save original height for animation
+                    const originalHeight = existingRatingContainer.offsetHeight;
+                    
+                    // Replace with minimal content
+                    existingRatingContainer.innerHTML = '';
+                    existingRatingContainer.appendChild(dragHandle);
+                    toggleButton.querySelector('i').className = 'fas fa-plus';
+                    existingRatingContainer.appendChild(toggleButton);
+                    
+                    // Update styles for minimized state
+                    existingRatingContainer.style.height = 'auto';
+                    existingRatingContainer.style.width = 'auto';
+                    
+                    // Make sure the drag functionality still works
+                    makeElementDraggable(existingRatingContainer);
+                }
+            });
+            
+            // Add the toggle button to the container
+            existingRatingContainer.appendChild(toggleButton);
+            
+            // Call the function to make the element draggable
+            makeElementDraggable(existingRatingContainer);
+            
+            // Position the overlay in a better default location
+            positionOverlayInitially(existingRatingContainer);
+        }
+        
+        // Function to position the overlay in a good default location
+        function positionOverlayInitially(overlay) {
+            // Position at bottom right by default, with some margin
+            overlay.style.bottom = '100px';  // Above thumbnails
+            overlay.style.right = '20px';
+            overlay.style.top = 'auto';
+            overlay.style.left = 'auto';
+        }
+        
+        // Generic function to make any element draggable
+        function makeElementDraggable(element) {
+            let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
+            
+            // Find the drag handle if it exists, otherwise use the element itself
+            const dragHandle = element.querySelector('.drag-handle') || element;
+            
+            if (dragHandle) {
+                dragHandle.onmousedown = dragMouseDown;
+                dragHandle.ontouchstart = dragTouchStart;
+            } else {
+                element.onmousedown = dragMouseDown;
+                element.ontouchstart = dragTouchStart;
+            }
+            
+            function dragMouseDown(e) {
+                e.preventDefault();
+                // Get the mouse cursor position at startup
+                pos3 = e.clientX;
+                pos4 = e.clientY;
+                
+                document.onmouseup = closeDragElement;
+                document.onmousemove = elementDrag;
+            }
+            
+            function dragTouchStart(e) {
+                e.preventDefault();
+                const touch = e.touches[0];
+                
+                // Get touch position
+                pos3 = touch.clientX;
+                pos4 = touch.clientY;
+                
+                document.ontouchend = closeDragElement;
+                document.ontouchmove = elementTouchDrag;
+            }
+            
+            function elementDrag(e) {
+                e.preventDefault();
+                
+                // Calculate the new cursor position
+                pos1 = pos3 - e.clientX;
+                pos2 = pos4 - e.clientY;
+                pos3 = e.clientX;
+                pos4 = e.clientY;
+                
+                updateElementPosition();
+            }
+            
+            function elementTouchDrag(e) {
+                e.preventDefault();
+                const touch = e.touches[0];
+                
+                // Calculate the new touch position
+                pos1 = pos3 - touch.clientX;
+                pos2 = pos4 - touch.clientY;
+                pos3 = touch.clientX;
+                pos4 = touch.clientY;
+                
+                updateElementPosition();
+            }
+            
+            function updateElementPosition() {
+                // Set the element's new position
+                // Using bounds checking to keep it on screen
+                const newTop = element.offsetTop - pos2;
+                const newLeft = element.offsetLeft - pos1;
+                
+                // Make sure the element stays within the viewport
+                const maxX = window.innerWidth - element.offsetWidth;
+                const maxY = window.innerHeight - element.offsetHeight;
+                
+                // Apply bounds checking
+                element.style.top = Math.min(Math.max(0, newTop), maxY) + "px";
+                element.style.left = Math.min(Math.max(0, newLeft), maxX) + "px";
+                
+                // Set bottom and right to auto to avoid conflicts with top/left positioning
+                element.style.bottom = 'auto';
+                element.style.right = 'auto';
+            }
+            
+            function closeDragElement() {
+                // Stop moving when mouse button or touch is released
+                document.onmouseup = null;
+                document.onmousemove = null;
+                document.ontouchend = null;
+                document.ontouchmove = null;
+            }
+        }
+        
+        // Add these CSS rules after your existing styles
+        function addDraggableStyles() {
+            const styleElement = document.createElement('style');
+            styleElement.textContent = `
+                .rating-container {
+                    transition: box-shadow 0.3s ease;
+                }
+                
+                .rating-container:hover {
+                    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.7);
+                }
+                
+                .drag-handle {
+                    cursor: move;
+                    user-select: none;
+                }
+                
+                .toggle-ratings-btn:hover {
+                    background-color: rgba(255, 255, 255, 0.1);
+                }
+                
+                /* Add a visual indicator when dragging */
+                .rating-container.dragging {
+                    opacity: 0.8;
+                    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.8);
+                }
+            `;
+            document.head.appendChild(styleElement);
+        }
+        
+        // Modify the openLightbox function to call makeOverlayDraggable after creating the rating container
+        // Add this to your openLightbox function right after you create and append the rating container
+        function enhanceOpenLightbox() {
+            // Add draggable styles once when the page loads
+            addDraggableStyles();
+            
+            // Find the original openLightbox function and modify it
+            const originalOpenLightbox = window.openLightbox;
+            
+            if (typeof originalOpenLightbox !== 'function') {
+                console.error("Could not find the openLightbox function to modify");
+                return;
+            }
+            
+            // Override with our enhanced version
+            window.openLightbox = function(photo) {
+                // Call the original function first
+                originalOpenLightbox(photo);
+                
+                // Make the rating overlay draggable
+                makeOverlayDraggable();
+            };
+        }
+        
+        // Run the enhancement when the page is fully loaded
+        function initDraggableOverlay() {
+            if (document.readyState === 'complete') {
+                enhanceOpenLightbox();
+            } else {
+                window.addEventListener('load', enhanceOpenLightbox);
+            }
+        }
+        
+        // Initialize the draggable overlay functionality
+        initDraggableOverlay();
     </script>
 </body>
 </html>
