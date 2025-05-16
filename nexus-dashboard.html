@@ -1412,8 +1412,18 @@
         });
         
         // Comprehensive logout functionality
+   
         document.getElementById('logoutBtn').addEventListener('click', function(e) {
             e.preventDefault();
+            
+            // Check if logout is already in progress to prevent multiple calls
+            if (this.dataset.loggingOut === 'true') {
+                console.log('Logout already in progress');
+                return;
+            }
+            
+            // Set flag to prevent multiple logout attempts
+            this.dataset.loggingOut = 'true';
             
             // Show a loading overlay with logout message
             var loadingOverlay = document.getElementById('loadingOverlay');
@@ -1477,7 +1487,12 @@
             // Function to redirect to login page
             function redirectToLogin() {
                 try {
-                    // Optional: Send logout request to server to invalidate server-side session
+                    // Show toast notification
+                    if (typeof showToast === 'function') {
+                        showToast('Logout', 'You have been successfully logged out', 'success');
+                    }
+                    
+                    // IMPORTANT: Make only ONE server logout request
                     fetch('/api/auth/logout', {
                         method: 'POST',
                         credentials: 'include',
@@ -1485,32 +1500,30 @@
                             'Content-Type': 'application/json'
                         }
                     }).catch(function(error) {
-                        // If server request fails, still proceed with logout
                         console.error("Server logout request error:", error);
                     }).finally(function() {
-                        finishLogout();
+                        // Redirect to login page after a short delay
+                        setTimeout(function() {
+                            // Use our secure redirect function
+                            if (typeof redirectToLogin === 'function') {
+                                // If we have the security function available
+                                redirectToLogin();
+                            } else {
+                                // Otherwise, do a simple redirect
+                                document.documentElement.innerHTML = '<body style="font-family: sans-serif; padding: 20px; text-align: center;">Redirecting to login...</body>';
+                                
+                                // Redirect to login page
+                                setTimeout(function() {
+                                    window.location.href = 'nexus-portal.html';
+                                }, 500);
+                            }
+                        }, 1000);
                     });
                 } catch (e) {
-                    console.error("Error during logout API call:", e);
-                    finishLogout();
+                    console.error("Error during logout process:", e);
+                    // Simple fallback redirect
+                    window.location.href = 'nexus-portal.html';
                 }
-            }
-            
-            function finishLogout() {
-                // Try to show toast notification
-                try {
-                    if (typeof showToast === 'function') {
-                        showToast('Logout', 'You have been successfully logged out', 'success');
-                    }
-                } catch (e) {
-                    console.error("Error showing logout toast:", e);
-                }
-                
-        
-                  // Use our secure redirect function
-                setTimeout(function() {
-                    redirectToLogin();
-                }, 1000);
             }
             
             // For demo purposes, add a slight delay before logout to show the loading overlay
