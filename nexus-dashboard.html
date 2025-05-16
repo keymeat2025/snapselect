@@ -2625,6 +2625,7 @@
         }
 
         function updatePhotographerDropdown(clients) {
+
             const photographerSelect = document.getElementById('photographerFilter');
             
             if (photographerSelect.options.length <= 1) {
@@ -2636,52 +2637,79 @@
                 // Add photographer options
                 const db = firebase.firestore();
                 
-                // First add placeholder options for all photographer IDs
-                photographerIds.forEach(id => {
-                    const option = document.createElement('option');
-                    option.value = id;
-                    option.textContent = `Photographer (${id.substring(0, 8)}...)`;
-                    photographerSelect.appendChild(option);
-                });
-                
-                // Then try to resolve actual photographer names
-                photographerIds.forEach(id => {
-                    db.collection('photographer').doc(id).get().then(doc => {
-                        if (doc.exists) {
-                            const photographerData = doc.data();
-                            const name = photographerData.ownerName || photographerData.studioName || id;
-                            
-                            // Find and update the option
-                            for (let i = 0; i < photographerSelect.options.length; i++) {
-                                if (photographerSelect.options[i].value === id) {
-                                    photographerSelect.options[i].textContent = name;
-                                    break;
-                                }
-                            }
+                // Get all photographers to build a reference map
+                db.collection('photographer').get().then(snapshot => {
+                    const photographersMap = {};
+                    
+                    // Create a map with both document ID and UID as keys
+                    snapshot.docs.forEach(doc => {
+                        const photographerData = doc.data();
+                        const name = photographerData.ownerName || photographerData.studioName || doc.id;
+                        
+                        photographersMap[doc.id] = name;
+                        if (photographerData.uid) {
+                            photographersMap[photographerData.uid] = name;
                         }
-                    }).catch(error => {
-                        console.error('Error fetching photographer details:', error);
                     });
+                    
+                    // Add options for each photographer ID in clients
+                    photographerIds.forEach(id => {
+                        const option = document.createElement('option');
+                        option.value = id;
+                        
+                        // Use the name from the map if available, otherwise show a portion of the ID
+                        if (photographersMap[id]) {
+                            option.textContent = photographersMap[id];
+                        } else {
+                            option.textContent = `Photographer (${id.substring(0, 8)}...)`;
+                        }
+                        
+                        photographerSelect.appendChild(option);
+                    });
+                }).catch(error => {
+                    console.error('Error fetching photographers:', error);
                 });
             }
         }
+
+
         
         function resolvePhotographerNames() {
+       
             const photographerCells = document.querySelectorAll('.photographer-id');
             const db = firebase.firestore();
             
             photographerCells.forEach(cell => {
                 const photographerId = cell.textContent;
                 
-                db.collection('photographer').doc(photographerId).get().then(doc => {
-                    if (doc.exists) {
-                        const photographerData = doc.data();
-                        const name = photographerData.ownerName || photographerData.studioName || photographerId;
-                        cell.textContent = name;
-                    }
-                }).catch(error => {
-                    console.error('Error fetching photographer details:', error);
-                });
+                // First try to get directly by document ID
+                db.collection('photographer').doc(photographerId).get()
+                    .then(doc => {
+                        if (doc.exists) {
+                            // Found by document ID
+                            const photographerData = doc.data();
+                            const name = photographerData.ownerName || photographerData.studioName || photographerId;
+                            cell.textContent = name;
+                        } else {
+                            // Not found by document ID, try looking up by UID field
+                            return db.collection('photographer')
+                                .where('uid', '==', photographerId)
+                                .limit(1)
+                                .get();
+                        }
+                    })
+                    .then(result => {
+                        // This will only execute if we went to the second query
+                        if (result && !result.empty) {
+                            const doc = result.docs[0];
+                            const photographerData = doc.data();
+                            const name = photographerData.ownerName || photographerData.studioName || photographerId;
+                            cell.textContent = name;
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error fetching photographer details:', error);
+                    });
             });
         }
 
@@ -2874,17 +2902,37 @@
                         </div>
                     `;
                     
-                    // Resolve photographer name
+             
+                       // Resolve photographer name
                     if (client.photographerId) {
-                        db.collection('photographer').doc(client.photographerId).get().then(doc => {
-                            if (doc.exists) {
-                                const photographerData = doc.data();
-                                const name = photographerData.ownerName || photographerData.studioName || client.photographerId;
-                                document.getElementById('detailPhotographerId').textContent = name;
-                            }
-                        }).catch(error => {
-                            console.error('Error fetching photographer details:', error);
-                        });
+                        // First try to get directly by document ID
+                        db.collection('photographer').doc(client.photographerId).get()
+                            .then(doc => {
+                                if (doc.exists) {
+                                    // Found by document ID
+                                    const photographerData = doc.data();
+                                    const name = photographerData.ownerName || photographerData.studioName || client.photographerId;
+                                    document.getElementById('detailPhotographerId').textContent = name;
+                                } else {
+                                    // Not found by document ID, try looking up by UID field
+                                    return db.collection('photographer')
+                                        .where('uid', '==', client.photographerId)
+                                        .limit(1)
+                                        .get();
+                                }
+                            })
+                            .then(result => {
+                                // This will only execute if we went to the second query
+                                if (result && !result.empty) {
+                                    const doc = result.docs[0];
+                                    const photographerData = doc.data();
+                                    const name = photographerData.ownerName || photographerData.studioName || client.photographerId;
+                                    document.getElementById('detailPhotographerId').textContent = name;
+                                }
+                            })
+                            .catch(error => {
+                                console.error('Error fetching photographer details:', error);
+                            });
                     }
                     
                     // Update button text based on plan status
@@ -3083,25 +3131,54 @@
         
         // Load photographers for the dropdown in edit client form
         function loadPhotographersForDropdown(selectedPhotographerId) {
+
             const photographerSelect = document.getElementById('photographerId');
             const db = firebase.firestore();
             
-            // Get all active photographers
+            // Clear existing options except the first one
+            while (photographerSelect.options.length > 1) {
+                photographerSelect.remove(1);
+            }
+            
+            // Get all photographers
             db.collection('photographer')
-             /*   .where('status', '==', 'approved')  */
                 .get()
                 .then(snapshot => {
-                    // Add options to select
+                    // Create a map to hold all photographers with their IDs
+                    const photographersMap = {};
+                    
+                    // Add all photographers to the map
                     snapshot.docs.forEach(doc => {
                         const photographerData = doc.data();
                         const name = photographerData.ownerName || photographerData.studioName || doc.id;
                         
-                        const option = document.createElement('option');
-                        option.value = doc.id;
-                        option.textContent = name;
-                        option.selected = doc.id === selectedPhotographerId;
+                        // Store photographer with both document ID and UID (if present)
+                        photographersMap[doc.id] = { name, data: photographerData };
+                        if (photographerData.uid) {
+                            photographersMap[photographerData.uid] = { name, data: photographerData };
+                        }
+                    });
+                    
+                    // Now add options to the select
+                    Object.keys(photographersMap).forEach(id => {
+                        const { name } = photographersMap[id];
                         
-                        photographerSelect.appendChild(option);
+                        // Only add if not already in the dropdown (to avoid duplicates)
+                        let exists = false;
+                        for (let i = 0; i < photographerSelect.options.length; i++) {
+                            if (photographerSelect.options[i].value === id) {
+                                exists = true;
+                                break;
+                            }
+                        }
+                        
+                        if (!exists) {
+                            const option = document.createElement('option');
+                            option.value = id;
+                            option.textContent = name;
+                            option.selected = id === selectedPhotographerId;
+                            photographerSelect.appendChild(option);
+                        }
                     });
                 })
                 .catch(error => {
