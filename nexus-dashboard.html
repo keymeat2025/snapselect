@@ -762,6 +762,53 @@
             100% { transform: rotate(360deg); }
         }
     </style>
+    <script>
+      // Immediate authentication check - runs before page renders
+      (function() {
+        // Hide page content initially
+        document.documentElement.style.visibility = 'hidden';
+        
+        // Check session storage for authentication
+        const isAuthenticated = sessionStorage.getItem('directorAuthenticated') === 'true';
+        const authTimestamp = sessionStorage.getItem('authTimestamp');
+        
+        // If not authenticated at all, redirect immediately
+        if (!isAuthenticated || !authTimestamp) {
+          redirectToLoginPage();
+          return;
+        }
+        
+        // Check if session has expired
+        const currentTime = new Date().getTime();
+        const authTime = parseInt(authTimestamp, 10);
+        const sessionDuration = 12 * 60 * 60 * 1000; // 12 hours
+        
+        if (currentTime - authTime > sessionDuration) {
+          // Session expired, redirect to login
+          redirectToLoginPage();
+          return;
+        }
+        
+        // Authentication is valid, show the page
+        window.addEventListener('DOMContentLoaded', function() {
+          document.documentElement.style.visibility = '';
+        });
+        
+        // Function to redirect to login page
+        function redirectToLoginPage() {
+          // Clear authentication data
+          sessionStorage.removeItem('directorAuthenticated');
+          sessionStorage.removeItem('authTimestamp');
+          sessionStorage.removeItem('directorId');
+          sessionStorage.removeItem('directorName');
+          sessionStorage.removeItem('directorRole');
+          sessionStorage.removeItem('directorPermissions');
+          
+          // Redirect without showing the page
+          window.location.replace('nexus-portal.html');
+        }
+      })();
+    </script>
 </head>
 <body>
     <script>
@@ -1573,10 +1620,15 @@
         });
         
         // Show a welcome toast on load
+      
         window.addEventListener('load', function() {
-            setTimeout(function() {
-                showToast('Welcome', 'You\'ve successfully logged into the SnapSelect Nexus Portal', 'success');
-            }, 1000);
+            // Only show welcome toast if user is authenticated
+            const isAuthenticated = sessionStorage.getItem('directorAuthenticated') === 'true';
+            if (isAuthenticated) {
+                setTimeout(function() {
+                    showToast('Welcome', 'You\'ve successfully logged into the SnapSelect Nexus Portal', 'success');
+                }, 1000);
+            }
         });
         
         // Create a simulated loading overlay for demo purposes
