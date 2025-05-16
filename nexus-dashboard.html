@@ -1,6 +1,9 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, post-check=0, pre-check=0">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SnapSelect - Director Dashboard</title>
@@ -761,6 +764,189 @@
     </style>
 </head>
 <body>
+
+    // Authentication protection for SnapSelect Nexus Portal
+    
+    // Immediately show loading overlay while checking auth
+    const loadingOverlay = document.getElementById('loadingOverlay') || createLoadingOverlay();
+    loadingOverlay.style.display = 'flex';
+    document.querySelector('.loading-text').textContent = 'Verifying authentication...';
+    
+    // Function to check if user is authenticated
+    function checkAuthentication() {
+        return new Promise((resolve, reject) => {
+            // First check if Firebase is initialized
+            if (typeof firebase === 'undefined' || !firebase.auth) {
+                console.error("Firebase not initialized");
+                reject(new Error("Firebase not initialized"));
+                return;
+            }
+    
+            // Set a timeout to prevent hanging if Firebase auth is slow
+            const authTimeout = setTimeout(() => {
+                console.error("Authentication check timed out");
+                reject(new Error("Authentication check timed out"));
+            }, 5000); // 5 second timeout
+    
+            // Check Firebase authentication state
+            firebase.auth().onAuthStateChanged(function(user) {
+                clearTimeout(authTimeout);
+                
+                if (user) {
+                    // User is signed in
+                    console.log("User is authenticated:", user.email);
+                    resolve(true);
+                } else {
+                    // No user is signed in
+                    console.log("No user authenticated");
+                    resolve(false);
+                }
+            }, function(error) {
+                clearTimeout(authTimeout);
+                console.error("Auth state check error:", error);
+                reject(error);
+            });
+        });
+    }
+    
+    // Function to check session storage
+    function checkSessionStorage() {
+        const isAuthenticated = sessionStorage.getItem('directorAuthenticated') === 'true';
+        const authTimestamp = sessionStorage.getItem('authTimestamp');
+        
+        // If no authentication data found
+        if (!isAuthenticated || !authTimestamp) {
+            return false;
+        }
+        
+        // Check if the session has expired (e.g., after 12 hours)
+        const currentTime = new Date().getTime();
+        const authTime = parseInt(authTimestamp, 10);
+        const sessionDuration = 12 * 60 * 60 * 1000; // 12 hours in milliseconds
+        
+        if (currentTime - authTime > sessionDuration) {
+            // Session has expired
+            console.log("Session expired");
+            return false;
+        }
+        
+        return true;
+    }
+    
+    // Function to redirect to login page
+    function redirectToLogin() {
+        // Clear any auth data before redirecting
+        sessionStorage.removeItem('directorAuthenticated');
+        sessionStorage.removeItem('authTimestamp');
+        sessionStorage.removeItem('directorId');
+        sessionStorage.removeItem('directorName');
+        sessionStorage.removeItem('directorRole');
+        sessionStorage.removeItem('directorPermissions');
+        
+        // Clear any Firebase auth if possible
+        try {
+            if (typeof firebase !== 'undefined' && firebase.auth && typeof firebase.auth === 'function') {
+                firebase.auth().signOut();
+            }
+        } catch (e) {
+            console.error("Error during Firebase logout:", e);
+        }
+        
+        // Set no-cache headers for the page
+        document.documentElement.innerHTML = '<body style="font-family: sans-serif; padding: 20px; text-align: center;">Redirecting to login...</body>';
+        
+        // Redirect to login page
+        setTimeout(function() {
+            window.location.href = 'nexus-portal.html';
+        }, 500);
+    }
+    
+    // Main function to verify authentication
+    async function verifyAuthentication() {
+        try {
+            // First check session storage (faster than Firebase check)
+            const sessionValid = checkSessionStorage();
+            
+            if (!sessionValid) {
+                // If session is not valid, check Firebase
+                const firebaseAuth = await checkAuthentication();
+                
+                if (!firebaseAuth) {
+                    // Not authenticated in either place
+                    console.log("Authentication failed, redirecting to login");
+                    redirectToLogin();
+                    return false;
+                } else {
+                    // Firebase authenticated but session storage not set
+                    // Update session storage
+                    sessionStorage.setItem('directorAuthenticated', 'true');
+                    sessionStorage.setItem('authTimestamp', new Date().getTime().toString());
+                }
+            }
+            
+            // Authentication successful
+            console.log("Authentication verified");
+            loadingOverlay.style.display = 'none';
+            return true;
+        } catch (error) {
+            console.error("Authentication verification error:", error);
+            // In case of error, redirect to login for safety
+            redirectToLogin();
+            return false;
+        }
+    }
+    
+    // Create loading overlay if it doesn't exist
+    function createLoadingOverlay() {
+        const overlay = document.createElement('div');
+        overlay.id = 'loadingOverlay';
+        overlay.className = 'loading-overlay';
+        overlay.style.display = 'flex';
+        overlay.innerHTML = `
+            <div class="loading-spinner"></div>
+            <div class="loading-text">Verifying authentication...</div>
+        `;
+        document.body.appendChild(overlay);
+        return overlay;
+    }
+    
+    // Set cache control headers
+    function setCacheControl() {
+        // Add meta tags to prevent caching
+        const metaTags = [
+            { httpEquiv: 'Cache-Control', content: 'no-store, no-cache, must-revalidate, post-check=0, pre-check=0' },
+            { httpEquiv: 'Pragma', content: 'no-cache' },
+            { httpEquiv: 'Expires', content: '0' }
+        ];
+        
+        metaTags.forEach(meta => {
+            const metaTag = document.createElement('meta');
+            metaTag.httpEquiv = meta.httpEquiv;
+            metaTag.content = meta.content;
+            document.head.appendChild(metaTag);
+        });
+    }
+    
+    // Run authentication check on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        setCacheControl();
+        verifyAuthentication();
+        
+        // Add event listener for page visibility changes (browser tab switching)
+        document.addEventListener('visibilitychange', function() {
+            if (document.visibilityState === 'visible') {
+                // Re-verify authentication when the page becomes visible again
+                verifyAuthentication();
+            }
+        });
+    });
+    
+    // Run initial auth check immediately
+    (async function() {
+        await verifyAuthentication();
+    })();
+
+    
     <!-- Toast Container for Notifications -->
     <div id="toastContainer"></div>
     <!-- Loading Overlay -->
@@ -1319,10 +1505,10 @@
                     console.error("Error showing logout toast:", e);
                 }
                 
-                // Delay redirect slightly
+        
+                  // Use our secure redirect function
                 setTimeout(function() {
-                    // Redirect to login page
-                    window.location.href = 'nexus-portal.html';
+                    redirectToLogin();
                 }, 1000);
             }
             
