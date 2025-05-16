@@ -3088,7 +3088,7 @@
             
             // Get all active photographers
             db.collection('photographer')
-                .where('status', '==', 'approved')
+             /*   .where('status', '==', 'approved')  */
                 .get()
                 .then(snapshot => {
                     // Add options to select
