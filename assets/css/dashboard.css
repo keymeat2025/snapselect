@@ -1549,3 +1549,153 @@ input:focus {
     transform: translateY(-2px);
     box-shadow: var(--shadow-md);
 }
+/* Table-based Plans Layout */
+.plans-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  margin-top: 1.5rem;
+}
+
+.plans-table th {
+  text-align: left;
+  padding: 1.25rem 1rem;
+  font-weight: 600;
+  color: var(--heading-color);
+  border-bottom: 1px solid var(--border-color);
+  background-color: var(--background-color);
+}
+
+.plans-table td {
+  padding: 1.25rem 1rem;
+  border-bottom: 1px solid var(--border-color);
+  vertical-align: middle;
+}
+
+.plans-table tr:hover {
+  background-color: rgba(var(--primary-rgb), 0.05);
+}
+
+.plans-table tr:last-child td {
+  border-bottom: none;
+}
+
+/* Status styles for rows */
+.plans-table tr.is-expired {
+  background-color: rgba(var(--gray-rgb), 0.05);
+}
+
+.plans-table tr.is-expiring {
+  background-color: rgba(var(--warning-rgb), 0.05);
+}
+
+/* Specific cell styling */
+.plan-type {
+  font-weight: 600;
+  color: var(--heading-color);
+}
+
+.plan-client {
+  font-weight: 500;
+}
+
+.plan-dates div {
+  margin-bottom: 0.5rem;
+}
+
+.plan-dates div:last-child {
+  margin-bottom: 0;
+}
+
+.plan-status-cell {
+  min-width: 140px;
+}
+
+.plan-actions-cell {
+  text-align: center;
+  white-space: nowrap;
+}
+
+.plan-actions-cell .btn {
+  display: inline-block;
+  margin-bottom: 0.5rem;
+  padding: 0.6rem 1rem;
+  width: auto;
+}
+
+.plan-actions-cell .btn:last-child {
+  margin-bottom: 0;
+}
+
+/* Keep existing status badges */
+.plan-status {
+  display: inline-block;
+  padding: 0.35rem 0.75rem;
+  border-radius: var(--radius-full);
+  font-size: 0.8rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+
+/* Ensure buttons display with no cutting off */
+.view-gallery-btn, .extend-plan-btn, .renew-plan-btn {
+  display: block;
+  width: 100%;
+  margin-bottom: 0.5rem;
+  text-align: center;
+}
+
+/* Responsive adjustments for table */
+@media (max-width: 992px) {
+  .plans-table {
+    white-space: normal;
+  }
+}
+
+@media (max-width: 768px) {
+  /* Convert table to cards on mobile */
+  .plans-table, .plans-table tbody, .plans-table tr, .plans-table td, .plans-table th {
+    display: block;
+    width: 100%;
+  }
+  
+  .plans-table th {
+    display: none;
+  }
+  
+  .plans-table tr {
+    margin-bottom: 1.5rem;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+  }
+  
+  .plans-table td {
+    position: relative;
+    padding: 0.75rem 1rem;
+    padding-left: 40%;
+    text-align: right;
+    min-height: 24px;
+  }
+  
+  .plans-table td:before {
+    content: attr(data-label);
+    position: absolute;
+    left: 1rem;
+    width: 35%;
+    padding-right: 1rem;
+    text-align: left;
+    font-weight: 600;
+    color: var(--heading-color);
+  }
+  
+  .plan-actions-cell {
+    text-align: center;
+    padding: 1rem;
+  }
+  
+  .plan-actions-cell .btn {
+    width: 100%;
+    margin-bottom: 0.5rem;
+  }
+}
