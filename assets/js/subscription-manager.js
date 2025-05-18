@@ -1285,6 +1285,7 @@ function viewClient(clientId) {
 
 // Define a showExtendPlanModal function if needed
 
+
 function showExtendPlanModal(planId, clientId) {
   if (!planId || !clientId) return;
   
@@ -1299,52 +1300,37 @@ function showExtendPlanModal(planId, clientId) {
   const client = userClients.find(c => c.id === clientId);
   const clientName = client?.name || plan.clientName || 'Unknown Client';
   
-  // Check if the plan is really close to expiring or already expired
-  const allowExtensionDays = 14; // Allow extension within 14 days of expiration
+  // Get formatted expiry date
+  const expiryDate = plan.planEndDate?.toDate().toLocaleDateString() || 'Unknown';
   
+  // Check if plan is active and not in expiring_soon status
   if (plan.status === PLAN_STATUS.ACTIVE) {
-    // Plan is active and not close to expiration
-    const expiryDate = plan.planEndDate?.toDate().toLocaleDateString() || 'Unknown';
-    
-    // Calculate days remaining until expiration
-    const today = new Date();
-    const expiryDateObj = plan.planEndDate?.toDate() || new Date();
-    const daysRemaining = Math.ceil((expiryDateObj - today) / (1000 * 60 * 60 * 24));
-    
-    if (daysRemaining > allowExtensionDays) {
-      // Plan is active and not close to expiration
-      showSuccessMessage(`This plan is active until ${expiryDate}. We'll notify you when it's time to renew.`);
-      
-      // Show more details in a notification if you have a notification system
-      if (window.NotificationSystem) {
-        window.NotificationSystem.showNotification(
-          'info',
-          'Your plan is active',
-          `${clientName}'s plan is currently active until ${expiryDate}. We'll notify you when it's approaching expiration.`
-        );
-      }
-      return;
+    // Show notification that plan is active and cannot be extended yet
+    if (window.NotificationSystem) {
+      window.NotificationSystem.showNotification(
+        'info',
+        'Plan is Active',
+        `This plan is currently active until ${expiryDate}. You can extend it when it's closer to expiration.`
+      );
+    } else {
+      // Fallback to built-in alert if NotificationSystem is not available
+      showSuccessMessage(`This plan is active until ${expiryDate}. You can extend it when it's closer to expiration.`);
     }
-    
-    // If we get here, the plan is active but close to expiration (within 14 days)
-    // Continue to show the extend plan modal
-  } else if (plan.status === PLAN_STATUS.EXPIRED) {
-    // Plan is expired, so we should show renewal options instead
-    showUpgradeModal(clientId);
     return;
   }
   
-  // If we get here, the plan is either:
-  // 1. Active but close to expiration (within allowExtensionDays)
-  // 2. In EXPIRING_SOON status
-  // In these cases, we should show the actual extension modal
+  // If the plan is in EXPIRING_SOON status, show the extension modal
+  if (plan.status === PLAN_STATUS.EXPIRING_SOON) {
+    // TODO: Implement actual extension modal here
+    showSuccessMessage(`Extension options for ${clientName}'s plan will be available here.`);
+    return;
+  }
   
-  // For now, just show a message (replace this with actual modal)
-  showSuccessMessage(`Plan extension options for ${clientName} would show here.`);
-  
-  // TODO: Implement the actual extension modal
-  // This would be where you display a modal with extension options,
-  // pricing, and payment processing
+  // If the plan is already expired, redirect to renewal
+  if (plan.status === PLAN_STATUS.EXPIRED) {
+    showUpgradeModal(clientId);
+    return;
+  }
 }
 
 /**
