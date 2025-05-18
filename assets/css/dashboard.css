@@ -1516,8 +1516,8 @@ input:focus {
 .renew-plan-btn:hover {
     transform: translateY(-2px);
     box-shadow: var(--shadow-md);
-    background-color: var(--primary-dark);  
-    color: white;
+    /*background-color: var(--primary-dark);  
+    color: white;*/
 }
 
 /* Responsive Adjustments */
