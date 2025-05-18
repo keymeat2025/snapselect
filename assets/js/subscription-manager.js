@@ -471,10 +471,12 @@ async function loadActivePlans() {
       allPlans.push(planData);
     });
     
+
+
     // Update UI
-    updateActivePlansDisplay(); // Keep this for compatibility
+    // updateActivePlansDisplay(); // Remove this line
     updateStorageUsage();
-    filterAndDisplayPlans(); // Add this for the new UI
+    filterAndDisplayPlans(); // Only use this for the updated UI
     updateDashboardStats();
     
   } catch (error) {
