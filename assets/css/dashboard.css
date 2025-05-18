@@ -1510,7 +1510,7 @@ input:focus {
     border: none;
     box-shadow: var(--shadow-sm);
     background-color: var(--primary-color);
-    color: green;
+    color: white;
 }
 
 .renew-plan-btn:hover {
