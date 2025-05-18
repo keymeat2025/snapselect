@@ -1523,3 +1523,29 @@ input:focus {
         padding-bottom: 0.5rem;
     }
 }
+
+.plan-actions {
+    display: flex;
+    gap: 0.75rem;
+    justify-content: center;
+    margin-top: 1.25rem;
+    margin-bottom: 1rem;
+}
+
+.extend-plan-btn, .view-gallery-btn {
+    flex: 1;
+    padding: 0.75rem 1rem;
+    border-radius: var(--radius-md);
+    font-weight: 500;
+    text-align: center;
+    cursor: pointer;
+    border: none;
+    box-shadow: var(--shadow-sm);
+    background-color: var(--primary-color);
+    color: white;
+}
+
+.extend-plan-btn:hover, .view-gallery-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+}
