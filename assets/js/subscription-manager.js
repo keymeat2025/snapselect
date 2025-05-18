@@ -1763,7 +1763,8 @@ function sortPlans(plans, sortOption) {
   return plans;
 }
 
-// Update the display with filtered plans
+
+// Update the display with filtered plans - Row-based layout
 function updatePlansDisplay(plans) {
   const plansContainer = document.getElementById('plansContainer');
   if (!plansContainer) return;
@@ -1810,16 +1811,37 @@ function updatePlansDisplay(plans) {
     return;
   }
   
-  // Create cards for each plan
+  // Create table for plans instead of cards
+  const plansTable = document.createElement('table');
+  plansTable.className = 'plans-table';
+  
+  // Add table header
+  plansTable.innerHTML = `
+    <thead>
+      <tr>
+        <th>Plan Type</th>
+        <th>Client</th>
+        <th>Dates</th>
+        <th>Status</th>
+        <th>Storage</th>
+        <th>Photos</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  `;
+  
+  const tableBody = plansTable.querySelector('tbody');
+  
+  // Create rows for each plan
   plans.forEach(plan => {
-    const planCard = document.createElement('div');
-    planCard.className = 'plan-card';
+    const planRow = document.createElement('tr');
     
-    // Add extra classes based on status
+    // Add status-based classes to the row
     if (plan.status === PLAN_STATUS.EXPIRED) {
-      planCard.classList.add('is-expired');
+      planRow.classList.add('is-expired');
     } else if (plan.status === PLAN_STATUS.EXPIRING_SOON) {
-      planCard.classList.add('is-expiring');
+      planRow.classList.add('is-expiring');
     }
     
     // Format dates
@@ -1830,48 +1852,40 @@ function updatePlansDisplay(plans) {
     const client = userClients.find(c => c.id === plan.clientId);
     const clientName = client?.name || plan.clientName || 'Unknown Client';
     
-    // Create HTML for the plan card
-    planCard.innerHTML = `
-      <div class="plan-header">
-        <h3 class="plan-type">${SUBSCRIPTION_PLANS[plan.planType]?.name || plan.planType} Plan</h3>
+    // Create HTML for the plan row
+    planRow.innerHTML = `
+      <td class="plan-type">${SUBSCRIPTION_PLANS[plan.planType]?.name || plan.planType}</td>
+      <td class="plan-client">${clientName}</td>
+      <td class="plan-dates">
+        <div><strong>Started:</strong> ${startDate}</div>
+        <div><strong>Expires:</strong> ${endDate}</div>
+      </td>
+      <td class="plan-status-cell">
         <span class="plan-status ${plan.status}">${formatPlanStatus(plan.status)}</span>
-      </div>
-      <div class="plan-details">
-        <div class="plan-client"><strong>Client:</strong> ${clientName}</div>
-        <div class="plan-dates">
-          <div><strong>Started:</strong> ${startDate}</div>
-          <div><strong>Expires:</strong> ${endDate}</div>
-        </div>
         ${plan.status === PLAN_STATUS.EXPIRING_SOON ? 
           `<div class="expiry-warning"><i class="fas fa-exclamation-triangle"></i> Expires in ${plan.daysLeftBeforeExpiration} days</div>` : ''}
         ${plan.status === PLAN_STATUS.EXPIRED ? 
           `<div class="expired-badge"><i class="fas fa-calendar-times"></i> Expired on ${endDate}</div>` : ''}
-        <div class="plan-usage">
-          <div class="usage-item">
-            <span>Storage: ${formatStorageUsage(plan.storageUsed || 0, SUBSCRIPTION_PLANS[plan.planType]?.storageLimit || 1)}</span>
-            <div class="usage-bar">
-              <div class="usage-progress" style="width: ${calculateUsagePercent(plan.storageUsed || 0, SUBSCRIPTION_PLANS[plan.planType]?.storageLimit || 1)}%"></div>
-            </div>
-          </div>
-          <div class="usage-item">
-            <span>Photos: ${formatPhotoUsage(plan.photosUploaded || 0, SUBSCRIPTION_PLANS[plan.planType]?.photosPerGallery || 50)}</span>
-            <div class="usage-bar">
-              <div class="usage-progress" style="width: ${calculateUsagePercent(plan.photosUploaded || 0, SUBSCRIPTION_PLANS[plan.planType]?.photosPerGallery || 50)}%"></div>
-            </div>
-          </div>
-        </div>
-      </div>
-      <div class="plan-actions">
+      </td>
+      <td class="plan-storage">
+        ${formatStorageUsage(plan.storageUsed || 0, SUBSCRIPTION_PLANS[plan.planType]?.storageLimit || 1)}
+      </td>
+      <td class="plan-photos">
+        ${formatPhotoUsage(plan.photosUploaded || 0, SUBSCRIPTION_PLANS[plan.planType]?.photosPerGallery || 50)}
+      </td>
+      <td class="plan-actions-cell">
         <button class="btn view-gallery-btn" data-client-id="${plan.clientId}">View Gallery</button>
         ${plan.status === PLAN_STATUS.EXPIRED ?
           `<button class="btn renew-plan-btn" data-plan-id="${plan.id}" data-client-id="${plan.clientId}">Renew Plan</button>` :
           `<button class="btn extend-plan-btn" data-plan-id="${plan.id}" data-client-id="${plan.clientId}">Extend Plan</button>`
         }
-      </div>
+      </td>
     `;
     
-    plansContainer.appendChild(planCard);
+    tableBody.appendChild(planRow);
   });
+  
+  plansContainer.appendChild(plansTable);
   
   // Add event listeners for buttons
   document.querySelectorAll('.view-gallery-btn').forEach(btn => {
