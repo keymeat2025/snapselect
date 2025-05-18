@@ -171,22 +171,50 @@
 
             <!-- Active Plans Section -->
             <section class="active-plans-section animate-in" style="animation-delay: 0.4s;">
+
+   
                 <div class="section-header">
-                    <h2>Active Client Plans</h2>
-                    <button id="refreshPlansBtn" class="refresh-btn">
-                        <i class="fas fa-sync-alt"></i>
-                    </button>
+                    <div class="header-main">
+                        <h2>Client Plans</h2>
+                        <button id="refreshPlansBtn" class="refresh-btn">
+                            <i class="fas fa-sync-alt"></i>
+                        </button>
+                    </div>
+                    <div class="tabs">
+                        <div class="tab active" data-filter="all">All <span class="plan-count">0</span></div>
+                        <div class="tab" data-filter="active">Active <span class="plan-count">0</span></div>
+                        <div class="tab" data-filter="expiring">Expiring Soon <span class="plan-count">0</span></div>
+                        <div class="tab" data-filter="expired">Expired <span class="plan-count">0</span></div>
+                    </div>
                 </div>
-                <div id="activePlans" class="active-plans-grid">
+                
+                <div class="plans-toolbar">
+                    <div class="search-plans">
+                        <i class="fas fa-search"></i>
+                        <input type="text" id="searchPlansInput" placeholder="Search plans by client or type...">
+                    </div>
+                    <div class="sort-dropdown">
+                        <button id="sortPlansBtn" class="sort-btn">
+                            <span>Sort: Recent</span>
+                            <i class="fas fa-chevron-down"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <div id="plansContainer" class="plans-grid">
                     <!-- Plans will be loaded dynamically -->
                     <div class="empty-state">
                         <i class="fas fa-ticket-alt empty-icon"></i>
-                        <h3>No active plans</h3>
+                        <h3>No plans found</h3>
                         <p>Purchase a plan for a client to get started</p>
                         <button class="btn" id="emptyStateUpgradeBtn">Purchase Plan</button>
                     </div>
                 </div>
             </section>
+
+
+                
+      
             <!-- Client Management Section -->
             <section class="clients-section animate-in" style="animation-delay: 0.5s;">
                 <div class="section-header">
