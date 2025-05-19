@@ -2232,4 +2232,6 @@ function displaySystemGalleryStatsModal() {
     modal.style.display = 'block';
 }
 
-
+// Make functions globally available by attaching them to the window object
+window.loadAllGalleriesStats = loadAllGalleriesStats;
+window.displaySystemGalleryStatsModal = displaySystemGalleryStatsModal;
