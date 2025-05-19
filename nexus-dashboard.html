@@ -1938,8 +1938,8 @@
             initializeClientsSection();
 
             
-            // Add this line to update gallery statistics when the page loads
-            updateGalleryStatistics();
+           // Load all gallery statistics
+            window.loadAllGalleriesStats(false);
         });
         function initializePhotographersSection() {
             // Get the photographers tab element
@@ -4676,42 +4676,27 @@
 
 
     
-        // Add this function somewhere in your script section
-        function setupGalleryStatsCard() {
+                // Add this function somewhere in your script section
+         function setupGalleryStatsCard() {
             const totalGalleriesCard = document.getElementById('totalGalleriesCount')?.closest('.dashboard-card');
             
             if (totalGalleriesCard) {
                 // Make the card look clickable
                 totalGalleriesCard.style.cursor = 'pointer';
-                totalGalleriesCard.title = 'Click to view detailed gallery statistics';
+                totalGalleriesCard.title = 'Click to view system-wide gallery statistics';
                 
-                // When clicked, open gallery stats for the first gallery
+                // When clicked, open system-wide gallery stats instead of first gallery
                 totalGalleriesCard.addEventListener('click', function() {
                     // Show loading overlay
                     const loadingOverlay = document.getElementById('loadingOverlay') || createLoadingOverlay();
                     loadingOverlay.style.display = 'flex';
                     
-                    // Get the first gallery with complete data to display stats
-                    const db = firebase.firestore();
-                    db.collection('galleries').limit(1).get().then(snapshot => {
-                        if (!snapshot.empty) {
-                            const galleryDoc = snapshot.docs[0];
-                            const galleryId = galleryDoc.id;
-                            const galleryData = galleryDoc.data();
-                            
-                            // Call openGalleryDetails with the gallery info
-                            window.openGalleryDetails(galleryId, galleryData.photographerId, galleryData.clientId);
-                        } else {
-                            showToast('Info', 'No galleries found to display statistics', 'info');
-                        }
-                        
-                        // Hide loading overlay
-                        loadingOverlay.style.display = 'none';
-                    }).catch(error => {
-                        console.error('Error fetching gallery for stats:', error);
-                        showToast('Error', 'Failed to load gallery statistics', 'error');
-                        loadingOverlay.style.display = 'none';
-                    });
+                    // Display system-wide gallery stats modal instead of fetching a single gallery
+                    window.displaySystemGalleryStatsModal();
+                    
+                   
+                    loadingOverlay.style.display = 'none';
+                    
                 });
             }
         }
