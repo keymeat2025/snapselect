@@ -1522,55 +1522,71 @@ input:focus {
 
 /* Tooltip for Renew Plan buttons */
 .renew-plan-btn {
-  position: relative;
+    position: relative;
 }
 
 .renew-plan-btn:hover::after {
-  content: "To maintain your current features and client access, we recommend renewing with the same plan.";
-  position: absolute;
-  width: 250px;
-  background-color: rgba(0, 0, 0, 0.8);
-  color: white;
-  text-align: center;
-  border-radius: var(--radius-sm);
-  padding: 8px 10px;
-  z-index: 100;
-  bottom: calc(100% + 10px);
-  left: 50%;
-  transform: translateX(-50%);
-  font-size: 13px;
-  font-weight: normal;
-  line-height: 1.4;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    content: "To maintain your current features and client access, we recommend renewing with the same plan.";
+    position: absolute;
+    width: 250px;
+    background-color: rgba(0, 0, 0, 0.85);
+    color: white;
+    text-align: center;
+    border-radius: 8px;
+    padding: 10px 12px;
+    z-index: 1000; /* Higher z-index to ensure it's on top */
+    bottom: calc(100% + 15px); /* More space above the button */
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 13px;
+    font-weight: normal;
+    line-height: 1.5;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    white-space: normal; /* Ensure text wraps */
+    pointer-events: none; /* Allow clicks to pass through */
 }
 
 .renew-plan-btn:hover::before {
-  content: "";
-  position: absolute;
-  top: -10px;
-  left: 50%;
-  transform: translateX(-50%);
-  border-width: 5px;
-  border-style: solid;
-  border-color: rgba(0, 0, 0, 0.8) transparent transparent transparent;
+    content: "";
+    position: absolute;
+    top: -15px; /* Adjusted to match the increased space */
+    left: 50%;
+    transform: translateX(-50%);
+    border-width: 8px;
+    border-style: solid;
+    border-color: rgba(0, 0, 0, 0.85) transparent transparent transparent;
+    pointer-events: none; /* Allow clicks to pass through */
+}
+
+/* For the specific table layout you have, adjust positioning */
+.renew-plan-btn {
+    overflow: visible; /* Ensure tooltip is not clipped */
+}
+
+/* For the last row in the table where tooltip might get cut off at bottom */
+tr:last-child .renew-plan-btn:hover::after {
+    bottom: calc(100% + 15px);
+    top: auto;
 }
 
 /* For mobile responsiveness */
 @media (max-width: 768px) {
-  .renew-plan-btn:hover::after {
-    width: 200px;
-    bottom: auto;
-    top: calc(100% + 10px);
-    left: auto;
-    right: 0;
-    transform: none;
-  }
-  
-  .renew-plan-btn:hover::before {
-    top: auto;
-    bottom: -10px;
-    border-color: transparent transparent rgba(0, 0, 0, 0.8) transparent;
-  }
+    .renew-plan-btn:hover::after {
+        width: 220px;
+        right: -15px; /* Adjust position to be more centered */
+        left: auto;
+        bottom: auto;
+        top: calc(100% + 15px);
+        transform: none;
+    }
+    
+    .renew-plan-btn:hover::before {
+        top: auto;
+        bottom: -15px;
+        left: auto;
+        right: 20px;
+        border-color: transparent transparent rgba(0, 0, 0, 0.85) transparent;
+    }
 }
 
 
