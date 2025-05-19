@@ -1520,6 +1520,60 @@ input:focus {
     /*color: white; */
 }
 
+/* Tooltip for Renew Plan buttons */
+.renew-plan-btn {
+  position: relative;
+}
+
+.renew-plan-btn:hover::after {
+  content: "To maintain your current features and client access, we recommend renewing with the same plan.";
+  position: absolute;
+  width: 250px;
+  background-color: rgba(0, 0, 0, 0.8);
+  color: white;
+  text-align: center;
+  border-radius: var(--radius-sm);
+  padding: 8px 10px;
+  z-index: 100;
+  bottom: calc(100% + 10px);
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 13px;
+  font-weight: normal;
+  line-height: 1.4;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+}
+
+.renew-plan-btn:hover::before {
+  content: "";
+  position: absolute;
+  top: -10px;
+  left: 50%;
+  transform: translateX(-50%);
+  border-width: 5px;
+  border-style: solid;
+  border-color: rgba(0, 0, 0, 0.8) transparent transparent transparent;
+}
+
+/* For mobile responsiveness */
+@media (max-width: 768px) {
+  .renew-plan-btn:hover::after {
+    width: 200px;
+    bottom: auto;
+    top: calc(100% + 10px);
+    left: auto;
+    right: 0;
+    transform: none;
+  }
+  
+  .renew-plan-btn:hover::before {
+    top: auto;
+    bottom: -10px;
+    border-color: transparent transparent rgba(0, 0, 0, 0.8) transparent;
+  }
+}
+
+
 /* Responsive Adjustments */
 @media (max-width: 768px) {
     .search-plans {
@@ -1541,6 +1595,59 @@ input:focus {
     justify-content: center;
     margin-top: 1.25rem;
     margin-bottom: 1rem;
+}
+
+/* Tooltip for Renew Plan buttons */
+.renew-plan-btn {
+  position: relative;
+}
+
+.renew-plan-btn:hover::after {
+  content: "To maintain your current features and client access, we recommend renewing with the same plan.";
+  position: absolute;
+  width: 250px;
+  background-color: rgba(0, 0, 0, 0.8);
+  color: white;
+  text-align: center;
+  border-radius: var(--radius-sm);
+  padding: 8px 10px;
+  z-index: 100;
+  bottom: calc(100% + 10px);
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 13px;
+  font-weight: normal;
+  line-height: 1.4;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+}
+
+.renew-plan-btn:hover::before {
+  content: "";
+  position: absolute;
+  top: -10px;
+  left: 50%;
+  transform: translateX(-50%);
+  border-width: 5px;
+  border-style: solid;
+  border-color: rgba(0, 0, 0, 0.8) transparent transparent transparent;
+}
+
+/* For mobile responsiveness */
+@media (max-width: 768px) {
+  .renew-plan-btn:hover::after {
+    width: 200px;
+    bottom: auto;
+    top: calc(100% + 10px);
+    left: auto;
+    right: 0;
+    transform: none;
+  }
+  
+  .renew-plan-btn:hover::before {
+    top: auto;
+    bottom: -10px;
+    border-color: transparent transparent rgba(0, 0, 0, 0.8) transparent;
+  }
 }
 
 .extend-plan-btn, .view-gallery-btn {
