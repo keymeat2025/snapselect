@@ -15,6 +15,18 @@
     <script src="assets/js/firebase-config.js"></script>
     <script src="assets/js/firebase-auth.js"></script>
     <script src="assets/js/firebase-db.js"></script>
+
+
+        <!-- Add this line to import the gallery details module -->
+    <script type="module">
+      import { openGalleryDetails, fetchGalleryRatings, countGalleryPhotos } from 'assets/js/gallery-details.js';
+      
+      // Make these functions available globally
+      window.openGalleryDetails = openGalleryDetails;
+      window.fetchGalleryRatings = fetchGalleryRatings;
+      window.countGalleryPhotos = countGalleryPhotos;
+    </script>
+    
     <style>
         :root {
             --color-primary: #3f51b5;
@@ -4034,6 +4046,19 @@
                 button.addEventListener('click', function() {
                     const galleryId = this.getAttribute('data-id');
                     editGallery(galleryId);
+                });
+            });
+
+
+            // When a user clicks on a gallery in your galleries list
+            document.querySelectorAll('.view-gallery-btn').forEach(button => {
+                button.addEventListener('click', function() {
+                    const galleryId = this.getAttribute('data-gallery-id');
+                    const photographerId = this.getAttribute('data-photographer-id');
+                    const clientId = this.getAttribute('data-client-id');
+                    
+                    // Open gallery details modal
+                    openGalleryDetails(galleryId, photographerId, clientId);
                 });
             });
         }
