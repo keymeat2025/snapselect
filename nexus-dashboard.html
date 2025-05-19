@@ -1108,6 +1108,395 @@
                     </tbody>
                 </table>
             </div>
+
+            <!-- track gallery ratings and client feedback -->
+            <div class="data-table-container">
+                <div class="data-table-header">
+                    <h2 class="data-table-title">Gallery Ratings & Feedback</h2>
+                    <div class="data-table-actions">
+                        <div class="search-container">
+                            <i class="fas fa-search search-icon"></i>
+                            <input type="text" class="search-input" id="ratingSearch" placeholder="Search ratings...">
+                        </div>
+                        <button class="btn btn-primary" id="exportRatingsBtn">
+                            <i class="fas fa-download"></i> Export Report
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="filter-bar">
+                    <div class="filter-group">
+                        <label>Rating:</label>
+                        <select id="ratingFilter" class="filter-select">
+                            <option value="all">All Ratings</option>
+                            <option value="5">5 Stars</option>
+                            <option value="4">4 Stars</option>
+                            <option value="3">3 Stars</option>
+                            <option value="2">2 Stars</option>
+                            <option value="1">1 Star</option>
+                            <option value="pending">Pending</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label>Time Period:</label>
+                        <select id="ratingPeriodFilter" class="filter-select">
+                            <option value="all">All Time</option>
+                            <option value="week">This Week</option>
+                            <option value="month">This Month</option>
+                            <option value="quarter">This Quarter</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Gallery Name</th>
+                            <th>Client</th>
+                            <th>Photographer</th>
+                            <th>Rating Status</th>
+                            <th>Rating Value</th>
+                            <th>Submission Date</th>
+                            <th>Has Feedback</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="ratingTableBody">
+                        <!-- Ratings will be loaded here -->
+                    </tbody>
+                </table>
+                
+                <div class="pagination">
+                    <button class="pagination-btn" id="prevRatingPage" disabled>
+                        <i class="fas fa-chevron-left"></i> Previous
+                    </button>
+                    <div class="pagination-info">
+                        Page <span id="currentRatingPage">1</span> of <span id="totalRatingPages">1</span>
+                    </div>
+                    <button class="pagination-btn" id="nextRatingPage">
+                        Next <i class="fas fa-chevron-right"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- to track which galleries have been shared with clients: -->
+            <div class="data-table-container">
+                <div class="data-table-header">
+                    <h2 class="data-table-title">Gallery Sharing Status</h2>
+                    <div class="data-table-actions">
+                        <button class="btn btn-secondary" id="refreshSharingBtn">
+                            <i class="fas fa-sync"></i> Refresh
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="gallery-sharing-metrics">
+                    <div class="metric-card">
+                        <div class="metric-value" id="totalSharedGalleries">--</div>
+                        <div class="metric-label">Total Shared</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value" id="pendingViewGalleries">--</div>
+                        <div class="metric-label">Pending View</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value" id="viewedGalleries">--</div>
+                        <div class="metric-label">Viewed</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-value" id="downloadedGalleries">--</div>
+                        <div class="metric-label">Downloaded</div>
+                    </div>
+                </div>
+                
+                <div class="filter-bar">
+                    <div class="filter-group">
+                        <label>Status:</label>
+                        <select id="sharingStatusFilter" class="filter-select">
+                            <option value="all">All Status</option>
+                            <option value="shared">Shared</option>
+                            <option value="not_shared">Not Shared</option>
+                            <option value="viewed">Viewed</option>
+                            <option value="downloaded">Downloaded</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Gallery</th>
+                            <th>Client</th>
+                            <th>Sharing Status</th>
+                            <th>Shared Date</th>
+                            <th>First Viewed</th>
+                            <th>View Count</th>
+                            <th>Download Count</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="sharingTableBody">
+                        <!-- Sharing data will be loaded here -->
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- to track all gallery-related activities:-->
+            <div class="gallery-timeline-container">
+                <h2 class="section-title">Gallery Activity Timeline</h2>
+                
+                <div class="timeline-filters">
+                    <div class="filter-group">
+                        <label>Activity Type:</label>
+                        <select id="activityTypeFilter" class="filter-select">
+                            <option value="all">All Activities</option>
+                            <option value="creation">Creation</option>
+                            <option value="sharing">Sharing</option>
+                            <option value="viewing">Viewing</option>
+                            <option value="download">Downloads</option>
+                            <option value="rating">Ratings</option>
+                            <option value="comment">Comments</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label>Date Range:</label>
+                        <input type="date" id="startDateFilter" class="date-filter">
+                        <span>to</span>
+                        <input type="date" id="endDateFilter" class="date-filter">
+                    </div>
+                </div>
+                
+                <div class="timeline" id="galleryTimeline">
+                    <!-- Timeline items will be inserted here -->
+                </div>
+            </div>
+
+            <!--  to track gallery performance metrics:-->
+            <div class="gallery-analytics-container">
+                <h2 class="section-title">Gallery Performance Analytics</h2>
+                
+                <div class="analytics-cards">
+                    <div class="analytics-card">
+                        <div class="card-header">
+                            <h3>Engagement Overview</h3>
+                            <div class="period-selector">
+                                <button class="period-btn active" data-period="week">Week</button>
+                                <button class="period-btn" data-period="month">Month</button>
+                                <button class="period-btn" data-period="quarter">Quarter</button>
+                            </div>
+                        </div>
+                        <div class="chart-container">
+                            <canvas id="engagementChart"></canvas>
+                        </div>
+                    </div>
+                    
+                    <div class="analytics-card">
+                        <div class="card-header">
+                            <h3>Gallery Ratings Distribution</h3>
+                        </div>
+                        <div class="chart-container">
+                            <canvas id="ratingsDistributionChart"></canvas>
+                        </div>
+                    </div>
+                    
+                    <div class="analytics-card">
+                        <div class="card-header">
+                            <h3>Gallery Sharing Conversion</h3>
+                        </div>
+                        <div class="chart-container">
+                            <canvas id="sharingConversionChart"></canvas>
+                        </div>
+                        <div class="conversion-metrics">
+                            <div class="conversion-item">
+                                <div class="conversion-label">Share to View Rate</div>
+                                <div class="conversion-value" id="shareToViewRate">--</div>
+                            </div>
+                            <div class="conversion-item">
+                                <div class="conversion-label">View to Rating Rate</div>
+                                <div class="conversion-value" id="viewToRatingRate">--</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- to track client engagement with galleries:-->
+            <div class="client-engagement-container">
+                <h2 class="section-title">Client Gallery Engagement</h2>
+                
+                <div class="engagement-table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Client</th>
+                                <th>Galleries Shared</th>
+                                <th>View Rate</th>
+                                <th>Avg. Time Spent</th>
+                                <th>Rating Completion</th>
+                                <th>Avg. Rating</th>
+                                <th>Download Rate</th>
+                                <th>Last Activity</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="clientEngagementTableBody">
+                            <!-- Client engagement data will be loaded here -->
+                        </tbody>
+                    </table>
+                </div>
+                
+                <div class="engagement-heat-map">
+                    <h3>Client Engagement Heat Map</h3>
+                    <div class="heat-map-container" id="engagementHeatMap">
+                        <!-- Heat map will be rendered here -->
+                    </div>
+                    <div class="heat-map-legend">
+                        <div class="legend-item">
+                            <div class="color-box low"></div>
+                            <div class="legend-label">Low Engagement</div>
+                        </div>
+                        <div class="legend-item">
+                            <div class="color-box medium"></div>
+                            <div class="legend-label">Medium Engagement</div>
+                        </div>
+                        <div class="legend-item">
+                            <div class="color-box high"></div>
+                            <div class="legend-label">High Engagement</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Gallery Health Monitoring-->
+            <div class="gallery-health-container">
+                <h2 class="section-title">Gallery Technical Health</h2>
+                
+                <div class="health-metrics-cards">
+                    <div class="health-metric-card">
+                        <div class="metric-icon">
+                            <i class="fas fa-tachometer-alt"></i>
+                        </div>
+                        <div class="metric-content">
+                            <div class="metric-title">Loading Speed</div>
+                            <div class="metric-value" id="avgLoadingSpeed">--</div>
+                            <div class="metric-chart">
+                                <canvas id="loadingSpeedChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="health-metric-card">
+                        <div class="metric-icon">
+                            <i class="fas fa-compress-arrows-alt"></i>
+                        </div>
+                        <div class="metric-content">
+                            <div class="metric-title">Image Optimization</div>
+                            <div class="metric-value" id="optimizationScore">--</div>
+                            <div class="optimization-breakdown">
+                                <div class="breakdown-item">
+                                    <div class="breakdown-label">Well Optimized</div>
+                                    <div class="breakdown-bar">
+                                        <div class="bar-fill" id="wellOptimizedBar" style="width: 75%;"></div>
+                                    </div>
+                                    <div class="breakdown-value" id="wellOptimizedValue">75%</div>
+                                </div>
+                                <div class="breakdown-item">
+                                    <div class="breakdown-label">Needs Optimization</div>
+                                    <div class="breakdown-bar">
+                                        <div class="bar-fill warning" id="needsOptimizationBar" style="width: 25%;"></div>
+                                    </div>
+                                    <div class="breakdown-value" id="needsOptimizationValue">25%</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="optimization-opportunities">
+                    <h3>Optimization Opportunities</h3>
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Gallery</th>
+                                <th>Issue</th>
+                                <th>Impact</th>
+                                <th>Recommendation</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="optimizationTableBody">
+                            <!-- Optimization recommendations will be loaded here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!--Gallery Lifecycle Dashboard -->
+            <div class="gallery-lifecycle-container">
+                <h2 class="section-title">Gallery Lifecycle Management</h2>
+                
+                <div class="lifecycle-stages">
+                    <div class="stage-card">
+                        <div class="stage-header">
+                            <h3>Created</h3>
+                            <div class="stage-count" id="createdCount">--</div>
+                        </div>
+                        <div class="stage-list" id="createdGalleries">
+                            <!-- Created galleries will be listed here -->
+                        </div>
+                    </div>
+                    
+                    <div class="stage-connector">
+                        <i class="fas fa-arrow-right"></i>
+                    </div>
+                    
+                    <div class="stage-card">
+                        <div class="stage-header">
+                            <h3>Shared</h3>
+                            <div class="stage-count" id="sharedCount">--</div>
+                        </div>
+                        <div class="stage-list" id="sharedGalleries">
+                            <!-- Shared galleries will be listed here -->
+                        </div>
+                    </div>
+                    
+                    <div class="stage-connector">
+                        <i class="fas fa-arrow-right"></i>
+                    </div>
+                    
+                    <div class="stage-card">
+                        <div class="stage-header">
+                            <h3>Viewed</h3>
+                            <div class="stage-count" id="viewedCount">--</div>
+                        </div>
+                        <div class="stage-list" id="viewedGalleries">
+                            <!-- Viewed galleries will be listed here -->
+                        </div>
+                    </div>
+                    
+                    <div class="stage-connector">
+                        <i class="fas fa-arrow-right"></i>
+                    </div>
+                    
+                    <div class="stage-card">
+                        <div class="stage-header">
+                            <h3>Rated</h3>
+                            <div class="stage-count" id="ratedCount">--</div>
+                        </div>
+                        <div class="stage-list" id="ratedGalleries">
+                            <!-- Rated galleries will be listed here -->
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="conversion-metrics">
+                    <h3>Lifecycle Conversion Rates</h3>
+                    <div class="conversion-chart-container">
+                        <canvas id="lifecycleConversionChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
             
             <!-- System Logs Section -->
             <div class="data-table-container">
@@ -3748,6 +4137,67 @@
                 });
         }
         
+        function createGalleryRelationshipTree() {
+            // Create a tree visualization using d3.js
+            const treeData = {
+                name: "All Relationships",
+                children: []
+            };
+            
+            // Group by photographers
+            photographers.forEach(photographer => {
+                const photographerNode = {
+                    name: photographer.ownerName || photographer.studioName,
+                    id: photographer.id,
+                    type: "photographer",
+                    children: []
+                };
+                
+                // Find clients associated with this photographer
+                const relatedClients = clients.filter(client => 
+                    client.photographerId === photographer.id);
+                
+                relatedClients.forEach(client => {
+                    const clientNode = {
+                        name: client.name,
+                        id: client.id,
+                        type: "client",
+                        children: []
+                    };
+                    
+                    // Find galleries for this client
+                    const clientGalleries = galleries.filter(gallery => 
+                        gallery.clientId === client.id && 
+                        gallery.photographerId === photographer.id);
+                    
+                    clientGalleries.forEach(gallery => {
+                        clientNode.children.push({
+                            name: gallery.name,
+                            id: gallery.id,
+                            type: "gallery",
+                            status: gallery.status,
+                            photosCount: gallery.photosCount || 0,
+                            sharedStatus: gallery.shared ? "Shared" : "Not Shared",
+                            viewCount: gallery.viewCount || 0
+                        });
+                    });
+                    
+                    if (clientNode.children.length > 0) {
+                        photographerNode.children.push(clientNode);
+                    }
+                });
+                
+                if (photographerNode.children.length > 0) {
+                    treeData.children.push(photographerNode);
+                }
+            });
+            
+            // Render the tree using d3.js
+            renderTree(treeData, "#galleryRelationshipTree");
+        }
+
+
+
         
         // Add CSS styles for client section
         function addClientStyles() {
