@@ -1864,7 +1864,7 @@ function updatePlansDisplay(plans) {
         <th>Client</th>
         <th>Dates</th>
         <th>Status</th>
-        <th>Storage</th>
+        <!--<th>Storage</th>-->
         <th>Photos</th>
         <th>Actions</th>
       </tr>
@@ -1908,9 +1908,9 @@ function updatePlansDisplay(plans) {
         ${plan.status === PLAN_STATUS.EXPIRED ? 
           `<div class="expired-badge"><i class="fas fa-calendar-times"></i> Expired on ${endDate}</div>` : ''}
       </td>
-      <td class="plan-storage">
+      /* <td class="plan-storage">
         ${formatStorageUsage(plan.storageUsed || 0, SUBSCRIPTION_PLANS[plan.planType]?.storageLimit || 1)}
-      </td>
+      </td> */
       <td class="plan-photos">
         ${formatPhotoUsage(plan.photosUploaded || 0, SUBSCRIPTION_PLANS[plan.planType]?.photosPerGallery || 50)}
       </td>
