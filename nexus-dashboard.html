@@ -943,6 +943,14 @@
                         <i class="fas fa-arrow-up"></i> 15% this month
                     </div>
                 </div>
+
+                <div class="dashboard-card">
+                    <div class="card-icon warning">
+                        <i class="fas fa-images"></i>
+                    </div>
+                    <div class="card-value" id="totalGalleries">--</div>
+                    <div class="card-label">Total Galleries</div>
+                </div>
             </div>
             
             <!-- Recent Photographers Table -->
@@ -1481,6 +1489,13 @@
                                     <input type="text" class="search-input" id="photographerSearch" placeholder="Search photographers...">
                                 </div>
                             </div>
+                        </div>
+
+                        <div class="data-table-container">
+                            <div class="data-table-header">
+                                <h2 class="data-table-title">Gallery Statistics</h2>
+                            </div>
+                            <div id="galleryStatistics"></div>
                         </div>
                         
                         <div class="filter-bar">
@@ -3705,7 +3720,16 @@
                 });
         }
 
-
+        function updateGalleryStatistics() {
+            const db = firebase.firestore();
+            db.collection('galleries').get().then(snapshot => {
+                const totalGalleries = snapshot.size;
+                const activeGalleries = snapshot.docs.filter(doc => doc.data().status === 'active').length;
+                
+                document.getElementById('totalGalleries').textContent = totalGalleries;
+                // Update other gallery statistics...
+            });
+        }
         
         
         // Add CSS styles for client section
