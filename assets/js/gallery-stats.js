@@ -1465,7 +1465,9 @@ function createLoadingOverlay() {
 export {
     openGalleryDetails,
     fetchGalleryRatings,
-    countGalleryPhotos
+    countGalleryPhotos,
+    loadAllGalleriesStats, // Add this new function
+    displaySystemGalleryStatsModal // Add this new function
 };
 
 function displayGalleryStatsModal(client) {
@@ -1998,3 +2000,236 @@ function updateTechnicalUI(data) {
     document.getElementById('storageUsed').textContent = data.storageUsed;
     document.getElementById('optimizationScore').textContent = data.optimizationScore;
 }
+
+// Function to load statistics for all galleries in the system
+function loadAllGalleriesStats(forceRefresh = false) {
+    const cacheKey = 'all_galleries_stats';
+    const cacheDateKey = `${cacheKey}_date`;
+    
+    // Check for cached data if not forcing refresh
+    if (!forceRefresh) {
+        const cachedData = localStorage.getItem(cacheKey);
+        const cachedDate = localStorage.getItem(cacheDateKey);
+        
+        if (cachedData && cachedDate) {
+            try {
+                const data = JSON.parse(cachedData);
+                updateSystemGalleryStatsUI(data);
+                return;
+            } catch (e) {
+                console.error("Error parsing cached data:", e);
+            }
+        }
+    }
+    
+    // Show loading indicator in dashboard
+    if (document.getElementById('totalGalleries')) {
+        document.getElementById('totalGalleries').textContent = "Loading...";
+    }
+    
+    // Fetch data from Firestore
+    const db = firebase.firestore();
+    db.collection('galleries').get()
+        .then(snapshot => {
+            const galleries = snapshot.docs.map(doc => ({
+                id: doc.id,
+                ...doc.data()
+            }));
+            
+            // Calculate aggregate statistics
+            const stats = {
+                totalCount: galleries.length,
+                activeCount: galleries.filter(g => g.status === 'active').length,
+                sharedCount: galleries.filter(g => g.shared === true).length,
+                viewedCount: galleries.filter(g => g.viewCount && g.viewCount > 0).length,
+                ratedCount: galleries.filter(g => g.hasRatings === true).length,
+                downloadCount: galleries.filter(g => g.downloadCount && g.downloadCount > 0).length
+            };
+            
+            // Cache the data
+            localStorage.setItem(cacheKey, JSON.stringify(stats));
+            localStorage.setItem(cacheDateKey, Date.now().toString());
+            
+            // Update UI for dashboard
+            updateSystemGalleryStatsUI(stats);
+        })
+        .catch(error => {
+            console.error("Error fetching all galleries stats:", error);
+            if (document.getElementById('totalGalleries')) {
+                document.getElementById('totalGalleries').textContent = "Error";
+            }
+        });
+}
+
+// Function to update UI with system-wide gallery stats
+function updateSystemGalleryStatsUI(stats) {
+    // Update main dashboard stat if it exists
+    if (document.getElementById('totalGalleries')) {
+        document.getElementById('totalGalleries').textContent = stats.totalCount;
+    }
+    
+    // Update other stats elements if they exist (for sharing section)
+    if (document.getElementById('totalSharedGalleries')) {
+        document.getElementById('totalSharedGalleries').textContent = stats.sharedCount;
+    }
+    
+    if (document.getElementById('viewedGalleries')) {
+        document.getElementById('viewedGalleries').textContent = stats.viewedCount;
+    }
+    
+    if (document.getElementById('pendingViewGalleries')) {
+        document.getElementById('pendingViewGalleries').textContent = 
+            stats.sharedCount - stats.viewedCount;
+    }
+    
+    if (document.getElementById('downloadedGalleries')) {
+        document.getElementById('downloadedGalleries').textContent = stats.downloadCount;
+    }
+}
+
+// Function to display system-wide gallery statistics modal
+function displaySystemGalleryStatsModal() {
+    // Create or get modal
+    const modal = document.getElementById('clientModal') || document.getElementById('galleryDetailsModal');
+    const modalBody = modal.querySelector('.modal-body');
+    
+    // Update modal title
+    const modalTitle = modal.querySelector('.modal-header h2');
+    modalTitle.textContent = 'System-wide Gallery Statistics';
+    
+    // Create stats dashboard HTML
+    modalBody.innerHTML = `
+        <div class="gallery-stats-dashboard">
+            <div class="stats-row">
+                <div class="stats-card">
+                    <div class="stats-card-header">
+                        <h3>Gallery Overview</h3>
+                        <button class="sync-btn" id="syncSystemOverview" title="Refresh data">
+                            <i class="fas fa-sync-alt"></i>
+                        </button>
+                    </div>
+                    <div class="stats-content">
+                        <div class="stat-item">
+                            <div class="stat-label">Total Galleries</div>
+                            <div class="stat-value" id="modalTotalGalleries">--</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-label">Active Galleries</div>
+                            <div class="stat-value" id="modalActiveGalleries">--</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-label">Shared Galleries</div>
+                            <div class="stat-value" id="modalSharedGalleries">--</div>
+                        </div>
+                        <div class="stat-date" id="systemOverviewLastUpdated">Last updated: --</div>
+                    </div>
+                </div>
+                
+                <div class="stats-card">
+                    <div class="stats-card-header">
+                        <h3>Engagement Metrics</h3>
+                        <button class="sync-btn" id="syncSystemEngagement" title="Refresh data">
+                            <i class="fas fa-sync-alt"></i>
+                        </button>
+                    </div>
+                    <div class="stats-content">
+                        <div class="stat-item">
+                            <div class="stat-label">Viewed Galleries</div>
+                            <div class="stat-value" id="modalViewedGalleries">--</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-label">Rated Galleries</div>
+                            <div class="stat-value" id="modalRatedGalleries">--</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-label">Downloaded Galleries</div>
+                            <div class="stat-value" id="modalDownloadedGalleries">--</div>
+                        </div>
+                        <div class="stat-date" id="systemEngagementLastUpdated">Last updated: --</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="btn-container">
+                <button class="btn btn-outline" id="refreshAllSystemStatsBtn">
+                    <i class="fas fa-sync-alt"></i> Refresh All Stats
+                </button>
+            </div>
+        </div>
+    `;
+    
+    // Retrieve cached data
+    const cacheKey = 'all_galleries_stats';
+    const cacheDateKey = `${cacheKey}_date`;
+    const cachedData = localStorage.getItem(cacheKey);
+    const cachedDate = localStorage.getItem(cacheDateKey);
+    
+    if (cachedData && cachedDate) {
+        try {
+            const stats = JSON.parse(cachedData);
+            
+            // Update modal UI with stats
+            document.getElementById('modalTotalGalleries').textContent = stats.totalCount || 0;
+            document.getElementById('modalActiveGalleries').textContent = stats.activeCount || 0;
+            document.getElementById('modalSharedGalleries').textContent = stats.sharedCount || 0;
+            document.getElementById('modalViewedGalleries').textContent = stats.viewedCount || 0;
+            document.getElementById('modalRatedGalleries').textContent = stats.ratedCount || 0;
+            document.getElementById('modalDownloadedGalleries').textContent = stats.downloadCount || 0;
+            
+            // Update timestamps
+            const formattedDate = formatDate(new Date(parseInt(cachedDate)));
+            document.getElementById('systemOverviewLastUpdated').textContent = `Last updated: ${formattedDate}`;
+            document.getElementById('systemEngagementLastUpdated').textContent = `Last updated: ${formattedDate}`;
+        } catch (e) {
+            console.error("Error parsing cached data:", e);
+        }
+    }
+    
+    // Add event listeners
+    document.getElementById('syncSystemOverview').addEventListener('click', function() {
+        // Add spinning class
+        this.classList.add('spinning');
+        loadAllGalleriesStats(true);
+        setTimeout(() => {
+            displaySystemGalleryStatsModal();
+            this.classList.remove('spinning');
+        }, 1000);
+    });
+    
+    document.getElementById('syncSystemEngagement').addEventListener('click', function() {
+        // Add spinning class
+        this.classList.add('spinning');
+        loadAllGalleriesStats(true);
+        setTimeout(() => {
+            displaySystemGalleryStatsModal();
+            this.classList.remove('spinning');
+        }, 1000);
+    });
+    
+    document.getElementById('refreshAllSystemStatsBtn').addEventListener('click', function() {
+        loadAllGalleriesStats(true);
+        setTimeout(() => {
+            displaySystemGalleryStatsModal();
+        }, 1000);
+    });
+    
+    // Update close button
+    const closeModalBtn = modal.querySelector('.btn-outline');
+    if (closeModalBtn) {
+        closeModalBtn.onclick = function() {
+            modal.style.display = 'none';
+        };
+    }
+    
+    const closeModal = modal.querySelector('.close-modal');
+    if (closeModal) {
+        closeModal.onclick = function() {
+            modal.style.display = 'none';
+        };
+    }
+    
+    // Show the modal
+    modal.style.display = 'block';
+}
+
+
