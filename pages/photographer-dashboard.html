@@ -659,6 +659,32 @@
                 });
             }
         });
+
+
+                // Add the renew-plan-btn class to all "Renew Plan" buttons
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initial run
+            addClassToRenewButtons();
+            
+            // Set up observer for dynamically added buttons
+            const observer = new MutationObserver(function() {
+                addClassToRenewButtons();
+            });
+            
+            // Observe the entire document for changes
+            observer.observe(document.body, { 
+                childList: true, 
+                subtree: true 
+            });
+            
+            function addClassToRenewButtons() {
+                document.querySelectorAll('button').forEach(button => {
+                    if (button.textContent.trim() === 'Renew Plan' && !button.classList.contains('renew-plan-btn')) {
+                        button.classList.add('renew-plan-btn');
+                    }
+                });
+            }
+        });
     </script>
 </body>
 </html>
