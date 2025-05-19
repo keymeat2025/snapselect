@@ -179,9 +179,14 @@
                 <div class="section-header">
                     <div class="header-main">
                         <h2>Client Plans</h2>
-                        <button id="refreshPlansBtn" class="refresh-btn">
-                            <i class="fas fa-sync-alt"></i>
-                        </button>
+                        <div class="header-actions">
+                            <button id="fixCountsBtn" class="action-btn" title="Fix Photo Counts">
+                                <i class="fas fa-wrench"></i>
+                            </button>
+                            <button id="refreshPlansBtn" class="refresh-btn">
+                                <i class="fas fa-sync-alt"></i>
+                            </button>
+                        </div>
                     </div>
                     <div class="tabs">
                         <div class="tab active" data-filter="all">All <span class="plan-count">0</span></div>
@@ -618,6 +623,21 @@
                     }
                 });
             });
+
+            // Add this to your existing event listeners
+            const fixCountsBtn = document.getElementById('fixCountsBtn');
+            if (fixCountsBtn) {
+                fixCountsBtn.addEventListener('click', function() {
+                    if (window.subscriptionManager && typeof window.subscriptionManager.fixAllPhotoCountDiscrepancies === 'function') {
+                        window.subscriptionManager.fixAllPhotoCountDiscrepancies();
+                    } else {
+                        // Fallback if function not available
+                        showErrorMessage('Count fix functionality is not available');
+                    }
+                });
+            }
+
+
             
             // Refresh buttons
             const refreshPlansBtn = document.getElementById('refreshPlansBtn');
