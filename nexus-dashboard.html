@@ -1412,6 +1412,10 @@
 
             // Initialize the Client section
             initializeClientsSection();
+
+            
+            // Add this line to update gallery statistics when the page loads
+            updateGalleryStatistics();
         });
         function initializePhotographersSection() {
             // Get the photographers tab element
@@ -3720,15 +3724,28 @@
                 });
         }
 
+
+        
         function updateGalleryStatistics() {
+                // Get a reference to Firestore database
             const db = firebase.firestore();
-            db.collection('galleries').get().then(snapshot => {
-                const totalGalleries = snapshot.size;
-                const activeGalleries = snapshot.docs.filter(doc => doc.data().status === 'active').length;
-                
-                document.getElementById('totalGalleries').textContent = totalGalleries;
-                // Update other gallery statistics...
-            });
+            
+            // Show loading state
+            document.getElementById('totalGalleries').textContent = "Loading...";
+            
+            // Query the galleries collection
+            db.collection('galleries').get()
+                .then(snapshot => {
+                    // Get the total count of galleries
+                    const totalGalleries = snapshot.size;
+                    
+                    // Update the dashboard card with the count
+                    document.getElementById('totalGalleries').textContent = totalGalleries;
+                })
+                .catch(error => {
+                    console.error("Error fetching gallery statistics:", error);
+                    document.getElementById('totalGalleries').textContent = "Error";
+                });
         }
         
         
