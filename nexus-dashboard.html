@@ -4620,54 +4620,48 @@
         }
 
 
+    
+        // Add this function somewhere in your script section
         function setupGalleryStatsCard() {
-            const totalGalleriesCard = document.getElementById('totalGalleries')?.closest('.dashboard-card');
+            const totalGalleriesCard = document.getElementById('totalGalleriesCount')?.closest('.dashboard-card');
             
             if (totalGalleriesCard) {
-              // Make the card look clickable
-              totalGalleriesCard.style.cursor = 'pointer';
-              totalGalleriesCard.title = 'Click to view detailed gallery statistics';
-              
-              // When clicked, open gallery stats for the first gallery
-              totalGalleriesCard.addEventListener('click', function() {
-                // Show loading overlay
-                const loadingOverlay = document.getElementById('loadingOverlay');
-                if (loadingOverlay) loadingOverlay.style.display = 'flex';
+                // Make the card look clickable
+                totalGalleriesCard.style.cursor = 'pointer';
+                totalGalleriesCard.title = 'Click to view detailed gallery statistics';
                 
-                // Get the first gallery with complete data to display stats
-                const db = firebase.firestore();
-                db.collection('galleries').limit(1).get().then(snapshot => {
-                  if (!snapshot.empty) {
-                    const galleryDoc = snapshot.docs[0];
-                    const galleryId = galleryDoc.id;
-                    const galleryData = galleryDoc.data();
+                // When clicked, open gallery stats for the first gallery
+                totalGalleriesCard.addEventListener('click', function() {
+                    // Show loading overlay
+                    const loadingOverlay = document.getElementById('loadingOverlay') || createLoadingOverlay();
+                    loadingOverlay.style.display = 'flex';
                     
-                    // Call openGalleryDetails with the gallery info
-                    window.openGalleryDetails(galleryId, galleryData.photographerId, galleryData.clientId);
-                  } else {
-                    showToast('Info', 'No galleries found to display statistics', 'info');
-                  }
-                  
-                  // Hide loading overlay
-                  if (loadingOverlay) loadingOverlay.style.display = 'none';
-                }).catch(error => {
-                  console.error('Error fetching gallery for stats:', error);
-                  showToast('Error', 'Failed to load gallery statistics', 'error');
-                  if (loadingOverlay) loadingOverlay.style.display = 'none';
+                    // Get the first gallery with complete data to display stats
+                    const db = firebase.firestore();
+                    db.collection('galleries').limit(1).get().then(snapshot => {
+                        if (!snapshot.empty) {
+                            const galleryDoc = snapshot.docs[0];
+                            const galleryId = galleryDoc.id;
+                            const galleryData = galleryDoc.data();
+                            
+                            // Call openGalleryDetails with the gallery info
+                            window.openGalleryDetails(galleryId, galleryData.photographerId, galleryData.clientId);
+                        } else {
+                            showToast('Info', 'No galleries found to display statistics', 'info');
+                        }
+                        
+                        // Hide loading overlay
+                        loadingOverlay.style.display = 'none';
+                    }).catch(error => {
+                        console.error('Error fetching gallery for stats:', error);
+                        showToast('Error', 'Failed to load gallery statistics', 'error');
+                        loadingOverlay.style.display = 'none';
+                    });
                 });
-              });
             }
-          }
-        
-          // Set up the gallery stats card when the page loads
-          document.addEventListener('DOMContentLoaded', function() {
-            setTimeout(setupGalleryStatsCard, 1000);
-          });
-          
-          // Also set up the gallery stats card when switching to the galleries section
-          document.querySelector('.nexus-sidebar-link[data-section="galleries"]')?.addEventListener('click', function() {
-            setTimeout(setupGalleryStatsCard, 1000);
-          });
+        }
+                
+ 
         
     </script>
 </body>
