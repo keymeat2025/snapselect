@@ -1111,6 +1111,31 @@ function showErrorMessage(message) {
   }, 3000);
 }
 
+
+function showInfoMessage(message) {
+  // Try to use NotificationSystem if available
+  if (window.NotificationSystem && typeof window.NotificationSystem.showNotification === 'function') {
+    window.NotificationSystem.showNotification('info', 'Information', message);
+    return;
+  }
+  
+  // Fallback to custom toast
+  const toastContainer = document.getElementById('toastContainer');
+  if (!toastContainer) return;
+  
+  const toast = document.createElement('div');
+  toast.className = 'toast toast-info';
+  toast.innerHTML = `<i class="fas fa-info-circle"></i><span>${message}</span>`;
+  
+  toastContainer.appendChild(toast);
+  
+  setTimeout(() => {
+    toast.classList.add('hide');
+    setTimeout(() => { toast.remove(); }, 300);
+  }, 3000);
+}
+
+
 // Add a function to refresh all data
 function refreshAllData() {
   showLoadingOverlay('Refreshing data...');
