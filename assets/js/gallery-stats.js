@@ -2088,14 +2088,41 @@ function updateSystemGalleryStatsUI(stats) {
 }
 
 // Function to display system-wide gallery statistics modal
+
 function displaySystemGalleryStatsModal() {
-    // Create or get modal
-    const modal = document.getElementById('clientModal') || document.getElementById('galleryDetailsModal');
+    // Try to get existing modal
+    let modal = document.getElementById('clientModal');
+    
+    // If no modal exists, create one
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'galleryStatsModal';
+        modal.className = 'modal';
+        
+        modal.innerHTML = `
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2>System-wide Gallery Statistics</h2>
+                    <button class="close-modal">&times;</button>
+                </div>
+                <div class="modal-body"></div>
+                <div class="modal-footer">
+                    <button class="btn btn-outline close-modal-btn">Close</button>
+                </div>
+            </div>
+        `;
+        
+        document.body.appendChild(modal);
+    }
+    
+    // Now we know modal exists, get the modal body
     const modalBody = modal.querySelector('.modal-body');
     
-    // Update modal title
+    // Update modal title if it exists
     const modalTitle = modal.querySelector('.modal-header h2');
-    modalTitle.textContent = 'System-wide Gallery Statistics';
+    if (modalTitle) {
+        modalTitle.textContent = 'System-wide Gallery Statistics';
+    }
     
     // Create stats dashboard HTML
     modalBody.innerHTML = `
@@ -2213,20 +2240,20 @@ function displaySystemGalleryStatsModal() {
         }, 1000);
     });
     
-    // Update close button
-    const closeModalBtn = modal.querySelector('.btn-outline');
-    if (closeModalBtn) {
-        closeModalBtn.onclick = function() {
+    // Set up close button handlers
+    const closeButtons = modal.querySelectorAll('.close-modal, .close-modal-btn');
+    closeButtons.forEach(button => {
+        button.onclick = function() {
             modal.style.display = 'none';
         };
-    }
+    });
     
-    const closeModal = modal.querySelector('.close-modal');
-    if (closeModal) {
-        closeModal.onclick = function() {
+    // Close when clicking outside the modal
+    modal.addEventListener('click', function(event) {
+        if (event.target === modal) {
             modal.style.display = 'none';
-        };
-    }
+        }
+    });
     
     // Show the modal
     modal.style.display = 'block';
