@@ -18,16 +18,13 @@
 
 
         <!-- Add this line to import the gallery details module -->
-  
     <script type="module">
-      import { openGalleryDetails, fetchGalleryRatings, countGalleryPhotos, loadAllGalleriesStats, displaySystemGalleryStatsModal } from './assets/js/gallery-stats.js';
+      import { openGalleryDetails, fetchGalleryRatings, countGalleryPhotos } from './assets/js/gallery-stats.js';
       
       // Make these functions available globally
       window.openGalleryDetails = openGalleryDetails;
       window.fetchGalleryRatings = fetchGalleryRatings;
       window.countGalleryPhotos = countGalleryPhotos;
-      window.loadAllGalleriesStats = loadAllGalleriesStats;
-      window.displaySystemGalleryStatsModal = displaySystemGalleryStatsModal;
     </script>
     
     <style>
@@ -1941,8 +1938,8 @@
             initializeClientsSection();
 
             
-           // Load all gallery statistics
-            window.loadAllGalleriesStats(false);
+            // Add this line to update gallery statistics when the page loads
+            updateGalleryStatistics();
         });
         function initializePhotographersSection() {
             // Get the photographers tab element
@@ -4679,29 +4676,42 @@
 
 
     
-                // Add this function somewhere in your script section
-         function setupGalleryStatsCard() {
-          
+        // Add this function somewhere in your script section
+        function setupGalleryStatsCard() {
             const totalGalleriesCard = document.getElementById('totalGalleriesCount')?.closest('.dashboard-card');
             
             if (totalGalleriesCard) {
                 // Make the card look clickable
                 totalGalleriesCard.style.cursor = 'pointer';
-                totalGalleriesCard.title = 'Click to view system-wide gallery statistics';
+                totalGalleriesCard.title = 'Click to view detailed gallery statistics';
                 
-                // When clicked, open system-wide gallery stats instead of first gallery
+                // When clicked, open gallery stats for the first gallery
                 totalGalleriesCard.addEventListener('click', function() {
                     // Show loading overlay
                     const loadingOverlay = document.getElementById('loadingOverlay') || createLoadingOverlay();
                     loadingOverlay.style.display = 'flex';
                     
-                    // Display system-wide gallery stats modal
-                    window.displaySystemGalleryStatsModal();
-                    
-                    // Hide loading overlay after modal is displayed
-                    setTimeout(() => {
+                    // Get the first gallery with complete data to display stats
+                    const db = firebase.firestore();
+                    db.collection('galleries').limit(1).get().then(snapshot => {
+                        if (!snapshot.empty) {
+                            const galleryDoc = snapshot.docs[0];
+                            const galleryId = galleryDoc.id;
+                            const galleryData = galleryDoc.data();
+                            
+                            // Call openGalleryDetails with the gallery info
+                            window.openGalleryDetails(galleryId, galleryData.photographerId, galleryData.clientId);
+                        } else {
+                            showToast('Info', 'No galleries found to display statistics', 'info');
+                        }
+                        
+                        // Hide loading overlay
                         loadingOverlay.style.display = 'none';
-                    }, 500);
+                    }).catch(error => {
+                        console.error('Error fetching gallery for stats:', error);
+                        showToast('Error', 'Failed to load gallery statistics', 'error');
+                        loadingOverlay.style.display = 'none';
+                    });
                 });
             }
         }
