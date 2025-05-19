@@ -1976,3 +1976,159 @@ function updateTabCounts() {
   });
 }
 
+/**
+ * Utility function to fix all photo count discrepancies for all galleries
+ * This will ensure dashboard displays show accurate counts
+ */
+async function fixAllPhotoCountDiscrepancies() {
+  try {
+    if (!currentUser) {
+      console.error('User must be logged in');
+      return false;
+    }
+    
+    console.log('Starting to fix all photo count discrepancies...');
+    showLoadingOverlay('Fixing photo counts...');
+    
+    const db = firebase.firestore();
+    
+    // Step 1: Get all galleries for this user
+    const galleriesSnapshot = await db.collection('galleries')
+      .where('photographerId', '==', currentUser.uid)
+      .get();
+    
+    if (galleriesSnapshot.empty) {
+      console.log('No galleries found');
+      hideLoadingOverlay();
+      return false;
+    }
+    
+    console.log(`Found ${galleriesSnapshot.size} galleries to check`);
+    
+    // Step 2: Process each gallery
+    const galleryFixes = [];
+    
+    for (const galleryDoc of galleriesSnapshot.docs) {
+      const galleryData = galleryDoc.data();
+      const galleryId = galleryDoc.id;
+      
+      // Get actual photo count
+      const photosSnapshot = await db.collection('photos')
+        .where('galleryId', '==', galleryId)
+        .where('status', '==', 'active')
+        .get();
+      
+      const actualPhotoCount = photosSnapshot.size;
+      const galleryPhotoCount = galleryData.photosCount || 0;
+      
+      // Calculate total size
+      const totalSize = photosSnapshot.docs.reduce((sum, doc) => {
+        return sum + (doc.data().size || 0);
+      }, 0);
+      
+      const totalSizeMB = totalSize / (1024 * 1024);
+      
+      // Find associated plan
+      let planDoc = null;
+      let planId = galleryData.planId;
+      
+      if (planId) {
+        // Try to get the plan directly
+        const planSnapshot = await db.collection('client-plans').doc(planId).get();
+        if (planSnapshot.exists) {
+          planDoc = planSnapshot;
+        }
+      }
+      
+      // Try to find by client ID if plan ID not available or not found
+      if (!planDoc && galleryData.clientId) {
+        const plansSnapshot = await db.collection('client-plans')
+          .where('clientId', '==', galleryData.clientId)
+          .where('status', 'in', ['active', 'expiring_soon', 'expired'])
+          .get();
+        
+        if (!plansSnapshot.empty) {
+          // Prefer active plans over expired ones
+          const activePlans = plansSnapshot.docs.filter(doc => 
+            doc.data().status === 'active' || doc.data().status === 'expiring_soon'
+          );
+          
+          planDoc = activePlans.length > 0 ? 
+            activePlans[0] : plansSnapshot.docs[0];
+          
+          planId = planDoc.id;
+        }
+      }
+      
+      // Apply fixes if needed
+      if (galleryPhotoCount !== actualPhotoCount) {
+        console.log(`Fixing gallery ${galleryId}: ${galleryPhotoCount} → ${actualPhotoCount} photos`);
+        
+        galleryFixes.push(
+          db.collection('galleries').doc(galleryId).update({
+            photosCount: actualPhotoCount,
+            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+          })
+        );
+      }
+      
+      // Fix plan count if we found a plan
+      if (planDoc) {
+        const planData = planDoc.data();
+        const planPhotoCount = planData.photosUploaded || 0;
+        
+        if (planPhotoCount !== actualPhotoCount) {
+          console.log(`Fixing plan ${planId}: ${planPhotoCount} → ${actualPhotoCount} photos`);
+          
+          galleryFixes.push(
+            db.collection('client-plans').doc(planId).update({
+              photosUploaded: actualPhotoCount,
+              storageUsed: totalSizeMB,
+              updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            })
+          );
+        }
+        
+        // Update gallery with plan ID if needed
+        if (galleryData.planId !== planId) {
+          console.log(`Updating gallery ${galleryId} with correct planId: ${planId}`);
+          
+          galleryFixes.push(
+            db.collection('galleries').doc(galleryId).update({
+              planId: planId,
+              planType: planData.planType,
+              updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            })
+          );
+        }
+      }
+    }
+    
+    // Apply all fixes
+    if (galleryFixes.length > 0) {
+      await Promise.all(galleryFixes);
+      console.log(`Successfully applied ${galleryFixes.length} fixes`);
+      
+      // Refresh dashboard data
+      await refreshAllData();
+      
+      showSuccessMessage(`Photo counts fixed successfully. ${galleryFixes.length} issues resolved.`);
+    } else {
+      console.log('No fixes needed - all counts are correct');
+      showInfoMessage('All photo counts are already correct.');
+    }
+    
+    hideLoadingOverlay();
+    return true;
+    
+  } catch (error) {
+    console.error('Error fixing photo counts:', error);
+    hideLoadingOverlay();
+    showErrorMessage(`Error fixing photo counts: ${error.message}`);
+    return false;
+  }
+}
+
+// Add to window.subscriptionManager
+window.subscriptionManager.fixAllPhotoCountDiscrepancies = fixAllPhotoCountDiscrepancies;
+
