@@ -2213,6 +2213,160 @@ document.addEventListener('DOMContentLoaded', function() {
   initGalleryView();
 });
 
+
+
+/**
+ * Utility function to fix photo count discrepancies between galleries and plans
+ * This can be called from the console for maintenance or added as a button in the admin UI
+ */
+async function fixPhotoCountDiscrepancies() {
+  try {
+    // Security check: Only allow for gallery owner
+    if (!galleryData || galleryData.photographerId !== currentUser.uid) {
+      console.error('Only the gallery owner can perform this operation');
+      return false;
+    }
+    
+    console.log('Starting to fix photo count discrepancies...');
+    
+    const db = firebase.firestore();
+    
+    // Step 1: Get the actual photo count from the photos collection
+    const photosSnapshot = await db.collection('photos')
+      .where('galleryId', '==', galleryId)
+      .where('status', '==', 'active')
+      .get();
+    
+    const actualPhotoCount = photosSnapshot.size;
+    console.log(`Actual active photos found: ${actualPhotoCount}`);
+    
+    // Step 2: Get the gallery document to compare its count
+    const galleryDoc = await db.collection('galleries').doc(galleryId).get();
+    if (!galleryDoc.exists) {
+      console.error('Gallery document not found');
+      return false;
+    }
+    
+    const galleryData = galleryDoc.data();
+    const galleryPhotoCount = galleryData.photosCount || 0;
+    
+    console.log(`Current gallery photo count: ${galleryPhotoCount}`);
+    
+    // Step 3: Find the associated plan
+    let planDoc = null;
+    let planId = galleryData.planId;
+    
+    if (planId) {
+      // Try to get the plan directly if we have a planId
+      const planSnapshot = await db.collection('client-plans').doc(planId).get();
+      if (planSnapshot.exists) {
+        planDoc = planSnapshot;
+      }
+    }
+    
+    // If we couldn't find the plan by planId or if planId doesn't exist,
+    // try to find it by clientId
+    if (!planDoc && galleryData.clientId) {
+      const plansSnapshot = await db.collection('client-plans')
+        .where('clientId', '==', galleryData.clientId)
+        .where('status', 'in', ['active', 'expiring_soon', 'expired'])
+        .get();
+      
+      if (!plansSnapshot.empty) {
+        // Prefer active plans over expired ones
+        const activePlans = plansSnapshot.docs.filter(doc => 
+          doc.data().status === 'active' || doc.data().status === 'expiring_soon'
+        );
+        
+        planDoc = activePlans.length > 0 ? 
+          activePlans[0] : plansSnapshot.docs[0];
+        
+        planId = planDoc.id;
+        console.log(`Found plan by clientId: ${planId}`);
+      }
+    }
+    
+    // If we still don't have a plan, we can't fix the count
+    if (!planDoc) {
+      console.error('No associated plan found for this gallery');
+      return false;
+    }
+    
+    const planData = planDoc.data();
+    const planPhotoCount = planData.photosUploaded || 0;
+    
+    console.log(`Current plan photo count: ${planPhotoCount}`);
+    
+    // Step 4: Calculate size data (approximate if needed)
+    const totalSize = photosSnapshot.docs.reduce((sum, doc) => {
+      return sum + (doc.data().size || 0);
+    }, 0);
+    
+    const averagePhotoSize = photosSnapshot.size > 0 ? 
+      totalSize / photosSnapshot.size : 0;
+    
+    const totalSizeMB = totalSize / (1024 * 1024);
+    console.log(`Total photo size: ${totalSizeMB.toFixed(2)} MB`);
+    
+    // Step 5: Fix discrepancies if needed
+    const fixes = [];
+    
+    // Fix gallery count if needed
+    if (galleryPhotoCount !== actualPhotoCount) {
+      console.log(`Fixing gallery count: ${galleryPhotoCount} → ${actualPhotoCount}`);
+      fixes.push(
+        db.collection('galleries').doc(galleryId).update({
+          photosCount: actualPhotoCount,
+          updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        })
+      );
+    }
+    
+    // Fix plan count if needed
+    if (planPhotoCount !== actualPhotoCount) {
+      console.log(`Fixing plan count: ${planPhotoCount} → ${actualPhotoCount}`);
+      fixes.push(
+        db.collection('client-plans').doc(planId).update({
+          photosUploaded: actualPhotoCount,
+          storageUsed: totalSizeMB,
+          updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        })
+      );
+    }
+    
+    // If the gallery doesn't have planId, update it
+    if (galleryData.planId !== planId) {
+      console.log(`Updating gallery with correct planId: ${planId}`);
+      fixes.push(
+        db.collection('galleries').doc(galleryId).update({
+          planId: planId,
+          planType: planData.planType,
+          updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        })
+      );
+    }
+    
+    // Apply all fixes
+    if (fixes.length > 0) {
+      await Promise.all(fixes);
+      console.log('All fixes applied successfully');
+      return true;
+    } else {
+      console.log('No fixes needed - counts are already correct');
+      return true;
+    }
+    
+  } catch (error) {
+    console.error('Error fixing photo count discrepancies:', error);
+    return false;
+  }
+}
+
+// Make the function available globally so it can be called from the console
+window.fixPhotoCountDiscrepancies = fixPhotoCountDiscrepancies;
+
+
+
 // Export gallery view functions to window object for debugging and external access
 window.galleryView = {
   loadGalleryData,
@@ -2229,5 +2383,6 @@ window.galleryView = {
   togglePauseUpload,
   // New features
   syncStorageWithFirestore,
-  loadMorePhotos
+  loadMorePhotos,
+  fixPhotoCountDiscrepancies
 };
