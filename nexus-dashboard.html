@@ -18,13 +18,16 @@
 
 
         <!-- Add this line to import the gallery details module -->
+  
     <script type="module">
-      import { openGalleryDetails, fetchGalleryRatings, countGalleryPhotos } from './assets/js/gallery-stats.js';
+      import { openGalleryDetails, fetchGalleryRatings, countGalleryPhotos, loadAllGalleriesStats, displaySystemGalleryStatsModal } from './assets/js/gallery-stats.js';
       
       // Make these functions available globally
       window.openGalleryDetails = openGalleryDetails;
       window.fetchGalleryRatings = fetchGalleryRatings;
       window.countGalleryPhotos = countGalleryPhotos;
+      window.loadAllGalleriesStats = loadAllGalleriesStats;
+      window.displaySystemGalleryStatsModal = displaySystemGalleryStatsModal;
     </script>
     
     <style>
