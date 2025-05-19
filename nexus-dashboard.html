@@ -4681,6 +4681,7 @@
     
                 // Add this function somewhere in your script section
          function setupGalleryStatsCard() {
+          
             const totalGalleriesCard = document.getElementById('totalGalleriesCount')?.closest('.dashboard-card');
             
             if (totalGalleriesCard) {
@@ -4694,12 +4695,13 @@
                     const loadingOverlay = document.getElementById('loadingOverlay') || createLoadingOverlay();
                     loadingOverlay.style.display = 'flex';
                     
-                    // Display system-wide gallery stats modal instead of fetching a single gallery
+                    // Display system-wide gallery stats modal
                     window.displaySystemGalleryStatsModal();
                     
-                   
-                    loadingOverlay.style.display = 'none';
-                    
+                    // Hide loading overlay after modal is displayed
+                    setTimeout(() => {
+                        loadingOverlay.style.display = 'none';
+                    }, 500);
                 });
             }
         }
