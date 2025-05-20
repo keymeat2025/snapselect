@@ -188,6 +188,10 @@ function initDatabaseFunctions() {
           createdAt: firebase.firestore.FieldValue.serverTimestamp(),
           photosCount: 0,
           status: 'active',
+
+          clientInteractionStarted: false,
+          clientInteractionStartedAt: null,
+          freezeStatus: "editable",
           ...galleryData
         };
         
@@ -207,7 +211,63 @@ function initDatabaseFunctions() {
         console.error('Error creating gallery:', error);
         throw error;
       }
+    },
+
+        // LOCATION: In firebase-db.js, at the end of window.dbUtils object
+    
+    // Check gallery freeze status
+    checkGalleryFreezeStatus: async function(galleryId) {
+      try {
+        const doc = await db.collection('galleries').doc(galleryId).get();
+        if (!doc.exists) return "editable"; // Default if gallery not found
+        return doc.data().freezeStatus || "editable";
+      } catch (error) {
+        console.error('Error checking gallery freeze status:', error);
+        return "editable"; // Default to editable on error
+      }
+    },
+    
+    // Start client interaction (freeze gallery)
+    freezeGallery: async function(galleryId, clientId) {
+      try {
+        await db.collection('galleries').doc(galleryId).update({
+          clientInteractionStarted: true,
+          clientInteractionStartedAt: firebase.firestore.FieldValue.serverTimestamp(),
+          freezeStatus: "frozen",
+          interactingClientId: clientId || null
+        });
+        return true;
+      } catch (error) {
+        console.error('Error freezing gallery:', error);
+        return false;
+      }
+    },
+    
+    // Admin unfreeze gallery temporarily
+    unfreezeGallery: async function(galleryId, adminId) {
+      try {
+        // First log the unfreeze action for accountability
+        await db.collection('gallery_admin_actions').add({
+          action: "unfreeze",
+          galleryId: galleryId,
+          adminId: adminId,
+          timestamp: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        
+        // Then unfreeze the gallery
+        await db.collection('galleries').doc(galleryId).update({
+          freezeStatus: "editable",
+          unfrozenBy: adminId,
+          unfrozenAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        return true;
+      } catch (error) {
+        console.error('Error unfreezing gallery:', error);
+        return false;
+      }
     }
+
+    
   };
 
   console.log('Database functions initialized successfully');
