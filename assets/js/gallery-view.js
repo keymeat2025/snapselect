@@ -4,7 +4,7 @@
  * Enhanced with improved file rejection handling and visualization
  */
 
-(functions(){
+(function(){
   // Global variables
   let currentUser = null;
   let galleryId = null;
