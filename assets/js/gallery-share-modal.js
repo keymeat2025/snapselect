@@ -274,9 +274,33 @@ const GalleryShareModal = {
             this.displayShareLink(shareData.shareId);
             
             // Show revoke button
+           
+          // Show revoke button with warning tooltip
             const revokeBtn = document.getElementById('revokeAccessBtn');
             if (revokeBtn) {
+              // First ensure the button is visible
               revokeBtn.classList.remove('hidden');
+              
+              // Check if it's already wrapped in tooltip container
+              if (!revokeBtn.closest('.tooltip-container')) {
+                // Create tooltip container and insert button inside it
+                const tooltipContainer = document.createElement('div');
+                tooltipContainer.className = 'tooltip-container';
+                
+                // Create tooltip text
+                const tooltipText = document.createElement('div');
+                tooltipText.className = 'tooltip-text tooltip-warning';
+                tooltipText.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Warning: You can only revoke access once. This action cannot be undone.';
+                
+                // Get parent of revoke button
+                const revokeParent = revokeBtn.parentNode;
+                
+                // Replace button with tooltip container
+                revokeParent.removeChild(revokeBtn);
+                tooltipContainer.appendChild(revokeBtn);
+                tooltipContainer.appendChild(tooltipText);
+                revokeParent.appendChild(tooltipContainer);
+              }
             }
             
             // Update form fields with saved settings if they exist
@@ -670,6 +694,12 @@ const GalleryShareModal = {
           const submitBtn = document.getElementById('shareGallerySubmitBtn');
           if (submitBtn) {
             submitBtn.textContent = 'Create Share Link';
+          }
+
+          // Change revoke button to show it's already been revoked
+          if (revokeBtn) {
+            revokeBtn.disabled = true;
+            revokeBtn.textContent = 'Access Revoked'; // Change from "Revoking..." to "Access Revoked"
           }
           
           // Show success message
