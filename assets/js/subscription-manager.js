@@ -724,6 +724,45 @@ function showCreateClientModal() {
   if (createClientModal) createClientModal.style.display = 'block';
 }
 
+
+/**
+ * Check if a client with the given name already exists
+ * @param {string} clientName - The name to check for duplicates
+ * @returns {Promise<boolean>} - True if a duplicate exists, false otherwise
+ */
+async function checkDuplicateClientName(clientName) {
+  try {
+    if (!currentUser) return false;
+    
+    // Normalize the name for comparison (trim and convert to lowercase)
+    const normalizedName = clientName.trim().toLowerCase();
+    
+    // Query Firestore for clients with this photographer ID
+    const db = firebase.firestore();
+    const clientsSnapshot = await db.collection('clients')
+      .where('photographerId', '==', currentUser.uid)
+      .get();
+    
+    // Check if any existing client has the same name (case insensitive)
+    const duplicateExists = clientsSnapshot.docs.some(doc => {
+      const existingClient = doc.data();
+      return existingClient.name.trim().toLowerCase() === normalizedName;
+    });
+    
+    return duplicateExists;
+  } catch (error) {
+    console.error('Error checking for duplicate clients:', error);
+    // In case of error, return false to allow creation (better UX than blocking on error)
+    return false;
+  }
+}
+
+// Add this function to window.subscriptionManager
+window.subscriptionManager.checkDuplicateClientName = checkDuplicateClientName;
+
+
+
+
 // Client management
 async function createClient(name, email) {
   try {
