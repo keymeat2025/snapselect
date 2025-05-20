@@ -5,7 +5,7 @@
  */
 
 // Global variables
-let currentUser = null;
+currentUser = null;
 let galleryId = null;
 let clientId = null;
 let galleryData = null;
