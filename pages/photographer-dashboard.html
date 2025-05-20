@@ -516,76 +516,104 @@
             }
             
             // Create client form submission
+   
+        document.addEventListener('DOMContentLoaded', function() {
             const createClientForm = document.getElementById('createClientForm');
-            if (createClientForm) {
+              if (createClientForm) {
                 createClientForm.addEventListener('submit', async function(e) {
-                    e.preventDefault();
-                    
-                    const clientName = document.getElementById('clientName').value;
-                    const clientEmail = document.getElementById('clientEmail').value;
-                    const clientPhone = document.getElementById('clientPhone').value;
-                    const clientNotes = document.getElementById('clientNotes').value;
-                    
-                    try {
-                        // Show loading
-                        const loadingOverlay = document.getElementById('loadingOverlay');
-                        if (loadingOverlay) {
-                            loadingOverlay.querySelector('.loading-text').textContent = 'Creating client...';
-                            loadingOverlay.style.display = 'flex';
-                        }
-                        
-                        // Check if subscription manager exists
-                        if (window.subscriptionManager && window.subscriptionManager.createClient) {
-                            // Create client
-                            const clientId = await window.subscriptionManager.createClient(
-                                clientName,
-                                clientEmail,
-                                { phone: clientPhone, notes: clientNotes }
-                            );
-                            
-                            if (clientId) {
-                                // Close modal
-                                const createClientModal = document.getElementById('createClientModal');
-                                if (createClientModal) {
-                                    createClientModal.style.display = 'none';
-                                }
-                                
-                                // Use the notification system instead of direct DOM manipulation
-                                if (window.NotificationSystem) {
-                                    window.NotificationSystem.createNotificationFromEvent({
-                                        type: 'client_created',
-                                        clientName: clientName
-                                    });
-                                }
-                                
-                                // Refresh client data
-                                if (window.subscriptionManager.refreshSubscription) {
-                                    window.subscriptionManager.refreshSubscription();
-                                }
-                            }
-                        } else {
-                            throw new Error('Client management functionality is not available');
-                        }
-                    } catch (error) {
-                        console.error('Error creating client:', error);
-                        
-                        // Use notification system for errors too
-                        if (window.NotificationSystem) {
-                            window.NotificationSystem.showNotification(
-                                'error',
-                                'Error',
-                                `Error creating client: ${error.message}`
-                            );
-                        }
-                    } finally {
-                        // Hide loading
-                        const loadingOverlay = document.getElementById('loadingOverlay');
-                        if (loadingOverlay) {
-                            loadingOverlay.style.display = 'none';
-                        }
+                  e.preventDefault();
+                  
+                  const clientName = document.getElementById('clientName').value.trim();
+                  const clientEmail = document.getElementById('clientEmail').value.trim();
+                  const clientPhone = document.getElementById('clientPhone').value.trim();
+                  const clientNotes = document.getElementById('clientNotes').value.trim();
+                  
+                  if (!clientName) {
+                    if (window.NotificationSystem) {
+                      window.NotificationSystem.showNotification('error', 'Error', 'Client name is required');
+                    } else {
+                      showErrorMessage('Client name is required');
                     }
+                    return;
+                  }
+                  
+                  try {
+                    // Show loading
+                    const loadingOverlay = document.getElementById('loadingOverlay');
+                    if (loadingOverlay) {
+                      loadingOverlay.querySelector('.loading-text').textContent = 'Creating client...';
+                      loadingOverlay.style.display = 'flex';
+                    }
+                    
+                    // Check for duplicate if the function exists
+                    let isDuplicate = false;
+                    if (window.subscriptionManager && window.subscriptionManager.checkDuplicateClientName) {
+                      isDuplicate = await window.subscriptionManager.checkDuplicateClientName(clientName);
+                    }
+                    
+                    if (isDuplicate) {
+                      // Hide loading before showing confirmation
+                      if (loadingOverlay) {
+                        loadingOverlay.style.display = 'none';
+                      }
+                      
+                      // Ask for confirmation with standard browser confirm dialog
+                      if (!confirm(`A client named "${clientName}" already exists. Do you want to create another client with the same name?`)) {
+                        return; // User canceled, do nothing
+                      }
+                      // User confirmed, proceed with creation below
+                    }
+                    
+                    // Create client (existing code path)
+                    if (window.subscriptionManager && window.subscriptionManager.createClient) {
+                      const clientId = await window.subscriptionManager.createClient(
+                        clientName,
+                        clientEmail,
+                        { phone: clientPhone, notes: clientNotes }
+                      );
+                      
+                      if (clientId) {
+                        // Close modal
+                        const createClientModal = document.getElementById('createClientModal');
+                        if (createClientModal) {
+                          createClientModal.style.display = 'none';
+                        }
+                        
+                        // Use the notification system if available
+                        if (window.NotificationSystem) {
+                          window.NotificationSystem.createNotificationFromEvent({
+                            type: 'client_created',
+                            clientName: clientName
+                          });
+                        }
+                        
+                        // Refresh client data
+                        if (window.subscriptionManager.refreshSubscription) {
+                          window.subscriptionManager.refreshSubscription();
+                        }
+                      }
+                    } else {
+                      throw new Error('Client management functionality is not available');
+                    }
+                  } catch (error) {
+                    console.error('Error creating client:', error);
+                    
+                    // Use notification system for errors too
+                    if (window.NotificationSystem) {
+                      window.NotificationSystem.showNotification('error', 'Error', `Error creating client: ${error.message}`);
+                    } else {
+                      showErrorMessage(`Error creating client: ${error.message}`);
+                    }
+                  } finally {
+                    // Hide loading
+                    const loadingOverlay = document.getElementById('loadingOverlay');
+                    if (loadingOverlay) {
+                      loadingOverlay.style.display = 'none';
+                    }
+                  }
                 });
-            }
+              }
+            });
             
             // Gallery creation button
             const createGalleryBtn = document.getElementById('createGalleryBtn');
