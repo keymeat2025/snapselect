@@ -249,7 +249,9 @@ const GalleryShareModal = {
     }
   },
   
-  // Check if gallery is already shared
+
+
+// Check if gallery is already shared
   checkSharingStatus: function() {
     try {
       const db = firebase.firestore();
@@ -261,50 +263,81 @@ const GalleryShareModal = {
         return;
       }
       
-      // Use photographerId and galleryId combination for more secure sharing
+      // First check for active shares
       db.collection('galleryShares')
         .where('galleryId', '==', this.currentGalleryId)
         .where('photographerId', '==', currentUser.uid)
+        .where('status', '==', 'active')
         .get()
         .then(snapshot => {
           if (!snapshot.empty) {
-            // Gallery is already shared, show the URL
+            // Gallery is already actively shared
             const shareData = snapshot.docs[0].data();
-            // Use the shareId field for the URL
+            
+            // Display the share link
             this.displayShareLink(shareData.shareId);
             
-            // Show revoke button
-           
-          // Show revoke button with warning tooltip
-            const revokeBtn = document.getElementById('revokeAccessBtn');
-            if (revokeBtn) {
-              // First ensure the button is visible
-              revokeBtn.classList.remove('hidden');
+            // Check if this is a final share (after a revocation)
+            if (shareData.isFinalShare === true) {
+              // This is a final share - no revoke button
+              const submitBtn = document.getElementById('shareGallerySubmitBtn');
+              if (submitBtn) {
+                submitBtn.textContent = 'Update Final Share Settings';
+              }
               
-              // Check if it's already wrapped in tooltip container
-              if (!revokeBtn.closest('.tooltip-container')) {
-                // Create tooltip container and insert button inside it
-                const tooltipContainer = document.createElement('div');
-                tooltipContainer.className = 'tooltip-container';
+              // Show a notice about this being the final share
+              this.showToast('This is your final share for this gallery. No further revocation is possible.', 'warning');
+            } else {
+              // Regular share - show revoke button with warning tooltip
+              const revokeBtn = document.getElementById('revokeAccessBtn');
+              if (revokeBtn) {
+                // First ensure the button is visible
+                revokeBtn.classList.remove('hidden');
                 
-                // Create tooltip text
-                const tooltipText = document.createElement('div');
-                tooltipText.className = 'tooltip-text tooltip-warning';
-                tooltipText.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Warning: You can only revoke access once. This action cannot be undone.';
-                
-                // Get parent of revoke button
-                const revokeParent = revokeBtn.parentNode;
-                
-                // Replace button with tooltip container
-                revokeParent.removeChild(revokeBtn);
-                tooltipContainer.appendChild(revokeBtn);
-                tooltipContainer.appendChild(tooltipText);
-                revokeParent.appendChild(tooltipContainer);
+                // Check if it's already wrapped in tooltip container
+                if (!revokeBtn.closest('.tooltip-container')) {
+                  // Create tooltip container and insert button inside it
+                  const tooltipContainer = document.createElement('div');
+                  tooltipContainer.className = 'tooltip-container';
+                  
+                  // Create tooltip text
+                  const tooltipText = document.createElement('div');
+                  tooltipText.className = 'tooltip-text tooltip-warning';
+                  tooltipText.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Warning: You can only revoke access once. You can reshare one more time after revocation.';
+                  
+                  // Get parent of revoke button
+                  const revokeParent = revokeBtn.parentNode;
+                  
+                  // Replace button with tooltip container
+                  revokeParent.removeChild(revokeBtn);
+                  tooltipContainer.appendChild(revokeBtn);
+                  tooltipContainer.appendChild(tooltipText);
+                  revokeParent.appendChild(tooltipContainer);
+                }
               }
             }
             
-            // Update form fields with saved settings if they exist
+            // Update form fields with saved settings
             this.updateFormWithSavedSettings(shareData);
+          } else {
+            // No active shares - check for revoked shares
+            db.collection('galleryShares')
+              .where('galleryId', '==', this.currentGalleryId)
+              .where('photographerId', '==', currentUser.uid)
+              .where('hasBeenRevoked', '==', true)
+              .get()
+              .then(revokedSnapshot => {
+                if (!revokedSnapshot.empty) {
+                  // There was a previous revocation - this will be a final share
+                  const submitBtn = document.getElementById('shareGallerySubmitBtn');
+                  if (submitBtn) {
+                    submitBtn.textContent = 'Create Final Share Link';
+                  }
+                  
+                  // Show message about final share opportunity
+                  this.showToast('You previously revoked access to this gallery. Your next share will be final.', 'info');
+                }
+              });
           }
         })
         .catch(error => {
@@ -316,7 +349,6 @@ const GalleryShareModal = {
       this.showToast('Error: Firebase not initialized.', 'error');
     }
   },
-  
   // Update form with saved settings
   updateFormWithSavedSettings: function(shareData) {
     // Update password protection checkbox
@@ -399,6 +431,8 @@ const GalleryShareModal = {
   },
   
   // Share a gallery - create or update share settings
+
+// Share a gallery - create or update share settings
   shareGallery: function() {
     try {
       // Get form values
@@ -464,12 +498,14 @@ const GalleryShareModal = {
       db.collection('galleryShares')
         .where('galleryId', '==', this.currentGalleryId)
         .where('photographerId', '==', currentUser.uid)
+        .where('status', '==', 'active')
         .get()
         .then(snapshot => {
           if (!snapshot.empty) {
             // Update existing share
             const shareDoc = snapshot.docs[0];
-            const shareId = shareDoc.data().shareId; // Use the existing shareId
+            const shareData = shareDoc.data();
+            const shareId = shareData.shareId; // Use the existing shareId
             
             // Update the share document
             return db.collection('galleryShares').doc(shareDoc.id).update({
@@ -480,56 +516,79 @@ const GalleryShareModal = {
               watermarkEnabled: watermarkEnabledValue,
               updated: firebase.firestore.FieldValue.serverTimestamp()
             }).then(() => {
-              return shareId; // Return the shareId for the URL
+              return { 
+                id: shareId, 
+                isFinalShare: shareData.isFinalShare === true 
+              };
             });
           } else {
-            // Create a new share
-            // Generate a random share ID - more readable format
-            const shareId = Math.random().toString(36).substring(2, 10);
-            
-            // Create timestamp for share creation
-            const timestamp = firebase.firestore.FieldValue.serverTimestamp();
-            
-            // CRITICAL CHANGE: Use the shareId as the document ID
-            return db.collection('galleryShares').doc(shareId).set({
-              galleryId: self.currentGalleryId,
-              photographerId: currentUser.uid,
-              shareId: shareId, // Store shareId as a field for compatibility
-              passwordProtected: passwordProtected,
-              password: passwordProtected ? passwordValue : '',
-              expiryDate: expiryDateValue,
-              preventDownload: preventDownloadValue,
-              watermarkEnabled: watermarkEnabledValue,
-              createdAt: timestamp,
-              status: "active",
-              views: 0,
-              lastViewed: null
-            }).then(() => {
-              return shareId; // Return the shareId for the URL
-            });
+            // Check if this gallery has had revoked shares in the past
+            return db.collection('galleryShares')
+              .where('galleryId', '==', self.currentGalleryId)
+              .where('photographerId', '==', currentUser.uid)
+              .where('hasBeenRevoked', '==', true) // Look for previous revocations
+              .get()
+              .then(revokedShares => {
+                const wasPreviouslyRevoked = !revokedShares.empty;
+                
+                // Create a new share
+                const shareId = Math.random().toString(36).substring(2, 10);
+                const timestamp = firebase.firestore.FieldValue.serverTimestamp();
+                
+                return db.collection('galleryShares').doc(shareId).set({
+                  galleryId: self.currentGalleryId,
+                  photographerId: currentUser.uid,
+                  shareId: shareId,
+                  passwordProtected: passwordProtected,
+                  password: passwordProtected ? passwordValue : '',
+                  expiryDate: expiryDateValue,
+                  preventDownload: preventDownloadValue,
+                  watermarkEnabled: watermarkEnabledValue,
+                  createdAt: timestamp,
+                  status: "active",
+                  views: 0,
+                  lastViewed: null,
+                  hasBeenRevoked: false, // New share, not revoked yet
+                  isFinalShare: wasPreviouslyRevoked // Mark as final share if there was a previous revocation
+                }).then(() => {
+                  return { 
+                    id: shareId, 
+                    isFinalShare: wasPreviouslyRevoked 
+                  };
+                });
+              });
           }
         })
-        .then(shareId => {
-          console.log("Gallery shared successfully with ID:", shareId);
+        .then(result => {
+          console.log("Gallery shared successfully with ID:", result.id);
           
           // Display the share link with correct shareId
-          self.displayShareLink(shareId);
+          self.displayShareLink(result.id);
           
-          // Show revoke button
+          // Show or hide revoke button based on whether this is a final share
           const revokeBtn = document.getElementById('revokeAccessBtn');
           if (revokeBtn) {
-            revokeBtn.classList.remove('hidden');
+            if (result.isFinalShare) {
+              // This is a final share after revocation - no revoke button
+              revokeBtn.classList.add('hidden');
+              
+              // Show a notice about this being the final share
+              self.showToast('This is your final share for this gallery. No further revocation is possible.', 'warning');
+            } else {
+              // First share - show revoke button with tooltip
+              revokeBtn.classList.remove('hidden');
+            }
           }
           
           // Update submit button text
           if (submitButton) {
             submitButton.disabled = false;
-            submitButton.textContent = 'Update Settings';
+            submitButton.textContent = result.isFinalShare ? 'Update Final Share Settings' : 'Update Settings';
           }
           
           // Show success message
           self.showToast('Gallery shared successfully!', 'success');
-
+  
           // Add this code in shareGallery() function after success message
           // Disable upload buttons after successful sharing
           const uploadPhotosBtn = document.getElementById('uploadPhotosBtn');
@@ -542,11 +601,8 @@ const GalleryShareModal = {
             emptyStateUploadBtn.style.display = 'none';
           }
           
-         // Show message using the existing showToast function
+          // Show message using the existing showToast function
           self.showToast('This gallery is now shared. Uploads have been disabled.', 'info');
-
-
-
           
           // Highlight the share URL
           const urlDisplay = document.getElementById('shareUrlDisplay');
@@ -570,6 +626,11 @@ const GalleryShareModal = {
       this.showToast('Error: Could not share gallery.', 'error');
     }
   },
+
+
+
+
+    
   
   // Share via WhatsApp
   shareViaWhatsApp: function() {
@@ -608,11 +669,13 @@ const GalleryShareModal = {
   },
   
   // Revoke access to a shared gallery
+ 
+  // Revoke access to a shared gallery
   revokeAccess: function() {
     try {
       const db = firebase.firestore();
       const currentUser = firebase.auth().currentUser;
-      const self = this; // Store reference to 'this' for use in promise callbacks
+      const self = this;
       
       if (!currentUser) {
         this.showToast('Please log in to manage gallery access.', 'error');
@@ -643,17 +706,15 @@ const GalleryShareModal = {
             return;
           }
           
-          // Delete all sharing records
+          // Update to revoked status instead of deleting
           const batch = db.batch();
           snapshot.docs.forEach(doc => {
-            // Option 1: Delete document completely
-            batch.delete(doc.ref);
-            
-            // Option 2: Update status to 'revoked' (if you want to keep history)
-            // batch.update(doc.ref, {
-            //   status: 'revoked',
-            //   revokedAt: firebase.firestore.FieldValue.serverTimestamp()
-            // });
+            // Update status to 'revoked' and add revocation tracking
+            batch.update(doc.ref, {
+              status: 'revoked',
+              revokedAt: firebase.firestore.FieldValue.serverTimestamp(),
+              hasBeenRevoked: true // Track that this gallery has been revoked once
+            });
           });
           
           return batch.commit();
@@ -693,21 +754,18 @@ const GalleryShareModal = {
           // Update submit button text
           const submitBtn = document.getElementById('shareGallerySubmitBtn');
           if (submitBtn) {
-            submitBtn.textContent = 'Create Share Link';
+            submitBtn.textContent = 'Create Final Share Link';
           }
-
+          
           // Change revoke button to show it's already been revoked
           if (revokeBtn) {
             revokeBtn.disabled = true;
-            revokeBtn.textContent = 'Access Revoked'; // Change from "Revoking..." to "Access Revoked"
+            revokeBtn.textContent = 'Access Revoked';
           }
           
           // Show success message
-          self.showToast('Gallery access revoked successfully.', 'success');
-
-
-
-          // Add this code in revokeAccess() function after success message
+          self.showToast('Gallery access revoked successfully. You can create one final share.', 'success');
+          
           // Re-enable upload buttons after revoking access
           const uploadPhotosBtn = document.getElementById('uploadPhotosBtn');
           if (uploadPhotosBtn) {
@@ -715,9 +773,7 @@ const GalleryShareModal = {
           }
           
           // Show message about re-enabled uploads
-        // Show message using the existing showToast function
           self.showToast('Gallery sharing has been revoked. Uploads are now enabled.', 'info');
-          
         })
         .catch(error => {
           console.error("Error revoking access:", error);
