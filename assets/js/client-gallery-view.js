@@ -833,6 +833,20 @@ class ClientGalleryViewer {
     
     // Update selection in database
     this.updateSelectionInDatabase();
+
+
+    
+    if (window.GalleryShareControl) {
+      // Only freeze the gallery on the first selection
+      if (this.selectedCount === 1) {
+        console.log('First selection made, freezing gallery');
+        window.GalleryShareControl.registerClientInteraction(
+          this.sharedGallery.galleryId,  // The gallery ID
+          this.sharedGallery.clientId || 'anonymous',  // The client ID if available
+          'selection'  // The type of interaction
+        );
+      }
+    }
   }
   
   // Update selection count in UI
