@@ -2300,7 +2300,8 @@
         return false;
       }
       
-      const galleryData = galleryDoc.data();
+     // const galleryData = galleryDoc.data();
+      const galleryData = window.galleryView.getGalleryData();
       const galleryPhotoCount = galleryData.photosCount || 0;
       
       console.log(`Current gallery photo count: ${galleryPhotoCount}`);
@@ -2463,5 +2464,9 @@
     fixPhotoCountDiscrepancies,
     // Add the new function here
     checkIfGalleryIsShared
+
+    getGalleryData: function() {
+      return galleryData;
+    }
   };
 })();
