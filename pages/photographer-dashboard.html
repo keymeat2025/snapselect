@@ -541,27 +541,33 @@
                     // Show loading
                     const loadingOverlay = document.getElementById('loadingOverlay');
                     if (loadingOverlay) {
-                      loadingOverlay.querySelector('.loading-text').textContent = 'Creating client...';
+                      loadingOverlay.querySelector('.loading-text').textContent = 'Validating client...';
                       loadingOverlay.style.display = 'flex';
                     }
                     
-                    // Check for duplicate if the function exists
-                    let isDuplicate = false;
-                    if (window.subscriptionManager && window.subscriptionManager.checkDuplicateClientName) {
-                      isDuplicate = await window.subscriptionManager.checkDuplicateClientName(clientName);
+                    // Validate the client name first using our new validation function
+                    if (window.subscriptionManager && window.subscriptionManager.validateNewClientName) {
+                      const validationResult = await window.subscriptionManager.validateNewClientName(clientName);
+                      if (!validationResult.isValid) {
+                        // Show error and stop form submission
+                        if (window.NotificationSystem) {
+                          window.NotificationSystem.showNotification('error', 'Error', validationResult.message);
+                        } else {
+                          showErrorMessage(validationResult.message);
+                        }
+                        
+                        // Hide loading overlay
+                        if (loadingOverlay) {
+                          loadingOverlay.style.display = 'none';
+                        }
+                        
+                        return; // Stop execution here
+                      }
                     }
                     
-                    if (isDuplicate) {
-                      // Hide loading before showing confirmation
-                      if (loadingOverlay) {
-                        loadingOverlay.style.display = 'none';
-                      }
-                      
-                      // Ask for confirmation with standard browser confirm dialog
-                      if (!confirm(`A client named "${clientName}" already exists. Do you want to create another client with the same name?`)) {
-                        return; // User canceled, do nothing
-                      }
-                      // User confirmed, proceed with creation below
+                    // Update loading text now that validation is complete
+                    if (loadingOverlay) {
+                      loadingOverlay.querySelector('.loading-text').textContent = 'Creating client...';
                     }
                     
                     // Create client (existing code path)
