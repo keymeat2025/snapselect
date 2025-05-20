@@ -505,6 +505,24 @@ const GalleryShareModal = {
           
           // Show success message
           self.showToast('Gallery shared successfully!', 'success');
+
+          // Add this code in shareGallery() function after success message
+          // Disable upload buttons after successful sharing
+          const uploadPhotosBtn = document.getElementById('uploadPhotosBtn');
+          if (uploadPhotosBtn) {
+            uploadPhotosBtn.style.display = 'none';
+          }
+          
+          const emptyStateUploadBtn = document.getElementById('emptyStateUploadBtn');
+          if (emptyStateUploadBtn) {
+            emptyStateUploadBtn.style.display = 'none';
+          }
+          
+         // Show message using the existing showToast function
+          self.showToast('This gallery is now shared. Uploads have been disabled.', 'info');
+
+
+
           
           // Highlight the share URL
           const urlDisplay = document.getElementById('shareUrlDisplay');
@@ -656,6 +674,20 @@ const GalleryShareModal = {
           
           // Show success message
           self.showToast('Gallery access revoked successfully.', 'success');
+
+
+
+          // Add this code in revokeAccess() function after success message
+          // Re-enable upload buttons after revoking access
+          const uploadPhotosBtn = document.getElementById('uploadPhotosBtn');
+          if (uploadPhotosBtn) {
+            uploadPhotosBtn.style.display = 'block';
+          }
+          
+          // Show message about re-enabled uploads
+        // Show message using the existing showToast function
+          self.showToast('Gallery sharing has been revoked. Uploads are now enabled.', 'info');
+          
         })
         .catch(error => {
           console.error("Error revoking access:", error);
@@ -732,4 +764,7 @@ document.addEventListener('DOMContentLoaded', function() {
   } catch (error) {
     console.error("Error initializing Gallery Share Modal:", error);
   }
+
+
+  
 });
