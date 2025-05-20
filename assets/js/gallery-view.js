@@ -283,14 +283,6 @@ async function loadGalleryData() {
     }
     
     galleryData = { id: galleryDoc.id, ...galleryDoc.data() };
-
-
-     
-        // ADD THIS CODE: Check for frozen status and update UI
-    if (galleryData.freezeStatus === "frozen" || galleryData.freezeStatus === "locked") {
-        // Add visual indicator to gallery UI
-        addFreezeStatusIndicator(galleryData);
-    }
     
     // Add human-readable fields for admin searching
     galleryData.ownerEmail = currentUser.email;
@@ -730,136 +722,11 @@ function updateUserInfo() {
   }
 }
 
-
-/**
- * Add a visual indicator for frozen gallery status
- * @param {Object} galleryData The gallery data object
- */
-function addFreezeStatusIndicator(galleryData) {
-    // Create a freeze status indicator for the gallery info section
-    const galleryInfoSection = document.querySelector('.gallery-info-section');
-    if (!galleryInfoSection) return;
-    
-    // Check if indicator already exists
-    let freezeIndicator = document.getElementById('freezeStatusIndicator');
-    if (freezeIndicator) {
-        // Update existing indicator
-        freezeIndicator.className = `freeze-status-indicator ${galleryData.freezeStatus}`;
-        return;
-    }
-    
-    // Create new indicator
-    freezeIndicator = document.createElement('div');
-    freezeIndicator.id = 'freezeStatusIndicator';
-    freezeIndicator.className = `freeze-status-indicator ${galleryData.freezeStatus}`;
-    
-    // Format time information
-    let timeInfo = '';
-    if (galleryData.clientInteractionStartedAt) {
-        const freezeDate = galleryData.clientInteractionStartedAt.toDate();
-        timeInfo = ` since ${freezeDate.toLocaleString()}`;
-    }
-    
-    freezeIndicator.innerHTML = `
-        <div class="freeze-icon">
-            <i class="fas fa-snowflake"></i>
-        </div>
-        <div class="freeze-details">
-            <span class="freeze-status">Gallery is ${galleryData.freezeStatus}</span>
-            <span class="freeze-time">${timeInfo}</span>
-            <button class="freeze-info-btn">
-                <i class="fas fa-info-circle"></i>
-            </button>
-        </div>
-    `;
-    
-    // Add button click handler
-    const infoBtn = freezeIndicator.querySelector('.freeze-info-btn');
-    if (infoBtn) {
-        infoBtn.addEventListener('click', () => {
-            showFreezeExplanationModal(galleryData);
-        });
-    }
-    
-    // Add to gallery info section
-    galleryInfoSection.appendChild(freezeIndicator);
-    
-    // Also add styles for the indicator
-    const style = document.createElement('style');
-    style.textContent = `
-        .freeze-status-indicator {
-            display: flex;
-            align-items: center;
-            padding: 8px 15px;
-            border-radius: 6px;
-            margin-top: 10px;
-            background-color: rgba(0, 123, 255, 0.1);
-            border-left: 4px solid #007bff;
-        }
-        
-        .freeze-status-indicator.frozen {
-            background-color: rgba(0, 123, 255, 0.1);
-            border-left-color: #007bff;
-        }
-        
-        .freeze-status-indicator.locked {
-            background-color: rgba(220, 53, 69, 0.1);
-            border-left-color: #dc3545;
-        }
-        
-        .freeze-icon {
-            margin-right: 10px;
-            font-size: 18px;
-            color: #007bff;
-        }
-        
-        .freeze-status-indicator.locked .freeze-icon {
-            color: #dc3545;
-        }
-        
-        .freeze-details {
-            flex: 1;
-            display: flex;
-            align-items: center;
-        }
-        
-        .freeze-status {
-            font-weight: 600;
-        }
-        
-        .freeze-time {
-            margin-left: 8px;
-            font-size: 0.9em;
-            color: #6c757d;
-        }
-        
-        .freeze-info-btn {
-            background: none;
-            border: none;
-            color: #007bff;
-            cursor: pointer;
-            margin-left: 10px;
-        }
-        
-        .freeze-status-indicator.locked .freeze-info-btn {
-            color: #dc3545;
-        }
-    `;
-    document.head.appendChild(style);
-}
-
-
 // Improved showUploadPhotosModal to prevent double opening
-async function showUploadPhotosModal() {
-
-  const canProceed = await checkGalleryFreezeBeforeAction();
-  if (!canProceed) return; // Stop function execution if gallery is frozen
-
-  
+function showUploadPhotosModal() {
   const uploadPhotosModal = document.getElementById('uploadPhotosModal');
   if (!uploadPhotosModal) return;
-
- 
+  
   // Check if the modal is already visible - prevent double openings
   if (uploadPhotosModal.style.display === 'block') return;
   
@@ -1533,128 +1400,6 @@ function updateUploadPreview(files) {
   }
 }
 
-
-
-/**
- * Check if gallery is frozen before allowing modifications
- * @returns {Promise<boolean>} True if action can proceed, false if gallery is frozen
- */
-async function checkGalleryFreezeBeforeAction() {
-    try {
-        if (!galleryId || !currentUser) {
-            throw new Error('Missing gallery ID or user is not logged in');
-        }
-        
-        const db = firebase.firestore();
-        const galleryDoc = await db.collection('galleries').doc(galleryId).get();
-        
-        if (!galleryDoc.exists) {
-            throw new Error('Gallery not found');
-        }
-        
-        const gallery = galleryDoc.data();
-        
-        // Check if gallery is frozen
-        if (gallery.freezeStatus === "frozen" || gallery.freezeStatus === "locked") {
-            // Create a more detailed error message
-            let message = `This gallery is currently ${gallery.freezeStatus} and cannot be modified.`;
-            
-            // Add timing information if available
-            if (gallery.clientInteractionStartedAt) {
-                const freezeDate = gallery.clientInteractionStartedAt.toDate();
-                const freezeTime = freezeDate.toLocaleString();
-                message += ` A client began selecting photos on ${freezeTime}.`;
-            }
-            
-            // Show explanatory message to photographer
-            showWarningMessage(message);
-            
-            // Show a more detailed modal with explanation
-            showFreezeExplanationModal(gallery);
-            
-            return false;
-        }
-        
-        return true;
-    } catch (error) {
-        console.error('Error checking freeze status:', error);
-        showErrorMessage(`Could not check gallery status: ${error.message}`);
-        return false;
-    }
-}
-
-
-
-
-
-/**
- * Display an explanation modal with freeze details
- * @param {Object} gallery The gallery data object
- */
-function showFreezeExplanationModal(gallery) {
-    // Check if modal already exists
-    let freezeModal = document.getElementById('freezeExplanationModal');
-    
-    if (!freezeModal) {
-        // Create modal
-        freezeModal = document.createElement('div');
-        freezeModal.id = 'freezeExplanationModal';
-        freezeModal.className = 'modal';
-        
-        // Format freeze time
-        let freezeTime = 'unknown time';
-        if (gallery.clientInteractionStartedAt) {
-            freezeTime = gallery.clientInteractionStartedAt.toDate().toLocaleString();
-        }
-        
-        freezeModal.innerHTML = `
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h2>Gallery is Currently Frozen</h2>
-                    <button class="close-modal">&times;</button>
-                </div>
-                <div class="modal-body">
-                    <div class="freeze-explanation">
-                        <p>This gallery has been frozen because a client has begun making photo selections.</p>
-                        <p>Client activity began: <strong>${freezeTime}</strong></p>
-                        <p>While the gallery is frozen, you cannot:</p>
-                        <ul>
-                            <li>Add or remove photos</li>
-                            <li>Revoke client access</li>
-                            <li>Sync changes from storage</li>
-                        </ul>
-                        <p>This feature protects client selections and ensures they won't be affected by changes to the gallery during their review process.</p>
-                        <p>The gallery will remain frozen until the client finalizes their selections or you manually override the freeze status.</p>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button id="closeFreezeModalBtn" class="btn outline-btn">I Understand</button>
-                </div>
-            </div>
-        `;
-        
-        document.body.appendChild(freezeModal);
-        
-        // Add event listeners
-        const closeBtn = freezeModal.querySelector('.close-modal');
-        if (closeBtn) {
-            closeBtn.addEventListener('click', () => {
-                freezeModal.style.display = 'none';
-            });
-        }
-        
-        const dismissBtn = document.getElementById('closeFreezeModalBtn');
-        if (dismissBtn) {
-            dismissBtn.addEventListener('click', () => {
-                freezeModal.style.display = 'none';
-            });
-        }
-    }
-    
-    // Show the modal
-    freezeModal.style.display = 'block';
-}
-
 /**
  * Enhanced showUploadStatus function to display more detailed upload information
  * Shows steps and clear indicators for the upload process
@@ -2146,13 +1891,6 @@ async function deletePhoto(photoId) {
     if (!photoId || !currentUser) {
       throw new Error('Missing photo ID or user is not logged in');
     }
-
-    // ADD THIS CODE: Check freeze status before proceeding
-    const canProceed = await checkGalleryFreezeBeforeAction();
-    if (!canProceed) {
-        hideLoadingOverlay(); // Make sure we hide any loading overlays
-        return; // Stop function execution if gallery is frozen
-    }
     
     showLoadingOverlay('Deleting photo...');
     
@@ -2275,12 +2013,6 @@ async function syncStorageWithFirestore() {
       showErrorMessage('Only the gallery owner can perform this operation');
       return;
     }
-
-
-     // ADD THIS CODE: Check freeze status before proceeding
-    const canProceed = await checkGalleryFreezeBeforeAction();
-    if (!canProceed) return; // Stop function execution if gallery is frozen
-
     
     showLoadingOverlay('Synchronizing photos...');
     
