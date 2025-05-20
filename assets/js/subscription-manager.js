@@ -1,4 +1,4 @@
-/**
+  /**
  * subscription-manager.js - Manages client-based plan purchases for photographers
  */
 // Global variables for filtered plans
@@ -738,16 +738,19 @@ function showCreateClientModal() {
 
 
 // Client management
-async function createClient(name, email) {
+
+async function createClient(name, email, additionalData = {}) {
   try {
     if (!currentUser) return null;
     
     const db = firebase.firestore();
     const clientRef = await db.collection('clients').add({
-      name, email,
+      name, 
+      email,
       photographerId: currentUser.uid,
       createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-      planActive: false
+      planActive: false,
+      ...additionalData // This spreads the additional data into the client object
     });
     
     // Add notification for client creation
@@ -765,6 +768,10 @@ async function createClient(name, email) {
     return null;
   }
 }
+
+
+
+  
 
 // Plan display and payment
 function updatePlanDisplay(planType) {
@@ -2200,3 +2207,16 @@ async function fixAllPhotoCountDiscrepancies() {
 // Add to window.subscriptionManager
 window.subscriptionManager.fixAllPhotoCountDiscrepancies = fixAllPhotoCountDiscrepancies;
 
+// Add client name validation function
+window.subscriptionManager.validateNewClientName = async function(clientName) {
+  if (!clientName || clientName.trim() === '') {
+    return { isValid: false, message: 'Client name cannot be empty' };
+  }
+  
+  const isDuplicate = await this.checkDuplicateClientName(clientName);
+  if (isDuplicate) {
+    return { isValid: false, message: 'A client with this name already exists. Please use a different name.' };
+  }
+  
+  return { isValid: true, message: '' };
+};
