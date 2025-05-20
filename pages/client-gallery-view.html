@@ -1277,7 +1277,15 @@
                 
                 photoRatings[photoId] = rating;
                 showToast(`Photo marked as ${getRatingLabel(rating)}`, 'success');
-                
+
+
+                                // Add this code to trigger freeze on first rating
+                // Check if this is the first rating (gallery freeze trigger)
+                if (Object.keys(photoRatings).length === 1) {
+                    // This is the first rating, freeze the gallery
+                    freezeGalleryOnFirstInteraction(photoId);
+                }
+                                
                 // Increment counter in lightbox if visible
                 const counterElement = document.getElementById(`lightbox-${rating}-count`);
                 if (counterElement) {
@@ -1349,7 +1357,69 @@
             pendingSync = true;
         }
         
-        // Create a function to schedule a delayed sync
+    // Function to freeze gallery on first client interaction
+        function freezeGalleryOnFirstInteraction(photoId) {
+            try {
+                const galleryId = getGalleryId();
+                const userId = getUserIdentifier();
+                
+                if (!galleryId) return;
+                
+                const db = firebase.firestore();
+                
+                // First check if gallery is already frozen
+                db.collection('galleries').doc(galleryId).get()
+                    .then(doc => {
+                        if (!doc.exists) return;
+                        
+                        const gallery = doc.data();
+                        if (gallery.clientInteractionStarted) {
+                            // Already frozen, nothing to do
+                            return;
+                        }
+                        
+                        // Update gallery with freeze status
+                        return db.collection('galleries').doc(galleryId).update({
+                            clientInteractionStarted: true,
+                            clientInteractionStartedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                            freezeStatus: "frozen",
+                            interactingClientId: userId
+                        });
+                    })
+                    .then(() => {
+                        console.log("Gallery frozen after first rating");
+                        
+                        // Show a freeze notification to the client
+                        const toast = document.createElement('div');
+                        toast.className = 'toast toast-info freeze-notification';
+                        toast.innerHTML = `
+                            <div class="freeze-icon"><i class="fas fa-snowflake"></i></div>
+                            <div class="freeze-message">
+                                <strong>Gallery Protected</strong>
+                                <p>Your selections are now being protected. The photographer cannot modify this gallery while you are making selections.</p>
+                            </div>
+                        `;
+                        
+                        const toastContainer = document.getElementById('toastContainer');
+                        if (toastContainer) {
+                            toastContainer.appendChild(toast);
+                            
+                            // Keep freeze notification visible longer (8 seconds)
+                            setTimeout(() => {
+                                toast.classList.add('fadeOut');
+                                setTimeout(() => {
+                                    toast.remove();
+                                }, 500);
+                            }, 8000);
+                        }
+                    })
+                    .catch(error => {
+                        console.error("Error freezing gallery:", error);
+                    });
+            } catch (error) {
+                console.error("Error in freezeGalleryOnFirstInteraction:", error);
+            }
+        }
 
 
         // New function to refresh the photo grid
