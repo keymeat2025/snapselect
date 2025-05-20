@@ -42,6 +42,16 @@ const PLAN_LIMITS = {
   ultimate: { photos: 2500, storageGB: 100, maxSize: 25 }
 };
 
+
+async function checkGalleryFreeze() {
+  if (window.GalleryShareControl && galleryId) {
+    const freezeStatus = await window.GalleryShareControl.checkGalleryFreezeStatus(galleryId);
+    return freezeStatus.isFrozen;
+  }
+  return false; // Default to not frozen if control module isn't available
+}
+
+
 // Functions for loading overlay
 function showLoadingOverlay(message) {
   const loadingOverlay = document.getElementById('loadingOverlay');
@@ -723,7 +733,12 @@ function updateUserInfo() {
 }
 
 // Improved showUploadPhotosModal to prevent double opening
-function showUploadPhotosModal() {
+async function showUploadPhotosModal() {
+
+  if (await checkGalleryFreeze()) {
+    showWarningMessage('Gallery is frozen while client is making selections');
+    return;
+  }
   const uploadPhotosModal = document.getElementById('uploadPhotosModal');
   if (!uploadPhotosModal) return;
   
@@ -1888,6 +1903,13 @@ function confirmDeletePhoto(photoId) {
 // Delete photo from storage and database
 async function deletePhoto(photoId) {
   try {
+
+
+    if (await checkGalleryFreeze()) {
+      showWarningMessage('Cannot delete photos while gallery is frozen');
+      return;
+    }
+    
     if (!photoId || !currentUser) {
       throw new Error('Missing photo ID or user is not logged in');
     }
@@ -2008,6 +2030,14 @@ function showGallerySettingsModal() {
 // Synchronize Storage with Firestore to ensure all photos are properly tracked
 async function syncStorageWithFirestore() {
   try {
+
+
+    if (await checkGalleryFreeze()) {
+      showWarningMessage('Cannot sync photos while gallery is frozen');
+      return;
+    }
+
+    
     // Security check: Only the gallery owner can sync
     if (!galleryData || galleryData.photographerId !== currentUser.uid) {
       showErrorMessage('Only the gallery owner can perform this operation');
