@@ -681,6 +681,62 @@ const GalleryShareModal = {
         this.showToast('Please log in to manage gallery access.', 'error');
         return;
       }
+
+
+
+
+
+
+            // Check if gallery is frozen before allowing revocation
+      if (window.GalleryShareControl) {
+        // First disable the button to prevent multiple clicks
+        const revokeBtn = document.getElementById('revokeAccessBtn');
+        if (revokeBtn) {
+          revokeBtn.disabled = true;
+          revokeBtn.textContent = 'Checking...';
+        }
+        
+        // Check the freeze status
+        window.GalleryShareControl.checkGalleryFreezeStatus(this.currentGalleryId)
+          .then(freezeStatus => {
+            // Re-enable button
+            if (revokeBtn) {
+              revokeBtn.disabled = false;
+              revokeBtn.textContent = 'Revoke Access';
+            }
+            
+            if (freezeStatus.isFrozen) {
+              // Gallery is frozen, show warning and prevent revocation
+              this.showToast('Cannot revoke access while gallery is frozen. The client is currently making selections.', 'warning');
+              return;
+            }
+            
+            // Gallery is not frozen, continue with normal revocation process
+            // Ask for confirmation
+            if (confirm('Are you sure you want to revoke access to this gallery?')) {
+              // Continue with the original revocation code below...
+              this.performRevokeAccess();
+            }
+          })
+          .catch(error => {
+            console.error('Error checking gallery freeze status:', error);
+            // Re-enable button
+            if (revokeBtn) {
+              revokeBtn.disabled = false;
+              revokeBtn.textContent = 'Revoke Access';
+            }
+            
+            // Continue with normal process since we couldn't determine if it's frozen
+            if (confirm('Are you sure you want to revoke access to this gallery?')) {
+              this.performRevokeAccess();
+            }
+          });
+        
+        return; // Important! Return here to prevent the code below from executing immediately
+      }
+
+
+
       
       // Show loading state on revoke button if it exists
       const revokeBtn = document.getElementById('revokeAccessBtn');
@@ -791,6 +847,43 @@ const GalleryShareModal = {
       this.showToast('Error: Firebase not initialized.', 'error');
     }
   },
+
+
+
+  performRevokeAccess: function() {
+    // Move the original revocation code here
+    const db = firebase.firestore();
+    const currentUser = firebase.auth().currentUser;
+    const self = this;
+    
+    // Show loading state on revoke button if it exists
+    const revokeBtn = document.getElementById('revokeAccessBtn');
+    if (revokeBtn) {
+      revokeBtn.disabled = true;
+      revokeBtn.textContent = 'Revoking...';
+    }
+    
+    // Look for shares by this photographer for this gallery
+    db.collection('galleryShares')
+      .where('galleryId', '==', this.currentGalleryId)
+      .where('photographerId', '==', currentUser.uid)
+      .get()
+      .then(snapshot => {
+        // Rest of your original revocation code...
+      })
+      .catch(error => {
+        console.error("Error revoking access:", error);
+        
+        // Reset button state
+        if (revokeBtn) {
+          revokeBtn.disabled = false;
+          revokeBtn.textContent = 'Revoke Access';
+        }
+        
+        self.showToast('Error revoking access: ' + error.message, 'error');
+      });
+  }
+  
   
   // Show a toast notification
   showToast: function(message, type = 'info') {
