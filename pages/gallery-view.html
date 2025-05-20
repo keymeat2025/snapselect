@@ -477,6 +477,78 @@
             border-radius: 4px;
             font-size: 14px;
         }
+
+        /* Add this to the <style> section in gallery-view.html */
+
+        /* Tooltip styling for revoke button */
+        .tooltip-container {
+          position: relative;
+          display: inline-block;
+        }
+        
+        .tooltip-text {
+          visibility: hidden;
+          width: 300px;
+          background-color: rgba(0, 0, 0, 0.8);
+          color: #fff;
+          text-align: center;
+          border-radius: 6px;
+          padding: 10px;
+          
+          /* Position the tooltip */
+          position: absolute;
+          z-index: 1000;
+          bottom: 125%;
+          left: 50%;
+          margin-left: -150px;
+          
+          /* Fade in animation */
+          opacity: 0;
+          transition: opacity 0.3s;
+        }
+        
+        /* Arrow for tooltip */
+        .tooltip-text::after {
+          content: "";
+          position: absolute;
+          top: 100%;
+          left: 50%;
+          margin-left: -5px;
+          border-width: 5px;
+          border-style: solid;
+          border-color: rgba(0, 0, 0, 0.8) transparent transparent transparent;
+        }
+        
+        /* Show the tooltip when hovering over the container */
+        .tooltip-container:hover .tooltip-text {
+          visibility: visible;
+          opacity: 1;
+        }
+        
+        /* Warning style for tooltip */
+        .tooltip-warning {
+          border-left: 4px solid #ff9800;
+        }
+        
+        .tooltip-warning i {
+          color: #ff9800;
+          margin-right: 5px;
+        }
+        
+        /* Frozen status indicator */
+        .frozen-indicator {
+          display: inline-block;
+          margin-left: 10px;
+          padding: 2px 8px;
+          background-color: rgba(0, 123, 255, 0.1);
+          border-radius: 4px;
+          font-size: 12px;
+          color: #007bff;
+        }
+        
+        .frozen-indicator i {
+          margin-right: 3px;
+        }
     </style>
 </head>
 <body>
