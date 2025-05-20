@@ -735,36 +735,6 @@ function showCreateClientModal() {
 /**
  * Check if a client with the given name already exists
  */
-async function checkDuplicateClientName(clientName) {
-  try {
-    if (!currentUser) return false;
-    
-    // Normalize the name for comparison (trim and convert to lowercase)
-    const normalizedName = clientName.trim().toLowerCase();
-    
-    // Query Firestore for clients with this photographer ID
-    const db = firebase.firestore();
-    const clientsSnapshot = await db.collection('clients')
-      .where('photographerId', '==', currentUser.uid)
-      .get();
-    
-    // Check if any existing client has the same name (case insensitive)
-    const duplicateExists = clientsSnapshot.docs.some(doc => {
-      const existingClient = doc.data();
-      return existingClient.name && existingClient.name.trim().toLowerCase() === normalizedName;
-    });
-    
-    return duplicateExists;
-  } catch (error) {
-    console.error('Error checking for duplicate clients:', error);
-    // In case of error, return false to allow creation
-    return false;
-  }
-}
-
-// Add this to window.subscriptionManager
-window.subscriptionManager.checkDuplicateClientName = checkDuplicateClientName;
-
 
 
 // Client management
@@ -1738,6 +1708,36 @@ window.subscriptionManager = {
   createGallery,
   viewGallery  // Add this line
 };
+
+
+// Add this code AFTER window.subscriptionManager is defined
+window.subscriptionManager.checkDuplicateClientName = async function(clientName) {
+  try {
+    if (!currentUser) return false;
+    
+    // Normalize the name for comparison (trim and convert to lowercase)
+    const normalizedName = clientName.trim().toLowerCase();
+    
+    // Query Firestore for clients with this photographer ID
+    const db = firebase.firestore();
+    const clientsSnapshot = await db.collection('clients')
+      .where('photographerId', '==', currentUser.uid)
+      .get();
+    
+    // Check if any existing client has the same name (case insensitive)
+    const duplicateExists = clientsSnapshot.docs.some(doc => {
+      const existingClient = doc.data();
+      return existingClient.name && existingClient.name.trim().toLowerCase() === normalizedName;
+    });
+    
+    return duplicateExists;
+  } catch (error) {
+    console.error('Error checking for duplicate clients:', error);
+    // In case of error, return false to allow creation
+    return false;
+  }
+};
+
 
 // Export subscription plans
 window.SUBSCRIPTION_PLANS = SUBSCRIPTION_PLANS;
