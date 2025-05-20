@@ -882,7 +882,7 @@ const GalleryShareModal = {
         
         self.showToast('Error revoking access: ' + error.message, 'error');
       });
-  }
+  },
   
   
   // Show a toast notification
