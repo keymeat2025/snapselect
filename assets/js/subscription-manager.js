@@ -730,6 +730,11 @@ function showCreateClientModal() {
  * @param {string} clientName - The name to check for duplicates
  * @returns {Promise<boolean>} - True if a duplicate exists, false otherwise
  */
+
+// Add this function to subscription-manager.js
+/**
+ * Check if a client with the given name already exists
+ */
 async function checkDuplicateClientName(clientName) {
   try {
     if (!currentUser) return false;
@@ -746,20 +751,19 @@ async function checkDuplicateClientName(clientName) {
     // Check if any existing client has the same name (case insensitive)
     const duplicateExists = clientsSnapshot.docs.some(doc => {
       const existingClient = doc.data();
-      return existingClient.name.trim().toLowerCase() === normalizedName;
+      return existingClient.name && existingClient.name.trim().toLowerCase() === normalizedName;
     });
     
     return duplicateExists;
   } catch (error) {
     console.error('Error checking for duplicate clients:', error);
-    // In case of error, return false to allow creation (better UX than blocking on error)
+    // In case of error, return false to allow creation
     return false;
   }
 }
 
-// Add this function to window.subscriptionManager
+// Add this to window.subscriptionManager
 window.subscriptionManager.checkDuplicateClientName = checkDuplicateClientName;
-
 
 
 
