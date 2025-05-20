@@ -352,6 +352,28 @@ async function loadGalleryData() {
     if (maxFileSizeEl && planLimits) {
       maxFileSizeEl.textContent = planLimits.maxSize;
     }
+
+// Check if gallery is shared
+    const isGalleryShared = await checkIfGalleryIsShared();
+    galleryData.isShared = isGalleryShared; // Store in galleryData object
+
+    // Disable upload buttons if gallery is shared
+    if (isGalleryShared) {
+      // Hide or disable upload buttons
+      const uploadPhotosBtn = document.getElementById('uploadPhotosBtn');
+      if (uploadPhotosBtn) {
+        uploadPhotosBtn.style.display = 'none';
+      }
+      
+      // Also hide the "empty state" upload button 
+      const emptyStateUploadBtn = document.getElementById('emptyStateUploadBtn');
+      if (emptyStateUploadBtn) {
+        emptyStateUploadBtn.style.display = 'none';
+      }
+      
+      // Show a message to inform the photographer
+      showInfoMessage('This gallery is shared with clients. Uploads are disabled.');
+    }
     
     return galleryData;
   } catch (error) {
@@ -2365,6 +2387,29 @@ async function fixPhotoCountDiscrepancies() {
 // Make the function available globally so it can be called from the console
 window.fixPhotoCountDiscrepancies = fixPhotoCountDiscrepancies;
 
+/**
+ * Check if the current gallery is shared with clients
+ * @returns {Promise<boolean>} True if gallery is shared, false otherwise
+ */
+async function checkIfGalleryIsShared() {
+  try {
+    if (!galleryId || !currentUser) {
+      return false;
+    }
+    
+    const db = firebase.firestore();
+    const sharesSnapshot = await db.collection('galleryShares')
+      .where('galleryId', '==', galleryId)
+      .where('photographerId', '==', currentUser.uid)
+      .where('status', '==', 'active')
+      .get();
+      
+    return !sharesSnapshot.empty; // True if gallery is shared
+  } catch (error) {
+    console.error("Error checking gallery share status:", error);
+    return false;
+  }
+}
 
 
 // Export gallery view functions to window object for debugging and external access
@@ -2384,5 +2429,7 @@ window.galleryView = {
   // New features
   syncStorageWithFirestore,
   loadMorePhotos,
-  fixPhotoCountDiscrepancies
+  fixPhotoCountDiscrepancies,
+  // Add the new function here
+  checkIfGalleryIsShared
 };
