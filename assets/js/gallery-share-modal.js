@@ -506,6 +506,8 @@ const GalleryShareModal = {
             
             // Create timestamp for share creation
             const timestamp = firebase.firestore.FieldValue.serverTimestamp();
+
+            self.revokeAttempts = 2;
             
             // CRITICAL CHANGE: Use the shareId as the document ID
             return db.collection('galleryShares').doc(shareId).set({
@@ -517,6 +519,8 @@ const GalleryShareModal = {
               expiryDate: expiryDateValue,
               preventDownload: preventDownloadValue,
               watermarkEnabled: watermarkEnabledValue,
+              revokeAttempts: 2,     // Add this line
+              revokeHistory: [], 
               createdAt: timestamp,
               status: "active",
               views: 0,
@@ -616,6 +620,9 @@ const GalleryShareModal = {
   },
   
   // Revoke access to a shared gallery
+  
+  
+  // Modified revokeAccess function that maintains audit trail
   revokeAccess: function() {
     try {
       const db = firebase.firestore();
@@ -639,20 +646,6 @@ const GalleryShareModal = {
       // Update button class based on remaining attempts
       this.updateRevokeButtonClass();
       
-      // If user still has attempts but this is not their last one, just update the button and return
-      if (this.revokeAttempts > 0) {
-        this.showToast(`Revoke attempt used. ${this.revokeAttempts} attempt(s) remaining.`, 'warning');
-        return;
-      }
-      
-      // This is their last attempt, proceed with actual revocation
-      // Show loading state on revoke button if it exists
-      const revokeBtn = document.getElementById('revokeAccessBtn');
-      if (revokeBtn) {
-        revokeBtn.disabled = true;
-        revokeBtn.textContent = 'Revoking...';
-      }
-      
       // Look for shares by this photographer for this gallery
       db.collection('galleryShares')
         .where('galleryId', '==', this.currentGalleryId)
@@ -661,92 +654,123 @@ const GalleryShareModal = {
         .then(snapshot => {
           if (snapshot.empty) {
             self.showToast('No active shares found for this gallery.', 'info');
-            
-            // Reset button state
-            if (revokeBtn) {
-              revokeBtn.disabled = false;
-              self.updateRevokeButtonClass();
-            }
             return;
           }
           
-          // Delete all sharing records
-          const batch = db.batch();
-          snapshot.docs.forEach(doc => {
-            // Delete document completely
-            batch.delete(doc.ref);
+          const shareDoc = snapshot.docs[0];
+          const shareData = shareDoc.data();
+          
+          // Create an array to track revoke attempts if it doesn't exist
+          const revokeHistory = shareData.revokeHistory || [];
+          
+          // Add this attempt to the history
+          revokeHistory.push({
+            timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+            userId: currentUser.uid,
+            userEmail: currentUser.email || 'unknown',
+            remainingAttempts: self.revokeAttempts,
+            fullRevoke: self.revokeAttempts === 0
           });
           
-          return batch.commit();
-        })
-        .then(() => {
-          // Clear current share URL
-          self.currentShareUrl = null;
-          self.currentShareId = null;
-          
-          // Hide share link section
-          const shareLinkSection = document.getElementById('shareLinkSection');
-          if (shareLinkSection) {
-            shareLinkSection.classList.add('hidden');
+          // If user still has attempts but this is not their last one, update the attempts in the database and return
+          if (self.revokeAttempts > 0) {
+            return db.collection('galleryShares').doc(shareDoc.id).update({
+              revokeAttempts: self.revokeAttempts,
+              revokeHistory: revokeHistory,
+              lastRevokeAttempt: firebase.firestore.FieldValue.serverTimestamp()
+            }).then(() => {
+              self.showToast(`Revoke attempt used. ${self.revokeAttempts} attempt(s) remaining.`, 'warning');
+            });
           }
           
-          // Update revoke button
+          // This is their last attempt, proceed with actual revocation
+          // Show loading state on revoke button if it exists
+          const revokeBtn = document.getElementById('revokeAccessBtn');
           if (revokeBtn) {
-            revokeBtn.textContent = 'Revoke Attempt Expired';
             revokeBtn.disabled = true;
-            revokeBtn.classList.remove('revoke-1', 'revoke-2');
-            revokeBtn.classList.add('revoke-expired');
+            revokeBtn.textContent = 'Revoking...';
+          }
+          
+          // Instead of deleting, update the status to 'revoked'
+          return db.collection('galleryShares').doc(shareDoc.id).update({
+            status: 'revoked',
+            revokeAttempts: 0,
+            revokeHistory: revokeHistory,
+            revokedAt: firebase.firestore.FieldValue.serverTimestamp(),
+            revokedBy: {
+              uid: currentUser.uid,
+              email: currentUser.email || 'unknown'
+            }
+          }).then(() => {
+            // Clear current share URL
+            self.currentShareUrl = null;
+            self.currentShareId = null;
             
-            // Set a timer to hide the button after a delay
-            if (self.revokeTimerId) {
-              clearTimeout(self.revokeTimerId);
+            // Hide share link section
+            const shareLinkSection = document.getElementById('shareLinkSection');
+            if (shareLinkSection) {
+              shareLinkSection.classList.add('hidden');
             }
             
-            self.revokeTimerId = setTimeout(() => {
-              if (revokeBtn) {
-                revokeBtn.classList.add('hidden');
+            // Update revoke button
+            if (revokeBtn) {
+              revokeBtn.textContent = 'Revoke Attempt Expired';
+              revokeBtn.disabled = true;
+              revokeBtn.classList.remove('revoke-1', 'revoke-2');
+              revokeBtn.classList.add('revoke-expired');
+              
+              // Set a timer to hide the button after a delay
+              if (self.revokeTimerId) {
+                clearTimeout(self.revokeTimerId);
               }
-            }, 10000); // Hide after 10 seconds
-          }
-          
-          // Reset form fields
-          const passwordProtection = document.getElementById('passwordProtection');
-          if (passwordProtection) {
-            passwordProtection.checked = false;
-          }
-          
-          const passwordSection = document.getElementById('passwordSection');
-          if (passwordSection) {
-            passwordSection.classList.add('hidden');
-          }
-          
-          const password = document.getElementById('password');
-          if (password) {
-            password.value = '';
-          }
-          
-          // Update submit button text
-          const submitBtn = document.getElementById('shareGallerySubmitBtn');
-          if (submitBtn) {
-            submitBtn.textContent = 'Create Share Link';
-          }
-          
-          // Show success message
-          self.showToast('Gallery access revoked successfully.', 'success');
-          
-          // Re-enable upload buttons after revoking access
-          const uploadPhotosBtn = document.getElementById('uploadPhotosBtn');
-          if (uploadPhotosBtn) {
-            uploadPhotosBtn.style.display = 'block';
-          }
-          
-          // Show message about re-enabled uploads
-          self.showToast('Gallery sharing has been revoked. Uploads are now enabled.', 'info');
+              
+              self.revokeTimerId = setTimeout(() => {
+                if (revokeBtn) {
+                  revokeBtn.classList.add('hidden');
+                }
+              }, 10000); // Hide after 10 seconds
+            }
+            
+            // Reset form fields
+            const passwordProtection = document.getElementById('passwordProtection');
+            if (passwordProtection) {
+              passwordProtection.checked = false;
+            }
+            
+            const passwordSection = document.getElementById('passwordSection');
+            if (passwordSection) {
+              passwordSection.classList.add('hidden');
+            }
+            
+            const password = document.getElementById('password');
+            if (password) {
+              password.value = '';
+            }
+            
+            // Update submit button text
+            const submitBtn = document.getElementById('shareGallerySubmitBtn');
+            if (submitBtn) {
+              submitBtn.textContent = 'Create Share Link';
+            }
+            
+            // Show success message
+            self.showToast('Gallery access revoked successfully.', 'success');
+            
+            // Re-enable upload buttons after revoking access
+            const uploadPhotosBtn = document.getElementById('uploadPhotosBtn');
+            if (uploadPhotosBtn) {
+              uploadPhotosBtn.style.display = 'block';
+            }
+            
+            // Show message about re-enabled uploads
+            self.showToast('Gallery sharing has been revoked. Uploads are now enabled.', 'info');
+          });
         })
         .catch(error => {
           console.error("Error revoking access:", error);
           
           // Reset button state
+          const revokeBtn = document.getElementById('revokeAccessBtn');
           if (revokeBtn) {
             revokeBtn.disabled = false;
             self.updateRevokeButtonClass();
@@ -759,6 +783,9 @@ const GalleryShareModal = {
       this.showToast('Error: Firebase not initialized.', 'error');
     }
   },
+
+
+    
   
   // Show a toast notification
   showToast: function(message, type = 'info') {
