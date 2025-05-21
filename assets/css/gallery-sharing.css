@@ -218,3 +218,39 @@ input:checked + .slider:before {
 .hidden {
   display: none;
 }
+/* Revoke button states */
+
+/* Base style for revoke button */
+#revokeAccessBtn {
+  transition: all 0.3s ease;
+}
+
+/* Style for when 2 attempts are left */
+.revoke-2 {
+  background-color: #f44336 !important; /* Bright red */
+  color: white !important;
+}
+
+/* Style for when 1 attempt is left */
+.revoke-1 {
+  background-color: #ff9800 !important; /* Orange */
+  color: white !important;
+}
+
+/* Style for when attempts are expired */
+.revoke-expired {
+  background-color: #9e9e9e !important; /* Gray */
+  cursor: not-allowed !important;
+  color: white !important;
+}
+
+/* Add a little shake animation for the last attempt */
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+  20%, 40%, 60%, 80% { transform: translateX(5px); }
+}
+
+.revoke-1:hover {
+  animation: shake 0.5s;
+}
