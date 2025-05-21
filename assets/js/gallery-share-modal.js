@@ -1,4 +1,7 @@
-// Modified gallery-share-modal.js with countdown-based revocation system
+/**
+ * gallery-share-modal.js - Updated with countdown-based revocation system
+ * This file provides the complete implementation with proper integration
+ */
 
 // Gallery Share Modal
 const GalleryShareModal = {
@@ -10,48 +13,36 @@ const GalleryShareModal = {
   // Initialize the modal
   initialize: function() {
     this.setupEventListeners();
-    console.log("Gallery Share Modal initialized");
-  }
-};
-
-// Initialize the modal when the document is ready
-document.addEventListener('DOMContentLoaded', function() {
-  try {
-    GalleryShareModal.initialize();
+    console.log("Gallery Share Modal initialized with countdown revocation system");
     
-    // Check for pending gallery share
-    const pendingGalleryId = sessionStorage.getItem('pendingShareGalleryId');
-    if (pendingGalleryId) {
-      // Clear the stored ID to prevent repeat shares
-      sessionStorage.removeItem('pendingShareGalleryId');
+    // Initialize tooltip functionality
+    this.initializeTooltips();
+  },
+  
+  // Initialize tooltips
+  initializeTooltips: function() {
+    // Add tooltip functionality if not already present in the HTML
+    const revokeBtn = document.getElementById('revokeAccessBtn');
+    
+    if (revokeBtn && !revokeBtn.closest('.tooltip-container')) {
+      // If the button doesn't have a tooltip wrapper, add one
+      const tooltipContainer = document.createElement('div');
+      tooltipContainer.className = 'tooltip-container';
       
-      // Fetch the gallery data
-      firebase.firestore().collection('galleries').doc(pendingGalleryId).get()
-        .then(doc => {
-          if (doc.exists) {
-            const galleryData = doc.data();
-            galleryData.id = pendingGalleryId;
-            
-            // Open the share modal for this gallery
-            setTimeout(() => {
-              if (window.GalleryShareModal) {
-                window.GalleryShareModal.open(galleryData);
-              }
-            }, 500);
-          }
-        })
-        .catch(error => {
-          console.error("Error retrieving pending gallery:", error);
-        });
+      // Create tooltip text
+      const tooltipText = document.createElement('div');
+      tooltipText.className = 'tooltip-text tooltip-warning';
+      tooltipText.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Warning: You have a limited number of revocation attempts. Use them wisely.';
+      
+      // Replace the button with the tooltip container
+      const parentElement = revokeBtn.parentNode;
+      parentElement.replaceChild(tooltipContainer, revokeBtn);
+      
+      // Add the button and tooltip text to the container
+      tooltipContainer.appendChild(revokeBtn);
+      tooltipContainer.appendChild(tooltipText);
     }
-    
-    // Export the module globally
-    window.GalleryShareModal = GalleryShareModal;
-    console.log("Gallery Share Modal exported to window");
-  } catch (error) {
-    console.error("Error initializing Gallery Share Modal:", error);
-  }
-});,
+  },
   
   // Set up event listeners
   setupEventListeners: function() {
@@ -113,6 +104,53 @@ document.addEventListener('DOMContentLoaded', function() {
         this.promptRevocation();
       });
     }
+    
+    // Share Gallery Button (additional listener to ensure proper operation)
+    const shareGalleryBtn = document.getElementById('shareGalleryBtn');
+    if (shareGalleryBtn) {
+      shareGalleryBtn.addEventListener('click', () => {
+        // Get gallery ID from URL if not already set
+        if (!this.currentGalleryId) {
+          const urlParams = new URLSearchParams(window.location.search);
+          const galleryId = urlParams.get('id');
+          
+          if (galleryId) {
+            this.fetchGalleryData(galleryId);
+          } else {
+            this.showToast('Gallery ID not found. Please reload the page.', 'error');
+          }
+        }
+      });
+    }
+  },
+  
+  // Fetch gallery data from Firestore
+  fetchGalleryData: function(galleryId) {
+    try {
+      firebase.firestore().collection('galleries').doc(galleryId).get()
+        .then(doc => {
+          if (doc.exists) {
+            const galleryData = doc.data();
+            galleryData.id = galleryId;
+            
+            // Store in global scope for future use
+            window.galleryData = galleryData;
+            
+            // Open share modal
+            this.open(galleryData);
+          } else {
+            console.error('Gallery not found');
+            this.showToast('Gallery not found. Please reload the page.', 'error');
+          }
+        })
+        .catch(error => {
+          console.error('Error fetching gallery:', error);
+          this.showToast('Error loading gallery data: ' + error.message, 'error');
+        });
+    } catch (error) {
+      console.error('Firebase error:', error);
+      this.showToast('Error: Firebase is not initialized properly.', 'error');
+    }
   },
   
   // Prompt user for revocation with count information
@@ -125,7 +163,7 @@ document.addEventListener('DOMContentLoaded', function() {
       }
       
       // Show confirmation with remaining count information
-      const confirmMessage = `You have ${remainingRevocations} revocation ${remainingRevocations === 1 ? 'attempt' : 'attempts'} remaining. Are you sure you want to revoke access to this gallery?`;
+      const confirmMessage = `Are you sure you want to revoke access to this gallery? This is revocation ${this.maxRevocations - remainingRevocations + 1} of ${this.maxRevocations}.`;
       
       if (confirm(confirmMessage)) {
         this.revokeAccess();
@@ -159,11 +197,15 @@ document.addEventListener('DOMContentLoaded', function() {
             // Update the revoke button text to show remaining attempts
             this.updateRevokeButtonText(remainingRevocations);
             
+            // Update tooltip text based on remaining revocations
+            this.updateTooltipText(remainingRevocations);
+            
             // Execute callback with remaining count
             if (callback) callback(remainingRevocations);
           } else {
             // No document exists yet, so all revocations are available
             this.updateRevokeButtonText(this.maxRevocations);
+            this.updateTooltipText(this.maxRevocations);
             if (callback) callback(this.maxRevocations);
           }
         })
@@ -178,6 +220,20 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   },
   
+  // Update tooltip text based on remaining revocations
+  updateTooltipText: function(remainingRevocations) {
+    const tooltipText = document.querySelector('#revokeAccessBtn + .tooltip-text');
+    if (tooltipText) {
+      if (remainingRevocations <= 1) {
+        tooltipText.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Warning: This is your LAST revocation attempt! Once used, you cannot revoke access again.';
+      } else if (remainingRevocations === this.maxRevocations) {
+        tooltipText.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Warning: You have ' + remainingRevocations + ' revocation attempts available. Use them wisely.';
+      } else {
+        tooltipText.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Warning: You have ' + remainingRevocations + ' revocation attempts remaining out of ' + this.maxRevocations + '.';
+      }
+    }
+  },
+  
   // Update the revoke button text to show remaining attempts
   updateRevokeButtonText: function(remainingRevocations) {
     const revokeBtn = document.getElementById('revokeAccessBtn');
@@ -187,7 +243,8 @@ document.addEventListener('DOMContentLoaded', function() {
         revokeBtn.disabled = true;
         revokeBtn.classList.add('disabled');
       } else {
-        revokeBtn.textContent = `Revoke Access (${remainingRevocations} left)`;
+        // Simpler "Revoke (3)" format as requested
+        revokeBtn.textContent = `Revoke (${remainingRevocations})`;
         revokeBtn.disabled = false;
         revokeBtn.classList.remove('disabled');
       }
@@ -442,6 +499,12 @@ document.addEventListener('DOMContentLoaded', function() {
       expiryDate.value = date.toISOString().substr(0, 10);
     }
     
+    // Update max selections if it exists
+    const maxSelections = document.getElementById('maxSelections');
+    if (maxSelections && shareData.maxSelections !== undefined) {
+      maxSelections.value = shareData.maxSelections;
+    }
+    
     // Update other options if they exist
     const preventDownload = document.getElementById('preventDownload');
     if (preventDownload && shareData.preventDownload !== undefined) {
@@ -503,6 +566,7 @@ document.addEventListener('DOMContentLoaded', function() {
       const passwordProtection = document.getElementById('passwordProtection');
       const password = document.getElementById('password');
       const expiryDate = document.getElementById('expiryDate');
+      const maxSelections = document.getElementById('maxSelections');
       const preventDownload = document.getElementById('preventDownload');
       const watermarkEnabled = document.getElementById('watermarkEnabled');
       
@@ -536,6 +600,9 @@ document.addEventListener('DOMContentLoaded', function() {
           expiryDate.value = defaultExpiryDate.toISOString().substr(0, 10);
         }
       }
+      
+      // Get max selections value
+      const maxSelectionsValue = maxSelections && maxSelections.value !== '' ? parseInt(maxSelections.value) : 0;
       
       // Get download and watermark settings
       const preventDownloadValue = preventDownload ? preventDownload.checked : false;
@@ -574,6 +641,7 @@ document.addEventListener('DOMContentLoaded', function() {
               passwordProtected: passwordProtected,
               password: passwordProtected ? passwordValue : '',
               expiryDate: expiryDateValue,
+              maxSelections: maxSelectionsValue,
               preventDownload: preventDownloadValue,
               watermarkEnabled: watermarkEnabledValue,
               updated: firebase.firestore.FieldValue.serverTimestamp()
@@ -596,6 +664,7 @@ document.addEventListener('DOMContentLoaded', function() {
               passwordProtected: passwordProtected,
               password: passwordProtected ? passwordValue : '',
               expiryDate: expiryDateValue,
+              maxSelections: maxSelectionsValue,
               preventDownload: preventDownloadValue,
               watermarkEnabled: watermarkEnabledValue,
               createdAt: timestamp,
@@ -647,6 +716,29 @@ document.addEventListener('DOMContentLoaded', function() {
           const urlDisplay = document.getElementById('shareUrlDisplay');
           if (urlDisplay) {
             urlDisplay.select();
+          }
+          
+          // Add copy link button if it doesn't exist
+          if (!document.getElementById('copyLinkBtn')) {
+            const shareLinkContainer = document.querySelector('.share-link-container');
+            if (shareLinkContainer) {
+              const copyBtn = document.createElement('button');
+              copyBtn.id = 'copyLinkBtn';
+              copyBtn.className = 'btn secondary-btn';
+              copyBtn.innerHTML = '<i class="fas fa-copy"></i> Copy';
+              copyBtn.style.marginLeft = '10px';
+              
+              copyBtn.addEventListener('click', function() {
+                const urlInput = document.getElementById('shareUrlDisplay');
+                if (urlInput) {
+                  urlInput.select();
+                  document.execCommand('copy');
+                  self.showToast('Link copied to clipboard!', 'success');
+                }
+              });
+              
+              shareLinkContainer.appendChild(copyBtn);
+            }
           }
         })
         .catch(error => {
@@ -811,8 +903,23 @@ document.addEventListener('DOMContentLoaded', function() {
             submitBtn.textContent = 'Create Share Link';
           }
           
-          // Show success message with revocation count info
-          self.showToast('Gallery access revoked successfully.', 'success');
+          // Get revocation count
+          db.collection('photographerSettings')
+            .doc(currentUser.uid)
+            .get()
+            .then(doc => {
+              if (doc.exists) {
+                const userData = doc.data();
+                const galleryRevocations = userData.galleryRevocations || {};
+                const usedRevocations = galleryRevocations[self.currentGalleryId] || 0;
+                const remainingRevocations = self.maxRevocations - usedRevocations;
+                
+                // Show success message with revocation info
+                self.showToast(`Gallery access revoked successfully. You have ${remainingRevocations} revocation${remainingRevocations === 1 ? '' : 's'} remaining.`, 'success');
+              } else {
+                self.showToast('Gallery access revoked successfully.', 'success');
+              }
+            });
           
           // Re-enable upload buttons after revoking access
           const uploadPhotosBtn = document.getElementById('uploadPhotosBtn');
@@ -868,5 +975,96 @@ document.addEventListener('DOMContentLoaded', function() {
         toast.remove();
       }, 300);
     }, 3000);
+  }
+};
+
+// Initialize the modal when the document is ready
+document.addEventListener('DOMContentLoaded', function() {
+  try {
+    GalleryShareModal.initialize();
     
-    // Remove toast after 3
+    // Check for pending gallery share
+    const pendingGalleryId = sessionStorage.getItem('pendingShareGalleryId');
+    if (pendingGalleryId) {
+      // Clear the stored ID to prevent repeat shares
+      sessionStorage.removeItem('pendingShareGalleryId');
+      
+      // Fetch the gallery data
+      firebase.firestore().collection('galleries').doc(pendingGalleryId).get()
+        .then(doc => {
+          if (doc.exists) {
+            const galleryData = doc.data();
+            galleryData.id = pendingGalleryId;
+            
+            // Open the share modal for this gallery
+            setTimeout(() => {
+              if (window.GalleryShareModal) {
+                window.GalleryShareModal.open(galleryData);
+              }
+            }, 500);
+          }
+        })
+        .catch(error => {
+          console.error("Error retrieving pending gallery:", error);
+        });
+    }
+    
+    // Export the module globally
+    window.GalleryShareModal = GalleryShareModal;
+    console.log("Gallery Share Modal exported to window with countdown revocation system");
+    
+    // Add CSS styles for disabled button if not already present
+    if (!document.querySelector('style#galleryShareStyles')) {
+      const style = document.createElement('style');
+      style.id = 'galleryShareStyles';
+      style.textContent = `
+        .disabled {
+          opacity: 0.6;
+          cursor: not-allowed;
+        }
+        
+        /* Enhance tooltip styling */
+        .tooltip-container {
+          position: relative;
+          display: inline-block;
+        }
+        
+        .tooltip-text {
+          visibility: hidden;
+          width: 250px;
+          background-color: rgba(0, 0, 0, 0.8);
+          color: #fff;
+          text-align: center;
+          border-radius: 6px;
+          padding: 10px;
+          position: absolute;
+          z-index: 1000;
+          bottom: 125%;
+          left: 50%;
+          margin-left: -125px;
+          opacity: 0;
+          transition: opacity 0.3s;
+        }
+        
+        .tooltip-text::after {
+          content: "";
+          position: absolute;
+          top: 100%;
+          left: 50%;
+          margin-left: -5px;
+          border-width: 5px;
+          border-style: solid;
+          border-color: rgba(0, 0, 0, 0.8) transparent transparent transparent;
+        }
+        
+        .tooltip-container:hover .tooltip-text {
+          visibility: visible;
+          opacity: 1;
+        }
+      `;
+      document.head.appendChild(style);
+    }
+  } catch (error) {
+    console.error("Error initializing Gallery Share Modal:", error);
+  }
+});
