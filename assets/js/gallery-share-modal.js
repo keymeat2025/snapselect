@@ -272,11 +272,24 @@ const GalleryShareModal = {
       db.collection('galleryShares')
         .where('galleryId', '==', this.currentGalleryId)
         .where('photographerId', '==', currentUser.uid)
+        .where('status', '!=', 'revoked')  // Only get active shares
         .get()
         .then(snapshot => {
           if (!snapshot.empty) {
             // Gallery is already shared, show the URL
             const shareData = snapshot.docs[0].data();
+            
+            console.log("Found existing share data:", shareData);
+            
+            // Get revoke attempts from database if available, otherwise use default
+            if (shareData.revokeAttempts !== undefined) {
+              this.revokeAttempts = shareData.revokeAttempts;
+              console.log("Loaded revokeAttempts from database:", this.revokeAttempts);
+            } else {
+              this.revokeAttempts = 2;
+              console.log("Using default revokeAttempts: 2");
+            }
+            
             // Use the shareId field for the URL
             this.displayShareLink(shareData.shareId);
             
@@ -344,6 +357,8 @@ const GalleryShareModal = {
     const revokeBtn = document.getElementById('revokeAccessBtn');
     if (!revokeBtn) return;
     
+    console.log("Updating revoke button class for attempts:", this.revokeAttempts);
+    
     // Remove all previous revoke classes
     revokeBtn.classList.remove('revoke-2', 'revoke-1', 'revoke-expired');
     
@@ -398,8 +413,10 @@ const GalleryShareModal = {
       btn.disabled = false;
     });
     
-    // Reset revoke attempts and update the button
-    this.revokeAttempts = 2;
+    // Don't reset revokeAttempts here - we should be using the value from the database
+    // that was loaded in checkSharingStatus
+    
+    // Show revoke button and update its state
     const revokeBtn = document.getElementById('revokeAccessBtn');
     if (revokeBtn) {
       revokeBtn.classList.remove('hidden');
@@ -410,7 +427,7 @@ const GalleryShareModal = {
         this.revokeTimerId = null;
       }
       
-      // Update revoke button class
+      // Update revoke button class based on current attempts
       this.updateRevokeButtonClass();
     }
   },
@@ -481,12 +498,20 @@ const GalleryShareModal = {
       db.collection('galleryShares')
         .where('galleryId', '==', this.currentGalleryId)
         .where('photographerId', '==', currentUser.uid)
+        .where('status', '!=', 'revoked')  // Only check active shares
         .get()
         .then(snapshot => {
           if (!snapshot.empty) {
             // Update existing share
             const shareDoc = snapshot.docs[0];
-            const shareId = shareDoc.data().shareId; // Use the existing shareId
+            const shareData = shareDoc.data();
+            const shareId = shareData.shareId; // Use the existing shareId
+            
+            // Keep the existing revokeAttempts value
+            const currentRevokeAttempts = shareData.revokeAttempts !== undefined ? 
+              shareData.revokeAttempts : self.revokeAttempts;
+              
+            console.log("Updating existing share with attempts:", currentRevokeAttempts);
             
             // Update the share document
             return db.collection('galleryShares').doc(shareDoc.id).update({
@@ -495,8 +520,11 @@ const GalleryShareModal = {
               expiryDate: expiryDateValue,
               preventDownload: preventDownloadValue,
               watermarkEnabled: watermarkEnabledValue,
+              revokeAttempts: currentRevokeAttempts, // Preserve revoke attempts
               updated: firebase.firestore.FieldValue.serverTimestamp()
             }).then(() => {
+              // Update local variable
+              self.revokeAttempts = currentRevokeAttempts;
               return shareId; // Return the shareId for the URL
             });
           } else {
@@ -507,7 +535,9 @@ const GalleryShareModal = {
             // Create timestamp for share creation
             const timestamp = firebase.firestore.FieldValue.serverTimestamp();
 
+            // Reset revoke attempts for new shares
             self.revokeAttempts = 2;
+            console.log("Creating new share with 2 revoke attempts");
             
             // CRITICAL CHANGE: Use the shareId as the document ID
             return db.collection('galleryShares').doc(shareId).set({
@@ -519,8 +549,8 @@ const GalleryShareModal = {
               expiryDate: expiryDateValue,
               preventDownload: preventDownloadValue,
               watermarkEnabled: watermarkEnabledValue,
-              revokeAttempts: 2,     // Add this line
-              revokeHistory: [], 
+              revokeAttempts: 2,     // Initialize with 2 attempts
+              revokeHistory: [],     // Initialize empty history array
               createdAt: timestamp,
               status: "active",
               views: 0,
@@ -619,15 +649,14 @@ const GalleryShareModal = {
     window.open(mailtoUrl);
   },
   
-  // Revoke access to a shared gallery
-  
-  
   // Modified revokeAccess function that maintains audit trail
   revokeAccess: function() {
     try {
       const db = firebase.firestore();
       const currentUser = firebase.auth().currentUser;
       const self = this; // Store reference to 'this' for use in promise callbacks
+      
+      console.log("Starting revoke process, current attempts:", this.revokeAttempts);
       
       if (!currentUser) {
         this.showToast('Please log in to manage gallery access.', 'error');
@@ -642,6 +671,7 @@ const GalleryShareModal = {
       
       // Decrement revoke attempts
       this.revokeAttempts--;
+      console.log("Decremented attempts, now:", this.revokeAttempts);
       
       // Update button class based on remaining attempts
       this.updateRevokeButtonClass();
@@ -650,8 +680,11 @@ const GalleryShareModal = {
       db.collection('galleryShares')
         .where('galleryId', '==', this.currentGalleryId)
         .where('photographerId', '==', currentUser.uid)
+        .where('status', '!=', 'revoked')  // Only get active shares
         .get()
         .then(snapshot => {
+          console.log("Found shares:", snapshot.size);
+          
           if (snapshot.empty) {
             self.showToast('No active shares found for this gallery.', 'info');
             return;
@@ -659,9 +692,11 @@ const GalleryShareModal = {
           
           const shareDoc = snapshot.docs[0];
           const shareData = shareDoc.data();
+          console.log("Share data:", shareData);
           
           // Create an array to track revoke attempts if it doesn't exist
           const revokeHistory = shareData.revokeHistory || [];
+          console.log("Current revoke history:", revokeHistory);
           
           // Add this attempt to the history
           revokeHistory.push({
@@ -674,6 +709,7 @@ const GalleryShareModal = {
           
           // If user still has attempts but this is not their last one, update the attempts in the database and return
           if (self.revokeAttempts > 0) {
+            console.log("Updating database with new attempt count:", self.revokeAttempts);
             return db.collection('galleryShares').doc(shareDoc.id).update({
               revokeAttempts: self.revokeAttempts,
               revokeHistory: revokeHistory,
@@ -691,6 +727,7 @@ const GalleryShareModal = {
             revokeBtn.textContent = 'Revoking...';
           }
           
+          console.log("Final revoke attempt, updating status to 'revoked'");
           // Instead of deleting, update the status to 'revoked'
           return db.collection('galleryShares').doc(shareDoc.id).update({
             status: 'revoked',
@@ -702,6 +739,7 @@ const GalleryShareModal = {
               email: currentUser.email || 'unknown'
             }
           }).then(() => {
+            console.log("Successfully revoked access");
             // Clear current share URL
             self.currentShareUrl = null;
             self.currentShareId = null;
@@ -762,6 +800,8 @@ const GalleryShareModal = {
               uploadPhotosBtn.style.display = 'block';
             }
             
+
+            
             // Show message about re-enabled uploads
             self.showToast('Gallery sharing has been revoked. Uploads are now enabled.', 'info');
           });
@@ -783,9 +823,6 @@ const GalleryShareModal = {
       this.showToast('Error: Firebase not initialized.', 'error');
     }
   },
-
-
-    
   
   // Show a toast notification
   showToast: function(message, type = 'info') {
