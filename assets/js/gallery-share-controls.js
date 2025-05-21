@@ -1,13 +1,13 @@
 /**
- * gallery-shre-controls.js Gallery Share Controls - SnapSelect
+ * gallery-share-controls.js Gallery Share Controls - SnapSelect
  * 
  * This script enhances the gallery sharing functionality by implementing smart upload restrictions
  * after a gallery has been shared and revoked, balancing user needs with system integrity.
  * 
  * Features:
  * - 3-hour grace period for accidental shares
+ * - Permanent 5% upload limit after first share/revoke
  * - Escalating cooling periods for multiple revocations
- * - Limited modifications after revocation (5% of plan limit)
  * - Analytics for monitoring potential abuse
  */
 
@@ -39,19 +39,19 @@
       
       revokeWarningGracePeriod: "⚠️ Warning: Revoking access will delete all client selections and comments. Since you're within the 3-hour grace period, you can still upload photos normally after revocation.",
       
-      revokeWarningFirstRevoke: "⚠️ Warning: Revoking access will delete all client selections and comments. You'll be able to add up to 5% more photos, with full uploads available again after 24 hours.",
+      revokeWarningFirstRevoke: "⚠️ Warning: Revoking access will delete all client selections and comments. After revocation, you'll be permanently limited to adding 5% more photos to this gallery. Additionally, uploads will be temporarily disabled until {date}.",
       
-      revokeWarningSecondRevoke: "⚠️ Warning: Revoking access will delete all client selections and comments. Due to multiple revocations, uploads will be restricted for 72 hours after revocation.",
+      revokeWarningSecondRevoke: "⚠️ Warning: Revoking access will delete all client selections and comments. Your permanent 5% upload limit remains in effect. Additionally, due to multiple revocations, uploads will be completely disabled for 72 hours, until {date}.",
       
-      revokeWarningSubsequentRevoke: "⚠️ Warning: Revoking access will delete all client selections and comments. Due to multiple revocations, uploads will be restricted for 7 days after revocation.",
+      revokeWarningSubsequentRevoke: "⚠️ Warning: Revoking access will delete all client selections and comments. Your permanent 5% upload limit remains in effect. Due to multiple revocations, uploads will be completely disabled for 7 days, until {date}.",
       
       successMessageGracePeriod: "Gallery access revoked successfully. Since you're within the 3-hour grace period, you can continue to upload photos normally.",
       
-      successMessageFirstRevoke: "Gallery access revoked successfully. You can add up to {additionalPhotos} more photos (5% of your plan). Full uploads will be available again on {date}.",
+      successMessageFirstRevoke: "Gallery access revoked successfully. You now have a permanent limit of {additionalPhotos} additional photos (5% of your plan) for this gallery. Uploads will be available again on {date}.",
       
-      successMessageSecondRevoke: "Gallery access revoked successfully. Due to multiple revocations, uploads will be restricted for 72 hours. Uploads will be available again on {date}.",
+      successMessageSecondRevoke: "Gallery access revoked successfully. Your permanent 5% upload limit remains in effect. Due to multiple revocations, uploads will be completely restricted until {date}.",
       
-      successMessageSubsequentRevoke: "Gallery access revoked successfully. To maintain client experience quality, uploads will be restricted for 7 days. Uploads will be available again on {date}.",
+      successMessageSubsequentRevoke: "Gallery access revoked successfully. Your permanent 5% upload limit remains in effect. Due to multiple revocations, uploads will be completely restricted until {date}.",
       
       errorMessage: "Error updating gallery status. Please try again or contact support."
     },
@@ -97,6 +97,9 @@
     // Check gallery status for upload restrictions
     checkGalleryStatusForRestrictions();
     
+    // Intercept upload functions to enforce limits
+    interceptUploadFunctions();
+    
     logInfo("✅ Gallery Share Controls initialized successfully");
   }
   
@@ -124,6 +127,337 @@
     } else {
       logWarning("⚠️ Share gallery button not found");
     }
+  }
+  
+  /**
+   * Intercept upload functions to enforce limits
+   */
+  function interceptUploadFunctions() {
+    logDebug("Setting up upload function interception");
+    
+    // Find the start upload button
+    const startUploadBtn = document.getElementById('startUploadBtn');
+    if (startUploadBtn) {
+      logDebug("Found start upload button, adding interceptor");
+      
+      // Clone the button to remove event listeners
+      const newStartUploadBtn = startUploadBtn.cloneNode(true);
+      startUploadBtn.parentNode.replaceChild(newStartUploadBtn, startUploadBtn);
+      
+      // Add our enhanced click handler
+      newStartUploadBtn.addEventListener('click', function(event) {
+        logInfo("🖱️ Start upload button clicked");
+        
+        // Get gallery ID
+        const galleryId = getGalleryIdFromUrl() || 
+                         (window.galleryData && window.galleryData.id) || 
+                         (window.GalleryShareModal && window.GalleryShareModal.currentGalleryId);
+        
+        if (!galleryId) {
+          logWarning("⚠️ No gallery ID found, skipping limit check");
+          
+          // Call original handler if it exists
+          if (window.galleryView && window.galleryView.startPhotoUpload) {
+            window.galleryView.startPhotoUpload();
+          }
+          return;
+        }
+        
+        // Check if we're in a cooling period
+        isGalleryInCoolingPeriod(galleryId).then(result => {
+          if (result.inCoolingPeriod) {
+            // In cooling period, block upload
+            logInfo("🔒 Gallery in cooling period, blocking upload");
+            alert(`Uploads are currently restricted until ${formatDate(result.restrictedUntil)}. Please try again later.`);
+            return;
+          }
+          
+          // Not in cooling period, check upload limits
+          checkRemainingUploadAllowance(galleryId).then(allowance => {
+            // Get selected files
+            const fileInput = document.getElementById('photoFileInput');
+            
+            if (!fileInput || !fileInput.files || fileInput.files.length === 0) {
+              logWarning("⚠️ No files selected for upload");
+              
+              // Call original handler
+              if (window.galleryView && window.galleryView.startPhotoUpload) {
+                window.galleryView.startPhotoUpload();
+              }
+              return;
+            }
+            
+            const filesCount = fileInput.files.length;
+            logInfo(`📂 User trying to upload ${filesCount} files, remaining allowance: ${allowance.remainingAllowance}`);
+            
+            if (allowance.isLimited && filesCount > allowance.remainingAllowance) {
+              // Exceeds limit, show error
+              logWarning(`⚠️ Upload exceeds limit: ${filesCount} > ${allowance.remainingAllowance}`);
+              alert(`You can only upload ${allowance.remainingAllowance} more photos to this gallery due to sharing restrictions. Please reduce your selection.`);
+              return;
+            }
+            
+            // Within limits, allow upload
+            logInfo("✅ Upload within limits, proceeding");
+            
+            // Call original handler
+            if (window.galleryView && window.galleryView.startPhotoUpload) {
+              window.galleryView.startPhotoUpload();
+              
+              // Update remaining count after successful upload
+              if (allowance.isLimited) {
+                setTimeout(() => {
+                  // Check if upload was successful by looking for progress indicators
+                  const progressContainer = document.getElementById('uploadProgressContainer');
+                  if (progressContainer && progressContainer.style.display !== 'none') {
+                    // Upload in progress, update count after it completes
+                    logDebug("Upload in progress, will update counts after completion");
+                    
+                    // Try to find the upload complete event
+                    const updateCountAfterUpload = setInterval(() => {
+                      const progressBar = document.getElementById('totalProgressBar');
+                      if (progressBar && progressBar.style.width === '100%') {
+                        clearInterval(updateCountAfterUpload);
+                        
+                        // Update the remaining count in database
+                        updateRemainingUploadAllowance(galleryId, filesCount);
+                      }
+                    }, 1000);
+                  }
+                }, 500);
+              }
+            }
+          }).catch(error => {
+            logError("❌ Error checking upload allowance:", error);
+            
+            // Call original handler as fallback
+            if (window.galleryView && window.galleryView.startPhotoUpload) {
+              window.galleryView.startPhotoUpload();
+            }
+          });
+        }).catch(error => {
+          logError("❌ Error checking cooling period:", error);
+          
+          // Call original handler as fallback
+          if (window.galleryView && window.galleryView.startPhotoUpload) {
+            window.galleryView.startPhotoUpload();
+          }
+        });
+      });
+      
+      logInfo("✅ Upload button successfully intercepted");
+    } else {
+      logWarning("⚠️ Start upload button not found, will check again later");
+      setTimeout(interceptUploadFunctions, 2000);
+    }
+  }
+  
+  /**
+   * Check if gallery is in a cooling period
+   * @param {string} galleryId - The gallery ID
+   * @returns {Promise<Object>} Promise resolving to cooling period status
+   */
+  async function isGalleryInCoolingPeriod(galleryId) {
+    logDebug(`Checking if gallery ${galleryId} is in cooling period`);
+    
+    try {
+      const db = firebase.firestore();
+      const galleryDoc = await db.collection('galleries').doc(galleryId).get();
+      
+      if (!galleryDoc.exists) {
+        return { inCoolingPeriod: false };
+      }
+      
+      const galleryData = galleryDoc.data();
+      
+      // Check if gallery has an active cooling period
+      if (galleryData.uploadRestrictedUntil) {
+        const restrictedUntil = galleryData.uploadRestrictedUntil.toDate ? 
+                              galleryData.uploadRestrictedUntil.toDate() : 
+                              new Date(galleryData.uploadRestrictedUntil);
+        
+        const now = new Date();
+        
+        if (restrictedUntil > now) {
+          logInfo(`🔒 Gallery in cooling period until ${restrictedUntil.toLocaleString()}`);
+          return { 
+            inCoolingPeriod: true, 
+            restrictedUntil: restrictedUntil 
+          };
+        }
+      }
+      
+      return { inCoolingPeriod: false };
+    } catch (error) {
+      logError("❌ Error checking cooling period:", error);
+      return { inCoolingPeriod: false };
+    }
+  }
+  
+  /**
+   * Check remaining upload allowance for a gallery
+   * @param {string} galleryId - The gallery ID
+   * @returns {Promise<Object>} Promise resolving to allowance status
+   */
+  async function checkRemainingUploadAllowance(galleryId) {
+    logDebug(`Checking remaining upload allowance for gallery ${galleryId}`);
+    
+    try {
+      const db = firebase.firestore();
+      const galleryDoc = await db.collection('galleries').doc(galleryId).get();
+      
+      if (!galleryDoc.exists) {
+        return { isLimited: false, remainingAllowance: Infinity };
+      }
+      
+      const galleryData = galleryDoc.data();
+      
+      // Check if gallery has a limit
+      if (galleryData.uploadLimit || galleryData.additionalPhotosAllowed) {
+        const currentCount = galleryData.photosCount || 0;
+        const uploadLimit = galleryData.uploadLimit || 0;
+        const additionalAllowed = galleryData.additionalPhotosAllowed || 0;
+        const initialCount = galleryData.initialPhotosCount || 0;
+        
+        // Calculate remaining allowance
+        const totalAllowed = initialCount + additionalAllowed;
+        const remainingAllowance = Math.max(0, totalAllowed - currentCount);
+        
+        logInfo(`📊 Gallery has upload limit: ${remainingAllowance} remaining out of ${additionalAllowed} additional allowed`);
+        
+        return { 
+          isLimited: true, 
+          remainingAllowance: remainingAllowance,
+          totalAllowance: additionalAllowed,
+          currentCount: currentCount,
+          initialCount: initialCount
+        };
+      }
+      
+      // Check if gallery has been shared before
+      if (galleryData.previouslyShared) {
+        // Gallery previously shared but no explicit limit set
+        // Calculate default limit based on current count and plan
+        let planLimit = 100; // Default limit
+        
+        // Get plan limit if available
+        if (galleryData.planId) {
+          try {
+            const planDoc = await db.collection('client-plans').doc(galleryData.planId).get();
+            if (planDoc.exists) {
+              planLimit = planDoc.data().photoLimit || 100;
+            }
+          } catch (error) {
+            logWarning("⚠️ Error getting plan limit:", error);
+          }
+        }
+        
+        const currentCount = galleryData.photosCount || 0;
+        const additionalAllowed = Math.ceil(planLimit * (CONFIG.additionalUploadPercentage / 100));
+        
+        // Store these values for future reference
+        await db.collection('galleries').doc(galleryId).update({
+          initialPhotosCount: currentCount,
+          additionalPhotosAllowed: additionalAllowed,
+          uploadLimit: currentCount + additionalAllowed
+        });
+        
+        logInfo(`📊 First time setting limit: ${additionalAllowed} additional allowed`);
+        
+        return { 
+          isLimited: true, 
+          remainingAllowance: additionalAllowed,
+          totalAllowance: additionalAllowed,
+          currentCount: currentCount,
+          initialCount: currentCount
+        };
+      }
+      
+      return { isLimited: false, remainingAllowance: Infinity };
+    } catch (error) {
+      logError("❌ Error checking upload allowance:", error);
+      return { isLimited: false, remainingAllowance: Infinity };
+    }
+  }
+  
+  /**
+   * Update remaining upload allowance after an upload
+   * @param {string} galleryId - The gallery ID
+   * @param {number} uploadedCount - Number of photos uploaded
+   */
+  async function updateRemainingUploadAllowance(galleryId, uploadedCount) {
+    logDebug(`Updating allowance after uploading ${uploadedCount} photos`);
+    
+    try {
+      const db = firebase.firestore();
+      const galleryDoc = await db.collection('galleries').doc(galleryId).get();
+      
+      if (!galleryDoc.exists) {
+        return;
+      }
+      
+      const galleryData = galleryDoc.data();
+      const currentCount = galleryData.photosCount || 0;
+      
+      // Only need to update if we have initial count set
+      if (galleryData.initialPhotosCount !== undefined) {
+        logInfo(`📊 Updating photo count: ${currentCount} (was ${currentCount - uploadedCount})`);
+        
+        // Calculate and display remaining allowance
+        const initialCount = galleryData.initialPhotosCount || 0;
+        const additionalAllowed = galleryData.additionalPhotosAllowed || 0;
+        const totalAllowed = initialCount + additionalAllowed;
+        const remainingAllowance = Math.max(0, totalAllowed - currentCount);
+        
+        // Update UI to show new remaining count
+        updateRemainingCountDisplay(remainingAllowance);
+      }
+    } catch (error) {
+      logError("❌ Error updating allowance:", error);
+    }
+  }
+  
+  /**
+   * Update the UI to show remaining upload count
+   * @param {number} remainingCount - Number of remaining uploads allowed
+   */
+  function updateRemainingCountDisplay(remainingCount) {
+    logDebug(`Updating UI to show remaining count: ${remainingCount}`);
+    
+    // Update button text to show limit
+    const uploadBtns = [
+      document.getElementById('uploadPhotosBtn'),
+      document.getElementById('emptyStateUploadBtn')
+    ];
+    
+    uploadBtns.forEach(btn => {
+      if (btn) {
+        // Find or create the badge
+        let limitBadge = btn.querySelector('.upload-limit-badge');
+        
+        if (!limitBadge) {
+          // Save original text
+          if (!btn.hasAttribute('data-original-text')) {
+            btn.setAttribute('data-original-text', btn.textContent);
+          }
+          
+          // Create new badge
+          const originalText = btn.getAttribute('data-original-text');
+          btn.innerHTML = `${originalText} <span class="upload-limit-badge">(${remainingCount} left)</span>`;
+        } else {
+          // Update existing badge
+          limitBadge.textContent = `(${remainingCount} left)`;
+        }
+      }
+    });
+    
+    // Update any message displays
+    const limitMessages = document.querySelectorAll('.upload-limit-message');
+    limitMessages.forEach(msg => {
+      msg.innerHTML = `
+        <i class="fas fa-info-circle"></i> Limited uploads - You can upload up to ${remainingCount} more photos to this gallery.
+      `;
+    });
   }
   
   /**
@@ -158,42 +492,70 @@
           const galleryData = doc.data();
           logDebug("Gallery data retrieved:", galleryData);
           
-          // Check if the gallery has an active cooling period
-          if (galleryData.uploadRestrictedUntil) {
-            const restrictedUntil = galleryData.uploadRestrictedUntil.toDate ? 
-                                   galleryData.uploadRestrictedUntil.toDate() : 
-                                   new Date(galleryData.uploadRestrictedUntil);
+          // Check if the gallery has been previously shared
+          if (galleryData.previouslyShared) {
+            logInfo("📋 Gallery has been previously shared");
             
-            const now = new Date();
-            
-            if (restrictedUntil > now) {
-              // Still in cooling period, disable uploads
-              logInfo(`🔒 Gallery has active cooling period until ${restrictedUntil.toLocaleString()}`);
-              disableUploads(restrictedUntil);
+            // Check if gallery has an active cooling period
+            if (galleryData.uploadRestrictedUntil) {
+              const restrictedUntil = galleryData.uploadRestrictedUntil.toDate ? 
+                                    galleryData.uploadRestrictedUntil.toDate() : 
+                                    new Date(galleryData.uploadRestrictedUntil);
               
-              // Add message about restricted uploads
-              showUploadRestrictedMessage(restrictedUntil);
+              const now = new Date();
+              
+              if (restrictedUntil > now) {
+                // Still in cooling period, disable uploads
+                logInfo(`🔒 Gallery has active cooling period until ${restrictedUntil.toLocaleString()}`);
+                disableUploads(restrictedUntil);
+                
+                // Add message about restricted uploads
+                showUploadRestrictedMessage(restrictedUntil);
+              } else {
+                // Cooling period expired, but still has upload limit
+                logInfo("📋 Cooling period expired, but upload limit remains");
+                
+                // Clear the restriction in database
+                db.collection('galleries').doc(galleryId).update({
+                  uploadRestricted: false,
+                  uploadRestrictedUntil: null
+                }).then(() => {
+                  logInfo("✅ Cooling period flag cleared in database");
+                }).catch(error => {
+                  logError("❌ Error clearing upload restriction:", error);
+                });
+                
+                // Check remaining allowance to enable uploads with limit
+                checkRemainingUploadAllowance(galleryId).then(allowance => {
+                  if (allowance.isLimited) {
+                    enableUploadsWithLimit(allowance.remainingAllowance);
+                  } else {
+                    enableUploads();
+                  }
+                }).catch(error => {
+                  logError("❌ Error checking allowance:", error);
+                  enableUploads(); // Fallback to enable
+                });
+              }
             } else {
-              // Cooling period expired, make sure uploads are enabled
-              logInfo("✅ Cooling period expired, enabling uploads");
-              enableUploads();
+              // No active cooling period, but still previously shared
+              logInfo("📋 No active cooling period, checking upload limits");
               
-              // Update the database to clear the restriction
-              db.collection('galleries').doc(galleryId).update({
-                uploadRestricted: false,
-                uploadRestrictedUntil: null
-              }).then(() => {
-                logInfo("✅ Restriction cleared in database");
+              // Check remaining allowance to enable uploads with limit
+              checkRemainingUploadAllowance(galleryId).then(allowance => {
+                if (allowance.isLimited) {
+                  enableUploadsWithLimit(allowance.remainingAllowance);
+                } else {
+                  enableUploads();
+                }
               }).catch(error => {
-                logError("❌ Error clearing upload restriction:", error);
+                logError("❌ Error checking allowance:", error);
+                enableUploads(); // Fallback to enable
               });
             }
-          } else if (galleryData.uploadRestricted) {
-            // Legacy flag without expiry, check for share history
-            logInfo("🔍 Gallery has legacy restriction flag, checking share history");
-            checkShareHistoryForRestrictions(galleryId);
           } else {
-            logInfo("✅ No upload restrictions found for this gallery");
+            logInfo("✅ Gallery has never been shared, no restrictions needed");
+            enableUploads();
           }
         })
         .catch(error => {
@@ -202,109 +564,6 @@
     } catch (error) {
       logError("❌ Error in checkGalleryStatusForRestrictions:", error);
     }
-  }
-  
-  /**
-   * Check share history to determine appropriate restrictions
-   */
-  function checkShareHistoryForRestrictions(galleryId) {
-    logDebug(`Checking share history for gallery: ${galleryId}`);
-    
-    const db = firebase.firestore();
-    const currentUser = firebase.auth().currentUser;
-    
-    if (!currentUser) {
-      logError("❌ No authenticated user found");
-      return;
-    }
-    
-    // Get share history for this gallery
-    db.collection(CONFIG.sharingHistoryCollection)
-      .where('galleryId', '==', galleryId)
-      .where('photographerId', '==', currentUser.uid)
-      .limit(1)
-      .get()
-      .then(snapshot => {
-        if (snapshot.empty) {
-          // No history found, no restrictions needed
-          logInfo("📋 No share history found, no restrictions needed");
-          enableUploads();
-          return;
-        }
-        
-        const historyData = snapshot.docs[0].data();
-        logDebug("Share history found:", historyData);
-        
-        // Check for last revocation time
-        if (historyData.lastRevokedAt) {
-          const lastRevokedAt = historyData.lastRevokedAt.toDate ? 
-                               historyData.lastRevokedAt.toDate() : 
-                               new Date(historyData.lastRevokedAt);
-          
-          const now = new Date();
-          const timeSinceRevocation = now - lastRevokedAt;
-          
-          logInfo(`📅 Last revoked at: ${lastRevokedAt.toLocaleString()}, time since: ${Math.round(timeSinceRevocation / (1000 * 60 * 60))} hours`);
-          
-          // Check if within grace period
-          if (timeSinceRevocation <= CONFIG.gracePeriod) {
-            // Within grace period, enable uploads
-            logInfo("✅ Within grace period, enabling uploads");
-            enableUploads();
-          } else {
-            // Determine cooling period based on revocation count
-            let coolingPeriodEnd;
-            
-            if (historyData.revocationCount === 1) {
-              coolingPeriodEnd = new Date(lastRevokedAt.getTime() + CONFIG.coolingPeriods.first);
-              logInfo(`📅 First revocation cooling period ends: ${coolingPeriodEnd.toLocaleString()}`);
-            } else if (historyData.revocationCount === 2) {
-              coolingPeriodEnd = new Date(lastRevokedAt.getTime() + CONFIG.coolingPeriods.second);
-              logInfo(`📅 Second revocation cooling period ends: ${coolingPeriodEnd.toLocaleString()}`);
-            } else {
-              coolingPeriodEnd = new Date(lastRevokedAt.getTime() + CONFIG.coolingPeriods.subsequent);
-              logInfo(`📅 Subsequent revocation cooling period ends: ${coolingPeriodEnd.toLocaleString()}`);
-            }
-            
-            // Check if cooling period has ended
-            if (now >= coolingPeriodEnd) {
-              // Cooling period over, enable uploads
-              logInfo("✅ Cooling period has ended, enabling uploads");
-              enableUploads();
-              
-              // Update database to reflect this
-              db.collection('galleries').doc(galleryId).update({
-                uploadRestricted: false,
-                uploadRestrictedUntil: null
-              }).then(() => {
-                logInfo("✅ Restriction cleared in database");
-              }).catch(error => {
-                logError("❌ Error clearing upload restriction:", error);
-              });
-            } else {
-              // Still in cooling period, maintain restrictions
-              logInfo("🔒 Still in cooling period, maintaining restrictions");
-              disableUploads(coolingPeriodEnd);
-              
-              // Show cooling period message
-              showUploadRestrictedMessage(coolingPeriodEnd);
-              
-              // Ensure database has the right values
-              db.collection('galleries').doc(galleryId).update({
-                uploadRestricted: true,
-                uploadRestrictedUntil: firebase.firestore.Timestamp.fromDate(coolingPeriodEnd)
-              }).then(() => {
-                logInfo("✅ Restriction updated in database");
-              }).catch(error => {
-                logError("❌ Error updating upload restriction:", error);
-              });
-            }
-          }
-        }
-      })
-      .catch(error => {
-        logError("❌ Error checking share history:", error);
-      });
   }
   
   /**
@@ -401,21 +660,21 @@
                     });
                     
                     // Update UI based on restriction type
-                    if (result.restrictionType !== 'none') {
-                      // Apply restrictions
-                      if (result.restrictionType === 'cooling_period') {
-                        logInfo("🔒 Applying cooling period restrictions");
-                        disableUploads(result.restrictedUntil);
-                        showUploadRestrictedMessage(result.restrictedUntil);
-                      } else if (result.restrictionType === 'partial') {
-                        // Allow limited uploads
+                    if (result.restrictionType === 'cooling_period') {
+                      // In cooling period, disable uploads completely
+                      logInfo("🔒 Applying cooling period restrictions");
+                      disableUploads(result.restrictedUntil);
+                      showUploadRestrictedMessage(result.restrictedUntil);
+                    } else {
+                      // Always apply the 5% limit after any revocation (outside grace period)
+                      if (result.restrictionType !== 'none') {
                         logInfo(`🔓 Allowing limited uploads (${result.additionalPhotos} photos)`);
                         enableUploadsWithLimit(result.additionalPhotos);
+                      } else {
+                        // Within grace period, no restrictions
+                        logInfo("✅ Within grace period, ensuring uploads are enabled");
+                        enableUploads();
                       }
-                    } else {
-                      // No restrictions, ensure uploads are enabled
-                      logInfo("✅ No restrictions needed, ensuring uploads are enabled");
-                      enableUploads();
                     }
                   }, 100);
                 })
@@ -435,7 +694,7 @@
             logError("❌ Error getting share history:", error);
             
             // Fallback to default warning
-            const confirmRevoke = confirm(CONFIG.messages.revokeWarningFirstRevoke);
+            const confirmRevoke = confirm(CONFIG.messages.revokeWarningFirstRevoke.replace('{date}', 'tomorrow'));
             
             if (confirmRevoke) {
               // Call the original revoke method
@@ -456,10 +715,24 @@
   function getAppropriateRevokeWarning(historyData) {
     logDebug("Determining appropriate revoke warning based on history:", historyData);
     
+    // Calculate expiry date based on revocation count
+    let revocationCount = historyData ? (historyData.revocationCount || 0) : 0;
+    let expiryDate;
+    
+    if (revocationCount === 0) {
+      expiryDate = new Date(Date.now() + CONFIG.coolingPeriods.first);
+    } else if (revocationCount === 1) {
+      expiryDate = new Date(Date.now() + CONFIG.coolingPeriods.second);
+    } else {
+      expiryDate = new Date(Date.now() + CONFIG.coolingPeriods.subsequent);
+    }
+    
+    const formattedDate = formatDate(expiryDate);
+    
     // Default message if no history
     if (!historyData) {
       logDebug("No history data, using first revoke warning");
-      return CONFIG.messages.revokeWarningFirstRevoke;
+      return CONFIG.messages.revokeWarningFirstRevoke.replace('{date}', formattedDate);
     }
     
     // Check if within grace period
@@ -480,15 +753,14 @@
     }
     
     // Determine message based on revocation count
-    const revocationCount = historyData.revocationCount || 0;
     logDebug(`Revocation count: ${revocationCount}`);
     
     if (revocationCount === 0) {
-      return CONFIG.messages.revokeWarningFirstRevoke;
+      return CONFIG.messages.revokeWarningFirstRevoke.replace('{date}', formattedDate);
     } else if (revocationCount === 1) {
-      return CONFIG.messages.revokeWarningSecondRevoke;
+      return CONFIG.messages.revokeWarningSecondRevoke.replace('{date}', formattedDate);
     } else {
-      return CONFIG.messages.revokeWarningSubsequentRevoke;
+      return CONFIG.messages.revokeWarningSubsequentRevoke.replace('{date}', formattedDate);
     }
   }
   
@@ -582,7 +854,6 @@
     
     try {
       // Try to get the plan info - this depends on your database structure
-      // Modify this section based on your actual plan storage
       if (galleryData.planId) {
         const planDoc = await db.collection('client-plans').doc(galleryData.planId).get();
         if (planDoc.exists) {
@@ -626,22 +897,22 @@
       successMessage = CONFIG.messages.successMessageGracePeriod;
       logInfo("📋 Within grace period - no restrictions will be applied");
     } else if (revocationCount === 1) {
-      // First revocation outside grace period - partial restriction
-      restrictionType = 'partial';
+      // First revocation outside grace period - partial restriction with cooling period
+      restrictionType = 'partial_with_cooling';
       restrictedUntil = new Date(Date.now() + CONFIG.coolingPeriods.first);
       successMessage = CONFIG.messages.successMessageFirstRevoke
         .replace('{additionalPhotos}', additionalPhotos)
         .replace('{date}', formatDate(restrictedUntil));
-      logInfo(`📋 First revocation - partial restriction until ${restrictedUntil.toLocaleString()}`);
+      logInfo(`📋 First revocation - 5% limit and cooling period until ${restrictedUntil.toLocaleString()}`);
     } else if (revocationCount === 2) {
-      // Second revocation - cooling period
+      // Second revocation - cooling period, but maintain 5% limit for later
       restrictionType = 'cooling_period';
       restrictedUntil = new Date(Date.now() + CONFIG.coolingPeriods.second);
       successMessage = CONFIG.messages.successMessageSecondRevoke
         .replace('{date}', formatDate(restrictedUntil));
       logInfo(`📋 Second revocation - cooling period until ${restrictedUntil.toLocaleString()}`);
     } else {
-      // Third or subsequent revocation - longer cooling period
+      // Third or subsequent revocation - longer cooling period, maintain 5% limit
       restrictionType = 'cooling_period';
       restrictedUntil = new Date(Date.now() + CONFIG.coolingPeriods.subsequent);
       successMessage = CONFIG.messages.successMessageSubsequentRevoke
@@ -651,11 +922,13 @@
     
     // Prepare history record for new entry or update
     const timestamp = firebase.firestore.FieldValue.serverTimestamp();
+    const clientTimestamp = new Date(); // Use client timestamp for immediate calculations
     
     let historyRecord = {
       galleryId: galleryId,
       photographerId: currentUser.uid,
       lastRevokedAt: timestamp,
+      lastRevokedAtClient: clientTimestamp, // Store client timestamp for immediate calculations
       revocationCount: revocationCount
     };
     
@@ -663,28 +936,25 @@
       // First time sharing this gallery
       historyRecord.firstSharedAt = timestamp;
       historyRecord.lastSharedAt = timestamp;
+      historyRecord.lastSharedAtClient = clientTimestamp; // Store client timestamp
       historyRecord.sharingCount = 1;
     }
     
     // Prepare gallery update data
     const galleryUpdate = {
       previouslyShared: true,
-      lastShareRevoked: timestamp
+      lastShareRevoked: timestamp,
+      initialPhotosCount: photosCount, // Store current photo count for 5% calculation
+      additionalPhotosAllowed: additionalPhotos // Always set the 5% limit
     };
     
     // Set upload restrictions based on type
-    if (restrictionType === 'cooling_period') {
+    if (restrictionType === 'cooling_period' || restrictionType === 'partial_with_cooling') {
       galleryUpdate.uploadRestricted = true;
       galleryUpdate.uploadRestrictedUntil = firebase.firestore.Timestamp.fromDate(restrictedUntil);
-      galleryUpdate.additionalPhotosAllowed = 0;
-    } else if (restrictionType === 'partial') {
-      galleryUpdate.uploadRestricted = true;
-      galleryUpdate.uploadRestrictedUntil = firebase.firestore.Timestamp.fromDate(restrictedUntil);
-      galleryUpdate.additionalPhotosAllowed = additionalPhotos;
     } else {
       galleryUpdate.uploadRestricted = false;
       galleryUpdate.uploadRestrictedUntil = null;
-      galleryUpdate.additionalPhotosAllowed = null;
     }
     
     logDebug("Updates to be applied:", {
@@ -726,7 +996,8 @@
     trackSharingEvent('gallery_revoke_with_restrictions', galleryId, {
       restrictionType,
       revocationCount,
-      withinGracePeriod
+      withinGracePeriod,
+      additionalPhotos
     });
     
     // Return the result
