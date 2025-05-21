@@ -2330,6 +2330,10 @@
             
             // Set up button click handler
             document.getElementById('submitPasswordBtn').addEventListener('click', handlePasswordSubmit);
+
+         // Set up form submit handler - this will handle Enter key submission too
+            document.getElementById('passwordForm').addEventListener('submit', handlePasswordSubmit);
+
             
             // Set up enter key handler for password input
             document.getElementById('galleryPassword').addEventListener('keypress', function(e) {
