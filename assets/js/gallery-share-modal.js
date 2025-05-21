@@ -1,16 +1,57 @@
-// assets/js/gallery-share-modal.js
+// Modified gallery-share-modal.js with countdown-based revocation system
 
 // Gallery Share Modal
 const GalleryShareModal = {
   currentGalleryId: null,
-  currentShareId: null,     // Added to store the shareId
-  currentShareUrl: null,    // Added to store the complete URL
+  currentShareId: null,     // Store the shareId
+  currentShareUrl: null,    // Store the complete URL
+  maxRevocations: 3,        // Maximum number of allowed revocations
   
   // Initialize the modal
   initialize: function() {
     this.setupEventListeners();
     console.log("Gallery Share Modal initialized");
-  },
+  }
+};
+
+// Initialize the modal when the document is ready
+document.addEventListener('DOMContentLoaded', function() {
+  try {
+    GalleryShareModal.initialize();
+    
+    // Check for pending gallery share
+    const pendingGalleryId = sessionStorage.getItem('pendingShareGalleryId');
+    if (pendingGalleryId) {
+      // Clear the stored ID to prevent repeat shares
+      sessionStorage.removeItem('pendingShareGalleryId');
+      
+      // Fetch the gallery data
+      firebase.firestore().collection('galleries').doc(pendingGalleryId).get()
+        .then(doc => {
+          if (doc.exists) {
+            const galleryData = doc.data();
+            galleryData.id = pendingGalleryId;
+            
+            // Open the share modal for this gallery
+            setTimeout(() => {
+              if (window.GalleryShareModal) {
+                window.GalleryShareModal.open(galleryData);
+              }
+            }, 500);
+          }
+        })
+        .catch(error => {
+          console.error("Error retrieving pending gallery:", error);
+        });
+    }
+    
+    // Export the module globally
+    window.GalleryShareModal = GalleryShareModal;
+    console.log("Gallery Share Modal exported to window");
+  } catch (error) {
+    console.error("Error initializing Gallery Share Modal:", error);
+  }
+});,
   
   // Set up event listeners
   setupEventListeners: function() {
@@ -36,7 +77,7 @@ const GalleryShareModal = {
       });
     }
     
-    //Copy link button
+    // Copy link button
     const copyLinkBtn = document.getElementById('copyLinkBtn');
     if (copyLinkBtn) {
       copyLinkBtn.addEventListener('click', () => {
@@ -69,10 +110,87 @@ const GalleryShareModal = {
     const revokeBtn = document.getElementById('revokeAccessBtn');
     if (revokeBtn) {
       revokeBtn.addEventListener('click', () => {
-        if (confirm('Are you sure you want to revoke access to this gallery?')) {
-          this.revokeAccess();
-        }
+        this.promptRevocation();
       });
+    }
+  },
+  
+  // Prompt user for revocation with count information
+  promptRevocation: function() {
+    // Check the user's remaining revocations first
+    this.checkRemainingRevocations((remainingRevocations) => {
+      if (remainingRevocations <= 0) {
+        this.showToast('You have used all your revocation attempts for this gallery.', 'warning');
+        return;
+      }
+      
+      // Show confirmation with remaining count information
+      const confirmMessage = `You have ${remainingRevocations} revocation ${remainingRevocations === 1 ? 'attempt' : 'attempts'} remaining. Are you sure you want to revoke access to this gallery?`;
+      
+      if (confirm(confirmMessage)) {
+        this.revokeAccess();
+      }
+    });
+  },
+  
+  // Check remaining revocations for the current user
+  checkRemainingRevocations: function(callback) {
+    try {
+      const db = firebase.firestore();
+      const currentUser = firebase.auth().currentUser;
+      
+      if (!currentUser) {
+        this.showToast('Please log in to manage gallery access.', 'error');
+        return;
+      }
+      
+      // Get the user's revocation data from Firestore
+      db.collection('photographerSettings')
+        .doc(currentUser.uid)
+        .get()
+        .then(doc => {
+          if (doc.exists) {
+            const data = doc.data();
+            // Get the gallery-specific revocation count or default
+            const galleryRevocations = data.galleryRevocations || {};
+            const usedRevocations = galleryRevocations[this.currentGalleryId] || 0;
+            const remainingRevocations = this.maxRevocations - usedRevocations;
+            
+            // Update the revoke button text to show remaining attempts
+            this.updateRevokeButtonText(remainingRevocations);
+            
+            // Execute callback with remaining count
+            if (callback) callback(remainingRevocations);
+          } else {
+            // No document exists yet, so all revocations are available
+            this.updateRevokeButtonText(this.maxRevocations);
+            if (callback) callback(this.maxRevocations);
+          }
+        })
+        .catch(error => {
+          console.error("Error checking revocation count:", error);
+          // Assume max revocations if there's an error
+          if (callback) callback(this.maxRevocations);
+        });
+    } catch (error) {
+      console.error("Error in checkRemainingRevocations:", error);
+      if (callback) callback(this.maxRevocations);
+    }
+  },
+  
+  // Update the revoke button text to show remaining attempts
+  updateRevokeButtonText: function(remainingRevocations) {
+    const revokeBtn = document.getElementById('revokeAccessBtn');
+    if (revokeBtn) {
+      if (remainingRevocations <= 0) {
+        revokeBtn.textContent = 'No Revocations Left';
+        revokeBtn.disabled = true;
+        revokeBtn.classList.add('disabled');
+      } else {
+        revokeBtn.textContent = `Revoke Access (${remainingRevocations} left)`;
+        revokeBtn.disabled = false;
+        revokeBtn.classList.remove('disabled');
+      }
     }
   },
   
@@ -96,6 +214,9 @@ const GalleryShareModal = {
           
           // Check if gallery is already shared
           this.checkSharingStatus();
+          
+          // Check remaining revocations to update button text
+          this.checkRemainingRevocations();
         }
       }
     });
@@ -273,10 +394,11 @@ const GalleryShareModal = {
             // Use the shareId field for the URL
             this.displayShareLink(shareData.shareId);
             
-            // Show revoke button
+            // Show revoke button and check remaining revocations
             const revokeBtn = document.getElementById('revokeAccessBtn');
             if (revokeBtn) {
               revokeBtn.classList.remove('hidden');
+              this.checkRemainingRevocations();
             }
             
             // Update form fields with saved settings if they exist
@@ -491,10 +613,11 @@ const GalleryShareModal = {
           // Display the share link with correct shareId
           self.displayShareLink(shareId);
           
-          // Show revoke button
+          // Show revoke button and check remaining revocations
           const revokeBtn = document.getElementById('revokeAccessBtn');
           if (revokeBtn) {
             revokeBtn.classList.remove('hidden');
+            self.checkRemainingRevocations();
           }
           
           // Update submit button text
@@ -506,7 +629,6 @@ const GalleryShareModal = {
           // Show success message
           self.showToast('Gallery shared successfully!', 'success');
 
-          // Add this code in shareGallery() function after success message
           // Disable upload buttons after successful sharing
           const uploadPhotosBtn = document.getElementById('uploadPhotosBtn');
           if (uploadPhotosBtn) {
@@ -518,11 +640,8 @@ const GalleryShareModal = {
             emptyStateUploadBtn.style.display = 'none';
           }
           
-         // Show message using the existing showToast function
+          // Show message about disabled uploads
           self.showToast('This gallery is now shared. Uploads have been disabled.', 'info');
-
-
-
           
           // Highlight the share URL
           const urlDisplay = document.getElementById('shareUrlDisplay');
@@ -583,7 +702,7 @@ const GalleryShareModal = {
     window.open(mailtoUrl);
   },
   
-  // Revoke access to a shared gallery
+  // Revoke access to a shared gallery with countdown limitation
   revokeAccess: function() {
     try {
       const db = firebase.firestore();
@@ -602,19 +721,47 @@ const GalleryShareModal = {
         revokeBtn.textContent = 'Revoking...';
       }
       
-      // Look for shares by this photographer for this gallery
-      db.collection('galleryShares')
-        .where('galleryId', '==', this.currentGalleryId)
-        .where('photographerId', '==', currentUser.uid)
+      // First check and update the revocation count
+      db.collection('photographerSettings')
+        .doc(currentUser.uid)
         .get()
+        .then(doc => {
+          // Get current revocation data or create a new object
+          let userData = doc.exists ? doc.data() : {};
+          let galleryRevocations = userData.galleryRevocations || {};
+          let currentCount = galleryRevocations[this.currentGalleryId] || 0;
+          
+          // Increment the revocation count for this gallery
+          galleryRevocations[this.currentGalleryId] = currentCount + 1;
+          
+          // Check if we've reached the maximum
+          if (galleryRevocations[this.currentGalleryId] > this.maxRevocations) {
+            throw new Error('Maximum revocation limit reached');
+          }
+          
+          // Update the revocation count in Firestore
+          return db.collection('photographerSettings')
+            .doc(currentUser.uid)
+            .set({
+              galleryRevocations: galleryRevocations,
+              lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
+            }, { merge: true });
+        })
+        .then(() => {
+          // Look for shares by this photographer for this gallery
+          return db.collection('galleryShares')
+            .where('galleryId', '==', this.currentGalleryId)
+            .where('photographerId', '==', currentUser.uid)
+            .get();
+        })
         .then(snapshot => {
           if (snapshot.empty) {
             self.showToast('No active shares found for this gallery.', 'info');
             
-            // Reset button state
+            // Reset button state and check remaining revocations
             if (revokeBtn) {
               revokeBtn.disabled = false;
-              revokeBtn.textContent = 'Revoke Access';
+              self.checkRemainingRevocations();
             }
             return;
           }
@@ -622,14 +769,8 @@ const GalleryShareModal = {
           // Delete all sharing records
           const batch = db.batch();
           snapshot.docs.forEach(doc => {
-            // Option 1: Delete document completely
+            // Delete document completely
             batch.delete(doc.ref);
-            
-            // Option 2: Update status to 'revoked' (if you want to keep history)
-            // batch.update(doc.ref, {
-            //   status: 'revoked',
-            //   revokedAt: firebase.firestore.FieldValue.serverTimestamp()
-            // });
           });
           
           return batch.commit();
@@ -645,10 +786,8 @@ const GalleryShareModal = {
             shareLinkSection.classList.add('hidden');
           }
           
-          // Hide revoke button
-          if (revokeBtn) {
-            revokeBtn.classList.add('hidden');
-          }
+          // Update revoke button with remaining count
+          self.checkRemainingRevocations();
           
           // Reset form fields
           const passwordProtection = document.getElementById('passwordProtection');
@@ -672,33 +811,38 @@ const GalleryShareModal = {
             submitBtn.textContent = 'Create Share Link';
           }
           
-          // Show success message
+          // Show success message with revocation count info
           self.showToast('Gallery access revoked successfully.', 'success');
-
-
-
-          // Add this code in revokeAccess() function after success message
+          
           // Re-enable upload buttons after revoking access
           const uploadPhotosBtn = document.getElementById('uploadPhotosBtn');
           if (uploadPhotosBtn) {
             uploadPhotosBtn.style.display = 'block';
           }
           
-          // Show message about re-enabled uploads
-        // Show message using the existing showToast function
-          self.showToast('Gallery sharing has been revoked. Uploads are now enabled.', 'info');
+          const emptyStateUploadBtn = document.getElementById('emptyStateUploadBtn');
+          if (emptyStateUploadBtn) {
+            emptyStateUploadBtn.style.display = 'block';
+          }
           
+          // Show message about re-enabled uploads
+          self.showToast('Gallery sharing has been revoked. Uploads are now enabled.', 'info');
         })
         .catch(error => {
           console.error("Error revoking access:", error);
           
-          // Reset button state
-          if (revokeBtn) {
-            revokeBtn.disabled = false;
-            revokeBtn.textContent = 'Revoke Access';
+          // Show specific message for max revocation limit
+          if (error.message === 'Maximum revocation limit reached') {
+            self.showToast('You have used all your revocation attempts for this gallery.', 'warning');
+          } else {
+            self.showToast('Error revoking access: ' + error.message, 'error');
           }
           
-          self.showToast('Error revoking access: ' + error.message, 'error');
+          // Reset button state and check remaining revocations
+          if (revokeBtn) {
+            revokeBtn.disabled = false;
+            self.checkRemainingRevocations();
+          }
         });
     } catch (error) {
       console.error("Firebase not available:", error);
@@ -724,47 +868,5 @@ const GalleryShareModal = {
         toast.remove();
       }, 300);
     }, 3000);
-  }
-};
-
-// Initialize the modal when the document is ready
-document.addEventListener('DOMContentLoaded', function() {
-  try {
-    GalleryShareModal.initialize();
     
-    // Check for pending gallery share
-    const pendingGalleryId = sessionStorage.getItem('pendingShareGalleryId');
-    if (pendingGalleryId) {
-      // Clear the stored ID to prevent repeat shares
-      sessionStorage.removeItem('pendingShareGalleryId');
-      
-      // Fetch the gallery data
-      firebase.firestore().collection('galleries').doc(pendingGalleryId).get()
-        .then(doc => {
-          if (doc.exists) {
-            const galleryData = doc.data();
-            galleryData.id = pendingGalleryId;
-            
-            // Open the share modal for this gallery
-            setTimeout(() => {
-              if (window.GalleryShareModal) {
-                window.GalleryShareModal.open(galleryData);
-              }
-            }, 500);
-          }
-        })
-        .catch(error => {
-          console.error("Error retrieving pending gallery:", error);
-        });
-    }
-    
-    // Export the module globally
-    window.GalleryShareModal = GalleryShareModal;
-    console.log("Gallery Share Modal exported to window");
-  } catch (error) {
-    console.error("Error initializing Gallery Share Modal:", error);
-  }
-
-
-  
-});
+    // Remove toast after 3
