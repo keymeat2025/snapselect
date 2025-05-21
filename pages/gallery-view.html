@@ -897,12 +897,15 @@
         </div>
         <div class="modal-footer">
           <div class="modal-footer-left">
+            
+
+              <!-- Replace the existing tooltip HTML with this: -->
             <div class="tooltip-container">
-                <button type="button" id="revokeAccessBtn" class="btn danger-btn hidden">Revoke Access</button>
-                <div class="tooltip-text tooltip-warning">
-                  <i class="fas fa-exclamation-triangle"></i> Warning: You can only revoke access once. This action cannot be undone. This button will expire after 48 hrs.
-                </div>
+              <button type="button" id="revokeAccessBtn" class="btn danger-btn hidden revoke-2">Revoke 2</button>
+              <div class="tooltip-text tooltip-warning">
+                <i class="fas fa-exclamation-triangle"></i> Warning: You have 2 revoke attempts. First click will reduce attempts to 1. Second click will permanently revoke access and cannot be undone.
               </div>
+            </div>
           </div>
           <div class="modal-footer-right">
             <button type="button" class="btn outline-btn close-modal">Cancel</button>
