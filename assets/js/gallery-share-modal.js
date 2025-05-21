@@ -5,6 +5,8 @@ const GalleryShareModal = {
   currentGalleryId: null,
   currentShareId: null,     // Added to store the shareId
   currentShareUrl: null,    // Added to store the complete URL
+  revokeAttempts: 2,        // Track number of remaining revoke attempts
+  revokeTimerId: null,      // Timer for revoke button expiration
   
   // Initialize the modal
   initialize: function() {
@@ -69,7 +71,12 @@ const GalleryShareModal = {
     const revokeBtn = document.getElementById('revokeAccessBtn');
     if (revokeBtn) {
       revokeBtn.addEventListener('click', () => {
-        if (confirm('Are you sure you want to revoke access to this gallery?')) {
+        // Only show confirmation on last attempt
+        if (this.revokeAttempts === 1) {
+          if (confirm('Are you sure you want to revoke access to this gallery? This is your final attempt.')) {
+            this.revokeAccess();
+          }
+        } else {
           this.revokeAccess();
         }
       });
@@ -273,12 +280,6 @@ const GalleryShareModal = {
             // Use the shareId field for the URL
             this.displayShareLink(shareData.shareId);
             
-            // Show revoke button
-            const revokeBtn = document.getElementById('revokeAccessBtn');
-            if (revokeBtn) {
-              revokeBtn.classList.remove('hidden');
-            }
-            
             // Update form fields with saved settings if they exist
             this.updateFormWithSavedSettings(shareData);
           }
@@ -338,6 +339,30 @@ const GalleryShareModal = {
     }
   },
   
+  // Update revoke button class based on remaining attempts
+  updateRevokeButtonClass: function() {
+    const revokeBtn = document.getElementById('revokeAccessBtn');
+    if (!revokeBtn) return;
+    
+    // Remove all previous revoke classes
+    revokeBtn.classList.remove('revoke-2', 'revoke-1', 'revoke-expired');
+    
+    // Add the appropriate class based on remaining attempts
+    if (this.revokeAttempts === 2) {
+      revokeBtn.classList.add('revoke-2');
+      revokeBtn.textContent = 'Revoke 2';
+      revokeBtn.disabled = false;
+    } else if (this.revokeAttempts === 1) {
+      revokeBtn.classList.add('revoke-1');
+      revokeBtn.textContent = 'Revoke 1';
+      revokeBtn.disabled = false;
+    } else {
+      revokeBtn.classList.add('revoke-expired');
+      revokeBtn.textContent = 'Revoke Attempt Expired';
+      revokeBtn.disabled = true;
+    }
+  },
+  
   // Display share link for a gallery using the consistent format
   displayShareLink: function(shareId) {
     if (!shareId) {
@@ -372,6 +397,22 @@ const GalleryShareModal = {
     shareButtons.forEach(btn => {
       btn.disabled = false;
     });
+    
+    // Reset revoke attempts and update the button
+    this.revokeAttempts = 2;
+    const revokeBtn = document.getElementById('revokeAccessBtn');
+    if (revokeBtn) {
+      revokeBtn.classList.remove('hidden');
+      
+      // Clear any existing timer
+      if (this.revokeTimerId) {
+        clearTimeout(this.revokeTimerId);
+        this.revokeTimerId = null;
+      }
+      
+      // Update revoke button class
+      this.updateRevokeButtonClass();
+    }
   },
   
   // Share a gallery - create or update share settings
@@ -491,12 +532,6 @@ const GalleryShareModal = {
           // Display the share link with correct shareId
           self.displayShareLink(shareId);
           
-          // Show revoke button
-          const revokeBtn = document.getElementById('revokeAccessBtn');
-          if (revokeBtn) {
-            revokeBtn.classList.remove('hidden');
-          }
-          
           // Update submit button text
           if (submitButton) {
             submitButton.disabled = false;
@@ -520,9 +555,6 @@ const GalleryShareModal = {
           
          // Show message using the existing showToast function
           self.showToast('This gallery is now shared. Uploads have been disabled.', 'info');
-
-
-
           
           // Highlight the share URL
           const urlDisplay = document.getElementById('shareUrlDisplay');
@@ -595,6 +627,25 @@ const GalleryShareModal = {
         return;
       }
       
+      // Check if we still have revoke attempts
+      if (this.revokeAttempts <= 0) {
+        this.showToast('Revoke attempts expired. Please contact support.', 'error');
+        return;
+      }
+      
+      // Decrement revoke attempts
+      this.revokeAttempts--;
+      
+      // Update button class based on remaining attempts
+      this.updateRevokeButtonClass();
+      
+      // If user still has attempts but this is not their last one, just update the button and return
+      if (this.revokeAttempts > 0) {
+        this.showToast(`Revoke attempt used. ${this.revokeAttempts} attempt(s) remaining.`, 'warning');
+        return;
+      }
+      
+      // This is their last attempt, proceed with actual revocation
       // Show loading state on revoke button if it exists
       const revokeBtn = document.getElementById('revokeAccessBtn');
       if (revokeBtn) {
@@ -614,7 +665,7 @@ const GalleryShareModal = {
             // Reset button state
             if (revokeBtn) {
               revokeBtn.disabled = false;
-              revokeBtn.textContent = 'Revoke Access';
+              self.updateRevokeButtonClass();
             }
             return;
           }
@@ -622,14 +673,8 @@ const GalleryShareModal = {
           // Delete all sharing records
           const batch = db.batch();
           snapshot.docs.forEach(doc => {
-            // Option 1: Delete document completely
+            // Delete document completely
             batch.delete(doc.ref);
-            
-            // Option 2: Update status to 'revoked' (if you want to keep history)
-            // batch.update(doc.ref, {
-            //   status: 'revoked',
-            //   revokedAt: firebase.firestore.FieldValue.serverTimestamp()
-            // });
           });
           
           return batch.commit();
@@ -645,9 +690,23 @@ const GalleryShareModal = {
             shareLinkSection.classList.add('hidden');
           }
           
-          // Hide revoke button
+          // Update revoke button
           if (revokeBtn) {
-            revokeBtn.classList.add('hidden');
+            revokeBtn.textContent = 'Revoke Attempt Expired';
+            revokeBtn.disabled = true;
+            revokeBtn.classList.remove('revoke-1', 'revoke-2');
+            revokeBtn.classList.add('revoke-expired');
+            
+            // Set a timer to hide the button after a delay
+            if (self.revokeTimerId) {
+              clearTimeout(self.revokeTimerId);
+            }
+            
+            self.revokeTimerId = setTimeout(() => {
+              if (revokeBtn) {
+                revokeBtn.classList.add('hidden');
+              }
+            }, 10000); // Hide after 10 seconds
           }
           
           // Reset form fields
@@ -674,10 +733,7 @@ const GalleryShareModal = {
           
           // Show success message
           self.showToast('Gallery access revoked successfully.', 'success');
-
-
-
-          // Add this code in revokeAccess() function after success message
+          
           // Re-enable upload buttons after revoking access
           const uploadPhotosBtn = document.getElementById('uploadPhotosBtn');
           if (uploadPhotosBtn) {
@@ -685,9 +741,7 @@ const GalleryShareModal = {
           }
           
           // Show message about re-enabled uploads
-        // Show message using the existing showToast function
           self.showToast('Gallery sharing has been revoked. Uploads are now enabled.', 'info');
-          
         })
         .catch(error => {
           console.error("Error revoking access:", error);
@@ -695,7 +749,7 @@ const GalleryShareModal = {
           // Reset button state
           if (revokeBtn) {
             revokeBtn.disabled = false;
-            revokeBtn.textContent = 'Revoke Access';
+            self.updateRevokeButtonClass();
           }
           
           self.showToast('Error revoking access: ' + error.message, 'error');
@@ -764,7 +818,4 @@ document.addEventListener('DOMContentLoaded', function() {
   } catch (error) {
     console.error("Error initializing Gallery Share Modal:", error);
   }
-
-
-  
 });
