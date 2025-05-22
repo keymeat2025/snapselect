@@ -19,14 +19,38 @@ const DashboardTableExpansion = {
   },
   
   // Watch for when the table gets created
+  // Watch for when the table gets created OR recreated
   watchForTable() {
-    // Check every 500ms if the table exists
+    // Use MutationObserver to watch for table changes
+    const observer = new MutationObserver((mutations) => {
+      mutations.forEach((mutation) => {
+        // Check if new table rows were added
+        if (mutation.type === 'childList') {
+          const table = document.querySelector('.plans-table');
+          if (table && !table.hasAttribute('data-expansion-enhanced')) {
+            console.log('Table recreated! Re-adding expansion controls...');
+            this.addExpansionToTable(table);
+          }
+        }
+      });
+    });
+    
+    // Watch the plans container for changes
+    const plansContainer = document.getElementById('plansContainer');
+    if (plansContainer) {
+      observer.observe(plansContainer, {
+        childList: true,
+        subtree: true
+      });
+    }
+    
+    // Also check initially
     const checkInterval = setInterval(() => {
       const table = document.querySelector('.plans-table');
-      if (table) {
+      if (table && !table.hasAttribute('data-expansion-enhanced')) {
         console.log('Table found! Adding expansion controls...');
         this.addExpansionToTable(table);
-        clearInterval(checkInterval); // Stop checking
+        clearInterval(checkInterval);
       }
     }, 500);
     
@@ -36,12 +60,20 @@ const DashboardTableExpansion = {
     }, 10000);
   },
   
-  // Add expansion controls to existing table
+  // Update addExpansionToTable to mark table as enhanced
   addExpansionToTable(table) {
+    // Mark table as enhanced to avoid duplicate processing
+    table.setAttribute('data-expansion-enhanced', 'true');
+    
     const rows = table.querySelectorAll('tbody tr');
     
     rows.forEach((row, index) => {
-      const planId = `plan_${index}`; // Simple ID for now
+      // Skip if this row already has expansion
+      if (row.querySelector('.expand-btn')) {
+        return;
+      }
+      
+      const planId = `plan_${index}`;
       
       // Add chevron button to this row
       this.addChevronButton(row, planId);
