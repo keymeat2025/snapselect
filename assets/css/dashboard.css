@@ -1832,4 +1832,32 @@ tr:last-child .renew-plan-btn:hover::after {
     width: 100%;
     margin-bottom: 0.5rem;
   }
+
+    /* Gallery Sharing Styles */
+  .plan-photos-sharing {
+    min-width: 180px;
+  }
+  
+  .share-toggle-btn {
+    transition: all 0.25s ease;
+    font-weight: 500;
+    min-width: 50px;
+    text-align: center;
+  }
+  
+  .share-toggle-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  }
+  
+  .plan-photos-sharing span[onclick] {
+    transition: all 0.25s ease;
+    padding: 2px 4px;
+    border-radius: 4px;
+  }
+  
+  .plan-photos-sharing span[onclick]:hover {
+    background-color: rgba(76, 175, 80, 0.1);
+    text-decoration: underline;
+  }
 }
