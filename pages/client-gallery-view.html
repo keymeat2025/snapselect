@@ -1013,7 +1013,7 @@
                 <input type="password" id="galleryPassword" class="password-input" placeholder="Enter password" aria-label="Gallery password">
                 <button id="submitPasswordBtn" class="btn">View Gallery</button>
             </form>
-            <button id="submitPasswordBtn" class="btn">View Gallery</button>
+
         </div>
         
         <!-- Gallery container (initially hidden) -->
@@ -2295,10 +2295,16 @@
                 });
         }
 
-                // Setup password handling
+
+
+        
+        // Setup password handling
         function setupPasswordHandling(sharedGallery, shareId) {
             // Function to handle password submission
-            const handlePasswordSubmit = function() {
+            const handlePasswordSubmit = function(e) {
+                // Prevent default form submission if an event was passed
+                if (e) e.preventDefault();
+                
                 const password = document.getElementById('galleryPassword').value;
                 const passwordError = document.getElementById('passwordError');
                 
@@ -2330,18 +2336,14 @@
             
             // Set up button click handler
             document.getElementById('submitPasswordBtn').addEventListener('click', handlePasswordSubmit);
-
-         // Set up form submit handler - this will handle Enter key submission too
+            
+            // Set up form submit handler - this will handle Enter key submission too
             document.getElementById('passwordForm').addEventListener('submit', handlePasswordSubmit);
+        }
+
+
 
             
-            // Set up enter key handler for password input
-            document.getElementById('galleryPassword').addEventListener('keypress', function(e) {
-                if (e.key === 'Enter') {
-                    handlePasswordSubmit();
-                }
-            });
-        }
         function loadGalleryContent(galleryId, photographerId) {
             console.log("Loading gallery content for ID:", galleryId);
             
