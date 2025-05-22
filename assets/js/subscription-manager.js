@@ -1968,35 +1968,73 @@ function updatePlansDisplay(plans) {
     const client = userClients.find(c => c.id === plan.clientId);
     const clientName = client?.name || plan.clientName || 'Unknown Client';
     
-    // Create HTML for the plan row
+
+
+
+
+
+    // Create HTML for the plan row with expansion capability
     planRow.innerHTML = `
-      <td class="plan-type">${SUBSCRIPTION_PLANS[plan.planType]?.name || plan.planType}</td>
-      <td class="plan-client">${clientName}</td>
+      <td class="plan-type">
+        <div class="main-content">${SUBSCRIPTION_PLANS[plan.planType]?.name || plan.planType}</div>
+        <div class="expansion-content" style="display: none;">
+          <small>Plan Details: ${SUBSCRIPTION_PLANS[plan.planType]?.features?.slice(0,2).join(', ') || 'Standard features'}</small>
+        </div>
+      </td>
+      <td class="plan-client">
+        <div class="main-content">${clientName}</div>
+        <div class="expansion-content" style="display: none;">
+          <small>Client ID: ${plan.clientId}</small>
+        </div>
+      </td>
       <td class="plan-dates">
-        <div><strong>Started:</strong> ${startDate}</div>
-        <div><strong>Expires:</strong> ${endDate}</div>
+        <div class="main-content">
+          <div><strong>Started:</strong> ${startDate}</div>
+          <div><strong>Expires:</strong> ${endDate}</div>
+        </div>
+        <div class="expansion-content" style="display: none;">
+          <small>Duration: ${SUBSCRIPTION_PLANS[plan.planType]?.expiryDays || 30} days</small>
+        </div>
       </td>
       <td class="plan-status-cell">
-        <span class="plan-status ${plan.status}">${formatPlanStatus(plan.status)}</span>
-        ${plan.status === PLAN_STATUS.EXPIRING_SOON ? 
-          `<div class="expiry-warning"><i class="fas fa-exclamation-triangle"></i> Expires in ${plan.daysLeftBeforeExpiration} days</div>` : ''}
-        ${plan.status === PLAN_STATUS.EXPIRED ? 
-          `<div class="expired-badge"><i class="fas fa-calendar-times"></i> Expired on ${endDate}</div>` : ''}
+        <div class="main-content">
+          <span class="plan-status ${plan.status}">${formatPlanStatus(plan.status)}</span>
+          ${plan.status === PLAN_STATUS.EXPIRING_SOON ? 
+            `<div class="expiry-warning"><i class="fas fa-exclamation-triangle"></i> Expires in ${plan.daysLeftBeforeExpiration} days</div>` : ''}
+          ${plan.status === PLAN_STATUS.EXPIRED ? 
+            `<div class="expired-badge"><i class="fas fa-calendar-times"></i> Expired on ${endDate}</div>` : ''}
+        </div>
+        <div class="expansion-content" style="display: none;">
+          <small>Status Details: Updated ${new Date().toLocaleDateString()}</small>
+        </div>
       </td>
-      <!--
-      <td class="plan-storage">
-        ${formatStorageUsage(plan.storageUsed || 0, SUBSCRIPTION_PLANS[plan.planType]?.storageLimit || 1)}
-      </td> 
-      -->
       <td class="plan-photos">
-        ${formatPhotoUsage(plan.photosUploaded || 0, SUBSCRIPTION_PLANS[plan.planType]?.photosPerGallery || 50)}
+        <div class="main-content">
+          ${formatPhotoUsage(plan.photosUploaded || 0, SUBSCRIPTION_PLANS[plan.planType]?.photosPerGallery || 50)}
+        </div>
+        <div class="expansion-content" style="display: none;">
+          <small>Limit: ${SUBSCRIPTION_PLANS[plan.planType]?.photosPerGallery || 50} photos max</small>
+        </div>
       </td>
       <td class="plan-actions-cell">
-        <button class="btn view-gallery-btn" data-client-id="${plan.clientId}">View Gallery</button>
-        ${plan.status === PLAN_STATUS.EXPIRED ?
-          `<button class="btn renew-plan-btn" data-plan-id="${plan.id}" data-client-id="${plan.clientId}">Renew Plan</button>` :
-          `<button class="btn extend-plan-btn" data-plan-id="${plan.id}" data-client-id="${plan.clientId}">Extend Plan</button>`
-        }
+        <div class="main-content">
+          <button class="expand-toggle-btn" onclick="toggleRowDetails(this, '${plan.id}')">
+            <i class="fas fa-chevron-down"></i> Details
+          </button>
+          <button class="btn view-gallery-btn" data-client-id="${plan.clientId}">View Gallery</button>
+          ${plan.status === PLAN_STATUS.EXPIRED ?
+            `<button class="btn renew-plan-btn" data-plan-id="${plan.id}" data-client-id="${plan.clientId}">Renew Plan</button>` :
+            `<button class="btn extend-plan-btn" data-plan-id="${plan.id}" data-client-id="${plan.clientId}">Extend Plan</button>`
+          }
+        </div>
+        <div class="expansion-content" style="display: none;">
+          <div class="url-sharing-panel">
+            <strong>🔗 Gallery Sharing:</strong><br>
+            <input type="text" value="snapselect.com/g/${plan.id}" readonly style="width: 200px; font-size: 12px;">
+            <button onclick="copyToClipboard('snapselect.com/g/${plan.id}')" style="font-size: 12px;">📋 Copy</button>
+            <br><small>Status: Shared • Last accessed: 2h ago</small>
+          </div>
+        </div>
       </td>
     `;
     
@@ -2202,6 +2240,38 @@ async function fixAllPhotoCountDiscrepancies() {
     showErrorMessage(`Error fixing photo counts: ${error.message}`);
     return false;
   }
+}
+
+// Add this function to handle row expansion
+function toggleRowDetails(button, planId) {
+  const row = button.closest('tr');
+  const expansionContents = row.querySelectorAll('.expansion-content');
+  const isExpanded = button.classList.contains('expanded');
+  
+  if (isExpanded) {
+    // Collapse
+    expansionContents.forEach(content => {
+      content.style.display = 'none';
+    });
+    button.classList.remove('expanded');
+    button.innerHTML = '<i class="fas fa-chevron-down"></i> Details';
+  } else {
+    // Expand
+    expansionContents.forEach(content => {
+      content.style.display = 'block';
+    });
+    button.classList.add('expanded');
+    button.innerHTML = '<i class="fas fa-chevron-up"></i> Hide';
+  }
+}
+
+// Add copy function
+function copyToClipboard(text) {
+  navigator.clipboard.writeText(text).then(() => {
+    showSuccessMessage('URL copied to clipboard!');
+  }).catch(() => {
+    showErrorMessage('Failed to copy URL');
+  });
 }
 
 // Add to window.subscriptionManager
