@@ -2232,6 +2232,8 @@ function generateShareUrl(planId, clientId) {
   return `snap.ly/${shortId}`;
 }
 
+
+
 async function toggleGallerySharing(planId, clientId, currentStatus) {
   try {
     if (!currentUser) {
@@ -2242,22 +2244,63 @@ async function toggleGallerySharing(planId, clientId, currentStatus) {
     const db = firebase.firestore();
     const newStatus = currentStatus === SHARING_STATUS.SHARED ? SHARING_STATUS.NOTSHARED : SHARING_STATUS.SHARED;
     
-    await db.collection('client-plans').doc(planId).update({
+    let updateData = {
       sharingEnabled: newStatus === SHARING_STATUS.SHARED,
       sharingStatus: newStatus,
-      shareUrl: newStatus === SHARING_STATUS.SHARED ? generateShareUrl(planId, clientId) : null,
       updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-    });
+    };
+
+    // Generate shareId when enabling sharing
+    if (newStatus === SHARING_STATUS.SHARED) {
+      const shareId = Math.random().toString(36).substring(2, 10);
+      updateData.shareId = shareId;
+      updateData.shareUrl = `${window.location.origin}/snapselect/pages/client-gallery-view.html?share=${shareId}`;
+      
+      // Log the share URL like in gallery-share-modal.js
+      console.log("Share link displayed:", updateData.shareUrl);
+      
+      // Also create a galleryShares document for consistency
+      await db.collection('galleryShares').doc(shareId).set({
+        galleryId: planId, // Using planId as galleryId for now
+        photographerId: currentUser.uid,
+        shareId: shareId,
+        passwordProtected: false,
+        password: '',
+        expiryDate: firebase.firestore.Timestamp.fromDate(new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)), // 7 days
+        maxSelections: 0,
+        preventDownload: false,
+        watermarkEnabled: false,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+        status: "active",
+        views: 0,
+        lastViewed: null
+      });
+    } else {
+      // Remove shareId and shareUrl when disabling
+      updateData.shareId = firebase.firestore.FieldValue.delete();
+      updateData.shareUrl = firebase.firestore.FieldValue.delete();
+      
+      // Also remove from galleryShares collection
+      const plan = allPlans.find(p => p.id === planId);
+      if (plan && plan.shareId) {
+        await db.collection('galleryShares').doc(plan.shareId).delete();
+      }
+    }
+
+    await db.collection('client-plans').doc(planId).update(updateData);
 
     const client = userClients.find(c => c.id === clientId);
     const clientName = client?.name || 'your client';
     
     if (newStatus === SHARING_STATUS.SHARED) {
       showSuccessMessage(`Gallery sharing enabled for ${clientName}`);
+      showInfoMessage(`Share URL: ${updateData.shareUrl}`);
     } else {
       showSuccessMessage(`Gallery sharing disabled for ${clientName}`);
     }
 
+    // Refresh the display
+    await loadActivePlans(); // Reload to get updated data
     filterAndDisplayPlans();
     return true;
 
@@ -2267,6 +2310,8 @@ async function toggleGallerySharing(planId, clientId, currentStatus) {
     return false;
   }
 }
+
+ 
 
 async function copyShareUrl(shareUrl, clientName) {
   try {
@@ -2287,13 +2332,21 @@ async function copyShareUrl(shareUrl, clientName) {
 window.copyShareUrl = copyShareUrl; 
 
 
+
 function getSharingHTML(plan) {
   const client = userClients.find(c => c.id === plan.clientId);
   const clientName = client?.name || plan.clientName || 'Unknown Client';
   
   const isShared = plan.sharingEnabled === true;
-  const shareUrl = plan.shareUrl || generateShareUrl(plan.id, plan.clientId);
   const canShare = plan.status === PLAN_STATUS.ACTIVE || plan.status === PLAN_STATUS.EXPIRING_SOON;
+  
+  // Generate share URL in the same format as gallery-share-modal.js
+  let shareUrl = '';
+  if (isShared && plan.shareId) {
+    const domain = window.location.origin;
+    shareUrl = `${domain}/snapselect/pages/client-gallery-view.html?share=${plan.shareId}`;
+    console.log("Share link displayed:", shareUrl); // This is what you wanted!
+  }
   
   if (!canShare) {
     return `
@@ -2301,12 +2354,17 @@ function getSharingHTML(plan) {
         <span style="color: #999; font-size: 12px;">🔒 Not shared (Expired)</span>
       </div>
     `;
-  } else if (isShared) {
+  } else if (isShared && shareUrl) {
+    // Show the actual full URL instead of just the short version
+    const displayUrl = shareUrl.length > 40 ? 
+      shareUrl.substring(0, 37) + '...' : shareUrl;
+    
     return `
       <div style="margin-top: 5px;">
         <span style="color: #4CAF50; font-size: 12px; cursor: pointer;" 
-              onclick="copyShareUrl('${shareUrl}', '${clientName}')">
-          🔗 ${shareUrl}
+              onclick="copyFullShareUrl('${shareUrl}', '${clientName}')"
+              title="${shareUrl}">
+          🔗 ${displayUrl}
         </span>
         <button class="share-toggle-btn" 
                 data-plan-id="${plan.id}" 
@@ -2324,7 +2382,7 @@ function getSharingHTML(plan) {
         <button class="share-toggle-btn" 
                 data-plan-id="${plan.id}" 
                 data-client-id="${plan.clientId}" 
-                data-current-status="Not shared"
+                data-current-status="not_shared"
                 style="margin-left: 8px; padding: 2px 6px; font-size: 10px; background: #4CAF50; color: white; border: none; border-radius: 3px; cursor: pointer;">
           Share
         </button>
@@ -2333,6 +2391,27 @@ function getSharingHTML(plan) {
   }
 }
 
+
+// New function to copy full share URL
+async function copyFullShareUrl(fullUrl, clientName) {
+  try {
+    await navigator.clipboard.writeText(fullUrl);
+    showSuccessMessage(`Full share link copied for ${clientName}!`);
+    console.log("Share link copied:", fullUrl); // Additional logging
+  } catch (error) {
+    const textArea = document.createElement('textarea');
+    textArea.value = fullUrl;
+    document.body.appendChild(textArea);
+    textArea.select();
+    document.execCommand('copy');
+    document.body.removeChild(textArea);
+    showSuccessMessage(`Full share link copied for ${clientName}!`);
+    console.log("Share link copied (fallback):", fullUrl);
+  }
+}
+
+// Make function globally available
+window.copyFullShareUrl = copyFullShareUrl;
 
 // Add to window.subscriptionManager
 window.subscriptionManager.fixAllPhotoCountDiscrepancies = fixAllPhotoCountDiscrepancies;
