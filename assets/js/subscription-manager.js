@@ -15,7 +15,7 @@ const PLAN_STATUS = {
 };
 
 const SHARING_STATUS = {
-  PRIVATE: 'private',
+  NOTSHARED: 'not shared',
   SHARED: 'shared',
   DISABLED: 'disabled'
 };
@@ -2045,7 +2045,7 @@ function updatePlansDisplay(plans) {
       const clientId = this.getAttribute('data-client-id');
       const currentStatus = this.getAttribute('data-current-status');
       
-      toggleGallerySharing(planId, clientId, currentStatus === 'shared' ? SHARING_STATUS.SHARED : SHARING_STATUS.PRIVATE);
+      toggleGallerySharing(planId, clientId, currentStatus === 'shared' ? SHARING_STATUS.SHARED : SHARING_STATUS.NOTSHARED);
     });
   });
 }
@@ -2240,7 +2240,7 @@ async function toggleGallerySharing(planId, clientId, currentStatus) {
     }
 
     const db = firebase.firestore();
-    const newStatus = currentStatus === SHARING_STATUS.SHARED ? SHARING_STATUS.PRIVATE : SHARING_STATUS.SHARED;
+    const newStatus = currentStatus === SHARING_STATUS.SHARED ? SHARING_STATUS.NOTSHARED : SHARING_STATUS.SHARED;
     
     await db.collection('client-plans').doc(planId).update({
       sharingEnabled: newStatus === SHARING_STATUS.SHARED,
@@ -2298,7 +2298,7 @@ function getSharingHTML(plan) {
   if (!canShare) {
     return `
       <div style="margin-top: 5px;">
-        <span style="color: #999; font-size: 12px;">🔒 Private (Expired)</span>
+        <span style="color: #999; font-size: 12px;">🔒 Not shared (Expired)</span>
       </div>
     `;
   } else if (isShared) {
@@ -2320,11 +2320,11 @@ function getSharingHTML(plan) {
   } else {
     return `
       <div style="margin-top: 5px;">
-        <span style="color: #999; font-size: 12px;">🔒 Private</span>
+        <span style="color: #999; font-size: 12px;">🔒 Not Shared</span>
         <button class="share-toggle-btn" 
                 data-plan-id="${plan.id}" 
                 data-client-id="${plan.clientId}" 
-                data-current-status="private"
+                data-current-status="Not shared"
                 style="margin-left: 8px; padding: 2px 6px; font-size: 10px; background: #4CAF50; color: white; border: none; border-radius: 3px; cursor: pointer;">
           Share
         </button>
