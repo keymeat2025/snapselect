@@ -1832,4 +1832,26 @@ tr:last-child .renew-plan-btn:hover::after {
     width: 100%;
     margin-bottom: 0.5rem;
   }
+
+  
+    /* Color the existing plan-status spans */
+  .plan-status.active { 
+      background-color: #10B981; /* Green */
+      color: white; 
+  }
+  
+  .plan-status.expiring { 
+      background-color: #F59E0B; /* Yellow/Orange */
+      color: white; 
+  }
+  
+  .plan-status.expired { 
+      background-color: #EF4444; /* Red */
+      color: white; 
+  }
+  
+  .plan-status.renewed { 
+      background-color: #8B5CF6; /* Purple */
+      color: white; 
+  }
 }
