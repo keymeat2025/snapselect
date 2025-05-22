@@ -398,6 +398,7 @@ async function loadClientData() {
 
 // Modified loadActivePlans function to return a Promise
 
+
 async function loadActivePlans() {
   try {
     if (!currentUser) return;
@@ -428,8 +429,6 @@ async function loadActivePlans() {
       return;
     }
     
-    // Process active plans (similar to original function)
-
     // Process active plans and check for sharing data
     for (const doc of activePlansSnapshot.docs) {
       const planData = { id: doc.id, ...doc.data() };
@@ -492,12 +491,21 @@ async function loadActivePlans() {
         
         localStorage.setItem(`plan_expiry_notified_${planData.id}`, 'true');
       }
-    });
+    }
     
-
+    // Process expired plans
+    expiredPlansSnapshot.forEach(doc => {
+      const planData = { id: doc.id, ...doc.data() };
+      
+      // Ensure storageUsed exists
+      if (typeof planData.storageUsed === 'undefined') {
+        planData.storageUsed = 0;
+      }
+      
+      allPlans.push(planData);
+    });
 
     // Update UI
-    // updateActivePlansDisplay(); // Remove this line
     updateStorageUsage();
     filterAndDisplayPlans(); // Only use this for the updated UI
     updateDashboardStats();
