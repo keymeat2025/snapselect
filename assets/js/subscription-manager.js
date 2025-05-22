@@ -429,12 +429,41 @@ async function loadActivePlans() {
     }
     
     // Process active plans (similar to original function)
-    activePlansSnapshot.forEach(doc => {
+
+    // Process active plans and check for sharing data
+    for (const doc of activePlansSnapshot.docs) {
       const planData = { id: doc.id, ...doc.data() };
       
       // Ensure storageUsed exists (default to 0 if not present)
       if (typeof planData.storageUsed === 'undefined') {
         planData.storageUsed = 0;
+      }
+      
+      // CHECK FOR REAL SHARING DATA FROM DATABASE
+      if (planData.sharingEnabled === true && planData.shareId) {
+        try {
+          // Verify the share actually exists in galleryShares collection
+          const shareQuery = await db.collection('galleryShares')
+            .doc(planData.shareId)
+            .get();
+          
+          if (shareQuery.exists) {
+            // Real share exists - keep the sharing data
+            console.log("Found real sharing data for plan:", planData.id, "ShareID:", planData.shareId);
+            planData.shareUrl = `${window.location.origin}/snapselect/pages/client-gallery-view.html?share=${planData.shareId}`;
+          } else {
+            // Share document doesn't exist - disable sharing
+            console.log("Share document not found for plan:", planData.id, "- disabling sharing");
+            planData.sharingEnabled = false;
+            planData.shareId = null;
+            planData.shareUrl = null;
+          }
+        } catch (error) {
+          console.error("Error checking share data for plan:", planData.id, error);
+          planData.sharingEnabled = false;
+          planData.shareId = null;
+          planData.shareUrl = null;
+        }
       }
       
       // Add to arrays
@@ -463,18 +492,6 @@ async function loadActivePlans() {
         
         localStorage.setItem(`plan_expiry_notified_${planData.id}`, 'true');
       }
-    });
-    
-    // Process expired plans
-    expiredPlansSnapshot.forEach(doc => {
-      const planData = { id: doc.id, ...doc.data() };
-      
-      // Ensure storageUsed exists
-      if (typeof planData.storageUsed === 'undefined') {
-        planData.storageUsed = 0;
-      }
-      
-      allPlans.push(planData);
     });
     
 
@@ -2227,10 +2244,6 @@ async function fixAllPhotoCountDiscrepancies() {
 }
 
 
-function generateShareUrl(planId, clientId) {
-  const shortId = planId.substring(0, 8) + clientId.substring(0, 4);
-  return `snap.ly/${shortId}`;
-}
 
 
 
@@ -2242,31 +2255,43 @@ async function toggleGallerySharing(planId, clientId, currentStatus) {
     }
 
     const db = firebase.firestore();
-    const newStatus = currentStatus === SHARING_STATUS.SHARED ? SHARING_STATUS.NOTSHARED : SHARING_STATUS.SHARED;
+    const plan = allPlans.find(p => p.id === planId);
     
-    let updateData = {
-      sharingEnabled: newStatus === SHARING_STATUS.SHARED,
-      sharingStatus: newStatus,
-      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-    };
+    if (!plan) {
+      showErrorMessage('Plan not found');
+      return false;
+    }
 
-    // Generate shareId when enabling sharing
-    if (newStatus === SHARING_STATUS.SHARED) {
+    if (currentStatus === SHARING_STATUS.SHARED) {
+      // DISABLE sharing - remove from both collections
+      await db.collection('client-plans').doc(planId).update({
+        sharingEnabled: false,
+        sharingStatus: SHARING_STATUS.NOTSHARED,
+        shareId: firebase.firestore.FieldValue.delete(),
+        shareUrl: firebase.firestore.FieldValue.delete(),
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+
+      // Remove from galleryShares collection
+      if (plan.shareId) {
+        await db.collection('galleryShares').doc(plan.shareId).delete();
+        console.log("Deleted share document:", plan.shareId);
+      }
+
+      showSuccessMessage('Gallery sharing disabled');
+    } else {
+      // ENABLE sharing - create REAL share record
       const shareId = Math.random().toString(36).substring(2, 10);
-      updateData.shareId = shareId;
-      updateData.shareUrl = `${window.location.origin}/snapselect/pages/client-gallery-view.html?share=${shareId}`;
+      const shareUrl = `${window.location.origin}/snapselect/pages/client-gallery-view.html?share=${shareId}`;
       
-      // Log the share URL like in gallery-share-modal.js
-      console.log("Share link displayed:", updateData.shareUrl);
-      
-      // Also create a galleryShares document for consistency
+      // Create REAL share document using shareId as document ID
       await db.collection('galleryShares').doc(shareId).set({
-        galleryId: planId, // Using planId as galleryId for now
+        galleryId: plan.galleryId || planId,
         photographerId: currentUser.uid,
         shareId: shareId,
         passwordProtected: false,
         password: '',
-        expiryDate: firebase.firestore.Timestamp.fromDate(new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)), // 7 days
+        expiryDate: firebase.firestore.Timestamp.fromDate(new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)),
         maxSelections: 0,
         preventDownload: false,
         watermarkEnabled: false,
@@ -2275,32 +2300,22 @@ async function toggleGallerySharing(planId, clientId, currentStatus) {
         views: 0,
         lastViewed: null
       });
-    } else {
-      // Remove shareId and shareUrl when disabling
-      updateData.shareId = firebase.firestore.FieldValue.delete();
-      updateData.shareUrl = firebase.firestore.FieldValue.delete();
-      
-      // Also remove from galleryShares collection
-      const plan = allPlans.find(p => p.id === planId);
-      if (plan && plan.shareId) {
-        await db.collection('galleryShares').doc(plan.shareId).delete();
-      }
+
+      // Update plan with REAL share data
+      await db.collection('client-plans').doc(planId).update({
+        sharingEnabled: true,
+        sharingStatus: SHARING_STATUS.SHARED,
+        shareId: shareId,
+        shareUrl: shareUrl,
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+
+      console.log("Real share link created:", shareUrl);
+      showSuccessMessage(`Gallery sharing enabled! Link: ${shareUrl}`);
     }
 
-    await db.collection('client-plans').doc(planId).update(updateData);
-
-    const client = userClients.find(c => c.id === clientId);
-    const clientName = client?.name || 'your client';
-    
-    if (newStatus === SHARING_STATUS.SHARED) {
-      showSuccessMessage(`Gallery sharing enabled for ${clientName}`);
-      showInfoMessage(`Share URL: ${updateData.shareUrl}`);
-    } else {
-      showSuccessMessage(`Gallery sharing disabled for ${clientName}`);
-    }
-
-    // Refresh the display
-    await loadActivePlans(); // Reload to get updated data
+    // Reload data to show real sharing status
+    await loadActivePlans();
     filterAndDisplayPlans();
     return true;
 
