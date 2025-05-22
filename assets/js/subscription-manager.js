@@ -14,6 +14,12 @@ const PLAN_STATUS = {
   EXPIRED: 'expired', CANCELED: 'canceled', REFUNDED: 'refunded', EXPIRING_SOON: 'expiring_soon'
 };
 
+const SHARING_STATUS = {
+  PRIVATE: 'private',
+  SHARED: 'shared',
+  DISABLED: 'disabled'
+};
+
 // Subscription plans data
 const SUBSCRIPTION_PLANS = {
   lite: {
@@ -2203,6 +2209,66 @@ async function fixAllPhotoCountDiscrepancies() {
     return false;
   }
 }
+
+
+function generateShareUrl(planId, clientId) {
+  const shortId = planId.substring(0, 8) + clientId.substring(0, 4);
+  return `snap.ly/${shortId}`;
+}
+
+async function toggleGallerySharing(planId, clientId, currentStatus) {
+  try {
+    if (!currentUser) {
+      showErrorMessage('You must be logged in to manage sharing settings');
+      return false;
+    }
+
+    const db = firebase.firestore();
+    const newStatus = currentStatus === SHARING_STATUS.SHARED ? SHARING_STATUS.PRIVATE : SHARING_STATUS.SHARED;
+    
+    await db.collection('client-plans').doc(planId).update({
+      sharingEnabled: newStatus === SHARING_STATUS.SHARED,
+      sharingStatus: newStatus,
+      shareUrl: newStatus === SHARING_STATUS.SHARED ? generateShareUrl(planId, clientId) : null,
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+
+    const client = userClients.find(c => c.id === clientId);
+    const clientName = client?.name || 'your client';
+    
+    if (newStatus === SHARING_STATUS.SHARED) {
+      showSuccessMessage(`Gallery sharing enabled for ${clientName}`);
+    } else {
+      showSuccessMessage(`Gallery sharing disabled for ${clientName}`);
+    }
+
+    filterAndDisplayPlans();
+    return true;
+
+  } catch (error) {
+    console.error('Error toggling gallery sharing:', error);
+    showErrorMessage(`Error updating sharing settings: ${error.message}`);
+    return false;
+  }
+}
+
+async function copyShareUrl(shareUrl, clientName) {
+  try {
+    await navigator.clipboard.writeText(`https://${shareUrl}`);
+    showSuccessMessage(`Share link copied for ${clientName}!`);
+  } catch (error) {
+    const textArea = document.createElement('textarea');
+    textArea.value = `https://${shareUrl}`;
+    document.body.appendChild(textArea);
+    textArea.select();
+    document.execCommand('copy');
+    document.body.removeChild(textArea);
+    showSuccessMessage(`Share link copied for ${clientName}!`);
+  }
+}
+
+// Make function globally available
+window.copyShareUrl = copyShareUrl; 
 
 // Add to window.subscriptionManager
 window.subscriptionManager.fixAllPhotoCountDiscrepancies = fixAllPhotoCountDiscrepancies;
