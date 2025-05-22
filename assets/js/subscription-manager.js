@@ -1880,7 +1880,8 @@ function sortPlans(plans, sortOption) {
 }
 
 
-// Update the display with filtered plans - Row-based layout
+
+// Update the display with filtered plans - Row-based layout (SIMPLIFIED VERSION)
 function updatePlansDisplay(plans) {
   const plansContainer = document.getElementById('plansContainer');
   if (!plansContainer) return;
@@ -1939,7 +1940,6 @@ function updatePlansDisplay(plans) {
         <th>Client</th>
         <th>Dates</th>
         <th>Status</th>
-        <!--<th>Storage</th>-->
         <th>Photos</th>
         <th>Actions</th>
       </tr>
@@ -1967,14 +1967,8 @@ function updatePlansDisplay(plans) {
     // Get client info
     const client = userClients.find(c => c.id === plan.clientId);
     const clientName = client?.name || plan.clientName || 'Unknown Client';
-    
-
-
-
-
-
  
-    // Create HTML for the plan row with professional expansion
+    // Create HTML for the plan row with simplified expansion (REMOVED UNWANTED SECTIONS)
     planRow.innerHTML = `
       <td class="plan-type">
         <div class="main-content">
@@ -1982,8 +1976,9 @@ function updatePlansDisplay(plans) {
         </div>
         <div class="expansion-content">
           <div class="detail-item">
-            <strong>Features:</strong><br>
-            ${SUBSCRIPTION_PLANS[plan.planType]?.features?.slice(0,3).join(' • ') || 'Standard features'}
+            <strong>Plan Duration:</strong><br>
+            ${SUBSCRIPTION_PLANS[plan.planType]?.expiryDays || 30} days total<br>
+            ${plan.daysLeftBeforeExpiration ? `${plan.daysLeftBeforeExpiration} days remaining` : 'Active'}
           </div>
         </div>
       </td>
@@ -1993,9 +1988,8 @@ function updatePlansDisplay(plans) {
         </div>
         <div class="expansion-content">
           <div class="detail-item">
-            <strong>Client Details:</strong><br>
-            ID: ${plan.clientId.substring(0, 8)}...<br>
-            Added: ${plan.planStartDate?.toDate().toLocaleDateString() || 'Unknown'}
+            <strong>Plan Started:</strong><br>
+            ${plan.planStartDate?.toDate().toLocaleDateString() || 'Unknown'}
           </div>
         </div>
       </td>
@@ -2006,9 +2000,9 @@ function updatePlansDisplay(plans) {
         </div>
         <div class="expansion-content">
           <div class="detail-item">
-            <strong>Plan Duration:</strong><br>
-            ${SUBSCRIPTION_PLANS[plan.planType]?.expiryDays || 30} days total<br>
-            ${plan.daysLeftBeforeExpiration ? `${plan.daysLeftBeforeExpiration} days remaining` : 'Active'}
+            <strong>Plan Information:</strong><br>
+            Storage Limit: ${SUBSCRIPTION_PLANS[plan.planType]?.storageLimit || 1}GB<br>
+            Photo Limit: ${SUBSCRIPTION_PLANS[plan.planType]?.photosPerGallery || 50} photos
           </div>
         </div>
       </td>
@@ -2022,9 +2016,7 @@ function updatePlansDisplay(plans) {
         </div>
         <div class="expansion-content">
           <div class="detail-item">
-            <strong>Status History:</strong><br>
-            Last updated: ${new Date().toLocaleDateString()}<br>
-            Current state: ${formatPlanStatus(plan.status)}
+            <strong>Status:</strong> ${formatPlanStatus(plan.status)}
           </div>
         </div>
       </td>
@@ -2076,11 +2068,6 @@ function updatePlansDisplay(plans) {
         </div>
       </td>
     `;
-
-
-
-
-
    
     tableBody.appendChild(planRow);
   });
