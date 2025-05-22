@@ -1882,6 +1882,8 @@ function sortPlans(plans, sortOption) {
 
 
 // Update the display with filtered plans - Row-based layout (SIMPLIFIED VERSION)
+
+// Update the display with filtered plans - Row-based layout (MINIMAL VERSION)
 function updatePlansDisplay(plans) {
   const plansContainer = document.getElementById('plansContainer');
   if (!plansContainer) return;
@@ -1967,43 +1969,24 @@ function updatePlansDisplay(plans) {
     // Get client info
     const client = userClients.find(c => c.id === plan.clientId);
     const clientName = client?.name || plan.clientName || 'Unknown Client';
+    const clientEmail = client?.email || 'No email';
  
-    // Create HTML for the plan row with simplified expansion (REMOVED UNWANTED SECTIONS)
+    // Create HTML for the plan row with ONLY client info and gallery URL
     planRow.innerHTML = `
       <td class="plan-type">
         <div class="main-content">
           <strong>${SUBSCRIPTION_PLANS[plan.planType]?.name || plan.planType}</strong>
-        </div>
-        <div class="expansion-content">
-          <div class="detail-item">
-            <strong>Plan Duration:</strong><br>
-            ${SUBSCRIPTION_PLANS[plan.planType]?.expiryDays || 30} days total<br>
-            ${plan.daysLeftBeforeExpiration ? `${plan.daysLeftBeforeExpiration} days remaining` : 'Active'}
-          </div>
         </div>
       </td>
       <td class="plan-client">
         <div class="main-content">
           <strong>${clientName}</strong>
         </div>
-        <div class="expansion-content">
-          <div class="detail-item">
-            <strong>Plan Started:</strong><br>
-            ${plan.planStartDate?.toDate().toLocaleDateString() || 'Unknown'}
-          </div>
-        </div>
       </td>
       <td class="plan-dates">
         <div class="main-content">
           <div><strong>Started:</strong> ${startDate}</div>
           <div><strong>Expires:</strong> ${endDate}</div>
-        </div>
-        <div class="expansion-content">
-          <div class="detail-item">
-            <strong>Plan Information:</strong><br>
-            Storage Limit: ${SUBSCRIPTION_PLANS[plan.planType]?.storageLimit || 1}GB<br>
-            Photo Limit: ${SUBSCRIPTION_PLANS[plan.planType]?.photosPerGallery || 50} photos
-          </div>
         </div>
       </td>
       <td class="plan-status-cell">
@@ -2014,28 +1997,16 @@ function updatePlansDisplay(plans) {
           ${plan.status === PLAN_STATUS.EXPIRED ? 
             `<div class="expired-badge"><i class="fas fa-calendar-times"></i> Expired</div>` : ''}
         </div>
-        <div class="expansion-content">
-          <div class="detail-item">
-            <strong>Status:</strong> ${formatPlanStatus(plan.status)}
-          </div>
-        </div>
       </td>
       <td class="plan-photos">
         <div class="main-content">
           ${formatPhotoUsage(plan.photosUploaded || 0, SUBSCRIPTION_PLANS[plan.planType]?.photosPerGallery || 50)}
         </div>
-        <div class="expansion-content">
-          <div class="detail-item">
-            <strong>Usage Details:</strong><br>
-            Limit: ${SUBSCRIPTION_PLANS[plan.planType]?.photosPerGallery || 50} photos<br>
-            Available: ${(SUBSCRIPTION_PLANS[plan.planType]?.photosPerGallery || 50) - (plan.photosUploaded || 0)} remaining
-          </div>
-        </div>
       </td>
       <td class="plan-actions-cell">
         <div class="main-content">
           <button class="expand-toggle-btn" onclick="toggleRowDetails(this, '${plan.id}')">
-            <i class="fas fa-chevron-down"></i>Details
+            <i class="fas fa-share-alt"></i> Share
           </button><br>
           <button class="btn view-gallery-btn" data-client-id="${plan.clientId}">View Gallery</button>
           ${plan.status === PLAN_STATUS.EXPIRED ?
@@ -2044,24 +2015,26 @@ function updatePlansDisplay(plans) {
           }
         </div>
         <div class="expansion-content">
-          <div class="url-sharing-panel">
-            <div class="url-sharing-header">
-              <i class="fas fa-share-alt"></i>
-              Gallery Sharing
+          <div class="client-share-panel">
+            <div class="share-header">
+              <i class="fas fa-user"></i>
+              <strong>Client: ${clientName}</strong>
             </div>
-            <div class="url-input-group">
-              <input type="text" class="url-input" value="https://snapselect.com/g/${plan.id}" readonly>
-              <button class="copy-url-btn" onclick="copyToClipboard('https://snapselect.com/g/${plan.id}')">
-                <i class="fas fa-copy"></i> Copy
-              </button>
+            <div class="client-info">
+              <small>Email: ${clientEmail}</small>
             </div>
-            <div class="sharing-status">
-              <div class="status-indicator">
-                <i class="fas fa-check-circle"></i>
-                Active & Shared
+            
+            <div class="url-sharing">
+              <label>Gallery URL:</label>
+              <div class="url-input-group">
+                <input type="text" class="url-input" value="https://snapselect.com/g/${plan.id}" readonly>
+                <button class="copy-url-btn" onclick="copyToClipboard('https://snapselect.com/g/${plan.id}')">
+                  <i class="fas fa-copy"></i> Copy
+                </button>
               </div>
-              <div class="last-accessed">
-                Last accessed: 2 hours ago
+              <div class="sharing-status">
+                <i class="fas fa-check-circle"></i>
+                <span>Ready to share</span>
               </div>
             </div>
           </div>
