@@ -2288,41 +2288,81 @@ async function toggleGallerySharing(planId, clientId, currentStatus) {
 
       showSuccessMessage('Gallery sharing disabled');
     } else {
-      // ENABLE sharing - create REAL share record
-      const shareId = Math.random().toString(36).substring(2, 10);
-      const shareUrl = `${window.location.origin}/snapselect/pages/client-gallery-view.html?share=${shareId}`;
+      // ENABLE sharing - FIRST CHECK FOR EXISTING SHARE
+      let shareId = null;
+      let shareUrl = null;
       
-      // Create REAL share document using shareId as document ID
-      await db.collection('galleryShares').doc(shareId).set({
-        galleryId: plan.galleryId || planId,
-        photographerId: currentUser.uid,
-        shareId: shareId,
-        passwordProtected: false,
-        password: '',
-        expiryDate: firebase.firestore.Timestamp.fromDate(new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)),
-        maxSelections: 0,
-        preventDownload: false,
-        watermarkEnabled: false,
-        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-        status: "active",
-        views: 0,
-        lastViewed: null
-      });
+      // 🔥 STEP 1: Check if there's already an existing share for this gallery
+      const galleryId = plan.galleryId || planId;
+      
+      try {
+        // Look for existing share by galleryId
+        const existingSharesSnapshot = await db.collection('galleryShares')
+          .where('galleryId', '==', galleryId)
+          .where('photographerId', '==', currentUser.uid)
+          .where('status', '==', 'active')
+          .limit(1)
+          .get();
+        
+        if (!existingSharesSnapshot.empty) {
+          // 🎯 FOUND EXISTING SHARE - REUSE IT
+          const existingShareDoc = existingSharesSnapshot.docs[0];
+          shareId = existingShareDoc.id; // Use the document ID as shareId
+          shareUrl = `${window.location.origin}/snapselect/pages/client-gallery-view.html?share=${shareId}`;
+          
+          console.log("✅ REUSING existing share ID:", shareId);
+          
+          // Update the existing share document to ensure it's active
+          await db.collection('galleryShares').doc(shareId).update({
+            status: 'active',
+            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+          });
+          
+        } else {
+          // 🆕 NO EXISTING SHARE FOUND - CREATE NEW ONE
+          shareId = Math.random().toString(36).substring(2, 10);
+          shareUrl = `${window.location.origin}/snapselect/pages/client-gallery-view.html?share=${shareId}`;
+          
+          console.log("🆕 CREATING new share ID:", shareId);
+          
+          // Create new share document
+          await db.collection('galleryShares').doc(shareId).set({
+            galleryId: galleryId,
+            photographerId: currentUser.uid,
+            shareId: shareId,
+            passwordProtected: false,
+            password: '',
+            expiryDate: firebase.firestore.Timestamp.fromDate(new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)),
+            maxSelections: 0,
+            preventDownload: false,
+            watermarkEnabled: false,
+            createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+            status: "active",
+            views: 0,
+            lastViewed: null
+          });
+        }
+        
+        // 🔥 STEP 2: Update plan with the share data (existing or new)
+        await db.collection('client-plans').doc(planId).update({
+          sharingEnabled: true,
+          sharingStatus: SHARING_STATUS.SHARED,
+          shareId: shareId,
+          shareUrl: shareUrl,
+          updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
 
-      // Update plan with REAL share data
-      await db.collection('client-plans').doc(planId).update({
-        sharingEnabled: true,
-        sharingStatus: SHARING_STATUS.SHARED,
-        shareId: shareId,
-        shareUrl: shareUrl,
-        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-      });
-
-      console.log("Real share link created:", shareUrl);
-      showSuccessMessage(`Gallery sharing enabled! Link: ${shareUrl}`);
+        console.log("✅ Gallery sharing enabled with share ID:", shareId);
+        console.log("🔗 Share URL:", shareUrl);
+        showSuccessMessage(`Gallery sharing enabled! Link: ${shareUrl}`);
+        
+      } catch (error) {
+        console.error('Error finding/creating share:', error);
+        throw error;
+      }
     }
 
-    // Reload data to show real sharing status
+    // Reload data to show correct sharing status
     await loadActivePlans();
     filterAndDisplayPlans();
     return true;
