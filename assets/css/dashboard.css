@@ -1854,4 +1854,43 @@ tr:last-child .renew-plan-btn:hover::after {
       background-color: #8B5CF6; /* Purple */
       color: white; 
   }
+  /* Row Expansion Styles - ADD THIS TO THE END OF dashboard.css */
+.expand-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0.5rem;
+  margin-right: 0.5rem;
+  border-radius: 4px;
+  transition: all 0.3s ease;
+  color: var(--text-muted);
+}
+
+.expand-btn:hover {
+  background: rgba(var(--primary-rgb), 0.1);
+  color: var(--primary-color);
+}
+
+.expand-btn i {
+  transition: transform 0.3s ease;
+}
+
+.expand-btn.expanded i {
+  transform: rotate(90deg);
+}
+
+.expansion-row {
+  display: none;
+}
+
+.expansion-row.active {
+  display: table-row;
+  animation: fadeInUp 0.3s ease;
+}
+
+.expansion-content {
+  padding: 1.5rem;
+  background: var(--background-color);
+  border-top: 1px solid var(--border-color);
+}
 }
