@@ -1910,6 +1910,9 @@ tr:last-child .renew-plan-btn:hover::after {
   border: 1px solid rgba(79, 70, 229, 0.15);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
   animation: slideDown 0.3s ease-out;
+  
+  /* ADD THIS LINE FOR THE SEPARATOR */
+  border-top: 2px solid #E5E7EB;
 }
 
 @keyframes slideDown {
