@@ -1973,18 +1973,30 @@ function updatePlansDisplay(plans) {
 
 
 
-    // Create HTML for the plan row with expansion capability
+ 
+    // Create HTML for the plan row with professional expansion
     planRow.innerHTML = `
       <td class="plan-type">
-        <div class="main-content">${SUBSCRIPTION_PLANS[plan.planType]?.name || plan.planType}</div>
-        <div class="expansion-content" style="display: none;">
-          <small>Plan Details: ${SUBSCRIPTION_PLANS[plan.planType]?.features?.slice(0,2).join(', ') || 'Standard features'}</small>
+        <div class="main-content">
+          <strong>${SUBSCRIPTION_PLANS[plan.planType]?.name || plan.planType}</strong>
+        </div>
+        <div class="expansion-content">
+          <div class="detail-item">
+            <strong>Features:</strong><br>
+            ${SUBSCRIPTION_PLANS[plan.planType]?.features?.slice(0,3).join(' • ') || 'Standard features'}
+          </div>
         </div>
       </td>
       <td class="plan-client">
-        <div class="main-content">${clientName}</div>
-        <div class="expansion-content" style="display: none;">
-          <small>Client ID: ${plan.clientId}</small>
+        <div class="main-content">
+          <strong>${clientName}</strong>
+        </div>
+        <div class="expansion-content">
+          <div class="detail-item">
+            <strong>Client Details:</strong><br>
+            ID: ${plan.clientId.substring(0, 8)}...<br>
+            Added: ${plan.planStartDate?.toDate().toLocaleDateString() || 'Unknown'}
+          </div>
         </div>
       </td>
       <td class="plan-dates">
@@ -1992,8 +2004,12 @@ function updatePlansDisplay(plans) {
           <div><strong>Started:</strong> ${startDate}</div>
           <div><strong>Expires:</strong> ${endDate}</div>
         </div>
-        <div class="expansion-content" style="display: none;">
-          <small>Duration: ${SUBSCRIPTION_PLANS[plan.planType]?.expiryDays || 30} days</small>
+        <div class="expansion-content">
+          <div class="detail-item">
+            <strong>Plan Duration:</strong><br>
+            ${SUBSCRIPTION_PLANS[plan.planType]?.expiryDays || 30} days total<br>
+            ${plan.daysLeftBeforeExpiration ? `${plan.daysLeftBeforeExpiration} days remaining` : 'Active'}
+          </div>
         </div>
       </td>
       <td class="plan-status-cell">
@@ -2002,42 +2018,70 @@ function updatePlansDisplay(plans) {
           ${plan.status === PLAN_STATUS.EXPIRING_SOON ? 
             `<div class="expiry-warning"><i class="fas fa-exclamation-triangle"></i> Expires in ${plan.daysLeftBeforeExpiration} days</div>` : ''}
           ${plan.status === PLAN_STATUS.EXPIRED ? 
-            `<div class="expired-badge"><i class="fas fa-calendar-times"></i> Expired on ${endDate}</div>` : ''}
+            `<div class="expired-badge"><i class="fas fa-calendar-times"></i> Expired</div>` : ''}
         </div>
-        <div class="expansion-content" style="display: none;">
-          <small>Status Details: Updated ${new Date().toLocaleDateString()}</small>
+        <div class="expansion-content">
+          <div class="detail-item">
+            <strong>Status History:</strong><br>
+            Last updated: ${new Date().toLocaleDateString()}<br>
+            Current state: ${formatPlanStatus(plan.status)}
+          </div>
         </div>
       </td>
       <td class="plan-photos">
         <div class="main-content">
           ${formatPhotoUsage(plan.photosUploaded || 0, SUBSCRIPTION_PLANS[plan.planType]?.photosPerGallery || 50)}
         </div>
-        <div class="expansion-content" style="display: none;">
-          <small>Limit: ${SUBSCRIPTION_PLANS[plan.planType]?.photosPerGallery || 50} photos max</small>
+        <div class="expansion-content">
+          <div class="detail-item">
+            <strong>Usage Details:</strong><br>
+            Limit: ${SUBSCRIPTION_PLANS[plan.planType]?.photosPerGallery || 50} photos<br>
+            Available: ${(SUBSCRIPTION_PLANS[plan.planType]?.photosPerGallery || 50) - (plan.photosUploaded || 0)} remaining
+          </div>
         </div>
       </td>
       <td class="plan-actions-cell">
         <div class="main-content">
           <button class="expand-toggle-btn" onclick="toggleRowDetails(this, '${plan.id}')">
-            <i class="fas fa-chevron-down"></i> Details
-          </button>
+            <i class="fas fa-chevron-down"></i>Details
+          </button><br>
           <button class="btn view-gallery-btn" data-client-id="${plan.clientId}">View Gallery</button>
           ${plan.status === PLAN_STATUS.EXPIRED ?
             `<button class="btn renew-plan-btn" data-plan-id="${plan.id}" data-client-id="${plan.clientId}">Renew Plan</button>` :
             `<button class="btn extend-plan-btn" data-plan-id="${plan.id}" data-client-id="${plan.clientId}">Extend Plan</button>`
           }
         </div>
-        <div class="expansion-content" style="display: none;">
+        <div class="expansion-content">
           <div class="url-sharing-panel">
-            <strong>🔗 Gallery Sharing:</strong><br>
-            <input type="text" value="snapselect.com/g/${plan.id}" readonly style="width: 200px; font-size: 12px;">
-            <button onclick="copyToClipboard('snapselect.com/g/${plan.id}')" style="font-size: 12px;">📋 Copy</button>
-            <br><small>Status: Shared • Last accessed: 2h ago</small>
+            <div class="url-sharing-header">
+              <i class="fas fa-share-alt"></i>
+              Gallery Sharing
+            </div>
+            <div class="url-input-group">
+              <input type="text" class="url-input" value="https://snapselect.com/g/${plan.id}" readonly>
+              <button class="copy-url-btn" onclick="copyToClipboard('https://snapselect.com/g/${plan.id}')">
+                <i class="fas fa-copy"></i> Copy
+              </button>
+            </div>
+            <div class="sharing-status">
+              <div class="status-indicator">
+                <i class="fas fa-check-circle"></i>
+                Active & Shared
+              </div>
+              <div class="last-accessed">
+                Last accessed: 2 hours ago
+              </div>
+            </div>
           </div>
         </div>
       </td>
     `;
-    
+
+
+
+
+
+   
     tableBody.appendChild(planRow);
   });
   
@@ -2242,33 +2286,55 @@ async function fixAllPhotoCountDiscrepancies() {
   }
 }
 
-// Add this function to handle row expansion
+
+// Enhanced toggle function with smooth animations
 function toggleRowDetails(button, planId) {
   const row = button.closest('tr');
   const expansionContents = row.querySelectorAll('.expansion-content');
   const isExpanded = button.classList.contains('expanded');
   
   if (isExpanded) {
-    // Collapse
+    // Collapse with animation
     expansionContents.forEach(content => {
-      content.style.display = 'none';
+      content.style.animation = 'slideUp 0.2s ease-in';
+      setTimeout(() => {
+        content.style.display = 'none';
+      }, 200);
     });
+    
     button.classList.remove('expanded');
-    button.innerHTML = '<i class="fas fa-chevron-down"></i> Details';
+    button.innerHTML = '<i class="fas fa-chevron-down"></i>Details';
   } else {
-    // Expand
+    // Expand with animation
     expansionContents.forEach(content => {
       content.style.display = 'block';
+      content.style.animation = 'slideDown 0.3s ease-out';
     });
+    
     button.classList.add('expanded');
-    button.innerHTML = '<i class="fas fa-chevron-up"></i> Hide';
+    button.innerHTML = '<i class="fas fa-chevron-up"></i>Hide';
   }
 }
 
-// Add copy function
+// Enhanced copy function with better feedback
 function copyToClipboard(text) {
   navigator.clipboard.writeText(text).then(() => {
-    showSuccessMessage('URL copied to clipboard!');
+    // Visual feedback on the button
+    const buttons = document.querySelectorAll('.copy-url-btn');
+    buttons.forEach(btn => {
+      if (btn.onclick.toString().includes(text)) {
+        const originalText = btn.innerHTML;
+        btn.innerHTML = '<i class="fas fa-check"></i> Copied!';
+        btn.style.background = 'linear-gradient(135deg, #10B981 0%, #059669 100%)';
+        
+        setTimeout(() => {
+          btn.innerHTML = originalText;
+          btn.style.background = '';
+        }, 2000);
+      }
+    });
+    
+    showSuccessMessage('Gallery URL copied to clipboard!');
   }).catch(() => {
     showErrorMessage('Failed to copy URL');
   });
