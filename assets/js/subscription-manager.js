@@ -1880,10 +1880,7 @@ function sortPlans(plans, sortOption) {
 }
 
 
-
-// Update the display with filtered plans - Row-based layout (SIMPLIFIED VERSION)
-
-// Update the display with filtered plans - Row-based layout (MINIMAL VERSION)
+// Update the display with filtered plans - Row-based layout
 function updatePlansDisplay(plans) {
   const plansContainer = document.getElementById('plansContainer');
   if (!plansContainer) return;
@@ -1942,6 +1939,7 @@ function updatePlansDisplay(plans) {
         <th>Client</th>
         <th>Dates</th>
         <th>Status</th>
+        <!--<th>Storage</th>-->
         <th>Photos</th>
         <th>Actions</th>
       </tr>
@@ -1969,79 +1967,39 @@ function updatePlansDisplay(plans) {
     // Get client info
     const client = userClients.find(c => c.id === plan.clientId);
     const clientName = client?.name || plan.clientName || 'Unknown Client';
-    const clientEmail = client?.email || 'No email';
- 
-    // Create HTML for the plan row with ONLY client info and gallery URL
+    
+    // Create HTML for the plan row
     planRow.innerHTML = `
-      <td class="plan-type">
-        <div class="main-content">
-          <strong>${SUBSCRIPTION_PLANS[plan.planType]?.name || plan.planType}</strong>
-        </div>
-      </td>
-      <td class="plan-client">
-        <div class="main-content">
-          <strong>${clientName}</strong>
-        </div>
-      </td>
+      <td class="plan-type">${SUBSCRIPTION_PLANS[plan.planType]?.name || plan.planType}</td>
+      <td class="plan-client">${clientName}</td>
       <td class="plan-dates">
-        <div class="main-content">
-          <div><strong>Started:</strong> ${startDate}</div>
-          <div><strong>Expires:</strong> ${endDate}</div>
-        </div>
+        <div><strong>Started:</strong> ${startDate}</div>
+        <div><strong>Expires:</strong> ${endDate}</div>
       </td>
       <td class="plan-status-cell">
-        <div class="main-content">
-          <span class="plan-status ${plan.status}">${formatPlanStatus(plan.status)}</span>
-          ${plan.status === PLAN_STATUS.EXPIRING_SOON ? 
-            `<div class="expiry-warning"><i class="fas fa-exclamation-triangle"></i> Expires in ${plan.daysLeftBeforeExpiration} days</div>` : ''}
-          ${plan.status === PLAN_STATUS.EXPIRED ? 
-            `<div class="expired-badge"><i class="fas fa-calendar-times"></i> Expired</div>` : ''}
-        </div>
+        <span class="plan-status ${plan.status}">${formatPlanStatus(plan.status)}</span>
+        ${plan.status === PLAN_STATUS.EXPIRING_SOON ? 
+          `<div class="expiry-warning"><i class="fas fa-exclamation-triangle"></i> Expires in ${plan.daysLeftBeforeExpiration} days</div>` : ''}
+        ${plan.status === PLAN_STATUS.EXPIRED ? 
+          `<div class="expired-badge"><i class="fas fa-calendar-times"></i> Expired on ${endDate}</div>` : ''}
       </td>
+      <!--
+      <td class="plan-storage">
+        ${formatStorageUsage(plan.storageUsed || 0, SUBSCRIPTION_PLANS[plan.planType]?.storageLimit || 1)}
+      </td> 
+      -->
       <td class="plan-photos">
-        <div class="main-content">
-          ${formatPhotoUsage(plan.photosUploaded || 0, SUBSCRIPTION_PLANS[plan.planType]?.photosPerGallery || 50)}
-        </div>
+        ${formatPhotoUsage(plan.photosUploaded || 0, SUBSCRIPTION_PLANS[plan.planType]?.photosPerGallery || 50)}
       </td>
       <td class="plan-actions-cell">
-        <div class="main-content">
-          <button class="expand-toggle-btn" onclick="toggleRowDetails(this, '${plan.id}')">
-            <i class="fas fa-share-alt"></i> Share
-          </button><br>
-          <button class="btn view-gallery-btn" data-client-id="${plan.clientId}">View Gallery</button>
-          ${plan.status === PLAN_STATUS.EXPIRED ?
-            `<button class="btn renew-plan-btn" data-plan-id="${plan.id}" data-client-id="${plan.clientId}">Renew Plan</button>` :
-            `<button class="btn extend-plan-btn" data-plan-id="${plan.id}" data-client-id="${plan.clientId}">Extend Plan</button>`
-          }
-        </div>
-        <div class="expansion-content">
-          <div class="client-share-panel">
-            <div class="share-header">
-              <i class="fas fa-user"></i>
-              <strong>Client: ${clientName}</strong>
-            </div>
-            <div class="client-info">
-              <small>Email: ${clientEmail}</small>
-            </div>
-            
-            <div class="url-sharing">
-              <label>Gallery URL:</label>
-              <div class="url-input-group">
-                <input type="text" class="url-input" value="https://snapselect.com/g/${plan.id}" readonly>
-                <button class="copy-url-btn" onclick="copyToClipboard('https://snapselect.com/g/${plan.id}')">
-                  <i class="fas fa-copy"></i> Copy
-                </button>
-              </div>
-              <div class="sharing-status">
-                <i class="fas fa-check-circle"></i>
-                <span>Ready to share</span>
-              </div>
-            </div>
-          </div>
-        </div>
+        <button class="btn view-gallery-btn" data-client-id="${plan.clientId}">View Gallery</button>
+        ${plan.status === PLAN_STATUS.EXPIRED ?
+          `<button class="btn renew-plan-btn" data-plan-id="${plan.id}" data-client-id="${plan.clientId}">Renew Plan</button>` :
+          `<button class="btn extend-plan-btn" data-plan-id="${plan.id}" data-client-id="${plan.clientId}">Extend Plan</button>`
+        }
       </td>
     `;
-   
+    
     tableBody.appendChild(planRow);
   });
   
@@ -2244,60 +2202,6 @@ async function fixAllPhotoCountDiscrepancies() {
     showErrorMessage(`Error fixing photo counts: ${error.message}`);
     return false;
   }
-}
-
-
-// Enhanced toggle function with smooth animations
-function toggleRowDetails(button, planId) {
-  const row = button.closest('tr');
-  const expansionContents = row.querySelectorAll('.expansion-content');
-  const isExpanded = button.classList.contains('expanded');
-  
-  if (isExpanded) {
-    // Collapse with animation
-    expansionContents.forEach(content => {
-      content.style.animation = 'slideUp 0.2s ease-in';
-      setTimeout(() => {
-        content.style.display = 'none';
-      }, 200);
-    });
-    
-    button.classList.remove('expanded');
-    button.innerHTML = '<i class="fas fa-chevron-down"></i>Details';
-  } else {
-    // Expand with animation
-    expansionContents.forEach(content => {
-      content.style.display = 'block';
-      content.style.animation = 'slideDown 0.3s ease-out';
-    });
-    
-    button.classList.add('expanded');
-    button.innerHTML = '<i class="fas fa-chevron-up"></i>Hide';
-  }
-}
-
-// Enhanced copy function with better feedback
-function copyToClipboard(text) {
-  navigator.clipboard.writeText(text).then(() => {
-    // Visual feedback on the button
-    const buttons = document.querySelectorAll('.copy-url-btn');
-    buttons.forEach(btn => {
-      if (btn.onclick.toString().includes(text)) {
-        const originalText = btn.innerHTML;
-        btn.innerHTML = '<i class="fas fa-check"></i> Copied!';
-        btn.style.background = 'linear-gradient(135deg, #10B981 0%, #059669 100%)';
-        
-        setTimeout(() => {
-          btn.innerHTML = originalText;
-          btn.style.background = '';
-        }, 2000);
-      }
-    });
-    
-    showSuccessMessage('Gallery URL copied to clipboard!');
-  }).catch(() => {
-    showErrorMessage('Failed to copy URL');
-  });
 }
 
 // Add to window.subscriptionManager
