@@ -1946,7 +1946,8 @@ function updatePlansDisplay(plans) {
         <th>Dates</th>
         <th>Status</th>
         <!--<th>Storage</th>-->
-        <th>Photos</th>
+       
+        <th>Photos & Sharing</th>
         <th>Actions</th>
       </tr>
     </thead>
@@ -1994,8 +1995,11 @@ function updatePlansDisplay(plans) {
         ${formatStorageUsage(plan.storageUsed || 0, SUBSCRIPTION_PLANS[plan.planType]?.storageLimit || 1)}
       </td> 
       -->
-      <td class="plan-photos">
+   
+
+      <td class="plan-photos-sharing">
         ${formatPhotoUsage(plan.photosUploaded || 0, SUBSCRIPTION_PLANS[plan.planType]?.photosPerGallery || 50)}
+        ${getSharingHTML(plan)}
       </td>
       <td class="plan-actions-cell">
         <button class="btn view-gallery-btn" data-client-id="${plan.clientId}">View Gallery</button>
@@ -2030,6 +2034,18 @@ function updatePlansDisplay(plans) {
     btn.addEventListener('click', function() {
       const clientId = this.getAttribute('data-client-id');
       showUpgradeModal(clientId);
+    });
+  });
+
+
+   // Add this after your existing event listeners in updatePlansDisplay function
+  document.querySelectorAll('.share-toggle-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+      const planId = this.getAttribute('data-plan-id');
+      const clientId = this.getAttribute('data-client-id');
+      const currentStatus = this.getAttribute('data-current-status');
+      
+      toggleGallerySharing(planId, clientId, currentStatus === 'shared' ? SHARING_STATUS.SHARED : SHARING_STATUS.PRIVATE);
     });
   });
 }
@@ -2269,6 +2285,54 @@ async function copyShareUrl(shareUrl, clientName) {
 
 // Make function globally available
 window.copyShareUrl = copyShareUrl; 
+
+
+function getSharingHTML(plan) {
+  const client = userClients.find(c => c.id === plan.clientId);
+  const clientName = client?.name || plan.clientName || 'Unknown Client';
+  
+  const isShared = plan.sharingEnabled === true;
+  const shareUrl = plan.shareUrl || generateShareUrl(plan.id, plan.clientId);
+  const canShare = plan.status === PLAN_STATUS.ACTIVE || plan.status === PLAN_STATUS.EXPIRING_SOON;
+  
+  if (!canShare) {
+    return `
+      <div style="margin-top: 5px;">
+        <span style="color: #999; font-size: 12px;">🔒 Private (Expired)</span>
+      </div>
+    `;
+  } else if (isShared) {
+    return `
+      <div style="margin-top: 5px;">
+        <span style="color: #4CAF50; font-size: 12px; cursor: pointer;" 
+              onclick="copyShareUrl('${shareUrl}', '${clientName}')">
+          🔗 ${shareUrl}
+        </span>
+        <button class="share-toggle-btn" 
+                data-plan-id="${plan.id}" 
+                data-client-id="${plan.clientId}" 
+                data-current-status="shared"
+                style="margin-left: 8px; padding: 2px 6px; font-size: 10px; background: #f44336; color: white; border: none; border-radius: 3px; cursor: pointer;">
+          Disable
+        </button>
+      </div>
+    `;
+  } else {
+    return `
+      <div style="margin-top: 5px;">
+        <span style="color: #999; font-size: 12px;">🔒 Private</span>
+        <button class="share-toggle-btn" 
+                data-plan-id="${plan.id}" 
+                data-client-id="${plan.clientId}" 
+                data-current-status="private"
+                style="margin-left: 8px; padding: 2px 6px; font-size: 10px; background: #4CAF50; color: white; border: none; border-radius: 3px; cursor: pointer;">
+          Share
+        </button>
+      </div>
+    `;
+  }
+}
+
 
 // Add to window.subscriptionManager
 window.subscriptionManager.fixAllPhotoCountDiscrepancies = fixAllPhotoCountDiscrepancies;
