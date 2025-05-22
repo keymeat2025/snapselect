@@ -1850,14 +1850,30 @@ tr:last-child .renew-plan-btn:hover::after {
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
   }
   
+  /* Enhanced sharing URL display */
   .plan-photos-sharing span[onclick] {
-    transition: all 0.25s ease;
-    padding: 2px 4px;
-    border-radius: 4px;
+    position: relative;
+    max-width: 200px;
+    display: inline-block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
   
-  .plan-photos-sharing span[onclick]:hover {
-    background-color: rgba(76, 175, 80, 0.1);
-    text-decoration: underline;
+  .plan-photos-sharing span[onclick]:hover::after {
+    content: attr(title);
+    position: absolute;
+    background-color: rgba(0, 0, 0, 0.9);
+    color: white;
+    padding: 8px 12px;
+    border-radius: 4px;
+    font-size: 11px;
+    white-space: nowrap;
+    z-index: 1000;
+    bottom: 100%;
+    left: 0;
+    margin-bottom: 5px;
+    max-width: 300px;
+    word-break: break-all;
   }
 }
