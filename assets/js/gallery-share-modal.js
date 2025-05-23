@@ -428,6 +428,8 @@ const GalleryShareModal = {
   },
   
   // Check if gallery is already shared
+
+// Updated checkSharingStatus function with cross-collection validation
   checkSharingStatus: function() {
     try {
       const db = firebase.firestore();
@@ -439,16 +441,34 @@ const GalleryShareModal = {
         return;
       }
       
-      // Use photographerId and galleryId combination for more secure sharing
-      db.collection('galleryShares')
-        .where('galleryId', '==', this.currentGalleryId)
-        .where('photographerId', '==', currentUser.uid)
-        .get()
-        .then(snapshot => {
-          if (!snapshot.empty) {
-            // Gallery is already shared, show the URL
-            const shareData = snapshot.docs[0].data();
-            // Use the shareId field for the URL
+      // Check both collections to ensure consistency
+      Promise.all([
+        // Check galleryShares collection
+        db.collection('galleryShares')
+          .where('galleryId', '==', this.currentGalleryId)
+          .where('photographerId', '==', currentUser.uid)
+          .get(),
+        // Check galleries collection for shareId
+        db.collection('galleries').doc(this.currentGalleryId).get()
+      ])
+      .then(([sharesSnapshot, galleryDoc]) => {
+        const hasShareRecord = !sharesSnapshot.empty;
+        const galleryData = galleryDoc.exists ? galleryDoc.data() : null;
+        const hasGalleryShareId = galleryData && galleryData.shareId;
+        
+        console.log("Sharing status check:", {
+          hasShareRecord,
+          hasGalleryShareId,
+          shareId: galleryData?.shareId
+        });
+        
+        if (hasShareRecord && hasGalleryShareId) {
+          // Both collections have consistent data
+          const shareData = sharesSnapshot.docs[0].data();
+          
+          // Verify shareId consistency
+          if (shareData.shareId === galleryData.shareId) {
+            console.log("Share data is consistent across collections");
             this.displayShareLink(shareData.shareId);
             
             // Show revoke button and check remaining revocations
@@ -458,19 +478,117 @@ const GalleryShareModal = {
               this.checkRemainingRevocations();
             }
             
-            // Update form fields with saved settings if they exist
+            // Update form fields with saved settings
             this.updateFormWithSavedSettings(shareData);
+          } else {
+            console.warn("ShareId mismatch between collections. Fixing...");
+            this.fixShareIdMismatch(shareData, galleryData);
           }
-        })
-        .catch(error => {
-          console.error("Error checking sharing status:", error);
-          this.showToast('Error checking share status.', 'error');
-        });
+        } else if (hasShareRecord && !hasGalleryShareId) {
+          // galleryShares exists but galleries missing shareId - fix it
+          console.warn("Missing shareId in galleries collection. Fixing...");
+          const shareData = sharesSnapshot.docs[0].data();
+          
+          db.collection('galleries').doc(this.currentGalleryId).update({
+            shareId: shareData.shareId,
+            shareUrl: shareData.shareUrl,
+            isShared: true,
+            shareSettings: {
+              passwordProtected: shareData.passwordProtected || false,
+              expiryDate: shareData.expiryDate,
+              maxSelections: shareData.maxSelections || 0,
+              preventDownload: shareData.preventDownload || false,
+              watermarkEnabled: shareData.watermarkEnabled || false
+            },
+            dataSyncFixed: firebase.firestore.FieldValue.serverTimestamp()
+          })
+          .then(() => {
+            console.log("Fixed missing shareId in galleries collection");
+            this.displayShareLink(shareData.shareId);
+            
+            const revokeBtn = document.getElementById('revokeAccessBtn');
+            if (revokeBtn) {
+              revokeBtn.classList.remove('hidden');
+              this.checkRemainingRevocations();
+            }
+            
+            this.updateFormWithSavedSettings(shareData);
+          })
+          .catch(error => {
+            console.error("Error fixing galleries collection:", error);
+          });
+        } else if (!hasShareRecord && hasGalleryShareId) {
+          // galleries has shareId but no galleryShares record - clean up
+          console.warn("Orphaned shareId in galleries collection. Cleaning up...");
+          
+          db.collection('galleries').doc(this.currentGalleryId).update({
+            shareId: firebase.firestore.FieldValue.delete(),
+            shareUrl: firebase.firestore.FieldValue.delete(),
+            isShared: false,
+            shareSettings: firebase.firestore.FieldValue.delete(),
+            orphanedDataCleaned: firebase.firestore.FieldValue.serverTimestamp()
+          })
+          .then(() => {
+            console.log("Cleaned up orphaned shareId from galleries collection");
+            // Gallery is not actually shared, so don't show share link
+          })
+          .catch(error => {
+            console.error("Error cleaning up galleries collection:", error);
+          });
+        } else {
+          // Neither collection has share data - gallery is not shared
+          console.log("Gallery is not shared");
+        }
+      })
+      .catch(error => {
+        console.error("Error checking sharing status:", error);
+        this.showToast('Error checking share status.', 'error');
+      });
     } catch (error) {
       console.error("Firebase not available:", error);
       this.showToast('Error: Firebase not initialized.', 'error');
     }
   },
+  
+  // Helper function to fix shareId mismatches
+  fixShareIdMismatch: function(shareData, galleryData) {
+    const db = firebase.firestore();
+    
+    // Use the shareData as the source of truth and update galleries
+    db.collection('galleries').doc(this.currentGalleryId).update({
+      shareId: shareData.shareId,
+      shareUrl: shareData.shareUrl,
+      isShared: true,
+      shareSettings: {
+        passwordProtected: shareData.passwordProtected || false,
+        expiryDate: shareData.expiryDate,
+        maxSelections: shareData.maxSelections || 0,
+        preventDownload: shareData.preventDownload || false,
+        watermarkEnabled: shareData.watermarkEnabled || false
+      },
+      mismatchFixed: firebase.firestore.FieldValue.serverTimestamp()
+    })
+    .then(() => {
+      console.log("Fixed shareId mismatch - updated galleries collection");
+      this.displayShareLink(shareData.shareId);
+      
+      const revokeBtn = document.getElementById('revokeAccessBtn');
+      if (revokeBtn) {
+        revokeBtn.classList.remove('hidden');
+        this.checkRemainingRevocations();
+      }
+      
+      this.updateFormWithSavedSettings(shareData);
+      this.showToast('Share data synchronized successfully.', 'success');
+    })
+    .catch(error => {
+      console.error("Error fixing shareId mismatch:", error);
+      this.showToast('Error synchronizing share data.', 'error');
+    });
+  },
+
+
+    
   
   // Update form with saved settings
   updateFormWithSavedSettings: function(shareData) {
@@ -562,6 +680,8 @@ const GalleryShareModal = {
   // Share a gallery - create or update share settings
 
     // Share a gallery - create or update share settings
+
+// Updated shareGallery function with galleries collection sync
   shareGallery: function() {
     try {
       // Get form values
@@ -644,7 +764,7 @@ const GalleryShareModal = {
             
             // Update the share document
             return db.collection('galleryShares').doc(shareDoc.id).update({
-              shareUrl: shareUrl, // ← ADDED: Store complete shareUrl
+              shareUrl: shareUrl,
               passwordProtected: passwordProtected,
               password: passwordProtected ? passwordValue : '',
               expiryDate: expiryDateValue,
@@ -652,6 +772,21 @@ const GalleryShareModal = {
               preventDownload: preventDownloadValue,
               watermarkEnabled: watermarkEnabledValue,
               updated: firebase.firestore.FieldValue.serverTimestamp()
+            }).then(() => {
+              // CRITICAL FIX: Also update the galleries collection with the shareId
+              return db.collection('galleries').doc(self.currentGalleryId).update({
+                shareId: shareId,
+                shareUrl: shareUrl,
+                isShared: true,
+                shareSettings: {
+                  passwordProtected: passwordProtected,
+                  expiryDate: expiryDateValue,
+                  maxSelections: maxSelectionsValue,
+                  preventDownload: preventDownloadValue,
+                  watermarkEnabled: watermarkEnabledValue
+                },
+                lastSharedUpdate: firebase.firestore.FieldValue.serverTimestamp()
+              });
             }).then(() => {
               return shareId; // Return the shareId for the URL
             });
@@ -672,7 +807,7 @@ const GalleryShareModal = {
               galleryId: self.currentGalleryId,
               photographerId: currentUser.uid,
               shareId: shareId, // Store shareId as a field for compatibility
-              shareUrl: shareUrl, // ← ADDED: Store complete shareUrl
+              shareUrl: shareUrl,
               passwordProtected: passwordProtected,
               password: passwordProtected ? passwordValue : '',
               expiryDate: expiryDateValue,
@@ -684,12 +819,29 @@ const GalleryShareModal = {
               views: 0,
               lastViewed: null
             }).then(() => {
+              // CRITICAL FIX: Also update the galleries collection with the shareId
+              return db.collection('galleries').doc(self.currentGalleryId).update({
+                shareId: shareId,
+                shareUrl: shareUrl,
+                isShared: true,
+                shareSettings: {
+                  passwordProtected: passwordProtected,
+                  expiryDate: expiryDateValue,
+                  maxSelections: maxSelectionsValue,
+                  preventDownload: preventDownloadValue,
+                  watermarkEnabled: watermarkEnabledValue
+                },
+                firstShared: timestamp,
+                lastSharedUpdate: timestamp
+              });
+            }).then(() => {
               return shareId; // Return the shareId for the URL
             });
           }
         })
         .then(shareId => {
           console.log("Gallery shared successfully with ID:", shareId);
+          console.log("Both galleryShares and galleries collections updated with shareId:", shareId);
           
           // Display the share link with correct shareId
           self.displayShareLink(shareId);
@@ -769,6 +921,10 @@ const GalleryShareModal = {
       this.showToast('Error: Could not share gallery.', 'error');
     }
   },
+
+
+
+    
   
   // Share via WhatsApp
   shareViaWhatsApp: function() {
@@ -807,6 +963,8 @@ const GalleryShareModal = {
   },
   
   // Revoke access to a shared gallery with countdown limitation
+ 
+// Updated revokeAccess function with galleries collection sync
   revokeAccess: function() {
     try {
       const db = firebase.firestore();
@@ -877,9 +1035,20 @@ const GalleryShareModal = {
             batch.delete(doc.ref);
           });
           
+          // CRITICAL FIX: Also update the galleries collection to remove shareId
+          batch.update(db.collection('galleries').doc(self.currentGalleryId), {
+            shareId: firebase.firestore.FieldValue.delete(),
+            shareUrl: firebase.firestore.FieldValue.delete(),
+            isShared: false,
+            shareSettings: firebase.firestore.FieldValue.delete(),
+            shareRevoked: firebase.firestore.FieldValue.serverTimestamp()
+          });
+          
           return batch.commit();
         })
         .then(() => {
+          console.log("Gallery access revoked from both galleryShares and galleries collections");
+          
           // Clear current share URL
           self.currentShareUrl = null;
           self.currentShareId = null;
@@ -968,6 +1137,10 @@ const GalleryShareModal = {
       this.showToast('Error: Firebase not initialized.', 'error');
     }
   },
+
+
+
+    
   
   // Show a toast notification
   showToast: function(message, type = 'info') {
