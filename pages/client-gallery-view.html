@@ -1074,6 +1074,7 @@
         }
         
         // Function to get gallery ID from URL or session storage
+      
         function getGalleryId() {
             const urlParams = new URLSearchParams(window.location.search);
             const shareId = urlParams.get('share');
@@ -1082,7 +1083,8 @@
             if (directGalleryId) return directGalleryId;
             
             // Try to get from session storage if not in URL
-            return sessionStorage.getItem('actual_gallery_id');
+            const sessionGalleryId = sessionStorage.getItem('actual_gallery_id');
+            return sessionGalleryId || null;
         }
 
         
@@ -2192,6 +2194,7 @@
 
         
         // Load shared gallery
+ 
         function loadSharedGallery() {
             // Get gallery parameters
             const urlParams = new URLSearchParams(window.location.search);
@@ -2224,33 +2227,24 @@
             // Get reference to Firestore
             const db = firebase.firestore();
             
-            // Check first collection
+            // FIXED: Use direct document get instead of where query
+            // Since shareId is now the document ID, get directly
             db.collection('galleryShares')
-                .where('shareId', '==', shareId)
+                .doc(shareId)
                 .get()
-                .then(snapshot => {
-                    console.log("Query completed for galleryShares, found:", snapshot.size, "documents");
+                .then(doc => {
+                    console.log("Query completed for galleryShares");
                     
-                    if (snapshot.empty) {
-                        console.log("No shares found in galleryShares, checking sharedGalleries...");
-                        
-                        // Try the alternative collection name
-                        return db.collection('sharedGalleries')
-                            .where('shareId', '==', shareId)
-                            .get();
-                    }
-                    
-                    // Clear the timeout since we found data
-                    clearTimeout(loadingTimeout);
-                    return snapshot;
-                })
-                .then(snapshot => {
-                    if (snapshot.empty) {
+                    if (!doc.exists) {
+                        console.log("No share found with ID:", shareId);
                         showPageError("Gallery not found or access has been revoked.");
                         return;
                     }
                     
-                    const sharedGallery = snapshot.docs[0].data();
+                    // Clear the timeout since we found data
+                    clearTimeout(loadingTimeout);
+                    
+                    const sharedGallery = doc.data();
                     console.log("Found shared gallery:", sharedGallery);
                     
                     // Store the actual gallery ID in session storage
@@ -2296,7 +2290,21 @@
         }
 
 
-
+        function loadGalleryDirect(galleryId) {
+            console.log("Loading gallery directly with ID:", galleryId);
+            
+            // Check if access has been granted via password
+            const accessToken = sessionStorage.getItem(`gallery_access_${galleryId}`);
+            
+            if (!accessToken) {
+                console.log("Direct gallery access attempted without authentication");
+                showPageError("Gallery access denied. Please use the shared link provided by the photographer.");
+                return;
+            }
+            
+            // Load gallery content directly
+            loadGalleryContent(galleryId, null);
+        }
         
         // Setup password handling
         function setupPasswordHandling(sharedGallery, shareId) {
