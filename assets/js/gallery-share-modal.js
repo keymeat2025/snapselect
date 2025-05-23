@@ -1,19 +1,19 @@
 /**
- * gallery-share-modal.js - Updated with Option 1 (Normalized) approach
- * ShareUrl stored ONLY in /galleryShares collection
+ * gallery-share-modal.js - Updated with countdown-based revocation system
+ * This file provides the complete implementation with proper integration
  */
 
 // Gallery Share Modal
 const GalleryShareModal = {
   currentGalleryId: null,
   currentShareId: null,     // Store the shareId
-  currentShareUrl: null,    // Store the complete URL from database
+  currentShareUrl: null,    // Store the complete URL
   maxRevocations: 3,        // Maximum number of allowed revocations
   
   // Initialize the modal
   initialize: function() {
     this.setupEventListeners();
-    console.log("Gallery Share Modal initialized with normalized shareUrl storage");
+    console.log("Gallery Share Modal initialized with countdown revocation system");
     
     // Initialize tooltip functionality
     this.initializeTooltips();
@@ -427,7 +427,7 @@ const GalleryShareModal = {
     }
   },
   
-  // Check if gallery is already shared - UPDATED for Option 1
+  // Check if gallery is already shared
   checkSharingStatus: function() {
     try {
       const db = firebase.firestore();
@@ -446,17 +446,10 @@ const GalleryShareModal = {
         .get()
         .then(snapshot => {
           if (!snapshot.empty) {
-            // Gallery is already shared, get the stored shareUrl
+            // Gallery is already shared, show the URL
             const shareData = snapshot.docs[0].data();
-            
-            // OPTION 1: Use stored shareUrl from database
-            if (shareData.shareUrl) {
-              this.displayShareLink(shareData.shareUrl, shareData.shareId);
-            } else {
-              // Fallback for old records without shareUrl - reconstruct and update
-              console.warn("Share record missing shareUrl, updating...");
-              this.updateLegacyShareRecord(snapshot.docs[0], shareData);
-            }
+            // Use the shareId field for the URL
+            this.displayShareLink(shareData.shareId);
             
             // Show revoke button and check remaining revocations
             const revokeBtn = document.getElementById('revokeAccessBtn');
@@ -476,30 +469,6 @@ const GalleryShareModal = {
     } catch (error) {
       console.error("Firebase not available:", error);
       this.showToast('Error: Firebase not initialized.', 'error');
-    }
-  },
-  
-  // Update legacy share records that don't have shareUrl stored
-  updateLegacyShareRecord: function(docRef, shareData) {
-    try {
-      // Construct the shareUrl for legacy records
-      const domain = window.location.origin;
-      const shareUrl = `${domain}/snapselect/pages/client-gallery-view.html?share=${shareData.shareId}`;
-      
-      // Update the document with the shareUrl
-      docRef.ref.update({
-        shareUrl: shareUrl,
-        updated: firebase.firestore.FieldValue.serverTimestamp()
-      }).then(() => {
-        console.log("Legacy share record updated with shareUrl");
-        this.displayShareLink(shareUrl, shareData.shareId);
-      }).catch(error => {
-        console.error("Error updating legacy share record:", error);
-        // Still display the constructed URL
-        this.displayShareLink(shareUrl, shareData.shareId);
-      });
-    } catch (error) {
-      console.error("Error in updateLegacyShareRecord:", error);
     }
   },
   
@@ -554,19 +523,23 @@ const GalleryShareModal = {
     }
   },
   
-  // Display share link - UPDATED for Option 1 (accepts shareUrl from database)
-  displayShareLink: function(shareUrl, shareId) {
-    if (!shareUrl) {
-      console.error("No shareUrl provided to displayShareLink");
+  // Display share link for a gallery using the consistent format
+  displayShareLink: function(shareId) {
+    if (!shareId) {
+      console.error("No shareId provided to displayShareLink");
       return;
     }
     
-    console.log("Share link displayed from database:", shareUrl);
+    // IMPORTANT: Always use the same consistent URL format
+    const domain = window.location.origin;
+    const shareUrl = `${domain}/snapselect/pages/client-gallery-view.html?share=${shareId}`;
     
-    // Update the UI with the stored shareUrl
+    console.log("Share link displayed:", shareUrl);
+    
+    // Update the UI
     const urlDisplay = document.getElementById('shareUrlDisplay');
     if (urlDisplay) {
-      urlDisplay.value = shareUrl; // Use the database-stored URL directly
+      urlDisplay.value = shareUrl;
       
       // Show the share link section
       const shareLinkSection = document.getElementById('shareLinkSection');
@@ -586,7 +559,7 @@ const GalleryShareModal = {
     });
   },
   
-  // Share a gallery - UPDATED for Option 1 (store complete shareUrl)
+  // Share a gallery - create or update share settings
   shareGallery: function() {
     try {
       // Get form values
@@ -661,13 +634,9 @@ const GalleryShareModal = {
           if (!snapshot.empty) {
             // Update existing share
             const shareDoc = snapshot.docs[0];
-            const shareData = shareDoc.data();
-            const shareId = shareData.shareId;
+            const shareId = shareDoc.data().shareId; // Use the existing shareId
             
-            // OPTION 1: Keep the existing shareUrl, just update settings
-            const existingShareUrl = shareData.shareUrl;
-            
-            // Update the share document (preserving the existing shareUrl)
+            // Update the share document
             return db.collection('galleryShares').doc(shareDoc.id).update({
               passwordProtected: passwordProtected,
               password: passwordProtected ? passwordValue : '',
@@ -677,29 +646,21 @@ const GalleryShareModal = {
               watermarkEnabled: watermarkEnabledValue,
               updated: firebase.firestore.FieldValue.serverTimestamp()
             }).then(() => {
-              return {
-                shareId: shareId,
-                shareUrl: existingShareUrl || `${window.location.origin}/snapselect/pages/client-gallery-view.html?share=${shareId}`
-              };
+              return shareId; // Return the shareId for the URL
             });
           } else {
             // Create a new share
             // Generate a random share ID - more readable format
             const shareId = Math.random().toString(36).substring(2, 10);
             
-            // OPTION 1: Generate complete shareUrl and store it
-            const domain = window.location.origin;
-            const shareUrl = `${domain}/snapselect/pages/client-gallery-view.html?share=${shareId}`;
-            
             // Create timestamp for share creation
             const timestamp = firebase.firestore.FieldValue.serverTimestamp();
             
-            // CRITICAL: Use the shareId as the document ID AND store complete shareUrl
+            // CRITICAL CHANGE: Use the shareId as the document ID
             return db.collection('galleryShares').doc(shareId).set({
               galleryId: self.currentGalleryId,
               photographerId: currentUser.uid,
               shareId: shareId, // Store shareId as a field for compatibility
-              shareUrl: shareUrl, // OPTION 1: Store complete URL
               passwordProtected: passwordProtected,
               password: passwordProtected ? passwordValue : '',
               expiryDate: expiryDateValue,
@@ -711,18 +672,15 @@ const GalleryShareModal = {
               views: 0,
               lastViewed: null
             }).then(() => {
-              return {
-                shareId: shareId,
-                shareUrl: shareUrl
-              };
+              return shareId; // Return the shareId for the URL
             });
           }
         })
-        .then(result => {
-          console.log("Gallery shared successfully:", result);
+        .then(shareId => {
+          console.log("Gallery shared successfully with ID:", shareId);
           
-          // OPTION 1: Display the stored shareUrl
-          self.displayShareLink(result.shareUrl, result.shareId);
+          // Display the share link with correct shareId
+          self.displayShareLink(shareId);
           
           // Show revoke button and check remaining revocations
           const revokeBtn = document.getElementById('revokeAccessBtn');
@@ -800,21 +758,21 @@ const GalleryShareModal = {
     }
   },
   
-  // Share via WhatsApp - Uses stored shareUrl
+  // Share via WhatsApp
   shareViaWhatsApp: function() {
     if (!this.currentShareUrl) {
       this.showToast('No share link available.', 'warning');
       return;
     }
     
-    // Create WhatsApp message using stored shareUrl
+    // Create WhatsApp message
     let message = `Check out this photo gallery: ${this.currentShareUrl}`;
     
     // Open WhatsApp with prefilled message
     window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, '_blank');
   },
   
-  // Share via Email - Uses stored shareUrl
+  // Share via Email
   shareViaEmail: function() {
     if (!this.currentShareUrl) {
       this.showToast('No share link available.', 'warning');
@@ -825,7 +783,7 @@ const GalleryShareModal = {
     const galleryTitle = document.querySelector('#shareGalleryModal .modal-title');
     const galleryName = galleryTitle ? galleryTitle.textContent.replace('Share Gallery - ', '') : 'Photo Gallery';
     
-    // Create email subject and body using stored shareUrl
+    // Create email subject and body
     const subject = `Check out my photo gallery: ${galleryName}`;
     const body = `I've shared a photo gallery with you. Click the link below to view:\n\n${this.currentShareUrl}\n\nRegards,\nYour photographer`;
     
@@ -900,10 +858,10 @@ const GalleryShareModal = {
             return;
           }
           
-          // Delete all sharing records (OPTION 1: Complete deletion)
+          // Delete all sharing records
           const batch = db.batch();
           snapshot.docs.forEach(doc => {
-            // Delete document completely - shareUrl is gone from database
+            // Delete document completely
             batch.delete(doc.ref);
           });
           
@@ -918,12 +876,6 @@ const GalleryShareModal = {
           const shareLinkSection = document.getElementById('shareLinkSection');
           if (shareLinkSection) {
             shareLinkSection.classList.add('hidden');
-          }
-          
-          // Clear the URL display
-          const urlDisplay = document.getElementById('shareUrlDisplay');
-          if (urlDisplay) {
-            urlDisplay.value = '';
           }
           
           // Update revoke button with remaining count
@@ -1059,7 +1011,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Export the module globally
     window.GalleryShareModal = GalleryShareModal;
-    console.log("Gallery Share Modal exported with Option 1 (Normalized) approach");
+    console.log("Gallery Share Modal exported to window with countdown revocation system");
     
     // Add CSS styles for disabled button if not already present
     if (!document.querySelector('style#galleryShareStyles')) {
