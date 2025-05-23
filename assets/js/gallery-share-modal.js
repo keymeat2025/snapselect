@@ -560,6 +560,8 @@ const GalleryShareModal = {
   },
   
   // Share a gallery - create or update share settings
+
+    // Share a gallery - create or update share settings
   shareGallery: function() {
     try {
       // Get form values
@@ -636,8 +638,13 @@ const GalleryShareModal = {
             const shareDoc = snapshot.docs[0];
             const shareId = shareDoc.data().shareId; // Use the existing shareId
             
+            // Construct shareUrl for existing share
+            const domain = window.location.origin;
+            const shareUrl = `${domain}/snapselect/pages/client-gallery-view.html?share=${shareId}`;
+            
             // Update the share document
             return db.collection('galleryShares').doc(shareDoc.id).update({
+              shareUrl: shareUrl, // ← ADDED: Store complete shareUrl
               passwordProtected: passwordProtected,
               password: passwordProtected ? passwordValue : '',
               expiryDate: expiryDateValue,
@@ -653,6 +660,10 @@ const GalleryShareModal = {
             // Generate a random share ID - more readable format
             const shareId = Math.random().toString(36).substring(2, 10);
             
+            // Construct shareUrl for new share
+            const domain = window.location.origin;
+            const shareUrl = `${domain}/snapselect/pages/client-gallery-view.html?share=${shareId}`;
+            
             // Create timestamp for share creation
             const timestamp = firebase.firestore.FieldValue.serverTimestamp();
             
@@ -661,6 +672,7 @@ const GalleryShareModal = {
               galleryId: self.currentGalleryId,
               photographerId: currentUser.uid,
               shareId: shareId, // Store shareId as a field for compatibility
+              shareUrl: shareUrl, // ← ADDED: Store complete shareUrl
               passwordProtected: passwordProtected,
               password: passwordProtected ? passwordValue : '',
               expiryDate: expiryDateValue,
@@ -697,7 +709,7 @@ const GalleryShareModal = {
           
           // Show success message
           self.showToast('Gallery shared successfully!', 'success');
-
+  
           // Disable upload buttons after successful sharing
           const uploadPhotosBtn = document.getElementById('uploadPhotosBtn');
           if (uploadPhotosBtn) {
