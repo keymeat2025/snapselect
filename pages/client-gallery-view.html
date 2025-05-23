@@ -959,6 +959,65 @@
         .photo-rated {
             box-shadow: 0 0 0 3px #3498db;
         }
+
+        /* Add this CSS to your existing styles to ensure proper layering */
+
+        /* Remove welcome dashboard entirely on client gallery view */
+        #welcomeDashboard {
+            display: none !important;
+        }
+        
+        /* Ensure password screen is always accessible */
+        .password-container {
+            position: relative;
+            z-index: 2001 !important;
+            background-color: white;
+        }
+        
+        #passwordScreen {
+            position: relative;
+            z-index: 2001 !important;
+        }
+        
+        /* Ensure form inputs are always clickable */
+        .password-input,
+        .btn {
+            position: relative;
+            z-index: 2002 !important;
+        }
+        
+        /* Loading indicator should be behind password screen */
+        .loading-indicator {
+            z-index: 1000;
+        }
+        
+        /* Gallery container normal z-index */
+        .gallery-container {
+            position: relative;
+            z-index: 1;
+        }
+        
+        /* Lightbox should be on top of everything */
+        .photo-lightbox {
+            z-index: 3000 !important;
+        }
+        
+        /* Toast notifications on top */
+        .toast-container {
+            z-index: 4000 !important;
+        }
+        
+        /* Rating overlays */
+        .rating-container,
+        .rating-summary,
+        .total-ratings {
+            z-index: 999;
+        }
+        
+        /* Sync button */
+        .sync-btn {
+            z-index: 1000 !important;
+        }
     </style>
 </head>
 <body>
@@ -2138,6 +2197,9 @@
 
         
 // Firebase initialization
+      
+
+// Firebase initialization
         (function() {
             // Firebase configuration
             const firebaseConfig = {
@@ -2170,21 +2232,23 @@
                     ratingSummary.style.display = totalRatings > 0 ? 'flex' : 'none';
                 }
                 
-                // Setup welcome dashboard event listeners
-                setupWelcomeDashboard();
+                // IMPORTANT: For client gallery view, we should NEVER show the welcome dashboard
+                // The welcome dashboard is only for photographers managing their galleries
                 
-                // Check if we should show welcome dashboard
-                if (checkWelcomeDashboardPreference()) {
-                    // Show welcome dashboard
-                    showWelcomeDashboard();
-                } else {
-                    // Skip welcome dashboard and check access
-                    if (checkGalleryAccess()) {
-                        loadSharedGallery();
-                        // Initialize rating synchronization
-                        initRatingSync();
-                    }
+                // Hide welcome dashboard immediately - it should never be shown on client view
+                const welcomeDashboard = document.getElementById('welcomeDashboard');
+                if (welcomeDashboard) {
+                    welcomeDashboard.style.display = 'none';
+                    welcomeDashboard.remove(); // Remove it entirely from the DOM
                 }
+                
+                // Directly check gallery access and load
+                if (checkGalleryAccess()) {
+                    loadSharedGallery();
+                    // Initialize rating synchronization
+                    initRatingSync();
+                }
+                
             } catch (error) {
                 console.error("Error initializing Firebase:", error);
                 showError("Failed to initialize the gallery. Please try again later.");
