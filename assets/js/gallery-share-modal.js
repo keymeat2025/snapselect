@@ -1,6 +1,6 @@
 /**
- * gallery-share-modal.js - Updated with Option B (Quick Gallery Check - Validation Only)
- * ShareUrl stored ONLY in /galleryShares collection, minimal gallery data fetch
+ * gallery-share-modal.js - Updated with Option 1 (Normalized) approach
+ * ShareUrl stored ONLY in /galleryShares collection
  */
 
 // Gallery Share Modal
@@ -13,7 +13,7 @@ const GalleryShareModal = {
   // Initialize the modal
   initialize: function() {
     this.setupEventListeners();
-    console.log("Gallery Share Modal initialized with minimal gallery validation");
+    console.log("Gallery Share Modal initialized with normalized shareUrl storage");
     
     // Initialize tooltip functionality
     this.initializeTooltips();
@@ -115,7 +115,7 @@ const GalleryShareModal = {
           const galleryId = urlParams.get('id');
           
           if (galleryId) {
-            this.validateGalleryExists(galleryId);
+            this.fetchGalleryData(galleryId);
           } else {
             this.showToast('Gallery ID not found. Please reload the page.', 'error');
           }
@@ -124,23 +124,28 @@ const GalleryShareModal = {
     }
   },
   
-  // OPTION B: Quick Gallery Check - Validation Only (no full data fetch)
-  validateGalleryExists: function(galleryId) {
+  // Fetch gallery data from Firestore
+  fetchGalleryData: function(galleryId) {
     try {
       firebase.firestore().collection('galleries').doc(galleryId).get()
         .then(doc => {
           if (doc.exists) {
-            // Gallery exists, proceed with sharing (no data needed)
-            console.log("Gallery exists, proceeding with share modal");
-            this.open(galleryId); // Pass only galleryId
+            const galleryData = doc.data();
+            galleryData.id = galleryId;
+            
+            // Store in global scope for future use
+            window.galleryData = galleryData;
+            
+            // Open share modal
+            this.open(galleryData);
           } else {
             console.error('Gallery not found');
             this.showToast('Gallery not found. Please reload the page.', 'error');
           }
         })
         .catch(error => {
-          console.error('Error validating gallery:', error);
-          this.showToast('Error validating gallery: ' + error.message, 'error');
+          console.error('Error fetching gallery:', error);
+          this.showToast('Error loading gallery data: ' + error.message, 'error');
         });
     } catch (error) {
       console.error('Firebase error:', error);
@@ -246,12 +251,12 @@ const GalleryShareModal = {
     }
   },
   
-  // UPDATED: Open the modal with just galleryId (no full gallery data needed)
-  open: function(galleryId) {
-    console.log("Opening share modal for gallery ID:", galleryId);
+  // Open the modal for a gallery
+  open: function(galleryData) {
+    console.log("Opening share modal for gallery:", galleryData);
     
     // Store the gallery ID
-    this.currentGalleryId = galleryId;
+    this.currentGalleryId = galleryData.id;
     
     // First validate photographer details
     this.validatePhotographerDetails((isValid, photographerData) => {
@@ -816,7 +821,7 @@ const GalleryShareModal = {
       return;
     }
     
-    // Get gallery name from modal title or use default
+    // Get gallery name if available
     const galleryTitle = document.querySelector('#shareGalleryModal .modal-title');
     const galleryName = galleryTitle ? galleryTitle.textContent.replace('Share Gallery - ', '') : 'Photo Gallery';
     
@@ -1026,34 +1031,35 @@ document.addEventListener('DOMContentLoaded', function() {
   try {
     GalleryShareModal.initialize();
     
-    // UPDATED: Handle pending gallery share with just ID validation
+    // Check for pending gallery share
     const pendingGalleryId = sessionStorage.getItem('pendingShareGalleryId');
     if (pendingGalleryId) {
       // Clear the stored ID to prevent repeat shares
       sessionStorage.removeItem('pendingShareGalleryId');
       
-      // OPTION B: Just validate the gallery exists, don't fetch full data
+      // Fetch the gallery data
       firebase.firestore().collection('galleries').doc(pendingGalleryId).get()
         .then(doc => {
           if (doc.exists) {
-            // Gallery exists, open the share modal
+            const galleryData = doc.data();
+            galleryData.id = pendingGalleryId;
+            
+            // Open the share modal for this gallery
             setTimeout(() => {
               if (window.GalleryShareModal) {
-                window.GalleryShareModal.open(pendingGalleryId); // Pass only ID
+                window.GalleryShareModal.open(galleryData);
               }
             }, 500);
-          } else {
-            console.error("Pending gallery not found:", pendingGalleryId);
           }
         })
         .catch(error => {
-          console.error("Error validating pending gallery:", error);
+          console.error("Error retrieving pending gallery:", error);
         });
     }
     
     // Export the module globally
     window.GalleryShareModal = GalleryShareModal;
-    console.log("Gallery Share Modal exported with Option B (Quick Gallery Check)");
+    console.log("Gallery Share Modal exported with Option 1 (Normalized) approach");
     
     // Add CSS styles for disabled button if not already present
     if (!document.querySelector('style#galleryShareStyles')) {
