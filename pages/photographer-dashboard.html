@@ -616,6 +616,117 @@
                 </div>
               </div>
             </div>
+
+<!-- Help Modal -->
+            <div id="helpModal" class="modal">
+                <div class="modal-content help-content">
+                    <div class="modal-header">
+                        <h2>Dashboard Help</h2>
+                        <button class="close-modal">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="help-tabs">
+                            <button class="help-tab active" data-tab="galleries">Galleries</button>
+                            <button class="help-tab" data-tab="uploads">Uploading</button>
+                            <button class="help-tab" data-tab="sharing">Client Sharing</button>
+                            <button class="help-tab" data-tab="selections">Selections</button>
+                        </div>
+                        <div class="help-content">
+                            <div class="help-panel active" id="galleries-help">
+                                <h3>Managing Your Galleries</h3>
+                                <p>Galleries are collections of photos you share with clients for selection. Each gallery can have its own settings and sharing options.</p>
+                                <div class="help-steps">
+                                    <div class="help-step">
+                                        <div class="step-number">1</div>
+                                        <div class="step-content">
+                                            <h4>Create a Gallery</h4>
+                                            <p>Click the "New Gallery" button to create a new client gallery.</p>
+                                        </div>
+                                    </div>
+                                    <div class="help-step">
+                                        <div class="step-number">2</div>
+                                        <div class="step-content">
+                                            <h4>Upload Photos</h4>
+                                            <p>Add photos to your gallery using the upload feature.</p>
+                                        </div>
+                                    </div>
+                                    <div class="help-step">
+                                        <div class="step-number">3</div>
+                                        <div class="step-content">
+                                            <h4>Share with Clients</h4>
+                                            <p>Generate a sharing link to send to your clients.</p>
+                                        </div>
+                                    </div>
+                                    <div class="help-step">
+                                        <div class="step-number">4</div>
+                                        <div class="step-content">
+                                            <h4>Monitor Selections</h4>
+                                            <p>Track which photos your client has selected.</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="help-panel" id="uploads-help" style="display: none;">
+                                <h3>Uploading Photos</h3>
+                                <p>You can upload photos to your galleries in several convenient ways.</p>
+                                <div class="help-card">
+                                    <h4><i class="fas fa-cloud-upload-alt"></i> Drag and Drop</h4>
+                                    <p>Simply drag files from your computer and drop them onto the upload zone.</p>
+                                </div>
+                                <div class="help-card">
+                                    <h4><i class="fas fa-folder-open"></i> Browse Files</h4>
+                                    <p>Click the "Browse Files" button to select photos from your device.</p>
+                                </div>
+                                <div class="help-note">
+                                    <p><strong>Note:</strong> Supported formats include JPG, PNG, and HEIF. Maximum file size depends on your current plan.</p>
+                                </div>
+                            </div>
+
+                            <div class="help-panel" id="sharing-help" style="display: none;">
+                                <h3>Sharing with Clients</h3>
+                                <p>Make it easy for clients to view and select their favorite photos.</p>
+                                <div class="help-card">
+                                    <h4><i class="fas fa-link"></i> Sharing Links</h4>
+                                    <p>Each gallery has a unique sharing link you can send to clients.</p>
+                                </div>
+                                <div class="help-card">
+                                    <h4><i class="fas fa-shield-alt"></i> Password Protection</h4>
+                                    <p>Add an optional password to control access to the gallery.</p>
+                                </div>
+                                <div class="help-card">
+                                    <h4><i class="fas fa-clock"></i> Expiration Dates</h4>
+                                    <p>Set a deadline for client selections to keep your workflow moving.</p>
+                                </div>
+                            </div>
+
+                            <div class="help-panel" id="selections-help" style="display: none;">
+                                <h3>Managing Selections</h3>
+                                <p>Once clients have made their selections, you can easily download and process them.</p>
+                                <div class="help-card">
+                                    <h4><i class="fas fa-bell"></i> Selection Notifications</h4>
+                                    <p>Receive notifications when clients make or complete their selections.</p>
+                                </div>
+                                <div class="help-card">
+                                    <h4><i class="fas fa-download"></i> Downloading Selected Photos</h4>
+                                    <p>Download all selected photos in a single batch for convenient editing.</p>
+                                </div>
+                                <div class="help-card">
+                                    <h4><i class="fas fa-chart-bar"></i> Selection Statistics</h4>
+                                    <p>View statistics about which photos are most popular with your clients.</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="help-contact">
+                            <p>Need more help? <a href="#" id="contactSupportBtn">Contact Support</a></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+
+
+            
         </div>
     </main>
 
@@ -932,6 +1043,69 @@
                 });
             }
         });
+    </script>
+    <script>
+    // Help Modal functionality
+        const helpBtn = document.getElementById('helpBtn');
+        const helpModal = document.getElementById('helpModal');
+        const footerHelpLink = document.getElementById('footerHelpLink');
+        const contactSupportBtn = document.getElementById('contactSupportBtn');
+
+        // Open help modal
+        if (helpBtn) {
+            helpBtn.addEventListener('click', function() {
+                if (helpModal) {
+                    helpModal.style.display = 'block';
+                }
+            });
+        }
+
+        // Footer help link
+        if (footerHelpLink) {
+            footerHelpLink.addEventListener('click', function(e) {
+                e.preventDefault();
+                if (helpModal) {
+                    helpModal.style.display = 'block';
+                }
+            });
+        }
+
+        // Help tab switching
+        document.querySelectorAll('.help-tab').forEach(tab => {
+            tab.addEventListener('click', function() {
+                const targetTab = this.getAttribute('data-tab');
+                
+                // Remove active class from all tabs and panels
+                document.querySelectorAll('.help-tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.help-panel').forEach(p => {
+                    p.classList.remove('active');
+                    p.style.display = 'none';
+                });
+                
+                // Add active class to clicked tab
+                this.classList.add('active');
+                
+                // Show corresponding panel
+                const targetPanel = document.getElementById(targetTab + '-help');
+                if (targetPanel) {
+                    targetPanel.classList.add('active');
+                    targetPanel.style.display = 'block';
+                }
+            });
+        });
+
+        // Contact support button
+        if (contactSupportBtn) {
+            contactSupportBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                // You can customize this action
+                if (window.NotificationSystem) {
+                    window.NotificationSystem.showNotification('info', 'Contact Support', 'Please email support@snapselect.com for assistance');
+                } else {
+                    alert('Please email support@snapselect.com for assistance');
+                }
+            });
+        }
     </script>
 </body>
 </html>
