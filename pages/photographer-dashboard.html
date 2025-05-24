@@ -75,6 +75,104 @@
         .hidden {
           display: none;
         }
+
+        
+                /* Badge number styling with animations */
+        .workflow-btn {
+            position: relative;
+            overflow: visible;
+        }
+        
+        .number-badge {
+            position: absolute;
+            top: -8px;
+            left: -8px;
+            width: 22px;
+            height: 22px;
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            color: white;
+            border-radius: 50%;
+            font-size: 11px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 2px solid white;
+            box-shadow: 0 2px 8px rgba(239, 68, 68, 0.3);
+            z-index: 10;
+            animation: badgePulse 2s ease-in-out infinite;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        /* Primary button badge (different color) */
+        .action-btn.primary .number-badge {
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+            box-shadow: 0 2px 8px rgba(245, 158, 11, 0.3);
+        }
+        
+        /* Pulse animation for badges */
+        @keyframes badgePulse {
+            0%, 100% { 
+                transform: scale(1);
+                box-shadow: 0 2px 8px rgba(239, 68, 68, 0.3);
+            }
+            50% { 
+                transform: scale(1.05);
+                box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4);
+            }
+        }
+        
+        /* Hover effects */
+        .workflow-btn:hover .number-badge {
+            transform: scale(1.1) rotate(5deg);
+            box-shadow: 0 4px 16px rgba(239, 68, 68, 0.5);
+            animation: none; /* Stop pulse on hover */
+        }
+        
+        .action-btn.primary:hover .number-badge {
+            box-shadow: 0 4px 16px rgba(245, 158, 11, 0.5);
+        }
+        
+        /* Button hover enhancement */
+        .workflow-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+        }
+        
+        /* Subtle bounce when button is clicked */
+        .workflow-btn:active {
+            transform: translateY(0px) scale(0.98);
+            transition: all 0.1s ease;
+        }
+        
+        .workflow-btn:active .number-badge {
+            transform: scale(0.95);
+            transition: all 0.1s ease;
+        }
+        
+        /* Stagger animation delays for initial load */
+        .workflow-btn:nth-child(1) .number-badge {
+            animation-delay: 0.2s;
+        }
+        
+        .workflow-btn:nth-child(2) .number-badge {
+            animation-delay: 0.4s;
+        }
+        
+        .workflow-btn:nth-child(3) .number-badge {
+            animation-delay: 0.6s;
+        }
+        
+        /* Mobile responsiveness */
+        @media (max-width: 768px) {
+            .number-badge {
+                width: 20px;
+                height: 20px;
+                font-size: 10px;
+                top: -6px;
+                left: -6px;
+            }
+        }
     </style>
 </head>
 <body>
@@ -172,14 +270,19 @@
             </section>
 
             <!-- Quick Actions Bar -->
+       
+         <!-- Quick Actions Bar -->
             <section class="quick-actions animate-in" style="animation-delay: 0.3s;">
-                <button id="createClientBtn" class="action-btn">
+                <button id="createClientBtn" class="action-btn workflow-btn">
+                    <div class="number-badge">1</div>
                     <i class="fas fa-user-plus"></i> New Client
                 </button>
-                <button id="upgradePlanBtn" class="action-btn primary">
+                <button id="upgradePlanBtn" class="action-btn primary workflow-btn">
+                    <div class="number-badge">2</div>
                     <i class="fas fa-plus"></i> Purchase Plan
                 </button>
-                <button id="createGalleryBtn" class="action-btn">
+                <button id="createGalleryBtn" class="action-btn workflow-btn">
+                    <div class="number-badge">3</div>
                     <i class="fas fa-images"></i> New Gallery
                 </button>
                 <button id="viewAnalyticsBtn" class="action-btn">
