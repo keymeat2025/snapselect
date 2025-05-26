@@ -2584,6 +2584,7 @@
 // Load gallery photos
 
         function loadGalleryPhotos(galleryId, db) {
+              
             // Show loading toast
             showToast("Loading photos...", 'info');
             
@@ -2605,11 +2606,11 @@
             // Add the counter at the top of the gallery (before the photos grid)
             photosGrid.parentNode.insertBefore(counterElement, photosGrid);
             
-            // Remove the .limit(50) to fetch ALL photos
+            // Enhanced query with reasonable limit for safety
             db.collection('photos')
                 .where('galleryId', '==', galleryId)
                 .where('status', '==', 'active')
-                // No limit here - will fetch all photos in the gallery
+                .limit(5000) // Safety limit to prevent huge costs/memory issues
                 .get()
                 .then(snapshot => {
                     if (snapshot.empty) {
@@ -2617,39 +2618,52 @@
                         return;
                     }
                     
+                    // Check if we hit the limit
+                    const hitLimit = snapshot.size === 5000;
+                    
                     // Store all photos in the global array
                     allGalleryPhotos = snapshot.docs.map(doc => doc.data());
+        
+                    // Simple fix: Only count ratings for photos that exist in current gallery
+                    const validPhotoIds = new Set(allGalleryPhotos.map(p => p.id || p.url));
+                    Object.keys(photoRatings).forEach(id => {
+                        if (!validPhotoIds.has(id)) delete photoRatings[id];
+                    });
+                    
+                    // Update rating counts after cleanup
+                    updateRatingCounts();
+                    
                     const totalCount = allGalleryPhotos.length;
                     
                     // Update the counter with total photo count
-                    counterElement.innerHTML = `<strong>Total Photos: ${totalCount}</strong>`;
+                    if (hitLimit) {
+                        counterElement.innerHTML = `<strong>Showing first ${totalCount} photos (Large gallery)</strong>`;
+                        showToast("Large gallery detected - showing first 5000 photos", 'info');
+                    } else {
+                        counterElement.innerHTML = `<strong>Total Photos: ${totalCount}</strong>`;
+                    }
                     
-                    // If there are many photos, use batched rendering for better performance
-                    if (totalCount > 100) {
-                        // Show first batch immediately, then render the rest
+                    // Use batched rendering for better performance
+                    if (totalCount > 50) {
                         showToast(`Loading ${totalCount} photos in batches...`, 'info');
                         renderPhotosBatch(allGalleryPhotos, photosGrid, 0, 50);
                     } else {
-                        // For smaller galleries, render all at once
+                        // For small galleries, render all at once
                         allGalleryPhotos.forEach(photo => {
                             const photoElement = createPhotoElement(photo);
                             photosGrid.appendChild(photoElement);
                         });
                         
-                        // Show success toast
-                        // Show visit info
-                        const visitInfo = document.getElementById('visitInfo');
-                        const visitMessage = document.getElementById('visitMessage');
-                        if (visitInfo && visitMessage) {
-                            const visitType = isFirstTimeVisitor ? "First visit" : "Return visit";
-                            visitMessage.textContent = `📊 ${visitType} • ${totalCount} photos • ${Object.keys(photoRatings).length} rated`;
-                            visitInfo.style.display = 'block';
-                        }
-                        
                         showToast(`Gallery loaded with ${totalCount} photos`, 'success');
-                        
-                        
-                        
+                    }
+                    
+                    // Show visit info (for all galleries)
+                    const visitInfo = document.getElementById('visitInfo');
+                    const visitMessage = document.getElementById('visitMessage');
+                    if (visitInfo && visitMessage) {
+                        const visitType = isFirstTimeVisitor ? "First visit" : "Return visit";
+                        visitMessage.textContent = `📊 ${visitType} • ${totalCount} photos • ${Object.keys(photoRatings).length} rated`;
+                        visitInfo.style.display = 'block';
                     }
                     
                     // Initialize rating sync and load total ratings
