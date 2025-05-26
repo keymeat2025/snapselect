@@ -1131,6 +1131,262 @@
         let syncInterval = null;
         let pendingSync = false;
         let lastSyncTime = null;
+
+
+        // ADD THIS NEW CODE RIGHT AFTER YOUR EXISTING VARIABLES
+        // Don't remove anything yet - just add this
+        
+        class PhotoRatingManager {
+            constructor() {
+                this.ratings = {};
+                this.listeners = [];
+                this.syncTimeout = null;
+                this.isOnline = navigator.onLine;
+                this.loadFromStorage();
+            }
+            
+            // Generate consistent photo ID
+            getPhotoId(photo) {
+                if (photo.id) return photo.id;
+                const hash = btoa(photo.url).replace(/[^a-zA-Z0-9]/g, '').substring(0, 16);
+                return `photo_${hash}`;
+            }
+            
+            // Set rating for a photo
+            setRating(photoId, rating) {
+                try {
+                    const oldRating = this.ratings[photoId];
+                    
+                    if (oldRating === rating) {
+                        delete this.ratings[photoId];
+                        this.showFeedback('Rating removed', 'info');
+                    } else {
+                        this.ratings[photoId] = rating;
+                        this.showFeedback(`Rated as ${this.getRatingLabel(rating)}`, 'success');
+                    }
+                    
+                    this.saveToStorage();
+                    this.notifyListeners(photoId, this.ratings[photoId], oldRating);
+                    this.scheduleSync();
+                    return true;
+                    
+                } catch (error) {
+                    console.error('Error setting rating:', error);
+                    this.showFeedback('Failed to save rating', 'error');
+                    return false;
+                }
+            }
+            
+            getRating(photoId) {
+                return this.ratings[photoId] || null;
+            }
+            
+            getRatingCounts() {
+                const counts = { heart: 0, thumbsUp: 0, thinking: 0, thumbsDown: 0 };
+                Object.values(this.ratings).forEach(rating => {
+                    if (counts[rating] !== undefined) counts[rating]++;
+                });
+                return counts;
+            }
+            
+            onRatingChange(callback) {
+                this.listeners.push(callback);
+            }
+            
+            notifyListeners(photoId, newRating, oldRating) {
+                this.listeners.forEach(callback => {
+                    try {
+                        callback(photoId, newRating, oldRating);
+                    } catch (error) {
+                        console.error('Error in rating listener:', error);
+                    }
+                });
+            }
+            
+            loadFromStorage() {
+                try {
+                    const stored = localStorage.getItem('photoRatings');
+                    if (stored) {
+                        this.ratings = JSON.parse(stored);
+                    }
+                } catch (error) {
+                    console.error('Error loading ratings:', error);
+                    this.ratings = {};
+                }
+            }
+            
+            saveToStorage() {
+                try {
+                    localStorage.setItem('photoRatings', JSON.stringify(this.ratings));
+                } catch (error) {
+                    console.error('Error saving ratings:', error);
+                }
+            }
+            
+            scheduleSync() {
+                if (this.syncTimeout) clearTimeout(this.syncTimeout);
+                this.syncTimeout = setTimeout(() => this.syncToFirebase(), 2000);
+            }
+            
+            async syncToFirebase() {
+                if (!this.isOnline || !firebase.apps.length) return;
+                
+                try {
+                    const userId = this.getUserId();
+                    const galleryId = this.getGalleryId();
+                    if (!userId || !galleryId) return;
+                    
+                    const db = firebase.firestore();
+                    const batch = db.batch();
+                    
+                    const existingSnapshot = await db.collection('photoRatings')
+                        .where('galleryId', '==', galleryId)
+                        .where('userId', '==', userId)
+                        .get();
+                    
+                    const existingRatings = {};
+                    existingSnapshot.forEach(doc => {
+                        const data = doc.data();
+                        existingRatings[data.photoId] = { rating: data.rating, docId: doc.id };
+                    });
+                    
+                    for (const [photoId, rating] of Object.entries(this.ratings)) {
+                        if (existingRatings[photoId]) {
+                            if (existingRatings[photoId].rating !== rating) {
+                                const docRef = db.collection('photoRatings').doc(existingRatings[photoId].docId);
+                                batch.update(docRef, {
+                                    rating: rating,
+                                    timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                                });
+                            }
+                            delete existingRatings[photoId];
+                        } else {
+                            const docRef = db.collection('photoRatings').doc();
+                            batch.set(docRef, {
+                                userId, photoId, galleryId, rating,
+                                timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                            });
+                        }
+                    }
+                    
+                    for (const [photoId, data] of Object.entries(existingRatings)) {
+                        batch.delete(db.collection('photoRatings').doc(data.docId));
+                    }
+                    
+                    await batch.commit();
+                    console.log('Ratings synced successfully');
+                    
+                } catch (error) {
+                    console.error('Error syncing ratings:', error);
+                    this.scheduleSync(); // Retry
+                }
+            }
+            
+            getUserId() {
+                let userId = localStorage.getItem('user_id');
+                if (!userId) {
+                    userId = 'user_' + Math.random().toString(36).substring(2, 15);
+                    localStorage.setItem('user_id', userId);
+                }
+                return userId;
+            }
+            
+            getGalleryId() {
+                const urlParams = new URLSearchParams(window.location.search);
+                return urlParams.get('id') || urlParams.get('galleryId') || 
+                       sessionStorage.getItem('actual_gallery_id');
+            }
+            
+            getRatingLabel(rating) {
+                const labels = {
+                    heart: 'Must Have', thumbsUp: 'Would Like to Have',  
+                    thinking: 'Alternative Option', thumbsDown: 'Not Interested'
+                };
+                return labels[rating] || 'Unknown';
+            }
+            
+            getRatingEmoji(rating) {
+                const emojis = { heart: '❤️', thumbsUp: '👍', thinking: '🤔', thumbsDown: '👎' };
+                return emojis[rating] || '';
+            }
+            
+            showFeedback(message, type = 'info') {
+                if (typeof showToast === 'function') {
+                    showToast(message, type);
+                } else {
+                    console.log(`${type.toUpperCase()}: ${message}`);
+                }
+            }
+        }
+        
+        // Create the new rating manager instance
+        let ratingManager = null;
+        
+        // Initialize the improved rating system
+        function initializeImprovedRatingSystem() {
+            ratingManager = new PhotoRatingManager();
+            
+            // Copy existing ratings to new system
+            if (typeof photoRatings === 'object' && photoRatings) {
+                Object.assign(ratingManager.ratings, photoRatings);
+                ratingManager.saveToStorage();
+                console.log('Migrated existing ratings to new system');
+            }
+            
+            // Set up UI update listener
+            ratingManager.onRatingChange((photoId, newRating, oldRating) => {
+                updateAllRatingUI(photoId, newRating, oldRating);
+            });
+            
+            console.log('Improved rating system initialized');
+        }
+        
+        // Update all UI elements when rating changes
+        function updateAllRatingUI(photoId, newRating, oldRating) {
+            // Update global photoRatings object to keep compatibility
+            if (newRating) {
+                photoRatings[photoId] = newRating;
+            } else {
+                delete photoRatings[photoId];
+            }
+            
+            // Update existing UI using your current functions
+            if (typeof updateRatingCounts === 'function') {
+                updateRatingCounts();
+            }
+            
+            // Update lightbox if open
+            const lightbox = document.getElementById('photoLightbox');
+            if (lightbox) {
+                const ratingButtons = lightbox.querySelectorAll('.rating-btn');
+                ratingButtons.forEach(btn => {
+                    btn.classList.remove('selected');
+                    if (newRating === btn.getAttribute('data-rating')) {
+                        btn.classList.add('selected');
+                    }
+                });
+            }
+            
+            // Update thumbnail indicators
+            const photoElement = document.querySelector(`[data-photo-id="${photoId}"]`);
+            if (photoElement) {
+                const existingIndicator = photoElement.querySelector('.thumbnail-rating-indicator');
+                if (existingIndicator) existingIndicator.remove();
+                
+                if (newRating) {
+                    photoElement.classList.add('photo-rated');
+                    const indicator = document.createElement('div');
+                    indicator.className = 'thumbnail-rating-indicator';
+                    indicator.innerHTML = `✓ ${ratingManager.getRatingEmoji(newRating)}`;
+                    indicator.title = ratingManager.getRatingLabel(newRating);
+                    
+                    const photoContainer = photoElement.querySelector('.photo-container');
+                    if (photoContainer) photoContainer.appendChild(indicator);
+                } else {
+                    photoElement.classList.remove('photo-rated');
+                }
+            }
+        }
         
         // Function to generate or retrieve a user identifier
         function getUserIdentifier() {
@@ -1339,6 +1595,10 @@
         
         function setPhotoRating(photoId, rating) {
     // Track the old rating for counter adjustment
+
+            if (ratingManager) {
+                return ratingManager.setRating(photoId, rating);
+            }
             const oldRating = photoRatings[photoId];
             
             // If same rating is clicked again, we'll unselect it
@@ -2267,6 +2527,8 @@
                 
                 // Load saved ratings
                 loadSavedRatings();
+
+                initializeImprovedRatingSystem();
                 
                 // Make sure ratingSummary is initially hidden if no ratings
                 const ratingSummary = document.getElementById('ratingSummary');
