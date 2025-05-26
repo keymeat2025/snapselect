@@ -1480,29 +1480,26 @@
         
         
         // Function to batch save ratings to Firebase
+      
+   // FIXED: Modified syncRatingsToFirebase to trigger counter recalculation
         function syncRatingsToFirebase() {
             const userId = getUserIdentifier();
             const galleryId = getGalleryId();
             
             if (!galleryId || !userId || !pendingSync) return;
             
-            pendingSync = false; // Reset the pending flag
-            
-            // Update sync button status if it exists
+            pendingSync = false;
             updateSyncButtonStatus('syncing');
             
             const db = firebase.firestore();
             
-            // Start a batch operation
-            const batch = db.batch();
-            
-            // First, get existing ratings for this gallery and user
+            // Get existing ratings for this gallery and user
             db.collection('photoRatings')
                 .where('galleryId', '==', galleryId)
                 .where('userId', '==', userId)
                 .get()
                 .then((snapshot) => {
-                    // Track if any changes are needed
+                    const batch = db.batch();
                     let changesMade = false;
                     
                     // Create a map of existing ratings
@@ -1519,17 +1516,16 @@
                     for (const photoId in photoRatings) {
                         const localRating = photoRatings[photoId];
                         
-                        // If rating exists but is different, update it
                         if (existingRatings[photoId] && existingRatings[photoId].rating !== localRating) {
+                            // Update existing rating
                             const docRef = db.collection('photoRatings').doc(existingRatings[photoId].docId);
                             batch.update(docRef, { 
                                 rating: localRating,
                                 timestamp: firebase.firestore.FieldValue.serverTimestamp()
                             });
                             changesMade = true;
-                        }
-                        // If rating doesn't exist, create it
-                        else if (!existingRatings[photoId]) {
+                        } else if (!existingRatings[photoId]) {
+                            // Create new rating
                             const docRef = db.collection('photoRatings').doc();
                             batch.set(docRef, {
                                 userId: userId,
@@ -1541,7 +1537,6 @@
                             changesMade = true;
                         }
                         
-                        // Remove from existingRatings to track deletions
                         delete existingRatings[photoId];
                     }
                     
@@ -1554,45 +1549,40 @@
                     
                     // Commit the batch if changes were made
                     if (changesMade) {
-                        return batch.commit()
-                            .then(() => {
-                                lastSyncTime = new Date();
-                                console.log("Ratings synchronized with Firebase");
-                                updateSyncButtonStatus('success');
-                                // Update counters after successful sync
-                                updateGalleryRatingCounters(galleryId);
-                            })
-                            .catch(error => {
-                                console.error("Error syncing ratings:", error);
-                                pendingSync = true; // Mark for retry
-                                updateSyncButtonStatus('error');
-                            });
+                        return batch.commit();
                     } else {
-                        lastSyncTime = new Date();
                         console.log("No changes to sync");
-                        updateSyncButtonStatus('success');
+                        return Promise.resolve();
                     }
                 })
+                .then(() => {
+                    lastSyncTime = new Date();
+                    console.log("Ratings synchronized with Firebase");
+                    updateSyncButtonStatus('success');
+                    
+                    // FIXED: Always recalculate counters after any sync
+                    updateGalleryRatingCounters(galleryId);
+                })
                 .catch(error => {
-                    console.error("Error checking existing ratings:", error);
-                    pendingSync = true; // Mark for retry
+                    console.error("Error syncing ratings:", error);
+                    pendingSync = true;
                     updateSyncButtonStatus('error');
                 });
         }
         
         // Function to update gallery rating counters
+       
         function updateGalleryRatingCounters(galleryId) {
             if (!galleryId) return;
             
             const db = firebase.firestore();
             
-            // Count all ratings for this gallery
+            // Get ALL current ratings for this gallery (from all users)
             db.collection('photoRatings')
                 .where('galleryId', '==', galleryId)
                 .get()
                 .then((snapshot) => {
-                    if (snapshot.empty) return;
-                    
+                    // Reset counts to zero
                     const counts = {
                         heart: 0,
                         thumbsUp: 0,
@@ -1602,29 +1592,44 @@
                         lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
                     };
                     
-                    snapshot.forEach(doc => {
-                        const data = doc.data();
-                        if (counts[data.rating] !== undefined) {
-                            counts[data.rating]++;
-                        }
-                        if (data.userId) {
-                            counts.totalUsers.add(data.userId);
-                        }
-                    });
+                    // Only count if there are actual ratings
+                    if (!snapshot.empty) {
+                        snapshot.forEach(doc => {
+                            const data = doc.data();
+                            
+                            // Only count valid ratings
+                            if (data.rating && counts[data.rating] !== undefined) {
+                                counts[data.rating]++;
+                            }
+                            
+                            // Track unique users
+                            if (data.userId) {
+                                counts.totalUsers.add(data.userId);
+                            }
+                        });
+                    }
                     
                     // Convert Set to count before saving
                     const totalUsersCount = counts.totalUsers.size;
                     counts.totalUsers = totalUsersCount;
                     
-                    // Store the counts in a counter document
-                    db.collection('galleryRatingCounts')
+                    console.log("Recalculated rating counts:", counts);
+                    
+                    // Store the CORRECT counts in the counter document
+                    return db.collection('galleryRatingCounts')
                         .doc(galleryId)
-                        .set(counts)
-                        .catch(error => {
-                            console.error("Error updating rating counts:", error);
-                        });
+                        .set(counts);
+                })
+                .then(() => {
+                    console.log("Gallery rating counters updated successfully");
+                })
+                .catch(error => {
+                    console.error("Error updating rating counts:", error);
                 });
         }
+
+
+            
 
 
         // Function to load ratings from Firebase
@@ -1806,67 +1811,45 @@
         }
         
         // Add this function to load total ratings counts from all users
+       
         function loadTotalRatings() {
             const galleryId = getGalleryId();
             if (!galleryId) return;
             
             const db = firebase.firestore();
             
-            // First, look for an aggregate counter document
-            db.collection('galleryRatingCounts')
-                .doc(galleryId)
-                .get()
-                .then(doc => {
-                    if (doc.exists) {
-                        // Use the aggregated counts
-                        updateTotalRatingsDisplay(doc.data());
-                    } else {
-                        // Fall back to counting all ratings (less efficient)
-                        db.collection('photoRatings')
-                            .where('galleryId', '==', galleryId)
-                            .get()
-                            .then((snapshot) => {
-                                if (snapshot.empty) {
-                                    console.log("No total ratings found");
-                                    return;
-                                }
-                                
-                                // Count ratings by type
-                                const totalCounts = {
-                                    heart: 0,
-                                    thumbsUp: 0,
-                                    thinking: 0,
-                                    thumbsDown: 0
-                                };
-                                
-                                // Set to track unique users
-                                
-                                const uniqueUsers = new Set();
-                                
-                                snapshot.forEach(doc => {
-                                    const data = doc.data();
-                                    if (totalCounts[data.rating] !== undefined) {
-                                        totalCounts[data.rating]++;
-                                    }
-                                    if (data.userId) {
-                                        uniqueUsers.add(data.userId);
-                                    }
-                                });
-                                
-                                // Add user count to the results
-                                totalCounts.totalUsers = uniqueUsers.size;
-                                
-                                updateTotalRatingsDisplay(totalCounts);
-                            })
-                            .catch(error => {
-                                console.error("Error loading total ratings:", error);
+            // Force a recalculation of counters first
+            updateGalleryRatingCounters(galleryId);
+            
+            // Then load the updated counters
+            setTimeout(() => {
+                db.collection('galleryRatingCounts')
+                    .doc(galleryId)
+                    .get()
+                    .then(doc => {
+                        if (doc.exists) {
+                            console.log("Loading updated rating counts:", doc.data());
+                            updateTotalRatingsDisplay(doc.data());
+                        } else {
+                            console.log("No rating counts document found");
+                            // Create empty display
+                            updateTotalRatingsDisplay({
+                                heart: 0,
+                                thumbsUp: 0,
+                                thinking: 0,
+                                thumbsDown: 0,
+                                totalUsers: 0
                             });
-                    }
-                })
-                .catch(error => {
-                    console.error("Error loading rating counts:", error);
-                });
+                        }
+                    })
+                    .catch(error => {
+                        console.error("Error loading rating counts:", error);
+                    });
+            }, 1000); // Give time for the recalculation to complete
         }
+
+
+            
         
         // Function to create and update the total ratings display
         function updateTotalRatingsDisplay(totalCounts) {
