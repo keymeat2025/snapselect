@@ -282,6 +282,65 @@
         .welcome-actions {
             text-align: center;
         }
+
+        /* Add this CSS to your existing styles to ensure proper layering */
+
+        /* Remove welcome dashboard entirely on client gallery view */
+        #welcomeDashboard {
+            display: none !important;
+        }
+        
+        /* Ensure password screen is always accessible */
+        .password-container {
+            position: relative;
+            z-index: 2001 !important;
+            background-color: white;
+        }
+        
+        #passwordScreen {
+            position: relative;
+            z-index: 2001 !important;
+        }
+        
+        /* Ensure form inputs are always clickable */
+        .password-input,
+        .btn {
+            position: relative;
+            z-index: 2002 !important;
+        }
+        
+        /* Loading indicator should be behind password screen */
+        .loading-indicator {
+            z-index: 1000;
+        }
+        
+        /* Gallery container normal z-index */
+        .gallery-container {
+            position: relative;
+            z-index: 1;
+        }
+        
+        /* Lightbox should be on top of everything */
+        .photo-lightbox {
+            z-index: 3000 !important;
+        }
+        
+        /* Toast notifications on top */
+        .toast-container {
+            z-index: 4000 !important;
+        }
+        
+        /* Rating overlays */
+        .rating-container,
+        .rating-summary,
+        .total-ratings {
+            z-index: 999;
+        }
+        
+        /* Sync button */
+        .sync-btn {
+            z-index: 1000 !important;
+        }
         
         .btn-primary {
             background-color: #3498db;
@@ -1086,48 +1145,13 @@
             return sessionStorage.getItem('actual_gallery_id');
         }
 
+
+
+       
+
         
-        // Welcome dashboard functions
-        function showWelcomeDashboard() {
-            const welcomeDashboard = document.getElementById('welcomeDashboard');
-            if (welcomeDashboard) {
-                welcomeDashboard.style.display = 'flex';
-            }
-        }
 
-        function hideWelcomeDashboard() {
-            const welcomeDashboard = document.getElementById('welcomeDashboard');
-            if (welcomeDashboard) {
-                welcomeDashboard.style.display = 'none';
-            }
-        }
-
-        function checkWelcomeDashboardPreference() {
-            // Check if user has opted out of seeing the welcome screen
-            return localStorage.getItem('dontShowWelcomeDashboard') !== 'true';
-        }
-
-        function setupWelcomeDashboard() {
-            const startGalleryBtn = document.getElementById('startGalleryBtn');
-            const dontShowAgainCheckbox = document.getElementById('dontShowAgain');
-            
-            if (startGalleryBtn) {
-                startGalleryBtn.addEventListener('click', function() {
-                    // Check if "don't show again" is checked
-                    if (dontShowAgainCheckbox && dontShowAgainCheckbox.checked) {
-                        localStorage.setItem('dontShowWelcomeDashboard', 'true');
-                    }
-                    
-                    // Hide welcome dashboard
-                    hideWelcomeDashboard();
-                    
-                    // Continue with gallery loading
-                    if (checkGalleryAccess()) {
-                        loadSharedGallery();
-                    }
-                });
-            }
-        }
+ 
         
         // Disable right-click
         document.addEventListener('contextmenu', function(e) {
@@ -2170,21 +2194,18 @@
                     ratingSummary.style.display = totalRatings > 0 ? 'flex' : 'none';
                 }
                 
-                // Setup welcome dashboard event listeners
-                setupWelcomeDashboard();
-                
-                // Check if we should show welcome dashboard
-                if (checkWelcomeDashboardPreference()) {
-                    // Show welcome dashboard
-                    showWelcomeDashboard();
-                } else {
-                    // Skip welcome dashboard and check access
-                    if (checkGalleryAccess()) {
-                        loadSharedGallery();
-                        // Initialize rating synchronization
-                        initRatingSync();
-                    }
+                const welcomeDashboard = document.getElementById('welcomeDashboard');
+                if (welcomeDashboard) {
+                    welcomeDashboard.style.display = 'none';
                 }
+                
+                // Check gallery access and load
+                if (checkGalleryAccess()) {
+                    loadSharedGallery();
+                    // Initialize rating synchronization
+                    initRatingSync();
+                }
+                
             } catch (error) {
                 console.error("Error initializing Firebase:", error);
                 showError("Failed to initialize the gallery. Please try again later.");
