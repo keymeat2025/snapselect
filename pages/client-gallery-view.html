@@ -1085,6 +1085,11 @@
                     <p id="studioContact">Contact information will appear here if available</p>
                 </div>
             </div>
+
+            <!-- Visit information for client -->
+            <div id="visitInfo" style="background: #f0f8ff; padding: 10px; margin: 10px 0; border-radius: 5px; text-align: center; display: none;">
+                <span id="visitMessage">📊 Visit tracking will appear here</span>
+            </div>
             
             <div id="photosGrid" class="photos-grid">
                 <!-- Photos will be loaded here -->
@@ -1116,6 +1121,10 @@
             thinking: 0,
             thumbsDown: 0
         };
+        // Visit tracking variables
+        let currentSessionId = null;
+        let visitStartTime = null;
+        let isFirstTimeVisitor = true;
         
         // Firebase synchronization variables
         let syncTimeout = null;
@@ -1131,6 +1140,38 @@
                 localStorage.setItem('user_id', userId);
             }
             return userId;
+        }
+
+
+        // Generate session ID
+        function generateSessionId() {
+            return 'session_' + Date.now() + '_' + Math.random().toString(36).substring(2, 9);
+        }
+        
+        // Record gallery visit
+        function recordGalleryVisit(galleryId) {
+            const userId = getUserIdentifier();
+            currentSessionId = generateSessionId();
+            visitStartTime = Date.now();
+            
+            // Check if first time visitor
+            const visitKey = `gallery_visited_${galleryId}`;
+            isFirstTimeVisitor = !localStorage.getItem(visitKey);
+            if (isFirstTimeVisitor) {
+                localStorage.setItem(visitKey, 'true');
+            }
+            
+            console.log(`Visit recorded: Gallery ${galleryId}, User ${userId}`);
+            
+            // Update Firebase
+            const db = firebase.firestore();
+            db.collection('galleries').doc(galleryId).update({
+                'analytics.totalVisits': firebase.firestore.FieldValue.increment(1),
+                'analytics.lastVisited': firebase.firestore.FieldValue.serverTimestamp()
+            }).catch(error => console.log("Analytics update:", error.message));
+            
+            // Show welcome message
+            showToast(isFirstTimeVisitor ? 'Welcome to the gallery!' : 'Welcome back!', 'info');
         }
         
         // Function to get gallery ID from URL or session storage
@@ -1347,6 +1388,8 @@
                 if (Object.keys(photoRatings).length === 1) {
                     // This is the first rating, freeze the gallery
                     freezeGalleryOnFirstInteraction(photoId);
+
+                    showToast("Great! Your selections are being tracked.", 'success');
                 }
                                 
                 // Increment counter in lightbox if visible
@@ -2444,7 +2487,8 @@
                     
                     // Get photographer details
                     loadPhotographerDetails(gallery.photographerId);
-                    
+                    // Record the visit
+                    recordGalleryVisit(galleryId);
                     // Load photos with added security
                     loadGalleryPhotos(galleryId, db);
                 })
@@ -2593,7 +2637,19 @@
                         });
                         
                         // Show success toast
+                        // Show visit info
+                        const visitInfo = document.getElementById('visitInfo');
+                        const visitMessage = document.getElementById('visitMessage');
+                        if (visitInfo && visitMessage) {
+                            const visitType = isFirstTimeVisitor ? "First visit" : "Return visit";
+                            visitMessage.textContent = `📊 ${visitType} • ${totalCount} photos • ${Object.keys(photoRatings).length} rated`;
+                            visitInfo.style.display = 'block';
+                        }
+                        
                         showToast(`Gallery loaded with ${totalCount} photos`, 'success');
+                        
+                        
+                        
                     }
                     
                     // Initialize rating sync and load total ratings
