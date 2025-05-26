@@ -1217,17 +1217,7 @@
 
         
         // Rating system functions
-        function loadSavedRatings() {
-            try {
-                const savedRatings = localStorage.getItem('photoRatings');
-                if (savedRatings) {
-                    photoRatings = JSON.parse(savedRatings);
-                    updateRatingCounts();
-                }
-            } catch (err) {
-                console.error("Error loading saved ratings:", err);
-            }
-        }
+   
         
         function updateRatingCounts() {
             // Reset counts
@@ -1261,129 +1251,323 @@
            
            // Modified setPhotoRating function to update lightbox counters and rating indicator
         
+      
+        // 1. REPLACE setPhotoRating() function
         function setPhotoRating(photoId, rating) {
-    // Track the old rating for counter adjustment
+ 
+            const userId = getUserIdentifier();
+            const galleryId = getGalleryId();
+            
+            if (!galleryId || !userId) {
+                showToast("Error: Missing gallery or user info", 'error');
+                return;
+            }
+        
+            const db = firebase.firestore();
             const oldRating = photoRatings[photoId];
             
-            // If same rating is clicked again, we'll unselect it
-            if (photoRatings[photoId] === rating) {
-                delete photoRatings[photoId]; // Remove rating locally
-                showToast(`Rating removed`, 'info');
-                
-                // NEW: Remove the rating indicator
-                const lightbox = document.getElementById('photoLightbox');
-                if (lightbox) {
-                    const indicator = lightbox.querySelector('.photo-rating-indicator');
-                    if (indicator) {
-                        indicator.remove();
-                    }
-                }
-                
-                // Decrement counter in lightbox if visible
-                const counterElement = document.getElementById(`lightbox-${rating}-count`);
-                if (counterElement) {
-                    const currentCount = parseInt(counterElement.textContent);
-                    counterElement.textContent = currentCount - 1;
-                }
-                
-                // NEW: Update the thumbnail element to remove rating indicator
-                const photoElement = document.querySelector(`.photo-item[data-photo-id="${photoId}"]`);
-                if (photoElement) {
-                    photoElement.classList.remove('photo-rated');
-                    const indicator = photoElement.querySelector('.thumbnail-rating-indicator');
-                    if (indicator) {
-                        indicator.remove();
-                    }
-                }
+            // Check if this is a toggle (same rating clicked again)
+            if (oldRating === rating) {
+                // REMOVE rating - direct Firebase delete
+                db.collection('photoRatings')
+                    .where('galleryId', '==', galleryId)
+                    .where('userId', '==', userId)
+                    .where('photoId', '==', photoId)
+                    .get()
+                    .then(snapshot => {
+                        if (!snapshot.empty) {
+                            // Delete the document
+                            snapshot.docs[0].ref.delete()
+                                .then(() => {
+                                    // Update local state
+                                    delete photoRatings[photoId];
+                                    updateLocalUI(photoId, null);
+                                    showToast("Rating removed", 'info');
+                                    
+                                    // Refresh counters
+                                    refreshAllCounters();
+                                })
+                                .catch(error => {
+                                    console.error("Error removing rating:", error);
+                                    showToast("Error removing rating", 'error');
+                                });
+                        }
+                    });
             } else {
-                // If changing from one rating to another, update both counters
-                if (oldRating && document.getElementById(`lightbox-${oldRating}-count`)) {
-                    const oldCounterElement = document.getElementById(`lightbox-${oldRating}-count`);
-                    const oldCount = parseInt(oldCounterElement.textContent);
-                    oldCounterElement.textContent = oldCount - 1;
-                }
-                
-                photoRatings[photoId] = rating;
-                showToast(`Photo marked as ${getRatingLabel(rating)}`, 'success');
-
-
-                                // Add this code to trigger freeze on first rating
-                // Check if this is the first rating (gallery freeze trigger)
-                if (Object.keys(photoRatings).length === 1) {
-                    // This is the first rating, freeze the gallery
-                    freezeGalleryOnFirstInteraction(photoId);
-                }
-                                
-                // Increment counter in lightbox if visible
-                const counterElement = document.getElementById(`lightbox-${rating}-count`);
-                if (counterElement) {
-                    const currentCount = parseInt(counterElement.textContent);
-                    counterElement.textContent = currentCount + 1;
-                }
-                
-                // NEW: Update the rating indicator
-                const lightbox = document.getElementById('photoLightbox');
-                if (lightbox) {
-                    updatePhotoRatingIndicator(photoId, lightbox);
-                }
-                
-                // NEW: Update the thumbnail to show it's rated
-                const photoElement = document.querySelector(`.photo-item[data-photo-id="${photoId}"]`);
-                if (photoElement) {
-                    photoElement.classList.add('photo-rated');
-                    
-                    // Update or create the rating indicator
-                    let indicator = photoElement.querySelector('.thumbnail-rating-indicator');
-                    if (!indicator) {
-                        indicator = document.createElement('div');
-                        indicator.className = 'thumbnail-rating-indicator';
-                        photoElement.querySelector('.photo-container').appendChild(indicator);
-                    }
-                    
-                    // Update indicator content
-                    indicator.innerHTML = `✓ ${getRatingEmoji(rating)}`;
-                    indicator.title = getRatingLabel(rating);
-                }
+                // ADD/UPDATE rating - direct Firebase write
+                const ratingData = {
+                    userId: userId,
+                    photoId: photoId,
+                    galleryId: galleryId,
+                    rating: rating,
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                };
+        
+                // Check for existing rating to update
+                db.collection('photoRatings')
+                    .where('galleryId', '==', galleryId)
+                    .where('userId', '==', userId)
+                    .where('photoId', '==', photoId)
+                    .get()
+                    .then(snapshot => {
+                        if (!snapshot.empty) {
+                            // Update existing
+                            return snapshot.docs[0].ref.update({
+                                rating: rating,
+                                timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                            });
+                        } else {
+                            // Create new
+                            return db.collection('photoRatings').add(ratingData);
+                        }
+                    })
+                    .then(() => {
+                        // Update local state
+                        photoRatings[photoId] = rating;
+                        updateLocalUI(photoId, rating);
+                        showToast(`Photo marked as ${getRatingLabel(rating)}`, 'success');
+                        
+                        // Trigger gallery freeze on first rating
+                        if (Object.keys(photoRatings).length === 1) {
+                            freezeGalleryOnFirstInteraction(photoId);
+                        }
+                        
+                        // Refresh counters
+                        refreshAllCounters();
+                    })
+                    .catch(error => {
+                        console.error("Error saving rating:", error);
+                        showToast("Error saving rating", 'error');
+                    });
             }
-            
-            // Save to localStorage immediately
-            try {
-                localStorage.setItem('photoRatings', JSON.stringify(photoRatings));
-            } catch (err) {
-                console.error("Error saving ratings to localStorage:", err);
-            }
-            
-            // Update counts locally
+        }
+
+        
+        function updateLocalUI(photoId, rating) {
+            // Update rating counts
             updateRatingCounts();
             
-            // Update UI in open lightbox if it exists
+            // Update lightbox if open
             const lightbox = document.getElementById('photoLightbox');
             if (lightbox) {
+                // Update rating buttons
                 const ratingButtons = lightbox.querySelectorAll('.rating-btn');
                 ratingButtons.forEach(btn => {
                     btn.classList.remove('selected');
-                    if (photoRatings[photoId] === btn.getAttribute('data-rating')) {
+                    if (rating && rating === btn.getAttribute('data-rating')) {
                         btn.classList.add('selected');
                     }
                 });
+                
+                // Update rating indicator
+                updatePhotoRatingIndicator(photoId, lightbox);
+                
+                // Update lightbox counters
+                updateLightboxCounters();
             }
             
-            // NEW: Update the thumbnail rating buttons if they exist
-            const photoElement = document.querySelector(`.photo-item[data-photo-id="${photoId}"]`);
-            if (photoElement) {
-                const thumbnailRatingButtons = photoElement.querySelectorAll('.thumbnail-rating-btn');
-                thumbnailRatingButtons.forEach(btn => {
-                    btn.classList.remove('selected');
-                    if (photoRatings[photoId] === btn.getAttribute('data-rating')) {
-                        btn.classList.add('selected');
-                    }
-                });
-            }
-            
-            // Set the flag for pending changes but DON'T schedule sync
-            // (we'll sync only when the lightbox is closed)
-            pendingSync = true;
+            // Update thumbnail indicators
+            updateThumbnailRatingIndicator(photoId, rating);
         }
+        
+        // 3. NEW: Update lightbox counters
+        function updateLightboxCounters() {
+            const sessionRatings = {
+                heart: 0,
+                thumbsUp: 0,
+                thinking: 0,
+                thumbsDown: 0
+            };
+            
+            // Count current ratings
+            for (const photoId in photoRatings) {
+                const rating = photoRatings[photoId];
+                if (sessionRatings[rating] !== undefined) {
+                    sessionRatings[rating]++;
+                }
+            }
+            
+            // Update counter displays
+            const ratingTypes = ['heart', 'thumbsUp', 'thinking', 'thumbsDown'];
+            ratingTypes.forEach(type => {
+                const counter = document.getElementById(`lightbox-${type}-count`);
+                if (counter) {
+                    counter.textContent = sessionRatings[type];
+                }
+            });
+        }
+        
+        // 4. NEW: Update thumbnail rating indicator
+        function updateThumbnailRatingIndicator(photoId, rating) {
+            const photoElement = document.querySelector(`.photo-item[data-photo-id="${photoId}"]`);
+            if (!photoElement) return;
+            
+            // Remove existing indicator
+            const existingIndicator = photoElement.querySelector('.thumbnail-rating-indicator');
+            if (existingIndicator) {
+                existingIndicator.remove();
+            }
+            
+            // Remove rated class
+            photoElement.classList.remove('photo-rated');
+            
+            if (rating) {
+                // Add new indicator
+                const indicator = document.createElement('div');
+                indicator.className = 'thumbnail-rating-indicator';
+                indicator.innerHTML = `✓ ${getRatingEmoji(rating)}`;
+                indicator.title = getRatingLabel(rating);
+                
+                photoElement.querySelector('.photo-container').appendChild(indicator);
+                photoElement.classList.add('photo-rated');
+            }
+            
+            // Update thumbnail rating buttons
+            const thumbnailRatingButtons = photoElement.querySelectorAll('.thumbnail-rating-btn');
+            thumbnailRatingButtons.forEach(btn => {
+                btn.classList.remove('selected');
+                if (rating && rating === btn.getAttribute('data-rating')) {
+                    btn.classList.add('selected');
+                }
+            });
+        }
+        
+        // 5. REPLACE loadRatingsFromFirebase() - Clean version
+        function loadRatingsFromFirebase() {
+            const userId = getUserIdentifier();
+            const galleryId = getGalleryId();
+            
+            if (!galleryId || !userId) {
+                console.log("Cannot load ratings without gallery ID and user ID");
+                return;
+            }
+            
+            const db = firebase.firestore();
+            
+            console.log("Loading ratings from Firebase...");
+            
+            db.collection('photoRatings')
+                .where('galleryId', '==', galleryId)
+                .where('userId', '==', userId)
+                .get()
+                .then((snapshot) => {
+                    // Clear existing ratings
+                    photoRatings = {};
+                    
+                    if (!snapshot.empty) {
+                        // Load only current user's ratings from Firebase
+                        snapshot.forEach(doc => {
+                            const data = doc.data();
+                            photoRatings[data.photoId] = data.rating;
+                        });
+                        
+                        console.log("Loaded", Object.keys(photoRatings).length, "ratings from Firebase");
+                    } else {
+                        console.log("No ratings found in Firebase for this user");
+                    }
+                    
+                    // Update UI
+                    updateRatingCounts();
+                    
+                    // Refresh photo grid to show rating indicators
+                    refreshPhotoGrid();
+                })
+                .catch(error => {
+                    console.error("Error loading ratings from Firebase:", error);
+                });
+        }
+
+
+        // Add this function (it was in the artifact but missing from your file)
+        function calculateGalleryTotals() {
+            const galleryId = getGalleryId();
+            if (!galleryId) return;
+            
+            const db = firebase.firestore();
+            
+            console.log("Calculating gallery totals...");
+            
+            // Get ALL ratings for this gallery
+            db.collection('photoRatings')
+                .where('galleryId', '==', galleryId)
+                .get()
+                .then((snapshot) => {
+                    const totals = {
+                        heart: 0,
+                        thumbsUp: 0,
+                        thinking: 0,
+                        thumbsDown: 0,
+                        totalUsers: new Set(),
+                        lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
+                    };
+                    
+                    if (!snapshot.empty) {
+                        snapshot.forEach(doc => {
+                            const data = doc.data();
+                            if (totals[data.rating] !== undefined) {
+                                totals[data.rating]++;
+                            }
+                            if (data.userId) {
+                                totals.totalUsers.add(data.userId);
+                            }
+                        });
+                    }
+                    
+                    // Convert Set to number
+                    totals.totalUsers = totals.totalUsers.size;
+                    
+                    console.log("Calculated totals:", totals);
+                    
+                    // Update display
+                    updateTotalRatingsDisplay(totals);
+                    
+                    // Save to counter document
+                    db.collection('galleryRatingCounts')
+                        .doc(galleryId)
+                        .set(totals)
+                        .catch(error => console.error("Error saving totals:", error));
+                })
+                .catch(error => {
+                    console.error("Error calculating totals:", error);
+                });
+        }
+        // 6. REPLACE updateGalleryRatingCounters() - Simple version
+
+        
+        // 7. NEW: Simple refresh function
+        function refreshAllCounters() {
+            // Update individual user counts
+            updateRatingCounts();
+            
+            // Update lightbox counters if open
+            updateLightboxCounters();
+            
+            // Recalculate gallery totals
+            setTimeout(() => {
+                calculateGalleryTotals();
+            }, 500); // Small delay to ensure Firebase write is complete
+        }
+        
+        // 8. REPLACE initRatingSync() - Simplified version
+        function initRatingSync() {
+            console.log("Initializing clean rating system...");
+            
+            // Load user's ratings from Firebase
+            loadRatingsFromFirebase();
+            
+            // Calculate gallery totals
+            calculateGalleryTotals();
+            
+            // Set up real-time updates for gallery totals
+            setupRealTimeCounters();
+            
+            // Remove localStorage cleanup
+            localStorage.removeItem('photoRatings');
+            
+            console.log("Rating system initialized");
+        }
+
+
         
     // Function to freeze gallery on first client interaction
         function freezeGalleryOnFirstInteraction(photoId) {
@@ -1465,388 +1649,28 @@
             });
         }
            // Modified scheduleSyncToFirebase to just set the flag without scheduling
-        function scheduleSyncToFirebase() {
-            // Set the flag that changes are pending
-            pendingSync = true;
-            
-            // Clear any existing timeout - we won't be scheduling a new one
-            if (syncTimeout) {
-                clearTimeout(syncTimeout);
-                syncTimeout = null;
-            }
-            
-            // We no longer schedule the timeout since we're only syncing on lightbox close
-        }
+      
         
         
         // Function to batch save ratings to Firebase
-      
-   // FIXED: Modified syncRatingsToFirebase to trigger counter recalculation
-        function syncRatingsToFirebase() {
-            const userId = getUserIdentifier();
-            const galleryId = getGalleryId();
-            
-            if (!galleryId || !userId || !pendingSync) return;
-            
-            pendingSync = false;
-            updateSyncButtonStatus('syncing');
-            
-            const db = firebase.firestore();
-            
-            // Get existing ratings for this gallery and user
-            db.collection('photoRatings')
-                .where('galleryId', '==', galleryId)
-                .where('userId', '==', userId)
-                .get()
-                .then((snapshot) => {
-                    const batch = db.batch();
-                    let changesMade = false;
-                    
-                    // Create a map of existing ratings
-                    const existingRatings = {};
-                    snapshot.forEach(doc => {
-                        const data = doc.data();
-                        existingRatings[data.photoId] = {
-                            rating: data.rating,
-                            docId: doc.id
-                        };
-                    });
-                    
-                    // Compare with local ratings and batch changes
-                    for (const photoId in photoRatings) {
-                        const localRating = photoRatings[photoId];
-                        
-                        if (existingRatings[photoId] && existingRatings[photoId].rating !== localRating) {
-                            // Update existing rating
-                            const docRef = db.collection('photoRatings').doc(existingRatings[photoId].docId);
-                            batch.update(docRef, { 
-                                rating: localRating,
-                                timestamp: firebase.firestore.FieldValue.serverTimestamp()
-                            });
-                            changesMade = true;
-                        } else if (!existingRatings[photoId]) {
-                            // Create new rating
-                            const docRef = db.collection('photoRatings').doc();
-                            batch.set(docRef, {
-                                userId: userId,
-                                photoId: photoId,
-                                galleryId: galleryId,
-                                rating: localRating,
-                                timestamp: firebase.firestore.FieldValue.serverTimestamp()
-                            });
-                            changesMade = true;
-                        }
-                        
-                        delete existingRatings[photoId];
-                    }
-                    
-                    // Handle deletions (ratings in Firebase but not in local)
-                    for (const photoId in existingRatings) {
-                        const docRef = db.collection('photoRatings').doc(existingRatings[photoId].docId);
-                        batch.delete(docRef);
-                        changesMade = true;
-                    }
-                    
-                    // Commit the batch if changes were made
-                    if (changesMade) {
-                        return batch.commit();
-                    } else {
-                        console.log("No changes to sync");
-                        return Promise.resolve();
-                    }
-                })
-                .then(() => {
-                    lastSyncTime = new Date();
-                    console.log("Ratings synchronized with Firebase");
-                    updateSyncButtonStatus('success');
-                    
-                    // FIXED: Always recalculate counters after any sync
-                    updateGalleryRatingCounters(galleryId);
-                })
-                .catch(error => {
-                    console.error("Error syncing ratings:", error);
-                    pendingSync = true;
-                    updateSyncButtonStatus('error');
-                });
-        }
-        
-        // Function to update gallery rating counters
-       
-        function updateGalleryRatingCounters(galleryId) {
-            if (!galleryId) return;
-            
-            const db = firebase.firestore();
-            
-            // Get ALL current ratings for this gallery (from all users)
-            db.collection('photoRatings')
-                .where('galleryId', '==', galleryId)
-                .get()
-                .then((snapshot) => {
-                    // Reset counts to zero
-                    const counts = {
-                        heart: 0,
-                        thumbsUp: 0,
-                        thinking: 0,
-                        thumbsDown: 0,
-                        totalUsers: new Set(),
-                        lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
-                    };
-                    
-                    // Only count if there are actual ratings
-                    if (!snapshot.empty) {
-                        snapshot.forEach(doc => {
-                            const data = doc.data();
-                            
-                            // Only count valid ratings
-                            if (data.rating && counts[data.rating] !== undefined) {
-                                counts[data.rating]++;
-                            }
-                            
-                            // Track unique users
-                            if (data.userId) {
-                                counts.totalUsers.add(data.userId);
-                            }
-                        });
-                    }
-                    
-                    // Convert Set to count before saving
-                    const totalUsersCount = counts.totalUsers.size;
-                    counts.totalUsers = totalUsersCount;
-                    
-                    console.log("Recalculated rating counts:", counts);
-                    
-                    // Store the CORRECT counts in the counter document
-                    return db.collection('galleryRatingCounts')
-                        .doc(galleryId)
-                        .set(counts);
-                })
-                .then(() => {
-                    console.log("Gallery rating counters updated successfully");
-                })
-                .catch(error => {
-                    console.error("Error updating rating counts:", error);
-                });
-        }
 
-
-            
-
-
-        // Function to load ratings from Firebase
-        function loadRatingsFromFirebase() {
-            const userId = getUserIdentifier();
-            const galleryId = getGalleryId();
-            
-            if (!galleryId || !userId) {
-                console.log("Cannot load ratings without gallery ID and user ID");
-                return;
-            }
-            
-            const db = firebase.firestore();
-            
-            // Show a loading indicator if you want
-            console.log("Loading ratings from Firebase...");
-            
-            db.collection('photoRatings')
-                .where('galleryId', '==', galleryId)
-                .where('userId', '==', userId)
-                .get()
-                .then((snapshot) => {
-                    if (snapshot.empty) {
-                        console.log("No ratings found in Firebase, using localStorage");
-                        return;
-                    }
-                    
-                    // Create a map of Firebase ratings
-                    const firebaseRatings = {};
-                    snapshot.forEach(doc => {
-                        const data = doc.data();
-                        firebaseRatings[data.photoId] = data.rating;
-                    });
-                    
-                    // Merge with local ratings - prioritize Firebase for conflicts
-                    const savedRatings = localStorage.getItem('photoRatings');
-                    let localRatings = {};
-                    
-                    if (savedRatings) {
-                        try {
-                            localRatings = JSON.parse(savedRatings);
-                            
-                            // For any ratings that are in localStorage but not in Firebase,
-                            // we'll consider them pending changes
-                            let pendingChanges = false;
-                            
-                            for (const photoId in localRatings) {
-                                if (!firebaseRatings[photoId]) {
-                                    firebaseRatings[photoId] = localRatings[photoId];
-                                    pendingChanges = true;
-                                }
-                            }
-                            
-                            if (pendingChanges) {
-                                pendingSync = true;
-                                scheduleSyncToFirebase();
-                            }
-                        } catch (err) {
-                            console.error("Error parsing local ratings:", err);
-                        }
-                    }
-                    
-                    // Update the global ratings object
-                    photoRatings = firebaseRatings;
-                    
-                    // Save the merged result back to localStorage
-                    try {
-                        localStorage.setItem('photoRatings', JSON.stringify(photoRatings));
-                    } catch (err) {
-                        console.error("Error saving ratings to localStorage:", err);
-                    }
-                    
-                    // Update UI
-                    updateRatingCounts();
-                    console.log("Ratings loaded from Firebase");
-                })
-                .catch(error => {
-                    console.error("Error loading ratings from Firebase:", error);
-                });
-        }
         
         // Function to add a sync button to the UI
-        function addSyncButton() {
-            const syncButton = document.createElement('button');
-            syncButton.id = 'syncButton';
-            syncButton.className = 'sync-btn';
-            syncButton.innerHTML = '<i class="fas fa-sync-alt"></i>';
-            syncButton.setAttribute('aria-label', 'Sync ratings');
-            syncButton.title = 'Sync ratings with server';
-            
-            syncButton.addEventListener('click', function() {
-                // Show syncing indicator
-                this.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-                
-                // Force immediate sync
-                pendingSync = true;
-                syncRatingsToFirebase();
-            });
-            
-            document.body.appendChild(syncButton);
-            return syncButton;
-        }
+       
         
         
 // Function to update the sync button status
-        function updateSyncButtonStatus(status) {
-            const syncButton = document.getElementById('syncButton');
-            if (!syncButton) return;
-            
-            switch (status) {
-                case 'syncing':
-                    syncButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-                    syncButton.style.backgroundColor = '#3498db';
-                    break;
-                case 'success':
-                    syncButton.innerHTML = '<i class="fas fa-check"></i>';
-                    syncButton.style.backgroundColor = '#27ae60';
-                    setTimeout(() => {
-                        syncButton.innerHTML = '<i class="fas fa-sync-alt"></i>';
-                        syncButton.style.backgroundColor = '#3498db';
-                    }, 2000);
-                    break;
-                case 'error':
-                    syncButton.innerHTML = '<i class="fas fa-exclamation-triangle"></i>';
-                    syncButton.style.backgroundColor = '#e74c3c';
-                    setTimeout(() => {
-                        syncButton.innerHTML = '<i class="fas fa-sync-alt"></i>';
-                        syncButton.style.backgroundColor = '#3498db';
-                    }, 2000);
-                    break;
-                default:
-                    syncButton.innerHTML = '<i class="fas fa-sync-alt"></i>';
-                    syncButton.style.backgroundColor = '#3498db';
-            }
-            
-            // Update the tooltip to show last sync time
-            if (lastSyncTime) {
-                syncButton.title = `Last synced: ${lastSyncTime.toLocaleTimeString()}`;
-            }
-        }
+
         
         // Function to set up periodic sync
-        function setupPeriodicSync() {
-            if (syncInterval) {
-                clearInterval(syncInterval);
-            }
-            
-            // Sync every 5 minutes
-            syncInterval = setInterval(() => {
-                if (pendingSync) {
-                    syncRatingsToFirebase();
-                }
-            }, 5 * 60 * 1000); // 5 minutes
-        }
+ 
         
         // Initialize the ratings synchronization system
-        function initRatingSync() {
-            // First load local ratings
-            loadSavedRatings();
-            
-            // Then attempt to fetch from Firebase
-            loadRatingsFromFirebase();
-            
-            // Add a sync button to the UI
-            addSyncButton();
-            
-            // Set up periodic sync
-            setupPeriodicSync();
-            
-            // Load total ratings from all users
-            loadTotalRatings();
-            
-            // Set up sync before page unload
-            window.addEventListener('beforeunload', function() {
-                if (pendingSync) {
-                    syncRatingsToFirebase();
-                }
-            });
-        }
+    
         
         // Add this function to load total ratings counts from all users
        
-        function loadTotalRatings() {
-            const galleryId = getGalleryId();
-            if (!galleryId) return;
-            
-            const db = firebase.firestore();
-            
-            // Force a recalculation of counters first
-            updateGalleryRatingCounters(galleryId);
-            
-            // Then load the updated counters
-            setTimeout(() => {
-                db.collection('galleryRatingCounts')
-                    .doc(galleryId)
-                    .get()
-                    .then(doc => {
-                        if (doc.exists) {
-                            console.log("Loading updated rating counts:", doc.data());
-                            updateTotalRatingsDisplay(doc.data());
-                        } else {
-                            console.log("No rating counts document found");
-                            // Create empty display
-                            updateTotalRatingsDisplay({
-                                heart: 0,
-                                thumbsUp: 0,
-                                thinking: 0,
-                                thumbsDown: 0,
-                                totalUsers: 0
-                            });
-                        }
-                    })
-                    .catch(error => {
-                        console.error("Error loading rating counts:", error);
-                    });
-            }, 1000); // Give time for the recalculation to complete
-        }
+
 
 
             
@@ -2166,9 +1990,7 @@
                 
                 // Update current year in footer
                 document.getElementById('currentYear').textContent = new Date().getFullYear();
-                
-                // Load saved ratings
-                loadSavedRatings();
+              
                 
                 // Make sure ratingSummary is initially hidden if no ratings
                 const ratingSummary = document.getElementById('ratingSummary');
@@ -2802,20 +2624,7 @@
             // Stop any running slideshow
             stopSlideshow();
             
-            // Force immediate synchronization of any pending ratings
-            if (pendingSync) {
-                // Clear any pending timeout
-                if (syncTimeout) {
-                    clearTimeout(syncTimeout);
-                    syncTimeout = null;
-                }
-                
-                // Show a syncing toast
-                showToast("Syncing your ratings...", 'info');
-                
-                // Immediately sync ratings
-                syncRatingsToFirebase();
-            }
+        
             
             const lightbox = document.getElementById('photoLightbox');
             if (lightbox) {
