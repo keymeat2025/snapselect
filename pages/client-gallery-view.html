@@ -1205,9 +1205,21 @@
             
             loadFromStorage() {
                 try {
-                    const stored = localStorage.getItem('photoRatings');
+                    // Try new key first, fallback to old key for migration
+                    let stored = localStorage.getItem('photoRatings_v2');
+                    if (!stored) {
+                        // Migrate from old key
+                        stored = localStorage.getItem('photoRatings');
+                        if (stored) {
+                            console.log('Migrating from old localStorage key');
+                            // Save to new key
+                            localStorage.setItem('photoRatings_v2', stored);
+                        }
+                    }
+                    
                     if (stored) {
                         this.ratings = JSON.parse(stored);
+                        console.log('Loaded ratings from storage:', Object.keys(this.ratings).length);
                     }
                 } catch (error) {
                     console.error('Error loading ratings:', error);
@@ -1217,7 +1229,11 @@
             
             saveToStorage() {
                 try {
-                    localStorage.setItem('photoRatings', JSON.stringify(this.ratings));
+                    // Save to new key
+                    localStorage.setItem('photoRatings_v2', JSON.stringify(this.ratings));
+                    // Also update old system for compatibility during transition
+                    photoRatings = { ...this.ratings };
+                    localStorage.setItem('photoRatings', JSON.stringify(photoRatings));
                 } catch (error) {
                     console.error('Error saving ratings:', error);
                 }
@@ -1324,6 +1340,7 @@
         
         // Initialize the improved rating system
         function initializeImprovedRatingSystem() {
+        
             ratingManager = new PhotoRatingManager();
             
             // Copy existing ratings to new system
@@ -1333,6 +1350,19 @@
                 console.log('Migrated existing ratings to new system');
             }
             
+            // IMPORTANT: Disable old Firebase sync to prevent conflicts
+            if (syncInterval) {
+                clearInterval(syncInterval);
+                syncInterval = null;
+                console.log('Disabled old periodic sync');
+            }
+            
+            if (syncTimeout) {
+                clearTimeout(syncTimeout);
+                syncTimeout = null;
+                console.log('Cleared old sync timeout');
+            }
+            
             // Set up UI update listener
             ratingManager.onRatingChange((photoId, newRating, oldRating) => {
                 updateAllRatingUI(photoId, newRating, oldRating);
@@ -1340,6 +1370,42 @@
             
             console.log('Improved rating system initialized');
         }
+
+
+        function disableOldRatingSystem() {
+            // Store original functions
+            const originalSyncRatingsToFirebase = syncRatingsToFirebase;
+            const originalScheduleSyncToFirebase = scheduleSyncToFirebase;
+            const originalLoadRatingsFromFirebase = loadRatingsFromFirebase;
+            
+            // Override old functions to prevent conflicts
+            syncRatingsToFirebase = function() {
+                console.log('Old Firebase sync disabled - using new system');
+                return Promise.resolve();
+            };
+            
+            scheduleSyncToFirebase = function() {
+                console.log('Old sync scheduler disabled - using new system');
+            };
+            
+            loadRatingsFromFirebase = function() {
+                console.log('Old Firebase loading disabled - using new system');
+            };
+            
+            // Clear any pending old operations
+            if (syncTimeout) {
+                clearTimeout(syncTimeout);
+                syncTimeout = null;
+            }
+            
+            if (syncInterval) {
+                clearInterval(syncInterval);
+                syncInterval = null;
+            }
+            
+            console.log('Old rating system functions disabled');
+        }
+
         
         // Update all UI elements when rating changes
         function updateAllRatingUI(photoId, newRating, oldRating) {
@@ -2299,108 +2365,40 @@
 
         
         
-        function createRatingButton(emoji, label, ratingValue, photoId) {
-            // Create a container for the button and its label
-            const btnContainer = document.createElement('div');
-            btnContainer.className = 'rating-btn-container';
-            btnContainer.style.display = 'flex';
-            btnContainer.style.flexDirection = 'column';
-            btnContainer.style.alignItems = 'center';
-            btnContainer.style.gap = '3px';
+        
+        function createSafeRatingButton(emoji, label, ratingValue, photoId) {
+            const button = document.createElement('button');
+            button.className = 'rating-btn';
+            button.innerHTML = emoji;
+            button.setAttribute('aria-label', label);
+            button.setAttribute('data-rating', ratingValue);
+            button.title = label;
             
-            // Create the button itself (same as before)
-            const btn = document.createElement('button');
-            btn.className = 'rating-btn';
-            btn.innerHTML = emoji;
-            btn.setAttribute('aria-label', label);
-            btn.setAttribute('data-rating', ratingValue);
-            
-            // Check if this is the currently selected rating
-            const isSelected = photoRatings[photoId] === ratingValue;
-            if (isSelected) {
-                btn.classList.add('selected');
+            // Check current rating safely
+            const currentRating = ratingManager ? ratingManager.getRating(photoId) : photoRatings[photoId];
+            if (currentRating === ratingValue) {
+                button.classList.add('selected');
             }
             
-            // Create a label element that shows when selected
-            const ratingLabel = document.createElement('div');
-            ratingLabel.className = 'rating-btn-label';
-            ratingLabel.textContent = label;
-            ratingLabel.style.fontSize = '10px';
-            ratingLabel.style.color = 'white';
-            ratingLabel.style.maxWidth = '60px';
-            ratingLabel.style.textAlign = 'center';
-            ratingLabel.style.overflow = 'hidden';
-            ratingLabel.style.textOverflow = 'ellipsis';
-            ratingLabel.style.whiteSpace = 'nowrap';
-            
-            // Only show the label for the currently selected rating
-            ratingLabel.style.visibility = isSelected ? 'visible' : 'hidden';
-            ratingLabel.style.opacity = isSelected ? '1' : '0';
-            ratingLabel.style.height = isSelected ? 'auto' : '0';
-            ratingLabel.style.transition = 'all 0.2s ease';
-            
-            // Add a selection indicator (checkmark)
-            const selectionIndicator = document.createElement('div');
-            selectionIndicator.className = 'rating-selection-indicator';
-            selectionIndicator.innerHTML = '✓';
-            selectionIndicator.style.fontSize = '12px';
-            selectionIndicator.style.color = '#4CAF50';
-            selectionIndicator.style.fontWeight = 'bold';
-            selectionIndicator.style.position = 'absolute';
-            selectionIndicator.style.top = '-8px';
-            selectionIndicator.style.right = '-8px';
-            selectionIndicator.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
-            selectionIndicator.style.borderRadius = '50%';
-            selectionIndicator.style.width = '20px';
-            selectionIndicator.style.height = '20px';
-            selectionIndicator.style.display = 'flex';
-            selectionIndicator.style.alignItems = 'center';
-            selectionIndicator.style.justifyContent = 'center';
-            selectionIndicator.style.opacity = isSelected ? '1' : '0';
-            selectionIndicator.style.transition = 'opacity 0.2s ease';
-            
-            // Add event handler to button
-            btn.addEventListener('click', function(e) {
+            // Single event handler with error handling
+            button.addEventListener('click', function(e) {
                 e.stopPropagation();
                 
-                // Update rating in storage
-                setPhotoRating(photoId, ratingValue);
-                
-                // Update visual selection of all buttons
-                const allRatingBtnContainers = document.querySelectorAll('.rating-btn-container');
-                allRatingBtnContainers.forEach(container => {
-                    const containerButton = container.querySelector('.rating-btn');
-                    const containerLabel = container.querySelector('.rating-btn-label');
-                    const containerIndicator = container.querySelector('.rating-selection-indicator');
-                    
-                    const isThisButtonSelected = photoRatings[photoId] === containerButton.getAttribute('data-rating');
-                    
-                    // Update button selection state
-                    if (isThisButtonSelected) {
-                        containerButton.classList.add('selected');
-                        containerLabel.style.visibility = 'visible';
-                        containerLabel.style.opacity = '1';
-                        containerLabel.style.height = 'auto';
-                        containerIndicator.style.opacity = '1';
+                try {
+                    if (ratingManager) {
+                        ratingManager.setRating(photoId, ratingValue);
                     } else {
-                        containerButton.classList.remove('selected');
-                        containerLabel.style.visibility = 'hidden';
-                        containerLabel.style.opacity = '0';
-                        containerLabel.style.height = '0';
-                        containerIndicator.style.opacity = '0';
+                        // Fallback to old system (should not happen after fixes)
+                        console.warn('Rating manager not available, using fallback');
+                        setPhotoRating(photoId, ratingValue);
                     }
-                });
+                } catch (error) {
+                    console.error('Error setting rating:', error);
+                    showToast('Failed to save rating', 'error');
+                }
             });
             
-            // Add elements to container
-            btnContainer.appendChild(btn);
-            btnContainer.appendChild(selectionIndicator);
-            btnContainer.appendChild(ratingLabel);
-            
-            // Position buttons container
-            btnContainer.style.position = 'relative';
-            
-            return btnContainer;
+            return button;
         }
 
         
@@ -2428,10 +2426,10 @@
             buttonsContainer.style.justifyContent = 'center';
             
             // Create rating buttons with their labels
-            const heartBtn = createRatingButton('❤️', 'Must Have', 'heart', photoId);
-            const thumbsUpBtn = createRatingButton('👍', 'Would Like', 'thumbsUp', photoId);
-            const thinkingBtn = createRatingButton('🤔', 'Alternative', 'thinking', photoId);
-            const thumbsDownBtn = createRatingButton('👎', 'Not Interested', 'thumbsDown', photoId);
+            const heartBtn = createSafeRatingButton('❤️', 'Must Have', 'heart', photoId);
+            const thumbsUpBtn = createSafeRatingButton('👍', 'Would Like', 'thumbsUp', photoId);
+            const thinkingBtn = createSafeRatingButton('🤔', 'Alternative', 'thinking', photoId);
+            const thumbsDownBtn = createSafeRatingButton('👎', 'Not Interested', 'thumbsDown', photoId);
             
             buttonsContainer.appendChild(heartBtn);
             buttonsContainer.appendChild(thumbsUpBtn);
@@ -2504,7 +2502,7 @@
 
 // Firebase initialization
         (function() {
-            // Firebase configuration
+       
             const firebaseConfig = {
                 apiKey: "AIzaSyCAl15Yq8Y727PKknJNs0Q8UZbRRbcWkMo",
                 authDomain: "snapselect01-eb74c.firebaseapp.com",
@@ -2515,43 +2513,42 @@
                 measurementId: "G-J5XGE71VF6"
             };
             
-            // Initialize Firebase
             try {
                 if (firebase.apps.length === 0) {
                     firebase.initializeApp(firebaseConfig);
                     console.log("Firebase initialized successfully");
                 }
                 
-                // Update current year in footer
                 document.getElementById('currentYear').textContent = new Date().getFullYear();
                 
-                // Load saved ratings
+                // STEP 1: Load old ratings for migration
                 loadSavedRatings();
-
+                
+                // STEP 2: Initialize improved system (will migrate old ratings)
                 initializeImprovedRatingSystem();
                 
-                // Make sure ratingSummary is initially hidden if no ratings
+                // STEP 3: Disable old system to prevent conflicts
+                disableOldRatingSystem();
+                
+                // STEP 4: Update rating summary
                 const ratingSummary = document.getElementById('ratingSummary');
                 if (ratingSummary) {
                     const totalRatings = Object.values(ratingCounts).reduce((a, b) => a + b, 0);
                     ratingSummary.style.display = totalRatings > 0 ? 'flex' : 'none';
                 }
                 
-                // IMPORTANT: For client gallery view, we should NEVER show the welcome dashboard
-                // The welcome dashboard is only for photographers managing their galleries
-                
-                // Hide welcome dashboard immediately - it should never be shown on client view
+                // Hide welcome dashboard
                 const welcomeDashboard = document.getElementById('welcomeDashboard');
                 if (welcomeDashboard) {
                     welcomeDashboard.style.display = 'none';
-                    welcomeDashboard.remove(); // Remove it entirely from the DOM
+                    welcomeDashboard.remove();
                 }
                 
-                // Directly check gallery access and load
+                // Load gallery - DON'T call initRatingSync() anymore
                 if (checkGalleryAccess()) {
                     loadSharedGallery();
-                    // Initialize rating synchronization
-                    initRatingSync();
+                    // Only load total ratings, don't init old sync
+                    loadTotalRatings();
                 }
                 
             } catch (error) {
@@ -2559,6 +2556,7 @@
                 showError("Failed to initialize the gallery. Please try again later.");
             }
         })();
+                
 
         
         // Load shared gallery
@@ -2929,8 +2927,9 @@
                     }
                     
                     // Initialize rating sync and load total ratings
-                    initRatingSync();
-                    
+                    //initRatingSync();
+
+                    loadTotalRatings();
                     // Set up real-time updates for gallery counts
                     setupRealTimeCounters();
                 })
