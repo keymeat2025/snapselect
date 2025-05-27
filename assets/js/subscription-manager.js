@@ -1976,6 +1976,7 @@ function updatePlansDisplay(plans) {
         <!--<th>Storage</th>-->
        
         <th>Photos & Sharing</th>
+        <th>Client Ratings</th>
         <th>Actions</th>
       </tr>
     </thead>
@@ -2029,6 +2030,12 @@ function updatePlansDisplay(plans) {
         ${formatPhotoUsage(plan.photosUploaded || 0, SUBSCRIPTION_PLANS[plan.planType]?.photosPerGallery || 50)}
         ${getSharingHTML(plan)}
       </td>
+
+
+      <td class="plan-client-ratings">
+        <div class="ratings-loading">Loading ratings...</div>
+      </td>
+      
       <td class="plan-actions-cell">
         <button class="btn view-gallery-btn" data-client-id="${plan.clientId}">View Gallery</button>
         ${plan.status === PLAN_STATUS.EXPIRED ?
