@@ -2046,6 +2046,10 @@ function updatePlansDisplay(plans) {
     `;
     
     tableBody.appendChild(planRow);
+   // After creating all plan rows, update ratings
+    setTimeout(() => {
+      updateAllRatingsDisplay();
+    }, 100);
   });
   
   plansContainer.appendChild(plansTable);
@@ -2356,6 +2360,102 @@ async function copyFullShareUrl(fullUrl, clientName) {
     document.body.removeChild(textArea);
     showSuccessMessage(`Full share link copied for ${clientName}!`);
     console.log("Share link copied (fallback):", fullUrl);
+  }
+}
+
+
+async function loadGalleryRatings(galleryId) {
+  try {
+    if (!galleryId) {
+      return { 
+        display: '<span class="no-ratings">No gallery</span>',
+        counts: { heart: 0, thumbsUp: 0, thinking: 0, thumbsDown: 0, total: 0 }
+      };
+    }
+
+    const db = firebase.firestore();
+    
+    // Query all ratings for this gallery from all users
+    const ratingsSnapshot = await db.collection('photoRatings')
+      .where('galleryId', '==', galleryId)
+      .get();
+
+    if (ratingsSnapshot.empty) {
+      return { 
+        display: '<span class="no-ratings">No ratings yet</span>',
+        counts: { heart: 0, thumbsUp: 0, thinking: 0, thumbsDown: 0, total: 0 }
+      };
+    }
+
+    // Count each rating type
+    const ratingCounts = {
+      heart: 0,
+      thumbsUp: 0,
+      thinking: 0,
+      thumbsDown: 0,
+      total: 0
+    };
+
+    // Aggregate ratings from all users
+    ratingsSnapshot.forEach(doc => {
+      const rating = doc.data().rating;
+      if (ratingCounts[rating] !== undefined) {
+        ratingCounts[rating]++;
+        ratingCounts.total++;
+      }
+    });
+
+    // Format display - only show ratings that exist
+    const ratingParts = [];
+    if (ratingCounts.heart > 0) ratingParts.push(`❤️ ${ratingCounts.heart}`);
+    if (ratingCounts.thumbsUp > 0) ratingParts.push(`👍 ${ratingCounts.thumbsUp}`);
+    if (ratingCounts.thinking > 0) ratingParts.push(`🤔 ${ratingCounts.thinking}`);
+    if (ratingCounts.thumbsDown > 0) ratingParts.push(`👎 ${ratingCounts.thumbsDown}`);
+
+    const display = ratingParts.length > 0 ? 
+      `<div class="ratings-summary">${ratingParts.join(' ')}</div>` :
+      '<span class="no-ratings">No ratings yet</span>';
+
+    return {
+      display: display,
+      counts: ratingCounts
+    };
+
+  } catch (error) {
+    console.error('Error loading gallery ratings:', error);
+    return { 
+      display: '<span class="ratings-error">Error loading</span>',
+      counts: { heart: 0, thumbsUp: 0, thinking: 0, thumbsDown: 0, total: 0 }
+    };
+  }
+}
+
+/**
+ * Update ratings display for all visible plan rows
+ * Called after the table is created
+ */
+async function updateAllRatingsDisplay() {
+  const ratingCells = document.querySelectorAll('.plan-client-ratings');
+  
+  for (const cell of ratingCells) {
+    const row = cell.closest('tr');
+    if (!row) continue;
+
+    // Find the plan data for this row
+    const viewGalleryBtn = row.querySelector('.view-gallery-btn');
+    if (!viewGalleryBtn) continue;
+
+    const clientId = viewGalleryBtn.getAttribute('data-client-id');
+    
+    // Find the plan for this client
+    const plan = allPlans.find(p => p.clientId === clientId);
+    if (plan && plan.galleryId) {
+      // Load ratings for this gallery
+      const ratingsData = await loadGalleryRatings(plan.galleryId);
+      cell.innerHTML = ratingsData.display;
+    } else {
+      cell.innerHTML = '<span class="no-ratings">No gallery</span>';
+    }
   }
 }
 
