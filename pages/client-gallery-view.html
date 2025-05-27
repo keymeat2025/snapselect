@@ -1480,6 +1480,43 @@
 
         // Add this function (it was in the artifact but missing from your file)
      
+        
+        // 6. REPLACE updateGalleryRatingCounters() - Simple version
+
+        
+        // 7. NEW: Simple refresh function
+        function refreshAllCounters() {
+            // Update individual user counts
+            updateRatingCounts();
+            
+            // Update lightbox counters if open
+            updateLightboxCounters();
+            
+            // Recalculate gallery totals
+            setTimeout(() => {
+                calculateGalleryTotals();
+            }, 500); // Small delay to ensure Firebase write is complete
+        }
+        
+        // 8. REPLACE initRatingSync() - Simplified version
+        function initRatingSync() {
+            console.log("Initializing clean rating system...");
+            
+            // Load user's ratings from Firebase
+            loadRatingsFromFirebase();
+            
+            // Calculate gallery totals
+            calculateGalleryTotals();
+            
+            // Set up real-time updates for gallery totals
+            setupRealTimeCounters();
+            
+            // Remove localStorage cleanup
+            localStorage.removeItem('photoRatings');
+            
+            console.log("Rating system initialized");
+        }
+
         function calculateGalleryTotals() {
             const galleryId = getGalleryId();
             if (!galleryId) return;
@@ -1551,43 +1588,6 @@
                     console.error("Error calculating totals:", error);
                 });
         }
-        // 6. REPLACE updateGalleryRatingCounters() - Simple version
-
-        
-        // 7. NEW: Simple refresh function
-        function refreshAllCounters() {
-            // Update individual user counts
-            updateRatingCounts();
-            
-            // Update lightbox counters if open
-            updateLightboxCounters();
-            
-            // Recalculate gallery totals
-            setTimeout(() => {
-                calculateGalleryTotals();
-            }, 500); // Small delay to ensure Firebase write is complete
-        }
-        
-        // 8. REPLACE initRatingSync() - Simplified version
-        function initRatingSync() {
-            console.log("Initializing clean rating system...");
-            
-            // Load user's ratings from Firebase
-            loadRatingsFromFirebase();
-            
-            // Calculate gallery totals
-            calculateGalleryTotals();
-            
-            // Set up real-time updates for gallery totals
-            setupRealTimeCounters();
-            
-            // Remove localStorage cleanup
-            localStorage.removeItem('photoRatings');
-            
-            console.log("Rating system initialized");
-        }
-
-
         
     // Function to freeze gallery on first client interaction
         function freezeGalleryOnFirstInteraction(photoId) {
