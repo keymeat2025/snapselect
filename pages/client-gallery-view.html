@@ -1126,6 +1126,21 @@
         
         // Function to generate or retrieve a user identifier
         function getUserIdentifier() {
+          
+            // Check if we have a password-based session first
+            const galleryId = getGalleryId();
+            const urlParams = new URLSearchParams(window.location.search);
+            const shareId = urlParams.get('share');
+            
+            if (galleryId && shareId) {
+                // Check for password-based user ID in sessionStorage
+                const passwordUserId = sessionStorage.getItem(`user_id_${shareId}`);
+                if (passwordUserId) {
+                    return passwordUserId;
+                }
+            }
+            
+            // Fallback to localStorage method (existing behavior)
             let userId = localStorage.getItem('user_id');
             if (!userId) {
                 userId = 'user_' + Math.random().toString(36).substring(2, 15);
@@ -2054,9 +2069,14 @@
                         // Set up password form submission
                         setupPasswordHandling(sharedGallery, shareId);
                     } else {
+                     
                         // No password needed, load gallery directly
                         // First, store access in session storage
                         sessionStorage.setItem(`gallery_access_${shareId}`, 'granted');
+                        
+                        // Generate consistent user ID from gallery ID only (for non-password galleries)
+                        const consistentUserId = 'user_' + btoa('gallery_' + sharedGallery.galleryId).replace(/[^a-zA-Z0-9]/g, '').substring(0, 15);
+                        sessionStorage.setItem(`user_id_${shareId}`, consistentUserId);
                         
                         // Load gallery content
                         loadGalleryContent(sharedGallery.galleryId, sharedGallery.photographerId);
@@ -2092,11 +2112,17 @@
                 }
                 
                 if (password === sharedGallery.password) {
+         
                     // Password correct, store access token in session storage
                     sessionStorage.setItem(`gallery_access_${shareId}`, 'granted');
                     
+                    // Generate consistent user ID from password + gallery combination
+                    const consistentUserId = 'user_' + btoa(password + '_' + sharedGallery.galleryId).replace(/[^a-zA-Z0-9]/g, '').substring(0, 15);
+                    sessionStorage.setItem(`user_id_${shareId}`, consistentUserId);
+                    
                     // Load the gallery
                     loadGalleryContent(sharedGallery.galleryId, sharedGallery.photographerId);
+
                 } else {
                     // Show error
                     passwordError.textContent = 'Incorrect password. Please try again.';
