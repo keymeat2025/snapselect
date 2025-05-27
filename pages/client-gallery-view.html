@@ -1221,6 +1221,7 @@
    
         
         function updateRatingCounts() {
+     
             // Reset counts
             ratingCounts = {
                 heart: 0,
@@ -1242,7 +1243,9 @@
             document.getElementById('thinkingCount').textContent = ratingCounts.thinking;
             document.getElementById('thumbsDownCount').textContent = ratingCounts.thumbsDown;
             
-          
+            // ADD THIS MISSING LINE:
+            const totalRatings = Object.values(ratingCounts).reduce((a, b) => a + b, 0);
+            document.getElementById('ratingSummary').style.display = totalRatings > 0 ? 'flex' : 'none';
         }
 
      
