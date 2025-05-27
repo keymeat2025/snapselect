@@ -1245,7 +1245,8 @@
         
         function updateRatingCounts() {
      
-            // Reset counts
+  
+    // Reset counts
             ratingCounts = {
                 heart: 0,
                 thumbsUp: 0,
@@ -1260,21 +1261,27 @@
                 }
             });
             
+            console.log("Rating counts:", ratingCounts); // ADD THIS
+            console.log("Photo ratings:", photoRatings); // ADD THIS
+            
             // Update display
             document.getElementById('heartCount').textContent = ratingCounts.heart;
             document.getElementById('thumbsUpCount').textContent = ratingCounts.thumbsUp;
             document.getElementById('thinkingCount').textContent = ratingCounts.thinking;
             document.getElementById('thumbsDownCount').textContent = ratingCounts.thumbsDown;
             
-            // ADD THIS MISSING LINE:
             const totalRatings = Object.values(ratingCounts).reduce((a, b) => a + b, 0);
+            console.log("Total ratings:", totalRatings); // ADD THIS
+            
             document.getElementById('ratingSummary').style.display = totalRatings > 0 ? 'flex' : 'none';
-
+        
             // Update selection progress
             const totalSelections = Object.values(ratingCounts).reduce((a, b) => a + b, 0);
             const totalPhotos = allGalleryPhotos.length;
             document.getElementById('totalSelectionsCount').textContent = totalSelections;
             document.getElementById('totalPhotosCount').textContent = totalPhotos;
+            
+            console.log(`Selection progress: ${totalSelections} / ${totalPhotos}`); // ADD THIS
         }
 
      
