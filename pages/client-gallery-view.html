@@ -1018,6 +1018,13 @@
         .photo-rated {
             box-shadow: 0 0 0 3px #3498db;
         }
+
+        .selection-progress {
+            margin-top: 10px;
+            font-weight: bold;
+            color: white;
+            text-align: center;
+        }
     </style>
 </head>
 <body>
@@ -1033,6 +1040,7 @@
         <div class="rating-count"><span>👍</span><span id="thumbsUpCount">0</span></div>
         <div class="rating-count"><span>🤔</span><span id="thinkingCount">0</span></div>
         <div class="rating-count"><span>👎</span><span id="thumbsDownCount">0</span></div>
+        <div class="selection-progress"><span id="totalSelectionsCount">0</span> / <span id="totalPhotosCount">0</span> photos selected</div>
     </div>
 
 
@@ -1260,7 +1268,13 @@
             
             // ADD THIS MISSING LINE:
             const totalRatings = Object.values(ratingCounts).reduce((a, b) => a + b, 0);
-            document.getElementById('ratingSummary').style.display = totalRatings > 0 ? 'flex' : 'none';
+           // document.getElementById('ratingSummary').style.display = totalRatings > 0 ? 'flex' : 'none';
+
+            // Update selection progress
+            const totalSelections = Object.values(ratingCounts).reduce((a, b) => a + b, 0);
+            const totalPhotos = allGalleryPhotos.length;
+            document.getElementById('totalSelectionsCount').textContent = totalSelections;
+            document.getElementById('totalPhotosCount').textContent = totalPhotos;
         }
 
      
