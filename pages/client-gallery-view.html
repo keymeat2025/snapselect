@@ -1518,74 +1518,70 @@
             console.log("Rating system initialized");
         }
 
+        
+      // REPLACE your calculateGalleryTotals() function with this:
         function calculateGalleryTotals() {
             const galleryId = getGalleryId();
             if (!galleryId) return;
             
             const db = firebase.firestore();
             
-            console.log("Finding latest user who rated photos...");
+            console.log("Calculating gallery totals for all users...");
             
-            // First, find the most recent rating to get the latest user
+            // Simple query - get ALL ratings for this gallery (no orderBy needed)
             db.collection('photoRatings')
                 .where('galleryId', '==', galleryId)
-                .orderBy('timestamp', 'desc') // Get most recent rating first
-                .limit(1)
                 .get()
                 .then((snapshot) => {
-                    if (snapshot.empty) {
-                        console.log("No ratings found in gallery");
-                        return;
-                    }
-                    
-                    // Get the latest user who rated
-                    const latestRating = snapshot.docs[0].data();
-                    const latestUserId = latestRating.userId;
-                    
-                    console.log("Latest user who rated:", latestUserId);
-                    
-                    // Now get ALL ratings from that latest user
-                    return db.collection('photoRatings')
-                        .where('galleryId', '==', galleryId)
-                        .where('userId', '==', latestUserId) // Get ratings from latest user only
-                        .get();
-                })
-                .then((userSnapshot) => {
-                    if (!userSnapshot) return; // No ratings found
-                    
                     const totals = {
                         heart: 0,
                         thumbsUp: 0,
                         thinking: 0,
                         thumbsDown: 0,
-                        totalUsers: 1, // Always 1 since it's just latest user
-                        latestUserId: null, // Track which user these totals represent
+                        totalUsers: 0,
+                        totalRatings: 0,
                         lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
                     };
                     
-                    if (!userSnapshot.empty) {
-                        // Count ratings from latest user
-                        userSnapshot.forEach(doc => {
+                    if (!snapshot.empty) {
+                        const uniqueUsers = new Set();
+                        
+                        // Count all ratings from all users
+                        snapshot.forEach(doc => {
                             const data = doc.data();
-                            if (totals[data.rating] !== undefined) {
-                                totals[data.rating]++;
+                            const rating = data.rating;
+                            const userId = data.userId;
+                            
+                            // Count the rating
+                            if (totals[rating] !== undefined) {
+                                totals[rating]++;
+                                totals.totalRatings++;
                             }
-                            totals.latestUserId = data.userId; // Store which user these totals represent
+                            
+                            // Track unique users
+                            if (userId) {
+                                uniqueUsers.add(userId);
+                            }
                         });
+                        
+                        totals.totalUsers = uniqueUsers.size;
+                        
+                        console.log("Gallery totals calculated:", totals);
+                    } else {
+                        console.log("No ratings found in gallery");
                     }
-                    
-                    console.log("Gallery totals from latest user:", totals);
                     
                     // Update display
                     updateTotalRatingsDisplay(totals);
                     
-                    // Save to counter document with latest user's data
-          
-                     // Save to galleries document with latest user's data
+                    // Save to galleries document
                     db.collection('galleries')
                         .doc(galleryId)
                         .update({
                             ratingTotals: totals
+                        })
+                        .then(() => {
+                            console.log("Rating totals saved to galleries collection!");
                         })
                         .catch(error => console.error("Error saving totals:", error));
                 })
