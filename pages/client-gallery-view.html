@@ -1242,9 +1242,7 @@
             document.getElementById('thinkingCount').textContent = ratingCounts.thinking;
             document.getElementById('thumbsDownCount').textContent = ratingCounts.thumbsDown;
             
-            // Show summary if we have any ratings
-            const totalRatings = Object.values(ratingCounts).reduce((a, b) => a + b, 0);
-            document.getElementById('ratingSummary').style.display = totalRatings > 0 ? 'flex' : 'none';
+          
         }
 
      
@@ -1493,10 +1491,7 @@
             // Update lightbox counters if open
             updateLightboxCounters();
             
-            // Recalculate gallery totals
-            setTimeout(() => {
-                calculateGalleryTotals();
-            }, 500); // Small delay to ensure Firebase write is complete
+           
         }
         
         // 8. REPLACE initRatingSync() - Simplified version
@@ -1506,12 +1501,10 @@
             // Load user's ratings from Firebase
             loadRatingsFromFirebase();
             
-            // Calculate gallery totals
-            syncRatingToGalleries();
+        
 
-            addSyncButton();
-            // Set up real-time updates for gallery totals
-            setupRealTimeCounters();
+          
+          
             
             // Remove localStorage cleanup
             localStorage.removeItem('photoRatings');
@@ -1572,8 +1565,7 @@
                         console.log("No ratings found in gallery");
                     }
                     
-                    // Update display
-                    updateTotalRatingsDisplay(totals);
+              
                     
                     // Save to galleries document
                     db.collection('galleries')
@@ -1594,132 +1586,10 @@
         */
 
 
-        // Simple function to sync rating data from photoRatings to galleries collection
-        function syncRatingToGalleries() {
-            const galleryId = getGalleryId();
-            if (!galleryId) {
-                console.log("No gallery ID found for sync");
-                return;
-            }
-            
-            const db = firebase.firestore();
-            
-            console.log("Starting rating sync for gallery:", galleryId);
-            
-            // Get all ratings for this gallery from photoRatings collection
-            db.collection('photoRatings')
-                .where('galleryId', '==', galleryId)
-                .get()
-                .then((snapshot) => {
-                    // Initialize counters
-                    const totals = {
-                        heart: 0,
-                        thumbsUp: 0,
-                        thinking: 0,
-                        thumbsDown: 0,
-                        totalUsers: 0,
-                        totalRatings: 0,
-                        lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
-                    };
-                    
-                    if (!snapshot.empty) {
-                        const uniqueUsers = new Set();
-                        
-                        // Count each rating and track unique users
-                        snapshot.forEach(doc => {
-                            const data = doc.data();
-                            const rating = data.rating;
-                            const userId = data.userId;
-                            
-                            // Count the rating if it's valid
-                            if (totals.hasOwnProperty(rating)) {
-                                totals[rating]++;
-                                totals.totalRatings++;
-                            }
-                            
-                            // Track unique users
-                            if (userId) {
-                                uniqueUsers.add(userId);
-                            }
-                        });
-                        
-                        totals.totalUsers = uniqueUsers.size;
-                        
-                        console.log("Rating totals calculated:", totals);
-                    } else {
-                        console.log("No ratings found for this gallery");
-                    }
-                    
-                    // Update the galleries collection with the totals
-                    return db.collection('galleries')
-                        .doc(galleryId)
-                        .update({
-                            ratingTotals: totals
-                        });
-                })
-                .then(() => {
-                    console.log("✅ Rating sync completed successfully!");
-                    showToast("Ratings synced successfully", 'success');
-                    
-                    // Update the display if the function exists
-                    if (typeof updateTotalRatingsDisplay === 'function') {
-                        updateTotalRatingsDisplay(totals);
-                    }
-                })
-                .catch(error => {
-                    console.error("❌ Error syncing ratings:", error);
-                    showToast("Error syncing ratings", 'error');
-                });
-        }
+     
+     
         
-        // Optional: Add a manual sync button to the UI
-        function addSyncButton() {
-            // Check if sync button already exists
-            if (document.getElementById('manualSyncBtn')) {
-                return;
-            }
-            
-            const syncBtn = document.createElement('button');
-            syncBtn.id = 'manualSyncBtn';
-            syncBtn.className = 'sync-btn';
-            syncBtn.innerHTML = '<i class="fas fa-sync-alt"></i>';
-            syncBtn.title = 'Sync Ratings';
-            syncBtn.style.position = 'fixed';
-            syncBtn.style.top = '70px';
-            syncBtn.style.right = '20px';
-            syncBtn.style.zIndex = '1000';
-            syncBtn.style.backgroundColor = '#27ae60';
-            syncBtn.style.color = 'white';
-            syncBtn.style.border = 'none';
-            syncBtn.style.borderRadius = '50%';
-            syncBtn.style.width = '40px';
-            syncBtn.style.height = '40px';
-            syncBtn.style.cursor = 'pointer';
-            syncBtn.style.boxShadow = '0 2px 5px rgba(0,0,0,0.2)';
-            syncBtn.style.display = 'flex';
-            syncBtn.style.justifyContent = 'center';
-            syncBtn.style.alignItems = 'center';
-            
-            syncBtn.addEventListener('click', function() {
-                // Add spinning animation
-                const icon = syncBtn.querySelector('i');
-                icon.style.animation = 'spin 1s linear infinite';
-                
-                // Run sync
-                syncRatingToGalleries();
-                
-                // Stop spinning after 2 seconds
-                setTimeout(() => {
-                    icon.style.animation = 'none';
-                }, 2000);
-            });
-            
-            document.body.appendChild(syncBtn);
-        }
-        
-        // Call this function after the gallery loads to add the sync button
-        // You can call this in your initRatingSync() function
-        // addSyncButton();
+   
         
     // Function to freeze gallery on first client interaction
         function freezeGalleryOnFirstInteraction(photoId) {
@@ -1827,90 +1697,8 @@
 
             
         
-        // Function to create and update the total ratings display
-        function updateTotalRatingsDisplay(totalCounts) {
-            // Check if the element already exists
-            let totalRatingsElem = document.getElementById('totalRatings');
-            
-            if (!totalRatingsElem) {
-                // Create the element if it doesn't exist
-                totalRatingsElem = document.createElement('div');
-                totalRatingsElem.id = 'totalRatings';
-                totalRatingsElem.className = 'total-ratings';
-                
-                const title = document.createElement('div');
-                title.style.fontWeight = 'bold';
-                title.style.marginRight = '10px';
-                title.textContent = 'Gallery Totals:';
-                totalRatingsElem.appendChild(title);
-                
-                // Create counters for each rating type
-                for (const type of ['heart', 'thumbsUp', 'thinking', 'thumbsDown']) {
-                    const ratingCount = document.createElement('div');
-                    ratingCount.className = 'rating-count';
-                    
-                    const emoji = document.createElement('span');
-                    emoji.textContent = type === 'heart' ? '❤️' : 
-                                       type === 'thumbsUp' ? '👍' : 
-                                       type === 'thinking' ? '🤔' : '👎';
-                    
-                    const count = document.createElement('span');
-                    count.id = `total${type.charAt(0).toUpperCase() + type.slice(1)}Count`;
-                    count.textContent = totalCounts[type] || 0;
-                    
-                    ratingCount.appendChild(emoji);
-                    ratingCount.appendChild(count);
-                    totalRatingsElem.appendChild(ratingCount);
-                }
-                
-                // Add user count if available
-                if (totalCounts.totalUsers) {
-                    const userCount = document.createElement('div');
-                    userCount.className = 'rating-count';
-                    userCount.innerHTML = `<span>👤</span><span id="totalUserCount">${totalCounts.totalUsers}</span>`;
-                    totalRatingsElem.appendChild(userCount);
-                }
-                
-                document.body.appendChild(totalRatingsElem);
-            } else {
-                // Update existing counters
-                document.getElementById('totalHeartCount').textContent = totalCounts.heart || 0;
-                document.getElementById('totalThumbsUpCount').textContent = totalCounts.thumbsUp || 0;
-                document.getElementById('totalThinkingCount').textContent = totalCounts.thinking || 0;
-                document.getElementById('totalThumbsDownCount').textContent = totalCounts.thumbsDown || 0;
-                
-                // Update user count if available
-                const userCountElem = document.getElementById('totalUserCount');
-                if (userCountElem && totalCounts.totalUsers) {
-                    userCountElem.textContent = totalCounts.totalUsers;
-                }
-            }
-            
-            // Show the element
-            totalRatingsElem.style.display = 'flex';
-        }
-        
-        // Set up real-time updates for gallery counts
-        function setupRealTimeCounters() {
-     
-            const galleryId = getGalleryId();
-            if (!galleryId) return;
-            
-            const db = firebase.firestore();
-            
-            return db.collection('galleries')
-                .doc(galleryId)
-                .onSnapshot((doc) => {
-                    if (doc.exists) {
-                        const galleryData = doc.data();
-                        if (galleryData.ratingTotals) {
-                            updateTotalRatingsDisplay(galleryData.ratingTotals);
-                        }
-                    }
-                }, (error) => {
-                    console.error("Error with real-time counters:", error);
-                });
-        }
+
+
         
         function getRatingLabel(rating) {
             switch(rating) {
@@ -2518,7 +2306,7 @@
                     initRatingSync();
                     
                     // Set up real-time updates for gallery counts
-                    setupRealTimeCounters();
+                
                 })
                 .catch(error => {
                     console.error("Error loading photos:", error);
