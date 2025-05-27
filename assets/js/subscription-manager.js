@@ -2364,6 +2364,7 @@ async function copyFullShareUrl(fullUrl, clientName) {
 }
 
 
+
 async function loadGalleryRatings(galleryId) {
   try {
     if (!galleryId) {
@@ -2387,7 +2388,44 @@ async function loadGalleryRatings(galleryId) {
       };
     }
 
-    // Count each rating type
+    // *** NEW LOGIC: Group by photo, then take latest rating per photo ***
+    const photoRatings = {};
+    
+    // Collect all ratings and group by photoId
+    ratingsSnapshot.forEach(doc => {
+      const data = doc.data();
+      const photoId = data.photoId;
+      const rating = data.rating;
+      const timestamp = data.timestamp;
+      
+      if (!photoRatings[photoId]) {
+        photoRatings[photoId] = [];
+      }
+      
+      photoRatings[photoId].push({
+        rating: rating,
+        timestamp: timestamp,
+        userId: data.userId
+      });
+    });
+
+    // For each photo, take the most recent rating (like client view)
+    const finalRatings = {};
+    for (const photoId in photoRatings) {
+      const ratings = photoRatings[photoId];
+      
+      // Sort by timestamp (most recent first)
+      ratings.sort((a, b) => {
+        const timeA = a.timestamp ? a.timestamp.toMillis() : 0;
+        const timeB = b.timestamp ? b.timestamp.toMillis() : 0;
+        return timeB - timeA;
+      });
+      
+      // Take the most recent rating for this photo
+      finalRatings[photoId] = ratings[0].rating;
+    }
+
+    // Count the final ratings (matching client view logic)
     const ratingCounts = {
       heart: 0,
       thumbsUp: 0,
@@ -2396,14 +2434,14 @@ async function loadGalleryRatings(galleryId) {
       total: 0
     };
 
-    // Aggregate ratings from all users
-    ratingsSnapshot.forEach(doc => {
-      const rating = doc.data().rating;
+    // Count each rating type from final ratings
+    for (const photoId in finalRatings) {
+      const rating = finalRatings[photoId];
       if (ratingCounts[rating] !== undefined) {
         ratingCounts[rating]++;
         ratingCounts.total++;
       }
-    });
+    }
 
     // Format display - only show ratings that exist
     const ratingParts = [];
