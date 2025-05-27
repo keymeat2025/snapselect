@@ -1903,5 +1903,38 @@ tr:last-child .renew-plan-btn:hover::after {
     color: #999;
     font-style: italic;
   }
+
+
+
+  .plan-client-ratings {
+    min-width: 120px;
+    font-size: 12px;
+    padding: 8px;
+  }
+  
+  .ratings-loading,
+  .no-ratings {
+    color: #999;
+    font-style: italic;
+    font-size: 11px;
+  }
+  
+  .ratings-error {
+    color: #e74c3c;
+    font-size: 11px;
+  }
+  
+  .ratings-summary {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    font-size: 11px;
+  }
+  
+  .ratings-summary > span {
+    white-space: nowrap;
+  }
+
+  
 }
 
