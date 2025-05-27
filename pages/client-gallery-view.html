@@ -1580,9 +1580,13 @@
                     updateTotalRatingsDisplay(totals);
                     
                     // Save to counter document with latest user's data
-                    db.collection('galleryRatingCounts')
+          
+                     // Save to galleries document with latest user's data
+                    db.collection('galleries')
                         .doc(galleryId)
-                        .set(totals)
+                        .update({
+                            ratingTotals: totals
+                        })
                         .catch(error => console.error("Error saving totals:", error));
                 })
                 .catch(error => {
@@ -1761,16 +1765,20 @@
         
         // Set up real-time updates for gallery counts
         function setupRealTimeCounters() {
+     
             const galleryId = getGalleryId();
             if (!galleryId) return;
             
             const db = firebase.firestore();
             
-            return db.collection('galleryRatingCounts')
+            return db.collection('galleries')
                 .doc(galleryId)
                 .onSnapshot((doc) => {
                     if (doc.exists) {
-                        updateTotalRatingsDisplay(doc.data());
+                        const galleryData = doc.data();
+                        if (galleryData.ratingTotals) {
+                            updateTotalRatingsDisplay(galleryData.ratingTotals);
+                        }
                     }
                 }, (error) => {
                     console.error("Error with real-time counters:", error);
