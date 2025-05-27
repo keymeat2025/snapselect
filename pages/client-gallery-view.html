@@ -1268,7 +1268,7 @@
             
             // ADD THIS MISSING LINE:
             const totalRatings = Object.values(ratingCounts).reduce((a, b) => a + b, 0);
-           // document.getElementById('ratingSummary').style.display = totalRatings > 0 ? 'flex' : 'none';
+            document.getElementById('ratingSummary').style.display = totalRatings > 0 ? 'flex' : 'none';
 
             // Update selection progress
             const totalSelections = Object.values(ratingCounts).reduce((a, b) => a + b, 0);
