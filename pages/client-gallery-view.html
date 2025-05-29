@@ -3030,7 +3030,8 @@
                     zoomLevel += 0.25;
                     const img = lightbox.querySelector('.lightbox-image');
                     //img.style.transform = `scale(${zoomLevel})`;
-                    img.style.transform = `scale(${zoomLevel}) translate(${currentX}px, ${currentY}px)`;
+                    //img.style.transform = `scale(${zoomLevel}) translate(${currentX}px, ${currentY}px)`;
+                    img.style.transform = `scale(${zoomLevel}) translate(${currentX}px, ${currentY}px) rotate(${currentRotation}deg)`;
                     zoomLevelDisplay.textContent = `${Math.round(zoomLevel * 100)}%`;
                 }
             });
@@ -3041,7 +3042,8 @@
                     zoomLevel -= 0.25;
                     const img = lightbox.querySelector('.lightbox-image');
                     //img.style.transform = `scale(${zoomLevel})`;
-                    img.style.transform = `scale(${zoomLevel}) translate(${currentX}px, ${currentY}px)`;
+                    //img.style.transform = `scale(${zoomLevel}) translate(${currentX}px, ${currentY}px)`;
+                    img.style.transform = `scale(${zoomLevel}) translate(${currentX}px, ${currentY}px) rotate(${currentRotation}deg)`;
                     zoomLevelDisplay.textContent = `${Math.round(zoomLevel * 100)}%`;
                 }
             });
@@ -3074,7 +3076,8 @@
                     if (zoomLevel > 0.5) zoomLevel -= 0.25;
                 }
                 
-                img.style.transform = `scale(${zoomLevel}) translate(${currentX}px, ${currentY}px)`;
+                //img.style.transform = `scale(${zoomLevel}) translate(${currentX}px, ${currentY}px)`;
+                img.style.transform = `scale(${zoomLevel}) translate(${currentX}px, ${currentY}px) rotate(${currentRotation}deg)`;
                 zoomLevelDisplay.textContent = `${Math.round(zoomLevel * 100)}%`;
             });
             
