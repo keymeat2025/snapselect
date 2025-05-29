@@ -1033,6 +1033,88 @@
             font-weight: bold;
             text-align: center;
         }
+        .rotation-controls {
+            position: absolute;
+            bottom: 130px; /* Above zoom controls */
+            left: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            z-index: 1001;
+            gap: 5px;
+        }
+        
+        .rotate-btn {
+            background-color: rgba(255, 255, 255, 0.3);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            font-size: 16px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        
+        .rotate-btn:hover {
+            background-color: rgba(255, 255, 255, 0.5);
+        }
+        
+        .rotation-indicator {
+            color: white;
+            font-size: 12px;
+            text-align: center;
+            margin-top: 2px;
+            background-color: rgba(0, 0, 0, 0.5);
+            padding: 2px 6px;
+            border-radius: 3px;
+        }
+        
+        /* Enhanced lightbox image with rotation support */
+        .lightbox-image {
+            transition: transform 0.3s ease;
+            transform-origin: center center;
+        }
+        
+        /* Auto-rotation detection styles */
+        .rotation-auto-fix {
+            position: absolute;
+            top: 80px;
+            left: 20px;
+            background-color: rgba(255, 193, 7, 0.9);
+            color: black;
+            padding: 8px 12px;
+            border-radius: 5px;
+            font-size: 12px;
+            z-index: 1002;
+            animation: slideIn 0.3s ease;
+        }
+        
+        .rotation-auto-fix button {
+            background: none;
+            border: none;
+            color: #007bff;
+            text-decoration: underline;
+            cursor: pointer;
+            margin-left: 5px;
+        }
+        
+        /* Mobile responsive adjustments */
+        @media (max-width: 768px) {
+            .rotation-controls {
+                bottom: 160px;
+                right: 15px;
+            }
+            
+            .rotate-btn {
+                width: 35px;
+                height: 35px;
+                font-size: 14px;
+            }
+        }
     </style>
 </head>
 <body>
@@ -1129,6 +1211,8 @@
         let allGalleryPhotos = [];
         let slideshowInterval = null; // For slideshow feature
         let photoRatings = {}; // Store ratings for each photo
+        let currentRotation = 0;
+        let currentPhotoId = null;
         let ratingCounts = {
             heart: 0,
             thumbsUp: 0,
@@ -1295,7 +1379,9 @@
         }
 
      
-     
+
+
+        
            
            // Modified setPhotoRating function to update lightbox counters and rating indicator
         
@@ -1720,34 +1806,123 @@
             });
         }
            // Modified scheduleSyncToFirebase to just set the flag without scheduling
-      
+               
         
-        
-        // Function to batch save ratings to Firebase
 
+        // ROTATION SYSTEM FUNCTIONS
+        function initializeRotationSystem() {
+            console.log("Rotation system ready");
+        }
         
-        // Function to add a sync button to the UI
-       
-        
-        
-// Function to update the sync button status
-
-        
-        // Function to set up periodic sync
- 
-        
-        // Initialize the ratings synchronization system
-    
-        
-        // Add this function to load total ratings counts from all users
-       
-
-
-
+        function savePhotoRotation(photoId, angle) {
+            const galleryId = getGalleryId();
+            if (!galleryId) return;
             
+            const storageKey = `photo_rotations_${galleryId}`;
+            let rotations = JSON.parse(localStorage.getItem(storageKey) || '{}');
+            
+            if (angle === 0) {
+                delete rotations[photoId];
+            } else {
+                rotations[photoId] = angle;
+            }
+            
+            localStorage.setItem(storageKey, JSON.stringify(rotations));
+        }
         
-
-
+        function loadPhotoRotation(photoId) {
+            const galleryId = getGalleryId();
+            if (!galleryId) return 0;
+            
+            const storageKey = `photo_rotations_${galleryId}`;
+            const rotations = JSON.parse(localStorage.getItem(storageKey) || '{}');
+            return rotations[photoId] || 0;
+        }
+        
+        function rotateImage(degrees) {
+            currentRotation += degrees;
+            if (currentRotation >= 360) currentRotation -= 360;
+            if (currentRotation < 0) currentRotation += 360;
+            
+            const img = document.querySelector('.lightbox-image');
+            if (img) {
+                const currentZoom = getCurrentZoomLevel();
+                img.style.transform = `scale(${currentZoom}) rotate(${currentRotation}deg)`;
+            }
+            
+            document.getElementById('rotationIndicator').textContent = `${currentRotation}°`;
+            
+            if (currentPhotoId) {
+                savePhotoRotation(currentPhotoId, currentRotation);
+            }
+        }
+        
+        function resetRotation() {
+            currentRotation = 0;
+            const img = document.querySelector('.lightbox-image');
+            if (img) {
+                const currentZoom = getCurrentZoomLevel();
+                img.style.transform = `scale(${currentZoom}) rotate(0deg)`;
+            }
+            document.getElementById('rotationIndicator').textContent = '0°';
+            
+            if (currentPhotoId) {
+                savePhotoRotation(currentPhotoId, 0);
+            }
+        }
+        
+        function getCurrentZoomLevel() {
+            const img = document.querySelector('.lightbox-image');
+            if (img && img.style.transform) {
+                const scaleMatch = img.style.transform.match(/scale\(([^)]+)\)/);
+                return scaleMatch ? parseFloat(scaleMatch[1]) : 1;
+            }
+            return 1;
+        }
+        
+        function createRotationControls(photoId) {
+            currentPhotoId = photoId;
+            currentRotation = loadPhotoRotation(photoId);
+            
+            const rotationControls = document.createElement('div');
+            rotationControls.className = 'rotation-controls';
+            
+            const rotateLeftBtn = document.createElement('button');
+            rotateLeftBtn.className = 'rotate-btn';
+            rotateLeftBtn.innerHTML = '<i class="fas fa-undo"></i>';
+            rotateLeftBtn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                rotateImage(-90);
+            });
+            
+            const rotateRightBtn = document.createElement('button');
+            rotateRightBtn.className = 'rotate-btn';
+            rotateRightBtn.innerHTML = '<i class="fas fa-redo"></i>';
+            rotateRightBtn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                rotateImage(90);
+            });
+            
+            const resetBtn = document.createElement('button');
+            resetBtn.className = 'rotate-btn';
+            resetBtn.innerHTML = '<i class="fas fa-refresh"></i>';
+            resetBtn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                resetRotation();
+            });
+            
+            const indicator = document.createElement('div');
+            indicator.className = 'rotation-indicator';
+            indicator.id = 'rotationIndicator';
+            indicator.textContent = `${currentRotation}°`;
+            
+            rotationControls.appendChild(rotateLeftBtn);
+            rotationControls.appendChild(rotateRightBtn);
+            rotationControls.appendChild(resetBtn);
+            rotationControls.appendChild(indicator);
+            
+            return rotationControls;
+        }
         
         function getRatingLabel(rating) {
             switch(rating) {
@@ -2002,6 +2177,7 @@
                     loadSharedGallery();
                     // Initialize rating synchronization
                     initRatingSync();
+                    initializeRotationSystem(); 
                 }
                 
             } catch (error) {
@@ -2542,6 +2718,18 @@
                 
                 // The photo ID for ratings
                 const photoId = newPhoto.id || newPhoto.url;
+                // ADD THESE 10 LINES RIGHT HERE:
+                currentPhotoId = photoId;
+                currentRotation = loadPhotoRotation(photoId);
+                setTimeout(() => {
+                    const img = document.querySelector('.lightbox-image');
+                    if (img) {
+                        const currentZoom = getCurrentZoomLevel();
+                        img.style.transform = `scale(${currentZoom}) rotate(${currentRotation}deg)`;
+                    }
+                    const indicator = document.getElementById('rotationIndicator');
+                    if (indicator) indicator.textContent = `${currentRotation}°`;
+                }, 50);
                 
                 // Update caption if exists
                 const caption = imageContainer.querySelector('.photo-caption');
@@ -2944,6 +3132,8 @@
             imageContainer.appendChild(img);
             imageContainer.appendChild(ratingContainer);
             imageContainer.appendChild(zoomControls);
+            const rotationControls = createRotationControls(photoId);
+            imageContainer.appendChild(rotationControls);
             lightbox.appendChild(imageContainer);
             
             // Add thumbnails container (EXISTING CODE)
