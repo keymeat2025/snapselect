@@ -484,6 +484,8 @@
         }
         
         .lightbox-image-container {
+            transition: all 0.4s ease; /* Smooth container transitions */
+            overflow: visible;
             position: relative;
             height: 70%;
             width: 80%;
@@ -494,10 +496,10 @@
         }
         
         .lightbox-image {
-            max-height: 100%;
-            max-width: 100%;
-            object-fit: contain;
-            transition: all 0.3s ease;
+            transition: all 0.4s ease; /* Smooth image transitions */
+            transform-origin: center center;
+            max-width: none; /* Remove width constraints for rotation */
+            max-height: none; /* Remove height constraints for rotation */
         }
         
         .lightbox-toolbar {
@@ -1213,6 +1215,8 @@
         let photoRatings = {}; // Store ratings for each photo
         let currentRotation = 0;
         let currentPhotoId = null;
+        let originalImageDimensions = { width: 0, height: 0 };
+        let baseZoomLevel = 1;
         let ratingCounts = {
             heart: 0,
             thumbsUp: 0,
@@ -1838,84 +1842,287 @@
             const rotations = JSON.parse(localStorage.getItem(storageKey) || '{}');
             return rotations[photoId] || 0;
         }
-        
-        function rotateImage(degrees) {
+
+
+        function rotateImageEnhanced(degrees) {
             currentRotation += degrees;
             if (currentRotation >= 360) currentRotation -= 360;
             if (currentRotation < 0) currentRotation += 360;
             
+            // Get current image element
             const img = document.querySelector('.lightbox-image');
-            if (img) {
-                const currentZoom = getCurrentZoomLevel();
-                img.style.transform = `scale(${currentZoom}) rotate(${currentRotation}deg)`;
-            }
+            const container = document.querySelector('.lightbox-image-container');
             
-            document.getElementById('rotationIndicator').textContent = `${currentRotation}°`;
+            if (!img || !container) return;
             
+            // Calculate optimal zoom and container size for rotation
+            const { optimalZoom, containerStyle } = calculateRotationAdjustments(
+                currentRotation, 
+                img.naturalWidth, 
+                img.naturalHeight,
+                container.clientWidth,
+                container.clientHeight
+            );
+            
+            // Apply smooth transitions
+            applyRotationWithTransitions(img, container, currentRotation, optimalZoom, containerStyle);
+            
+            // Update UI indicators
+            updateRotationIndicator();
+            updateZoomIndicator(optimalZoom);
+            
+            // Save rotation preference
             if (currentPhotoId) {
                 savePhotoRotation(currentPhotoId, currentRotation);
             }
+            
+            // Provide user feedback
+            showToast(`Rotated ${degrees > 0 ? 'right' : 'left'} to ${currentRotation}°`, 'info');
         }
         
-        function resetRotation() {
-            currentRotation = 0;
-            const img = document.querySelector('.lightbox-image');
-            if (img) {
-                const currentZoom = getCurrentZoomLevel();
-                img.style.transform = `scale(${currentZoom}) rotate(0deg)`;
-            }
-            document.getElementById('rotationIndicator').textContent = '0°';
+        // Calculate optimal zoom and container adjustments for rotation
+        function calculateRotationAdjustments(rotation, imgWidth, imgHeight, containerWidth, containerHeight) {
+            // Determine if image is rotated 90° or 270° (portrait/landscape swap)
+            const isSwapped = (rotation === 90 || rotation === 270);
             
+            // Effective dimensions after rotation
+            const effectiveWidth = isSwapped ? imgHeight : imgWidth;
+            const effectiveHeight = isSwapped ? imgWidth : imgHeight;
+            
+            // Calculate scale factors to fit in container
+            const scaleX = containerWidth / effectiveWidth;
+            const scaleY = containerHeight / effectiveHeight;
+            
+            // Use the smaller scale to ensure image fits completely
+            const optimalScale = Math.min(scaleX, scaleY, 1); // Don't scale up beyond 100%
+            
+            // Calculate new container dimensions if needed
+            const newContainerWidth = Math.min(effectiveWidth * optimalScale, containerWidth);
+            const newContainerHeight = Math.min(effectiveHeight * optimalScale, containerHeight);
+            
+            return {
+                optimalZoom: optimalScale * baseZoomLevel,
+                containerStyle: {
+                    width: `${newContainerWidth}px`,
+                    height: `${newContainerHeight}px`,
+                    maxWidth: `${containerWidth}px`,
+                    maxHeight: `${containerHeight}px`
+                }
+            };
+        }
+        
+        // Apply rotation with smooth transitions
+        function applyRotationWithTransitions(img, container, rotation, zoom, containerStyle) {
+            // Apply container adjustments first
+            Object.assign(container.style, containerStyle);
+            
+            // Apply image transformation
+            img.style.transform = `scale(${zoom}) rotate(${rotation}deg)`;
+            
+            // Update base zoom level for future calculations
+            baseZoomLevel = zoom;
+        }
+        
+        // Enhanced reset rotation function
+        function resetRotationEnhanced() {
+            currentRotation = 0;
+            baseZoomLevel = 1;
+            
+            const img = document.querySelector('.lightbox-image');
+            const container = document.querySelector('.lightbox-image-container');
+            
+            if (img && container) {
+                // Reset to original container size
+                container.style.width = '80%';
+                container.style.height = '70%';
+                container.style.maxWidth = '';
+                container.style.maxHeight = '';
+                
+                // Reset image transformation
+                img.style.transform = 'scale(1) rotate(0deg)';
+            }
+            
+            // Update indicators
+            updateRotationIndicator();
+            updateZoomIndicator(1);
+            
+            // Clear saved rotation
             if (currentPhotoId) {
                 savePhotoRotation(currentPhotoId, 0);
             }
+            
+            showToast('Rotation reset to 0°', 'info');
         }
         
-        function getCurrentZoomLevel() {
-            const img = document.querySelector('.lightbox-image');
-            if (img && img.style.transform) {
-                const scaleMatch = img.style.transform.match(/scale\(([^)]+)\)/);
-                return scaleMatch ? parseFloat(scaleMatch[1]) : 1;
+        // Enhanced get current zoom level function
+        function getCurrentZoomLevelEnhanced() {
+            return baseZoomLevel;
+        }
+        
+        // Initialize image dimensions when image loads
+        function initializeImageDimensions(img) {
+            // Wait for image to load completely
+            if (img.complete && img.naturalWidth > 0) {
+                originalImageDimensions = {
+                    width: img.naturalWidth,
+                    height: img.naturalHeight
+                };
+                baseZoomLevel = 1;
+            } else {
+                img.onload = function() {
+                    originalImageDimensions = {
+                        width: this.naturalWidth,
+                        height: this.naturalHeight
+                    };
+                    baseZoomLevel = 1;
+                };
             }
-            return 1;
         }
         
-        function createRotationControls(photoId) {
+        // Enhanced zoom functions that work with rotation
+        function enhancedZoomIn() {
+            const newZoom = Math.min(baseZoomLevel * 1.25, 3); // Max 3x zoom
+            applyZoomWithRotation(newZoom);
+        }
+        
+        function enhancedZoomOut() {
+            const newZoom = Math.max(baseZoomLevel * 0.8, 0.2); // Min 0.2x zoom
+            applyZoomWithRotation(newZoom);
+        }
+        
+        // Apply zoom while maintaining rotation
+        function applyZoomWithRotation(newZoom) {
+            baseZoomLevel = newZoom;
+            
+            const img = document.querySelector('.lightbox-image');
+            if (img) {
+                img.style.transform = `scale(${newZoom}) rotate(${currentRotation}deg)`;
+                updateZoomIndicator(newZoom);
+            }
+        }
+        
+        // Update zoom level indicator
+        function updateZoomIndicator(zoomLevel) {
+            const indicator = document.querySelector('.zoom-level-text');
+            if (indicator) {
+                indicator.textContent = `${Math.round(zoomLevel * 100)}%`;
+            }
+        }
+        
+        // Enhanced navigation function that maintains rotation state
+        function navigateToPhotoEnhanced(index, lightbox, imageContainer) {
+            if (index < 0 || index >= allGalleryPhotos.length) return;
+            
+            // Get current image element
+            const currentImg = lightbox.querySelector('.lightbox-image');
+            
+            // Start fade transition
+            currentImg.classList.remove('fadeIn');
+            currentImg.classList.add('fadeOut');
+            
+            setTimeout(() => {
+                // Update image source
+                const newPhoto = allGalleryPhotos[index];
+                currentImg.src = newPhoto.url;
+                currentImg.dataset.index = index;
+                currentImg.alt = newPhoto.name || 'Gallery photo';
+                
+                // Load saved rotation for this photo
+                const photoId = newPhoto.id || newPhoto.url;
+                currentPhotoId = photoId;
+                currentRotation = loadPhotoRotation(photoId);
+                
+                // Reset container to default size
+                const container = lightbox.querySelector('.lightbox-image-container');
+                container.style.width = '80%';
+                container.style.height = '70%';
+                container.style.maxWidth = '';
+                container.style.maxHeight = '';
+                
+                // Initialize image dimensions and apply rotation
+                initializeImageDimensions(currentImg);
+                
+                // Apply saved rotation after image loads
+                setTimeout(() => {
+                    if (currentRotation !== 0) {
+                        // Calculate adjustments for saved rotation
+                        const { optimalZoom, containerStyle } = calculateRotationAdjustments(
+                            currentRotation,
+                            currentImg.naturalWidth,
+                            currentImg.naturalHeight,
+                            container.clientWidth,
+                            container.clientHeight
+                        );
+                        
+                        // Apply the rotation and adjustments
+                        applyRotationWithTransitions(currentImg, container, currentRotation, optimalZoom, containerStyle);
+                    } else {
+                        // No rotation, use default zoom
+                        currentImg.style.transform = 'scale(1) rotate(0deg)';
+                        baseZoomLevel = 1;
+                    }
+                    
+                    // Update indicators
+                    updateRotationIndicator();
+                    updateZoomIndicator(baseZoomLevel);
+                }, 100);
+                
+                // ... rest of your existing navigateToPhoto code (thumbnails, navigation buttons, etc.)
+                
+                // Fade in the new image
+                currentImg.classList.remove('fadeOut');
+                currentImg.classList.add('fadeIn');
+            }, 300);
+        }
+        
+        // Enhanced create rotation controls
+        function createRotationControlsEnhanced(photoId) {
             currentPhotoId = photoId;
             currentRotation = loadPhotoRotation(photoId);
             
             const rotationControls = document.createElement('div');
             rotationControls.className = 'rotation-controls';
             
+            // Rotate left button
             const rotateLeftBtn = document.createElement('button');
             rotateLeftBtn.className = 'rotate-btn';
             rotateLeftBtn.innerHTML = '<i class="fas fa-undo"></i>';
+            rotateLeftBtn.setAttribute('aria-label', 'Rotate left 90 degrees');
+            rotateLeftBtn.setAttribute('title', 'Rotate Left (Smart resize)');
             rotateLeftBtn.addEventListener('click', function(e) {
                 e.stopPropagation();
-                rotateImage(-90);
+                rotateImageEnhanced(-90);
             });
             
+            // Rotate right button
             const rotateRightBtn = document.createElement('button');
             rotateRightBtn.className = 'rotate-btn';
             rotateRightBtn.innerHTML = '<i class="fas fa-redo"></i>';
+            rotateRightBtn.setAttribute('aria-label', 'Rotate right 90 degrees');
+            rotateRightBtn.setAttribute('title', 'Rotate Right (Smart resize)');
             rotateRightBtn.addEventListener('click', function(e) {
                 e.stopPropagation();
-                rotateImage(90);
+                rotateImageEnhanced(90);
             });
             
+            // Reset rotation button
             const resetBtn = document.createElement('button');
             resetBtn.className = 'rotate-btn';
             resetBtn.innerHTML = '<i class="fas fa-refresh"></i>';
+            resetBtn.setAttribute('aria-label', 'Reset rotation to original');
+            resetBtn.setAttribute('title', 'Reset Rotation');
             resetBtn.addEventListener('click', function(e) {
                 e.stopPropagation();
-                resetRotation();
+                resetRotationEnhanced();
             });
             
+            // Rotation indicator
             const indicator = document.createElement('div');
             indicator.className = 'rotation-indicator';
             indicator.id = 'rotationIndicator';
             indicator.textContent = `${currentRotation}°`;
             
+            // Assemble controls
             rotationControls.appendChild(rotateLeftBtn);
             rotationControls.appendChild(rotateRightBtn);
             rotationControls.appendChild(resetBtn);
@@ -1923,6 +2130,13 @@
             
             return rotationControls;
         }
+     
+        
+    
+        
+      
+        
+       
         
         function getRatingLabel(rating) {
             switch(rating) {
@@ -3026,22 +3240,12 @@
             // Add zoom handlers (EXISTING CODE)
             zoomInBtn.addEventListener('click', function(e) {
                 e.stopPropagation();
-                if (zoomLevel < 3) { // Max zoom 3x
-                    zoomLevel += 0.25;
-                    const img = lightbox.querySelector('.lightbox-image');
-                    img.style.transform = `scale(${zoomLevel})`;
-                    zoomLevelDisplay.textContent = `${Math.round(zoomLevel * 100)}%`;
-                }
+                enhancedZoomIn();
             });
             
             zoomOutBtn.addEventListener('click', function(e) {
                 e.stopPropagation();
-                if (zoomLevel > 0.5) { // Min zoom 0.5x
-                    zoomLevel -= 0.25;
-                    const img = lightbox.querySelector('.lightbox-image');
-                    img.style.transform = `scale(${zoomLevel})`;
-                    zoomLevelDisplay.textContent = `${Math.round(zoomLevel * 100)}%`;
-                }
+                enhancedZoomOut();
             });
             
             zoomControls.appendChild(zoomInBtn);
@@ -3056,6 +3260,8 @@
             img.alt = photo.name || 'Gallery photo';
             img.draggable = false;
             img.crossOrigin = "anonymous";
+            // ADD THIS LINE:
+            initializeImageDimensions(img);
             
             // Add watermark overlay (EXISTING CODE)
             const watermarkOverlay = document.createElement('div');
