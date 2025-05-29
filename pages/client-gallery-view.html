@@ -3029,7 +3029,8 @@
                 if (zoomLevel < 3) { // Max zoom 3x
                     zoomLevel += 0.25;
                     const img = lightbox.querySelector('.lightbox-image');
-                    img.style.transform = `scale(${zoomLevel})`;
+                    //img.style.transform = `scale(${zoomLevel})`;
+                    img.style.transform = `scale(${zoomLevel}) translate(${currentX}px, ${currentY}px)`;
                     zoomLevelDisplay.textContent = `${Math.round(zoomLevel * 100)}%`;
                 }
             });
@@ -3039,7 +3040,8 @@
                 if (zoomLevel > 0.5) { // Min zoom 0.5x
                     zoomLevel -= 0.25;
                     const img = lightbox.querySelector('.lightbox-image');
-                    img.style.transform = `scale(${zoomLevel})`;
+                    //img.style.transform = `scale(${zoomLevel})`;
+                    img.style.transform = `scale(${zoomLevel}) translate(${currentX}px, ${currentY}px)`;
                     zoomLevelDisplay.textContent = `${Math.round(zoomLevel * 100)}%`;
                 }
             });
@@ -3052,10 +3054,57 @@
             const img = document.createElement('img');
             img.className = 'lightbox-image fadeIn';
             img.src = photo.url;
+
+            // ADD THESE LINES HERE - Mouse Zoom Controls
+            let isDragging = false;
+            let startX = 0, startY = 0, currentX = 0, currentY = 0;
+            
+            // Mouse wheel zoom
+            imageContainer.addEventListener('wheel', function(e) {
+                e.preventDefault();
+                const rect = img.getBoundingClientRect();
+                const mouseX = e.clientX - rect.left;
+                const mouseY = e.clientY - rect.top;
+                
+                if (e.deltaY < 0) {
+                    // Zoom in
+                    if (zoomLevel < 3) zoomLevel += 0.25;
+                } else {
+                    // Zoom out
+                    if (zoomLevel > 0.5) zoomLevel -= 0.25;
+                }
+                
+                img.style.transform = `scale(${zoomLevel}) translate(${currentX}px, ${currentY}px)`;
+                zoomLevelDisplay.textContent = `${Math.round(zoomLevel * 100)}%`;
+            });
+            
+            // Click and drag pan
+            img.addEventListener('mousedown', function(e) {
+                isDragging = true;
+                startX = e.clientX - currentX;
+                startY = e.clientY - currentY;
+                imageContainer.style.cursor = 'grabbing';
+            });
+            
+            img.addEventListener('mousemove', function(e) {
+                if (!isDragging) return;
+                currentX = e.clientX - startX;
+                currentY = e.clientY - startY;
+                img.style.transform = `scale(${zoomLevel}) translate(${currentX}px, ${currentY}px)`;
+            });
+            
+            img.addEventListener('mouseup', function() {
+                isDragging = false;
+                imageContainer.style.cursor = 'grab';
+            });
+
+            
             img.dataset.index = currentIndex;
             img.alt = photo.name || 'Gallery photo';
             img.draggable = false;
             img.crossOrigin = "anonymous";
+
+
             
             // Add watermark overlay (EXISTING CODE)
             const watermarkOverlay = document.createElement('div');
