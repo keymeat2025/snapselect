@@ -3088,13 +3088,26 @@
                 startY = e.clientY - currentY;
                 imageContainer.style.cursor = 'grabbing';
             });
+
+            document.addEventListener('mousemove', handleMouseMove);
+            document.addEventListener('mouseup', handleMouseUp);
             
-            img.addEventListener('mousemove', function(e) {
+            // ADD these two functions instead:
+            function handleMouseMove(e) {
                 if (!isDragging) return;
                 currentX = e.clientX - startX;
                 currentY = e.clientY - startY;
-                img.style.transform = `scale(${zoomLevel}) translate(${currentX}px, ${currentY}px)`;
-            });
+                img.style.transform = `scale(${zoomLevel}) translate(${currentX}px, ${currentY}px) rotate(${currentRotation}deg)`;
+            }
+            
+            function handleMouseUp() {
+                if (isDragging) {
+                    isDragging = false;
+                    imageContainer.style.cursor = 'grab';
+                    document.removeEventListener('mousemove', handleMouseMove);
+                    document.removeEventListener('mouseup', handleMouseUp);
+                }
+            }
             
             img.addEventListener('mouseup', function() {
                 isDragging = false;
