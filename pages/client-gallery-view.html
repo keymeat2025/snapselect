@@ -4155,7 +4155,7 @@
                         console.log('Password verified! Proceeding to submission...');
                         
                         // For now, show success (Phase 3 will handle actual Firebase submission)
-                        showSubmissionSuccess();
+                        processActualSubmission();
                     } else {
                         showPasswordError('Incorrect password. Please try again.');
                         setSubmitButtonLoading(false);
@@ -4233,30 +4233,7 @@
             }
         }
         
-        // 10. Show submission success (placeholder for Phase 3)
-        function showSubmissionSuccess() {
-            const modalContent = document.querySelector('.submission-modal-content');
-            
-            modalContent.innerHTML = `
-                <div class="success-content">
-                    <div class="success-icon">
-                        <i class="fas fa-check-circle"></i>
-                    </div>
-                    <h2>Submission Successful!</h2>
-                    <p>Your SnapSelections have been submitted successfully.</p>
-                    <div class="success-details">
-                        <p><strong>Submitted:</strong> ${Object.keys(photoRatings).length} photo selections</p>
-                        <p><strong>Time:</strong> ${new Date().toLocaleString()}</p>
-                    </div>
-                    <button class="modal-btn modal-btn-primary" onclick="closeSubmissionModal()">
-                        <i class="fas fa-check"></i> Close
-                    </button>
-                </div>
-            `;
-            
-            // Note: Phase 3 will replace this with actual Firebase submission
-            console.log('Phase 3 will handle actual Firebase submission to database');
-        }
+     
         
         // 11. Close submission modal
         function closeSubmissionModal() {
@@ -4782,6 +4759,320 @@
             console.log('✅ Button styling improved');
             return true;
         }
+
+
+
+
+        // ===== PHASE 3: REAL SUBMISSION FUNCTIONS =====
+
+        // 1. MAIN SUBMISSION HANDLER
+        async function processActualSubmission() {
+            try {
+                console.log('🚀 Starting actual Firebase submission...');
+                
+                // Collect current submission data
+                const submissionData = collectCurrentSubmissionData();
+                const submissionId = generateSubmissionId();
+                
+                console.log('📊 Submission data:', submissionData);
+                
+                // Step 1: Save detailed submission record
+                await saveSubmissionToFirebase(submissionData, submissionId);
+                console.log('✅ Saved to clientSubmissions collection');
+                
+                // Step 2: Update gallery status for dashboard
+                await updateGalleryStatus(submissionData, submissionId);
+                console.log('✅ Updated galleries collection');
+                
+                // Step 3: Lock the gallery completely
+                completeGalleryLockdown(submissionData, submissionId);
+                console.log('✅ Gallery lockdown enabled');
+                
+                // Step 4: Show real success message
+                showRealSubmissionSuccess(submissionData, submissionId);
+                console.log('✅ Phase 3 submission completed successfully!');
+                
+            } catch (error) {
+                console.error('❌ Submission failed:', error);
+                showSubmissionError(error.message);
+                setSubmitButtonLoading(false);
+            }
+        }
+        
+        // 2. COLLECT SUBMISSION DATA
+        function collectCurrentSubmissionData() {
+            const galleryId = getGalleryId();
+            const userId = getUserIdentifier();
+            
+            // Count ratings by type
+            const ratingCounts = {
+                heart: 0,
+                thumbsUp: 0,
+                thinking: 0,
+                thumbsDown: 0
+            };
+            
+            // Count each rating type
+            Object.values(photoRatings).forEach(rating => {
+                if (rating && ratingCounts[rating] !== undefined) {
+                    ratingCounts[rating]++;
+                }
+            });
+            
+            return {
+                galleryId: galleryId,
+                userId: userId,
+                ratings: { ...photoRatings }, // Copy of all photo ratings
+                ratingCounts: ratingCounts,
+                totalPhotos: allGalleryPhotos.length,
+                ratedPhotos: Object.keys(photoRatings).length,
+                completionPercentage: Math.round((Object.keys(photoRatings).length / allGalleryPhotos.length) * 100),
+                submittedAt: new Date(),
+                userAgent: navigator.userAgent,
+                currentUrl: window.location.href
+            };
+        }
+        
+        // 3. SAVE TO CLIENTSUBMISSIONS COLLECTION
+        async function saveSubmissionToFirebase(submissionData, submissionId) {
+            const db = firebase.firestore();
+            
+            const submissionRecord = {
+                submissionId: submissionId,
+                galleryId: submissionData.galleryId,
+                userId: submissionData.userId,
+                
+                // Rating data
+                ratings: submissionData.ratings,
+                ratingCounts: submissionData.ratingCounts,
+                
+                // Summary stats
+                totalPhotos: submissionData.totalPhotos,
+                ratedPhotos: submissionData.ratedPhotos,
+                completionPercentage: submissionData.completionPercentage,
+                
+                // Timestamps
+                submittedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                clientSubmittedAt: firebase.firestore.Timestamp.fromDate(submissionData.submittedAt),
+                
+                // Metadata
+                userAgent: submissionData.userAgent,
+                currentUrl: submissionData.currentUrl,
+                status: 'submitted'
+            };
+            
+            // Save to clientSubmissions collection
+            await db.collection('clientSubmissions').doc(submissionId).set(submissionRecord);
+            
+            console.log('📝 Saved submission record:', submissionId);
+        }
+        
+        // 4. UPDATE GALLERY STATUS FOR DASHBOARD
+        async function updateGalleryStatus(submissionData, submissionId) {
+            const db = firebase.firestore();
+            const galleryId = submissionData.galleryId;
+            
+            const galleryUpdate = {
+                // Submission status for dashboard filtering
+                submissionStatus: 'submitted',
+                
+                // Rating summary for dashboard display
+                clientRatings: submissionData.ratingCounts,
+                
+                // Progress info for dashboard
+                submissionProgress: {
+                    totalPhotos: submissionData.totalPhotos,
+                    ratedPhotos: submissionData.ratedPhotos,
+                    completionPercentage: submissionData.completionPercentage,
+                    lastActivity: firebase.firestore.FieldValue.serverTimestamp(),
+                    submittedAt: firebase.firestore.FieldValue.serverTimestamp()
+                },
+                
+                // Submission metadata
+                submissionData: {
+                    submissionId: submissionId,
+                    submittedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                    clientUserId: submissionData.userId,
+                    isReviewed: false
+                },
+                
+                // Unfreeze for photographer
+                freezeStatus: 'unfrozen',
+                clientInteractionCompleted: true
+            };
+            
+            // Update galleries collection
+            await db.collection('galleries').doc(galleryId).update(galleryUpdate);
+            
+            console.log('📊 Updated gallery status for dashboard');
+        }
+        
+        // 5. COMPLETE GALLERY LOCKDOWN
+        function completeGalleryLockdown(submissionData, submissionId) {
+            console.log('🔒 Enabling complete gallery lockdown...');
+            
+            // 1. Store submission status
+            const galleryId = submissionData.galleryId;
+            localStorage.setItem(`gallery_submitted_${galleryId}`, submissionId);
+            sessionStorage.setItem(`submission_lockdown_${galleryId}`, 'true');
+            
+            // 2. Disable all rating interactions
+            disableAllRatingInteractions();
+            
+            // 3. Update submit button to submitted state
+            markButtonAsSubmitted(submissionId, submissionData.submittedAt);
+            
+            // 4. Add submission overlay
+            addSubmissionOverlay(submissionData);
+            
+            console.log('🔒 Gallery lockdown completed');
+        }
+        
+        // HELPER FUNCTIONS FOR LOCKDOWN
+        
+        function disableAllRatingInteractions() {
+            // Disable thumbnail rating overlays
+            document.querySelectorAll('.thumbnail-rating-overlay').forEach(overlay => {
+                overlay.style.display = 'none';
+            });
+            
+            // Disable all rating buttons (remove event listeners)
+            document.querySelectorAll('.rating-btn, .thumbnail-rating-btn').forEach(btn => {
+                btn.style.pointerEvents = 'none';
+                btn.style.opacity = '0.5';
+                btn.style.cursor = 'not-allowed';
+            });
+            
+            // Set global flag to disable future lightbox ratings
+            window.ratingsDisabled = true;
+            
+            console.log('🚫 All rating interactions disabled');
+        }
+        
+        function markButtonAsSubmitted(submissionId, timestamp) {
+            const submitBtn = document.getElementById('submitSnapSelectionsBtn');
+            if (submitBtn) {
+                submitBtn.disabled = true;
+                submitBtn.style.cursor = 'not-allowed';
+                submitBtn.style.backgroundColor = '#d4edda';
+                submitBtn.style.borderColor = '#28a745';
+                submitBtn.style.color = '#155724';
+                
+                // Update button content
+                submitBtn.innerHTML = `
+                    <i class="fas fa-check-circle" style="color: #28a745;"></i>
+                    <span class="button-text">✅ Submitted</span>
+                `;
+                
+                // Update tooltip
+                submitBtn.title = `Submitted on ${timestamp.toLocaleDateString()} at ${timestamp.toLocaleTimeString()}`;
+            }
+        }
+        
+        function addSubmissionOverlay(submissionData) {
+            // Check if overlay already exists
+            if (document.getElementById('submissionOverlay')) return;
+            
+            const overlay = document.createElement('div');
+            overlay.id = 'submissionOverlay';
+            overlay.className = 'submission-overlay';
+            
+            const banner = document.createElement('div');
+            banner.className = 'submission-banner';
+            banner.innerHTML = `
+                <div class="submission-success-icon">✅</div>
+                <div class="submission-message">
+                    <h3>Submission Successful!</h3>
+                    <p>You have successfully submitted your photo selections.</p>
+                </div>
+                <div class="submission-details">
+                    <div class="detail-item">
+                        <strong>Photos Selected:</strong> ${submissionData.ratedPhotos}/${submissionData.totalPhotos}
+                    </div>
+                    <div class="detail-item">
+                        <strong>Submitted:</strong> ${submissionData.submittedAt.toLocaleDateString()} at ${submissionData.submittedAt.toLocaleTimeString()}
+                    </div>
+                    <div class="detail-item">
+                        <strong>Completion:</strong> ${submissionData.completionPercentage}%
+                    </div>
+                </div>
+            `;
+            
+            overlay.appendChild(banner);
+            document.body.appendChild(overlay);
+            
+            // Add click to close
+            overlay.addEventListener('click', function() {
+                overlay.style.display = 'none';
+            });
+            
+            // Auto-hide after 10 seconds
+            setTimeout(() => {
+                overlay.style.display = 'none';
+            }, 10000);
+        }
+        
+        // 6. GENERATE UNIQUE SUBMISSION ID
+        function generateSubmissionId() {
+            const timestamp = Date.now();
+            const random = Math.random().toString(36).substring(2, 8).toUpperCase();
+            return `SUB_${timestamp}_${random}`;
+        }
+        
+        // 7. SHOW REAL SUCCESS (REPLACE FAKE SUCCESS)
+        function showRealSubmissionSuccess(submissionData, submissionId) {
+            const modalContent = document.querySelector('.submission-modal-content');
+            
+            modalContent.innerHTML = `
+                <div class="success-content">
+                    <div class="success-icon">
+                        <i class="fas fa-check-circle"></i>
+                    </div>
+                    <h2>Submission Successful!</h2>
+                    <p>Your photo selections have been submitted successfully.</p>
+                    <div class="success-details">
+                        <p><strong>Submission ID:</strong> ${submissionId}</p>
+                        <p><strong>Photos Selected:</strong> ${submissionData.ratedPhotos}/${submissionData.totalPhotos}</p>
+                        <p><strong>Completion:</strong> ${submissionData.completionPercentage}%</p>
+                        <p><strong>Submitted:</strong> ${submissionData.submittedAt.toLocaleString()}</p>
+                    </div>
+                    <div class="success-note">
+                        <p><strong>What's Next?</strong><br>
+                        Your photographer will be notified of your selections and will contact you about the next steps.</p>
+                    </div>
+                    <button class="modal-btn modal-btn-primary" onclick="closeSubmissionModal()">
+                        <i class="fas fa-check"></i> Close
+                    </button>
+                </div>
+            `;
+        }
+        
+        // 8. SHOW SUBMISSION ERROR
+        function showSubmissionError(errorMessage) {
+            const modalContent = document.querySelector('.submission-modal-content');
+            
+            modalContent.innerHTML = `
+                <div class="error-content">
+                    <div class="error-icon">
+                        <i class="fas fa-exclamation-circle"></i>
+                    </div>
+                    <h2>Submission Failed</h2>
+                    <p>There was an error submitting your selections.</p>
+                    <div class="error-details">
+                        <p><strong>Error:</strong> ${errorMessage}</p>
+                    </div>
+                    <div class="error-actions">
+                        <button class="modal-btn modal-btn-primary" onclick="location.reload()">
+                            <i class="fas fa-refresh"></i> Retry
+                        </button>
+                        <button class="modal-btn modal-btn-secondary" onclick="closeSubmissionModal()">
+                            <i class="fas fa-times"></i> Close
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+
 
         
     </script>
