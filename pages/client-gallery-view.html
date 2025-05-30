@@ -4766,37 +4766,67 @@
         // ===== PHASE 3: REAL SUBMISSION FUNCTIONS =====
 
         // 1. MAIN SUBMISSION HANDLER
+   
+  // REPLACE this function in your client gallery HTML:
         async function processActualSubmission() {
             try {
-                console.log('🚀 Starting actual Firebase submission...');
+                console.log('🚀 Starting secure submission...');
                 
-                // Collect current submission data
-                const submissionData = collectCurrentSubmissionData();
-                const submissionId = generateSubmissionId();
+                // Ensure authentication
+                await ensureFirebaseAuth();
                 
-                console.log('📊 Submission data:', submissionData);
+                // Prepare data
+                const payload = {
+                    galleryId: getGalleryId(),
+                    userToken: getUserIdentifier(),
+                    ratings: { ...photoRatings },
+                    userAgent: navigator.userAgent,
+                    currentUrl: window.location.href
+                };
                 
-                // Step 1: Save detailed submission record
-                await saveSubmissionToFirebase(submissionData, submissionId);
-                console.log('✅ Saved to clientSubmissions collection');
+                // Call Cloud Function
+                const functions = firebase.app().functions('asia-south1');
+                const submitSelections = functions.httpsCallable('submitClientSelections');
+                const result = await submitSelections(payload);
                 
-                // Step 2: Update gallery status for dashboard
-                await updateGalleryStatus(submissionData, submissionId);
-                console.log('✅ Updated galleries collection');
-                
-                // Step 3: Lock the gallery completely
-                completeGalleryLockdown(submissionData, submissionId);
-                console.log('✅ Gallery lockdown enabled');
-                
-                // Step 4: Show real success message
-                showRealSubmissionSuccess(submissionData, submissionId);
-                console.log('✅ Phase 3 submission completed successfully!');
+                if (result.data?.success) {
+                    const submissionData = {
+                        submissionId: result.data.data.submissionId,
+                        ratedPhotos: result.data.data.ratedPhotos,
+                        totalPhotos: result.data.data.totalPhotos,
+                        completionPercentage: result.data.data.completionPercentage,
+                        submittedAt: result.data.data.submittedAt,
+                        galleryId: getGalleryId(),
+                        userId: getUserIdentifier()
+                    };
+                    
+                    completeGalleryLockdown(submissionData, submissionData.submissionId);
+                    showRealSubmissionSuccess(submissionData, submissionData.submissionId);
+                } else {
+                    throw new Error('Invalid server response');
+                }
                 
             } catch (error) {
                 console.error('❌ Submission failed:', error);
-                showSubmissionError(error.message);
+                showSubmissionError(error.message || 'Submission failed');
                 setSubmitButtonLoading(false);
             }
+        }
+        
+        // ADD this authentication helper:
+        function ensureFirebaseAuth() {
+            return new Promise((resolve, reject) => {
+                const auth = firebase.auth();
+                
+                if (auth.currentUser) {
+                    resolve(auth.currentUser);
+                    return;
+                }
+                
+                auth.signInAnonymously()
+                    .then(resolve)
+                    .catch(reject);
+            });
         }
         
         // 2. COLLECT SUBMISSION DATA
