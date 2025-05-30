@@ -721,6 +721,7 @@
             animation: fadeOut 0.3s ease-in-out forwards;
         }
         
+      
         /* Mobile responsiveness */
         @media (max-width: 768px) {
             .modal-button {
@@ -744,18 +745,40 @@
             }
             
             .rating-container {
-                bottom: 110px;
+                bottom: 20px;
+                right: 15px;
                 gap: 10px;
+                transform: scale(0.75);
+                padding: 6px 10px !important;
             }
             
             .rating-btn {
                 font-size: 20px;
             }
             
+            /* UPDATED: Move rotation controls to right side on mobile */
+            .rotation-controls {
+                bottom: 180px;
+                right: 15px;
+                left: auto;
+            }
+            
+            /* UPDATED: Move zoom controls to left side on mobile */
             .zoom-controls {
-                bottom: 110px;
+                bottom: 180px;
+                left: 15px;
+                right: auto;
+            }
+            
+            /* Make buttons smaller on mobile */
+            .rotate-btn,
+            .zoom-btn {
+                width: 35px;
+                height: 35px;
+                font-size: 14px;
             }
         }
+        
         
         /* Add a style for the sync button */
         .sync-btn {
