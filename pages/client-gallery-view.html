@@ -3003,7 +3003,7 @@
             });
             toolbar.appendChild(closeButton);
             // ADD THIS SINGLE LINE HERE:
-            addSubmitButtonToLightbox(toolbar);
+            //addSubmitButtonToLightbox(toolbar);
             
             lightbox.appendChild(toolbar);
             
@@ -3635,41 +3635,97 @@
             }
         }
         
-        // 4. Create the submit button element
+     
+
+        // 4. Create the submit button element - UPDATED to place in studio info
         function createSubmitSnapSelectionsButton() {
             // Check if button already exists
             if (document.getElementById('submitSnapSelectionsBtn')) return;
             
-            const submitBtn = document.createElement('button');
-            submitBtn.id = 'submitSnapSelectionsBtn';
-            submitBtn.className = 'submit-snapselections-btn no-progress';
-            submitBtn.disabled = true;
-            
-            // Create button structure
-            submitBtn.innerHTML = `
-                <div class="progress-container">
-                    <div class="progress-bar"></div>
-                </div>
-                <i class="fas fa-paper-plane button-icon"></i>
-                <span class="button-text">Submit SnapSelections</span>
-            `;
-            
-            // Add click handler (for future phases)
-            submitBtn.addEventListener('click', function() {
-                if (!submitBtn.disabled) {
-                    console.log('Submit button clicked..');
-                    showSubmissionModal();
+            // Wait for studio info to be available
+            const waitForStudioInfo = () => {
+                const studioInfo = document.getElementById('studioInfo');
+                if (!studioInfo) {
+                    // Studio info not ready yet, try again in 500ms
+                    setTimeout(waitForStudioInfo, 500);
+                    return;
                 }
-            });
+                
+                // Create the submit button
+                const submitBtn = document.createElement('button');
+                submitBtn.id = 'submitSnapSelectionsBtn';
+                submitBtn.className = 'submit-snapselections-btn no-progress';
+                submitBtn.disabled = true;
+                
+                // Create button structure
+                submitBtn.innerHTML = `
+                    <div class="progress-container">
+                        <div class="progress-bar"></div>
+                    </div>
+                    <i class="fas fa-paper-plane button-icon"></i>
+                    <span class="button-text">Submit SnapSelections</span>
+                `;
+                
+                // Add click handler
+                submitBtn.addEventListener('click', function() {
+                    if (!submitBtn.disabled) {
+                        console.log('Submit button clicked..');
+                        showSubmissionModal();
+                    }
+                });
+                
+                // MODIFIED: Place button in studio info section instead of fixed position
+                // Make studio info container flexbox for right alignment
+                studioInfo.style.display = 'flex';
+                studioInfo.style.justifyContent = 'space-between';
+                studioInfo.style.alignItems = 'flex-start';
+                studioInfo.style.gap = '20px';
+                
+                // Create left content container for text
+                const leftContent = document.createElement('div');
+                leftContent.className = 'studio-left-content';
+                leftContent.style.flex = '1';
+                
+                // Move all existing content to left container
+                const existingContent = Array.from(studioInfo.children);
+                existingContent.forEach(child => {
+                    leftContent.appendChild(child);
+                });
+                
+                // Create right container for button
+                const rightContainer = document.createElement('div');
+                rightContainer.className = 'studio-right-container';
+                rightContainer.style.display = 'flex';
+                rightContainer.style.alignItems = 'center';
+                rightContainer.style.minWidth = 'auto';
+                
+                // Style button for new location
+                submitBtn.style.position = 'static';
+                submitBtn.style.top = 'auto';
+                submitBtn.style.right = 'auto';
+                submitBtn.style.margin = '0';
+                submitBtn.style.transform = 'scale(0.9)'; // Slightly smaller
+                submitBtn.style.whiteSpace = 'nowrap';
+                
+                // Add button to right container
+                rightContainer.appendChild(submitBtn);
+                
+                // Add both containers to studio info
+                studioInfo.appendChild(leftContent);
+                studioInfo.appendChild(rightContainer);
+                
+                // Initial update
+                updateSubmitButton();
+                
+                console.log('Submit button created and placed in studio info section');
+            };
             
-            // Add to page
-            document.body.appendChild(submitBtn);
-            
-            // Initial update
-            updateSubmitButton();
+            // Start waiting for studio info
+            waitForStudioInfo();
         }
-        
-        // 5. Add CSS styles for the button
+            
+ 
+        // 5. Add CSS styles for the button - UPDATED for studio info placement
         function addSubmitButtonStyles() {
             // Check if styles already added
             if (document.getElementById('submitSnapSelectionsStyles')) return;
@@ -3678,10 +3734,6 @@
             style.id = 'submitSnapSelectionsStyles';
             style.textContent = `
                 .submit-snapselections-btn {
-                    position: fixed;
-                    top: 20px;
-                    right: 80px;
-                    z-index: 1000;
                     background: #f8f9fa;
                     color: #666;
                     border: 2px solid #e9ecef;
@@ -3760,20 +3812,39 @@
                     100% { box-shadow: 0 2px 8px rgba(0,0,0,0.15); }
                 }
                 
+                /* Studio info layout styles */
+                .studio-left-content {
+                    flex: 1;
+                }
+                
+                .studio-right-container {
+                    display: flex;
+                    align-items: center;
+                }
+                
                 /* Mobile responsiveness */
                 @media (max-width: 768px) {
+                    #studioInfo {
+                        flex-direction: column !important;
+                        gap: 15px !important;
+                    }
+                    
+                    .studio-right-container {
+                        width: 100%;
+                        justify-content: center;
+                    }
+                    
                     .submit-snapselections-btn {
-                        top: 70px;
-                        right: 20px;
-                        min-width: 180px;
+                        min-width: 200px;
                         font-size: 12px;
                         padding: 10px 16px;
+                        transform: scale(1) !important;
                     }
                 }
                 
                 @media (max-width: 480px) {
                     .submit-snapselections-btn {
-                        min-width: 160px;
+                        min-width: 180px;
                         font-size: 11px;
                         padding: 8px 12px;
                     }
