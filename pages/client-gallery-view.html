@@ -723,6 +723,7 @@
         
         /* Mobile responsiveness */
         @media (max-width: 768px) {
+          
             .modal-button {
                 width: 40px;
                 height: 40px;
@@ -752,10 +753,27 @@
                 font-size: 20px;
             }
             
+            /* UPDATED: Move zoom controls to bottom-left corner on mobile */
             .zoom-controls {
                 bottom: 110px;
+                left: 20px;  /* ADD THIS LINE */
+                right: auto; /* ADD THIS LINE to override the desktop right positioning */
+            }
+            
+            /* UPDATED: Move rotation controls to avoid overlap */
+            .rotation-controls {
+                bottom: 160px;
+                left: 20px;  /* CHANGE FROM: right: 15px */
+                right: auto; /* ADD THIS LINE */
+            }
+            
+            .rotate-btn {
+                width: 35px;
+                height: 35px;
+                font-size: 14px;
             }
         }
+        
         
         /* Add a style for the sync button */
         .sync-btn {
