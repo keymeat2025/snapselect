@@ -805,6 +805,7 @@
             align-items: center;
             gap: 10px;
             transition: all 0.3s ease;
+            cursor: move;
         }
         
         .lightbox-rating-counter {
@@ -2949,6 +2950,9 @@
             
             // Add to lightbox
             lightbox.appendChild(ratingStatus);
+            // Add to lightbox
+            lightbox.appendChild(ratingStatus);
+            makeDraggable(ratingStatus);  // ADD THIS LINE
             
             // Add a toolbar for controls (EXISTING CODE)
             const toolbar = document.createElement('div');
@@ -3496,6 +3500,41 @@
             }, 4000);
         }
 
+
+
+        // DRAGGABLE SYSTEM
+        let dragState = { isDragging: false, startX: 0, startY: 0, element: null };
+        
+        function makeDraggable(element) {
+            element.style.cursor = 'move';
+            element.addEventListener('mousedown', function(e) {
+                e.preventDefault();
+                dragState.isDragging = true;
+                dragState.element = element;
+                const rect = element.getBoundingClientRect();
+                dragState.startX = e.clientX - rect.left;
+                dragState.startY = e.clientY - rect.top;
+                element.style.opacity = '0.8';
+            });
+        }
+        
+        document.addEventListener('mousemove', function(e) {
+            if (!dragState.isDragging) return;
+            let newX = e.clientX - dragState.startX;
+            let newY = e.clientY - dragState.startY;
+            newX = Math.max(0, Math.min(window.innerWidth - dragState.element.offsetWidth, newX));
+            newY = Math.max(0, Math.min(window.innerHeight - dragState.element.offsetHeight, newY));
+            dragState.element.style.left = newX + 'px';
+            dragState.element.style.top = newY + 'px';
+        });
+        
+        document.addEventListener('mouseup', function() {
+            if (dragState.isDragging) {
+                dragState.isDragging = false;
+                dragState.element.style.opacity = '1';
+                dragState.element = null;
+            }
+        });
     </script>
 </body>
 </html>
