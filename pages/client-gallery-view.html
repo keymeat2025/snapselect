@@ -2184,6 +2184,7 @@
                     initRatingSync();
                     initializeRotationSystem(); 
                     initSubmitSnapSelections();
+                    initSubmitSnapSelectionsPhase2();
                 }
                 
             } catch (error) {
@@ -3001,6 +3002,8 @@
                 closeLightbox();
             });
             toolbar.appendChild(closeButton);
+            // ADD THIS SINGLE LINE HERE:
+            addSubmitButtonToLightbox(toolbar);
             
             lightbox.appendChild(toolbar);
             
@@ -3654,8 +3657,8 @@
             // Add click handler (for future phases)
             submitBtn.addEventListener('click', function() {
                 if (!submitBtn.disabled) {
-                    console.log('Submit button clicked - Phase 2 will handle this');
-                    showToast('Submit functionality coming in Phase 2!', 'info');
+                    console.log('Submit button clicked..');
+                    showSubmissionModal();
                 }
             });
             
@@ -3791,6 +3794,711 @@
             createSubmitSnapSelectionsButton();
             
             console.log('Submit SnapSelections button created and ready');
+        }
+
+        // ===== SUBMIT SNAPSELECTIONS - PHASE 2 =====
+        // Confirmation Modal with Password Verification
+        
+        // 1. Create submission confirmation modal
+        function createSubmissionModal() {
+            const modal = document.createElement('div');
+            modal.id = 'submissionModal';
+            modal.className = 'submission-modal-overlay';
+            
+            const modalContent = document.createElement('div');
+            modalContent.className = 'submission-modal-content';
+            
+            modalContent.innerHTML = `
+                <div class="modal-header">
+                    <h2><i class="fas fa-paper-plane"></i> Submit Your SnapSelections</h2>
+                    <button class="modal-close-btn" onclick="closeSubmissionModal()">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                
+                <div class="modal-body">
+                    <div class="submission-summary">
+                        <h3>Selection Summary</h3>
+                        <div class="summary-stats">
+                            <div class="stat-item">
+                                <span class="stat-label">Total Photos:</span>
+                                <span id="modal-total-photos">0</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">Photos Rated:</span>
+                                <span id="modal-rated-photos">0</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-label">Completion:</span>
+                                <span id="modal-completion">0%</span>
+                            </div>
+                        </div>
+                        
+                        <div class="rating-breakdown">
+                            <div class="breakdown-item">
+                                <span class="breakdown-emoji">❤️</span>
+                                <span class="breakdown-label">Must Have</span>
+                                <span id="modal-heart-count" class="breakdown-count">0</span>
+                            </div>
+                            <div class="breakdown-item">
+                                <span class="breakdown-emoji">👍</span>
+                                <span class="breakdown-label">Would Like to Have</span>
+                                <span id="modal-thumbsup-count" class="breakdown-count">0</span>
+                            </div>
+                            <div class="breakdown-item">
+                                <span class="breakdown-emoji">🤔</span>
+                                <span class="breakdown-label">Alternative Option</span>
+                                <span id="modal-thinking-count" class="breakdown-count">0</span>
+                            </div>
+                            <div class="breakdown-item">
+                                <span class="breakdown-emoji">👎</span>
+                                <span class="breakdown-label">Not Interested</span>
+                                <span id="modal-thumbsdown-count" class="breakdown-count">0</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="submission-warning">
+                        <div class="warning-box">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            <p><strong>Important:</strong> Once submitted, your selections cannot be changed. Please review your choices carefully.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="password-verification">
+                        <h3>Confirm Submission</h3>
+                        <p>Enter the gallery password to confirm your submission:</p>
+                        <div class="password-input-group">
+                            <input type="password" id="modal-password" class="modal-password-input" 
+                                   placeholder="Enter gallery password" autocomplete="current-password">
+                            <button type="button" class="password-toggle-btn" onclick="togglePasswordVisibility()">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </div>
+                        <div id="modal-password-error" class="password-error-message"></div>
+                    </div>
+                </div>
+                
+                <div class="modal-footer">
+                    <button class="modal-btn modal-btn-cancel" onclick="closeSubmissionModal()">
+                        <i class="fas fa-times"></i> Cancel
+                    </button>
+                    <button class="modal-btn modal-btn-submit" onclick="processSubmission()" disabled>
+                        <i class="fas fa-paper-plane"></i> 
+                        <span class="submit-btn-text">Submit SnapSelections</span>
+                        <div class="submit-btn-spinner" style="display: none;">
+                            <i class="fas fa-spinner fa-spin"></i>
+                        </div>
+                    </button>
+                </div>
+            `;
+            
+            modal.appendChild(modalContent);
+            return modal;
+        }
+        
+        // 2. Show submission modal with current data
+        function showSubmissionModal() {
+            // Check if modal already exists
+            let modal = document.getElementById('submissionModal');
+            if (!modal) {
+                modal = createSubmissionModal();
+                document.body.appendChild(modal);
+            }
+            
+            // Update modal with current data
+            updateModalData();
+            
+            // Show modal with animation
+            modal.style.display = 'flex';
+            setTimeout(() => {
+                modal.classList.add('modal-show');
+                // Focus password input for accessibility
+                document.getElementById('modal-password').focus();
+            }, 10);
+            
+            // Set up password input validation
+            setupPasswordValidation();
+        }
+        
+        // 3. Update modal with current rating data
+        function updateModalData() {
+            const totalPhotos = allGalleryPhotos.length;
+            const ratedPhotos = Object.keys(photoRatings).length;
+            const completion = Math.round((ratedPhotos / totalPhotos) * 100);
+            
+            // Update summary stats
+            document.getElementById('modal-total-photos').textContent = totalPhotos;
+            document.getElementById('modal-rated-photos').textContent = ratedPhotos;
+            document.getElementById('modal-completion').textContent = `${completion}%`;
+            
+            // Count ratings by type
+            const counts = { heart: 0, thumbsUp: 0, thinking: 0, thumbsDown: 0 };
+            Object.values(photoRatings).forEach(rating => {
+                if (counts[rating] !== undefined) {
+                    counts[rating]++;
+                }
+            });
+            
+            // Update rating breakdown
+            document.getElementById('modal-heart-count').textContent = counts.heart;
+            document.getElementById('modal-thumbsup-count').textContent = counts.thumbsUp;
+            document.getElementById('modal-thinking-count').textContent = counts.thinking;
+            document.getElementById('modal-thumbsdown-count').textContent = counts.thumbsDown;
+        }
+        
+        // 4. Setup password validation
+        function setupPasswordValidation() {
+            const passwordInput = document.getElementById('modal-password');
+            const submitBtn = document.querySelector('.modal-btn-submit');
+            const errorDiv = document.getElementById('modal-password-error');
+            
+            // Clear previous error
+            errorDiv.textContent = '';
+            errorDiv.style.display = 'none';
+            
+            // Reset submit button
+            submitBtn.disabled = true;
+            submitBtn.querySelector('.submit-btn-text').textContent = 'Submit SnapSelections';
+            
+            // Add input validation
+            passwordInput.addEventListener('input', function() {
+                const hasPassword = passwordInput.value.trim().length > 0;
+                submitBtn.disabled = !hasPassword;
+                
+                // Clear error when user types
+                if (errorDiv.style.display !== 'none') {
+                    errorDiv.style.display = 'none';
+                }
+            });
+            
+            // Handle Enter key in password field
+            passwordInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter' && !submitBtn.disabled) {
+                    processSubmission();
+                }
+            });
+        }
+        
+        // 5. Toggle password visibility
+        function togglePasswordVisibility() {
+            const passwordInput = document.getElementById('modal-password');
+            const toggleBtn = document.querySelector('.password-toggle-btn i');
+            
+            if (passwordInput.type === 'password') {
+                passwordInput.type = 'text';
+                toggleBtn.className = 'fas fa-eye-slash';
+            } else {
+                passwordInput.type = 'password';
+                toggleBtn.className = 'fas fa-eye';
+            }
+        }
+        
+        // 6. Process the submission
+        function processSubmission() {
+            const passwordInput = document.getElementById('modal-password');
+            const password = passwordInput.value.trim();
+            const errorDiv = document.getElementById('modal-password-error');
+            const submitBtn = document.querySelector('.modal-btn-submit');
+            
+            if (!password) {
+                showPasswordError('Please enter the gallery password.');
+                return;
+            }
+            
+            // Show loading state
+            setSubmitButtonLoading(true);
+            
+            // Get the original gallery password for verification
+            const urlParams = new URLSearchParams(window.location.search);
+            const shareId = urlParams.get('share');
+            
+            if (!shareId) {
+                showPasswordError('Unable to verify password. Please refresh and try again.');
+                setSubmitButtonLoading(false);
+                return;
+            }
+            
+            // Verify password against the gallery
+            verifyGalleryPassword(password, shareId)
+                .then(isValid => {
+                    if (isValid) {
+                        // Password correct - proceed to Phase 3 (actual submission)
+                        console.log('Password verified! Proceeding to submission...');
+                        
+                        // For now, show success (Phase 3 will handle actual Firebase submission)
+                        showSubmissionSuccess();
+                    } else {
+                        showPasswordError('Incorrect password. Please try again.');
+                        setSubmitButtonLoading(false);
+                        passwordInput.focus();
+                    }
+                })
+                .catch(error => {
+                    console.error('Password verification error:', error);
+                    showPasswordError('Error verifying password. Please try again.');
+                    setSubmitButtonLoading(false);
+                });
+        }
+        
+        // 7. Verify gallery password
+        async function verifyGalleryPassword(enteredPassword, shareId) {
+            try {
+                const db = firebase.firestore();
+                
+                // Get the gallery shares to find the correct password
+                const snapshot = await db.collection('galleryShares')
+                    .where('shareId', '==', shareId)
+                    .limit(1)
+                    .get();
+                
+                if (snapshot.empty) {
+                    // Try alternative collection
+                    const altSnapshot = await db.collection('sharedGalleries')
+                        .where('shareId', '==', shareId)
+                        .limit(1)
+                        .get();
+                    
+                    if (altSnapshot.empty) {
+                        return false;
+                    }
+                    
+                    const galleryData = altSnapshot.docs[0].data();
+                    return galleryData.password === enteredPassword;
+                }
+                
+                const galleryData = snapshot.docs[0].data();
+                return galleryData.password === enteredPassword;
+            } catch (error) {
+                console.error('Error verifying password:', error);
+                return false;
+            }
+        }
+        
+        // 8. Show password error
+        function showPasswordError(message) {
+            const errorDiv = document.getElementById('modal-password-error');
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+            
+            // Add shake animation
+            errorDiv.style.animation = 'shake 0.5s ease-in-out';
+            setTimeout(() => {
+                errorDiv.style.animation = '';
+            }, 500);
+        }
+        
+        // 9. Set submit button loading state
+        function setSubmitButtonLoading(isLoading) {
+            const submitBtn = document.querySelector('.modal-btn-submit');
+            const textSpan = submitBtn.querySelector('.submit-btn-text');
+            const spinner = submitBtn.querySelector('.submit-btn-spinner');
+            
+            if (isLoading) {
+                submitBtn.disabled = true;
+                textSpan.style.display = 'none';
+                spinner.style.display = 'inline-flex';
+            } else {
+                submitBtn.disabled = false;
+                textSpan.style.display = 'inline';
+                spinner.style.display = 'none';
+            }
+        }
+        
+        // 10. Show submission success (placeholder for Phase 3)
+        function showSubmissionSuccess() {
+            const modalContent = document.querySelector('.submission-modal-content');
+            
+            modalContent.innerHTML = `
+                <div class="success-content">
+                    <div class="success-icon">
+                        <i class="fas fa-check-circle"></i>
+                    </div>
+                    <h2>Submission Successful!</h2>
+                    <p>Your SnapSelections have been submitted successfully.</p>
+                    <div class="success-details">
+                        <p><strong>Submitted:</strong> ${Object.keys(photoRatings).length} photo selections</p>
+                        <p><strong>Time:</strong> ${new Date().toLocaleString()}</p>
+                    </div>
+                    <button class="modal-btn modal-btn-primary" onclick="closeSubmissionModal()">
+                        <i class="fas fa-check"></i> Close
+                    </button>
+                </div>
+            `;
+            
+            // Note: Phase 3 will replace this with actual Firebase submission
+            console.log('Phase 3 will handle actual Firebase submission to database');
+        }
+        
+        // 11. Close submission modal
+        function closeSubmissionModal() {
+            const modal = document.getElementById('submissionModal');
+            if (modal) {
+                modal.classList.remove('modal-show');
+                setTimeout(() => {
+                    modal.style.display = 'none';
+                    // Reset modal content if it was changed to success state
+                    if (modal.querySelector('.success-content')) {
+                        modal.remove();
+                    }
+                }, 300);
+            }
+        }
+        
+        // 12. Add submit button to lightbox toolbar (CORRECTED PLACEMENT)
+        function addSubmitButtonToLightbox(toolbar) {
+            // Check if button already exists in this lightbox
+            if (toolbar.querySelector('.lightbox-submit-btn')) return;
+            
+            const progress = calculateSubmissionProgress();
+            
+            // Only show if user has made some progress (at least 80%)
+            if (progress < 80) return;
+            
+            const submitBtn = document.createElement('button');
+            submitBtn.className = 'modal-button lightbox-submit-btn';
+            submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i>';
+            submitBtn.setAttribute('aria-label', 'Submit SnapSelections');
+            submitBtn.title = `Submit your selections (${progress}% complete)`;
+            
+            // Add click handler
+            submitBtn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                showSubmissionModal();
+            });
+            
+            // Add to toolbar (before close button)
+            const closeButton = toolbar.querySelector('.modal-button:last-child');
+            if (closeButton) {
+                toolbar.insertBefore(submitBtn, closeButton);
+            } else {
+                toolbar.appendChild(submitBtn);
+            }
+        }
+        
+        // 13. Add CSS styles for the modal
+        function addSubmissionModalStyles() {
+            if (document.getElementById('submissionModalStyles')) return;
+            
+            const style = document.createElement('style');
+            style.id = 'submissionModalStyles';
+            style.textContent = `
+                /* Submission Modal Styles */
+                .submission-modal-overlay {
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                    height: 100%;
+                    background-color: rgba(0, 0, 0, 0.8);
+                    z-index: 5000;
+                    display: none;
+                    justify-content: center;
+                    align-items: center;
+                    opacity: 0;
+                    transition: opacity 0.3s ease;
+                }
+                
+                .submission-modal-overlay.modal-show {
+                    opacity: 1;
+                }
+                
+                .submission-modal-content {
+                    background: white;
+                    border-radius: 12px;
+                    width: 90%;
+                    max-width: 600px;
+                    max-height: 90vh;
+                    overflow-y: auto;
+                    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+                    transform: scale(0.9);
+                    transition: transform 0.3s ease;
+                }
+                
+                .modal-show .submission-modal-content {
+                    transform: scale(1);
+                }
+                
+                .modal-header {
+                    padding: 24px 24px 0 24px;
+                    border-bottom: 1px solid #e9ecef;
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                }
+                
+                .modal-header h2 {
+                    margin: 0;
+                    color: #333;
+                    font-size: 24px;
+                    display: flex;
+                    align-items: center;
+                    gap: 10px;
+                }
+                
+                .modal-close-btn {
+                    background: none;
+                    border: none;
+                    font-size: 20px;
+                    color: #666;
+                    cursor: pointer;
+                    padding: 8px;
+                    border-radius: 50%;
+                    transition: background-color 0.2s;
+                }
+                
+                .modal-close-btn:hover {
+                    background-color: #f8f9fa;
+                    color: #333;
+                }
+                
+                .modal-body {
+                    padding: 24px;
+                }
+                
+                .submission-summary h3 {
+                    margin: 0 0 16px 0;
+                    color: #333;
+                    font-size: 18px;
+                }
+                
+                .summary-stats {
+                    display: grid;
+                    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+                    gap: 16px;
+                    margin-bottom: 24px;
+                    padding: 16px;
+                    background-color: #f8f9fa;
+                    border-radius: 8px;
+                }
+                
+                .stat-item {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                }
+                
+                .stat-label {
+                    font-weight: 600;
+                    color: #555;
+                }
+                
+                .rating-breakdown {
+                    display: grid;
+                    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+                    gap: 12px;
+                    margin-bottom: 24px;
+                }
+                
+                .breakdown-item {
+                    display: flex;
+                    align-items: center;
+                    padding: 12px;
+                    background-color: #fff;
+                    border: 1px solid #e9ecef;
+                    border-radius: 6px;
+                    gap: 10px;
+                }
+                
+                .breakdown-emoji {
+                    font-size: 20px;
+                }
+                
+                .breakdown-label {
+                    flex: 1;
+                    font-weight: 500;
+                }
+                
+                .breakdown-count {
+                    font-weight: bold;
+                    color: #007bff;
+                    font-size: 18px;
+                }
+                
+                .warning-box {
+                    display: flex;
+                    align-items: flex-start;
+                    gap: 12px;
+                    padding: 16px;
+                    background-color: #fff3cd;
+                    border: 1px solid #ffeaa7;
+                    border-radius: 6px;
+                    margin-bottom: 24px;
+                }
+                
+                .warning-box i {
+                    color: #856404;
+                    font-size: 20px;
+                    margin-top: 2px;
+                }
+                
+                .warning-box p {
+                    margin: 0;
+                    color: #856404;
+                }
+                
+                .password-verification h3 {
+                    margin: 0 0 12px 0;
+                    color: #333;
+                }
+                
+                .password-input-group {
+                    position: relative;
+                    margin: 12px 0;
+                }
+                
+                .modal-password-input {
+                    width: 100%;
+                    padding: 12px 40px 12px 12px;
+                    border: 2px solid #e9ecef;
+                    border-radius: 6px;
+                    font-size: 16px;
+                    transition: border-color 0.2s;
+                    box-sizing: border-box;
+                }
+                
+                .modal-password-input:focus {
+                    border-color: #007bff;
+                    outline: none;
+                }
+                
+                .password-toggle-btn {
+                    position: absolute;
+                    right: 8px;
+                    top: 50%;
+                    transform: translateY(-50%);
+                    background: none;
+                    border: none;
+                    color: #666;
+                    cursor: pointer;
+                    padding: 8px;
+                }
+                
+                .password-error-message {
+                    color: #dc3545;
+                    font-size: 14px;
+                    margin-top: 8px;
+                    display: none;
+                }
+                
+                .modal-footer {
+                    padding: 0 24px 24px 24px;
+                    display: flex;
+                    gap: 12px;
+                    justify-content: flex-end;
+                }
+                
+                .modal-btn {
+                    padding: 12px 24px;
+                    border: none;
+                    border-radius: 6px;
+                    font-size: 16px;
+                    font-weight: 600;
+                    cursor: pointer;
+                    transition: all 0.2s;
+                    display: flex;
+                    align-items: center;
+                    gap: 8px;
+                }
+                
+                .modal-btn-cancel {
+                    background-color: #6c757d;
+                    color: white;
+                }
+                
+                .modal-btn-cancel:hover {
+                    background-color: #5a6268;
+                }
+                
+                .modal-btn-submit {
+                    background-color: #28a745;
+                    color: white;
+                }
+                
+                .modal-btn-submit:hover:not(:disabled) {
+                    background-color: #218838;
+                }
+                
+                .modal-btn-submit:disabled {
+                    background-color: #6c757d;
+                    cursor: not-allowed;
+                }
+                
+                .submit-btn-spinner {
+                    display: none;
+                }
+                
+                /* Success state */
+                .success-content {
+                    text-align: center;
+                    padding: 48px 24px;
+                }
+                
+                .success-icon {
+                    font-size: 64px;
+                    color: #28a745;
+                    margin-bottom: 24px;
+                }
+                
+                .success-details {
+                    background-color: #f8f9fa;
+                    padding: 16px;
+                    border-radius: 6px;
+                    margin: 24px 0;
+                }
+                
+                .modal-btn-primary {
+                    background-color: #007bff;
+                    color: white;
+                    margin: 0 auto;
+                }
+                
+                .modal-btn-primary:hover {
+                    background-color: #0056b3;
+                }
+                
+                /* Animations */
+                @keyframes shake {
+                    0%, 100% { transform: translateX(0); }
+                    25% { transform: translateX(-5px); }
+                    75% { transform: translateX(5px); }
+                }
+                
+                /* Mobile responsiveness */
+                @media (max-width: 768px) {
+                    .submission-modal-content {
+                        width: 95%;
+                    }
+                    
+                    .modal-header, .modal-body, .modal-footer {
+                        padding: 16px;
+                    }
+                    
+                    .summary-stats {
+                        grid-template-columns: 1fr;
+                    }
+                    
+                    .rating-breakdown {
+                        grid-template-columns: 1fr;
+                    }
+                    
+                    .modal-footer {
+                        flex-direction: column;
+                    }
+                }
+            `;
+            
+            document.head.appendChild(style);
+        }
+        
+        // 14. Initialize Phase 2
+        function initSubmitSnapSelectionsPhase2() {
+            console.log('Initializing Submit SnapSelections - Phase 2');
+            
+            // Add modal styles
+            addSubmissionModalStyles();
+            
+            console.log('Phase 2 modal system ready');
         }
 
 
