@@ -1118,6 +1118,53 @@
                 font-size: 14px;
             }
         }
+
+        /* Blue overlay text visibility fixes */
+        .submit-snapselections-btn .button-text,
+        .submit-snapselections-btn .button-icon {
+            z-index: 100 !important;
+            position: relative !important;
+            color: #333 !important;
+            text-shadow: 1px 1px 2px rgba(255,255,255,0.8) !important;
+        }
+        
+        .submit-snapselections-btn .progress-container {
+            opacity: 0.6 !important;
+            mix-blend-mode: multiply !important;
+        }
+        
+        .submit-snapselections-btn .progress-bar {
+            opacity: 0.7 !important;
+        }
+        
+        /* Alternative: Bottom progress indicator */
+        .submit-snapselections-btn.alt-progress .progress-container {
+            height: 4px !important;
+            bottom: 0 !important;
+            top: auto !important;
+            border-radius: 0 0 23px 23px !important;
+        }
+        
+        /* Ensure studio info is properly layered */
+        #studioInfo {
+            position: relative !important;
+            z-index: 10 !important;
+        }
+        
+        /* Better text contrast */
+        .submit-snapselections-btn.ready .button-text,
+        .submit-snapselections-btn.ready .button-icon {
+            color: #0056b3 !important;
+            font-weight: bold !important;
+        }
+        
+        .submit-snapselections-btn.complete .button-text,
+        .submit-snapselections-btn.complete .button-icon {
+            color: #155724 !important;
+            font-weight: bold !important;
+        }
+
+        
     </style>
 </head>
 <body>
@@ -3619,6 +3666,11 @@
             
             // Update tooltip
             updateSubmitButtonTooltip(submitBtn, progress, ratedPhotos, totalPhotos);
+
+            // Apply blue overlay fixes after button updates
+            setTimeout(() => {
+                fixBlueOverlayTextIssue();
+            }, 100);
         }
         
         // 3. Update button tooltip based on state
@@ -3716,6 +3768,11 @@
                 
                 // Initial update
                 updateSubmitButton();
+                // Apply fixes after button creation
+                setTimeout(() => {
+                    fixBlueOverlayTextIssue();
+                    console.log('Blue overlay fixes applied to submit button');
+                }, 500);
                 
                 console.log('Submit button created and placed in studio info section');
             };
@@ -4573,6 +4630,158 @@
         }
 
 
+
+        // Function to fix blue overlay hiding text behind it
+        function fixBlueOverlayTextIssue() {
+            console.log('🔍 Looking for blue overlay text visibility issues...');
+            
+            // Find the submit button
+            const submitBtn = document.getElementById('submitSnapSelectionsBtn') || 
+                             document.querySelector('.submit-snapselections-btn');
+            
+            if (!submitBtn) {
+                console.log('❌ Submit button not found');
+                return false;
+            }
+            
+            console.log('✅ Found submit button:', submitBtn);
+            
+            // Method 1: Fix z-index layering
+            const studioInfo = document.getElementById('studioInfo');
+            if (studioInfo) {
+                studioInfo.style.zIndex = '10';
+                studioInfo.style.position = 'relative';
+                console.log('✅ Fixed studio info z-index');
+            }
+            
+            // Method 2: Fix progress bar opacity
+            const progressContainer = submitBtn.querySelector('.progress-container');
+            if (progressContainer) {
+                progressContainer.style.opacity = '0.8';
+                console.log('✅ Reduced progress container opacity');
+            }
+            
+            // Method 3: Ensure text is above overlay
+            const buttonText = submitBtn.querySelector('.button-text');
+            const buttonIcon = submitBtn.querySelector('.button-icon');
+            
+            if (buttonText) {
+                buttonText.style.zIndex = '10';
+                buttonText.style.position = 'relative';
+                buttonText.style.color = '#333';
+                buttonText.style.fontWeight = 'bold';
+                console.log('✅ Fixed button text visibility');
+            }
+            
+            if (buttonIcon) {
+                buttonIcon.style.zIndex = '10';
+                buttonIcon.style.position = 'relative';
+                buttonIcon.style.color = '#333';
+                console.log('✅ Fixed button icon visibility');
+            }
+            
+            // Method 4: Adjust progress bar background
+            const progressBar = submitBtn.querySelector('.progress-bar');
+            if (progressBar) {
+                progressBar.style.opacity = '0.7';
+                console.log('✅ Reduced progress bar opacity');
+            }
+            
+            // Method 5: Add text shadow for better visibility
+            if (buttonText) {
+                buttonText.style.textShadow = '1px 1px 2px rgba(255,255,255,0.8)';
+            }
+            
+            console.log('✅ Blue overlay text visibility fixed!');
+            return true;
+        }
+        
+        // Alternative approach - make progress bar less intrusive
+        function makeProgressBarSubtle() {
+            console.log('🔧 Making progress bar more subtle...');
+            
+            const submitBtn = document.getElementById('submitSnapSelectionsBtn') || 
+                             document.querySelector('.submit-snapselections-btn');
+            
+            if (!submitBtn) {
+                console.log('❌ Submit button not found');
+                return false;
+            }
+            
+            const progressContainer = submitBtn.querySelector('.progress-container');
+            const progressBar = submitBtn.querySelector('.progress-bar');
+            
+            if (progressContainer) {
+                // Make progress container a border instead of fill
+                progressContainer.style.background = 'transparent';
+                progressContainer.style.border = '2px solid rgba(0,123,255,0.3)';
+                progressContainer.style.borderRadius = '25px';
+            }
+            
+            if (progressBar) {
+                // Make progress bar a thin line at bottom
+                progressBar.style.height = '3px';
+                progressBar.style.bottom = '2px';
+                progressBar.style.top = 'auto';
+                progressBar.style.borderRadius = '0 0 23px 23px';
+                progressBar.style.opacity = '0.8';
+            }
+            
+            console.log('✅ Progress bar made more subtle');
+            return true;
+        }
+        
+        // Method to change button styling completely
+        function improveButtonStyling() {
+            console.log('🎨 Improving button styling...');
+            
+            const submitBtn = document.getElementById('submitSnapSelectionsBtn') || 
+                             document.querySelector('.submit-snapselections-btn');
+            
+            if (!submitBtn) {
+                console.log('❌ Submit button not found');
+                return false;
+            }
+            
+            // Option 1: Use background gradient instead of overlay
+            submitBtn.style.background = 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)';
+            submitBtn.style.border = '2px solid #007bff';
+            
+            // Ensure text is always visible
+            const buttonText = submitBtn.querySelector('.button-text');
+            const buttonIcon = submitBtn.querySelector('.button-icon');
+            
+            if (buttonText) {
+                buttonText.style.color = '#007bff';
+                buttonText.style.fontWeight = '600';
+                buttonText.style.zIndex = '100';
+                buttonText.style.position = 'relative';
+            }
+            
+            if (buttonIcon) {
+                buttonIcon.style.color = '#007bff';
+                buttonIcon.style.zIndex = '100';
+                buttonIcon.style.position = 'relative';
+            }
+            
+            // Hide the progress overlay completely and use border color instead
+            const progressContainer = submitBtn.querySelector('.progress-container');
+            if (progressContainer) {
+                progressContainer.style.display = 'none';
+            }
+            
+            // Show progress through border color changes
+            const progress = calculateSubmissionProgress();
+            if (progress >= 80) {
+                submitBtn.style.borderColor = '#28a745';
+                submitBtn.style.background = 'linear-gradient(135deg, #e8f5e8 0%, #d4edda 100%)';
+                if (buttonText) buttonText.style.color = '#28a745';
+                if (buttonIcon) buttonIcon.style.color = '#28a745';
+            }
+            
+            console.log('✅ Button styling improved');
+            return true;
+        }
 
         
     </script>
