@@ -1379,6 +1379,7 @@
             document.getElementById('totalPhotosCount').textContent = totalPhotos;
             
             console.log(`Selection progress: ${totalSelections} / ${totalPhotos}`); // ADD THIS
+            updateSubmitButton();
         }
 
      
@@ -1629,6 +1630,7 @@
             // Update lightbox counters if open
             updateLightboxCounters();
             
+            updateSubmitButton(); 
            
         }
         
@@ -2181,6 +2183,7 @@
                     // Initialize rating synchronization
                     initRatingSync();
                     initializeRotationSystem(); 
+                    initSubmitSnapSelections();
                 }
                 
             } catch (error) {
@@ -3535,6 +3538,264 @@
                 dragState.element = null;
             }
         });
+
+        // ===== SUBMIT SNAPSELECTIONS - PHASE 1 =====
+        
+        // 1. Calculate submission progress percentage
+        function calculateSubmissionProgress() {
+            const totalPhotos = allGalleryPhotos.length;
+            const ratedPhotos = Object.keys(photoRatings).length;
+            
+            if (totalPhotos === 0) return 0;
+            
+            const percentage = Math.round((ratedPhotos / totalPhotos) * 100);
+            return Math.min(percentage, 100); // Cap at 100%
+        }
+        
+        // 2. Update submit button based on progress
+        function updateSubmitButton() {
+            const submitBtn = document.getElementById('submitSnapSelectionsBtn');
+            if (!submitBtn) return;
+            
+            const progress = calculateSubmissionProgress();
+            const totalPhotos = allGalleryPhotos.length;
+            const ratedPhotos = Object.keys(photoRatings).length;
+            
+            // Update progress bar
+            const progressBar = submitBtn.querySelector('.progress-bar');
+            if (progressBar) {
+                progressBar.style.width = `${progress}%`;
+            }
+            
+            // Update text
+            const buttonText = submitBtn.querySelector('.button-text');
+            if (buttonText) {
+                if (progress === 0) {
+                    buttonText.textContent = 'Submit SnapSelections';
+                } else {
+                    buttonText.textContent = `Submit SnapSelections (${ratedPhotos}/${totalPhotos})`;
+                }
+            }
+            
+            // Update button state and styling
+            submitBtn.className = 'submit-snapselections-btn';
+            
+            if (progress === 0) {
+                // No progress state
+                submitBtn.classList.add('no-progress');
+                submitBtn.disabled = true;
+                progressBar.style.backgroundColor = '#ccc';
+            } else if (progress < 80) {
+                // In progress state
+                submitBtn.classList.add('in-progress');
+                submitBtn.disabled = true;
+                progressBar.style.backgroundColor = '#ff9500'; // Orange
+            } else if (progress < 100) {
+                // Ready state (80-99%)
+                submitBtn.classList.add('ready');
+                submitBtn.disabled = false;
+                progressBar.style.backgroundColor = '#007bff'; // Blue
+                
+                // Add gentle pulse effect
+                if (!submitBtn.classList.contains('pulse-added')) {
+                    submitBtn.style.animation = 'gentle-pulse 2s infinite';
+                    submitBtn.classList.add('pulse-added');
+                }
+            } else {
+                // Complete state (100%)
+                submitBtn.classList.add('complete');
+                submitBtn.disabled = false;
+                progressBar.style.backgroundColor = '#28a745'; // Green
+                
+                // Add completion highlight
+                if (!submitBtn.classList.contains('complete-animation-done')) {
+                    submitBtn.style.animation = 'completion-highlight 1s ease-out';
+                    submitBtn.classList.add('complete-animation-done');
+                }
+            }
+            
+            // Update tooltip
+            updateSubmitButtonTooltip(submitBtn, progress, ratedPhotos, totalPhotos);
+        }
+        
+        // 3. Update button tooltip based on state
+        function updateSubmitButtonTooltip(button, progress, ratedPhotos, totalPhotos) {
+            if (progress === 0) {
+                button.title = 'Start rating photos to enable submission';
+            } else if (progress < 80) {
+                const remaining = Math.ceil(totalPhotos * 0.8) - ratedPhotos;
+                button.title = `Rate ${remaining} more photos to enable submission (${progress}% complete)`;
+            } else if (progress < 100) {
+                button.title = `Ready to submit! You've rated ${progress}% of photos`;
+            } else {
+                button.title = 'All photos rated - Click to submit your selections';
+            }
+        }
+        
+        // 4. Create the submit button element
+        function createSubmitSnapSelectionsButton() {
+            // Check if button already exists
+            if (document.getElementById('submitSnapSelectionsBtn')) return;
+            
+            const submitBtn = document.createElement('button');
+            submitBtn.id = 'submitSnapSelectionsBtn';
+            submitBtn.className = 'submit-snapselections-btn no-progress';
+            submitBtn.disabled = true;
+            
+            // Create button structure
+            submitBtn.innerHTML = `
+                <div class="progress-container">
+                    <div class="progress-bar"></div>
+                </div>
+                <i class="fas fa-paper-plane button-icon"></i>
+                <span class="button-text">Submit SnapSelections</span>
+            `;
+            
+            // Add click handler (for future phases)
+            submitBtn.addEventListener('click', function() {
+                if (!submitBtn.disabled) {
+                    console.log('Submit button clicked - Phase 2 will handle this');
+                    showToast('Submit functionality coming in Phase 2!', 'info');
+                }
+            });
+            
+            // Add to page
+            document.body.appendChild(submitBtn);
+            
+            // Initial update
+            updateSubmitButton();
+        }
+        
+        // 5. Add CSS styles for the button
+        function addSubmitButtonStyles() {
+            // Check if styles already added
+            if (document.getElementById('submitSnapSelectionsStyles')) return;
+            
+            const style = document.createElement('style');
+            style.id = 'submitSnapSelectionsStyles';
+            style.textContent = `
+                .submit-snapselections-btn {
+                    position: fixed;
+                    top: 20px;
+                    right: 80px;
+                    z-index: 1000;
+                    background: #f8f9fa;
+                    color: #666;
+                    border: 2px solid #e9ecef;
+                    border-radius: 25px;
+                    padding: 12px 20px;
+                    cursor: not-allowed;
+                    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+                    display: flex;
+                    align-items: center;
+                    gap: 8px;
+                    font-size: 14px;
+                    font-weight: 600;
+                    transition: all 0.3s ease;
+                    min-width: 220px;
+                    position: relative;
+                    overflow: hidden;
+                }
+                
+                .submit-snapselections-btn .progress-container {
+                    position: absolute;
+                    left: 0;
+                    top: 0;
+                    height: 100%;
+                    width: 100%;
+                    background: rgba(255,255,255,0.9);
+                    overflow: hidden;
+                    border-radius: 23px;
+                }
+                
+                .submit-snapselections-btn .progress-bar {
+                    height: 100%;
+                    width: 0%;
+                    background-color: #ccc;
+                    transition: all 0.4s ease;
+                    border-radius: 23px;
+                }
+                
+                .submit-snapselections-btn .button-icon,
+                .submit-snapselections-btn .button-text {
+                    position: relative;
+                    z-index: 2;
+                }
+                
+                .submit-snapselections-btn.ready {
+                    cursor: pointer;
+                    color: #007bff;
+                    border-color: #007bff;
+                }
+                
+                .submit-snapselections-btn.ready:hover {
+                    background: #e3f2fd;
+                    transform: translateY(-1px);
+                    box-shadow: 0 4px 12px rgba(0,123,255,0.3);
+                }
+                
+                .submit-snapselections-btn.complete {
+                    cursor: pointer;
+                    color: #28a745;
+                    border-color: #28a745;
+                }
+                
+                .submit-snapselections-btn.complete:hover {
+                    background: #e8f5e8;
+                    transform: translateY(-1px);
+                    box-shadow: 0 4px 12px rgba(40,167,69,0.3);
+                }
+                
+                @keyframes gentle-pulse {
+                    0%, 100% { transform: scale(1); }
+                    50% { transform: scale(1.02); }
+                }
+                
+                @keyframes completion-highlight {
+                    0% { box-shadow: 0 2px 8px rgba(0,0,0,0.15); }
+                    50% { box-shadow: 0 0 20px rgba(40,167,69,0.6); }
+                    100% { box-shadow: 0 2px 8px rgba(0,0,0,0.15); }
+                }
+                
+                /* Mobile responsiveness */
+                @media (max-width: 768px) {
+                    .submit-snapselections-btn {
+                        top: 70px;
+                        right: 20px;
+                        min-width: 180px;
+                        font-size: 12px;
+                        padding: 10px 16px;
+                    }
+                }
+                
+                @media (max-width: 480px) {
+                    .submit-snapselections-btn {
+                        min-width: 160px;
+                        font-size: 11px;
+                        padding: 8px 12px;
+                    }
+                }
+            `;
+            
+            document.head.appendChild(style);
+        }
+        
+        // 6. Initialize the submit button system
+        function initSubmitSnapSelections() {
+            console.log('Initializing Submit SnapSelections - Phase 1');
+            
+            // Add CSS styles
+            addSubmitButtonStyles();
+            
+            // Create the button
+            createSubmitSnapSelectionsButton();
+            
+            console.log('Submit SnapSelections button created and ready');
+        }
+
+
+
+        
     </script>
 </body>
 </html>
