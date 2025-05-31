@@ -1935,6 +1935,57 @@ tr:last-child .renew-plan-btn:hover::after {
     white-space: nowrap;
   }
 
+  .download-gallery-btn {
+    background: #007bff !important;
+    color: white !important;
+    border: 1px solid #007bff !important;
+    padding: 8px 16px !important;
+    border-radius: 6px !important;
+    font-size: 14px !important;
+    font-weight: 500 !important;
+    cursor: pointer !important;
+    transition: all 0.2s ease !important;
+    width: 100% !important;
+    margin-top: 8px !important;
+    display: block !important;
+    text-align: center !important;
+    line-height: 1.2 !important;
+  }
+  
+  .download-gallery-btn:hover:not(:disabled) {
+    background: #ff6b35 !important;
+    border-color: #ff6b35 !important;
+  }
+  
+  .download-gallery-btn.disabled,
+  .download-gallery-btn:disabled {
+    background: #6c757d !important;
+    border-color: #6c757d !important;
+    cursor: not-allowed !important;
+  }
+  
+  .download-gallery-btn.no-submissions {
+    background: #6c757d !important;
+    border-color: #6c757d !important;
+  }
+  
+  .download-gallery-btn.free-download {
+    background: #28a745 !important;
+    border-color: #28a745 !important;
+  }
+  
+  .download-gallery-btn.paid-download {
+    background: #ffc107 !important;
+    border-color: #ffc107 !important;
+    color: #212529 !important;
+  }
+  
+  .btn-subtitle {
+    display: block;
+    font-size: 11px;
+    opacity: 0.8;
+    margin-top: 2px;
+  }
   
 }
 
