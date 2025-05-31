@@ -2117,9 +2117,10 @@ function updateTabCounts() {
   });
 }
 
+
 /**
- * Utility function to fix all photo count discrepancies for all galleries
- * This will ensure dashboard displays show accurate counts
+ * Utility function to fix all photo count discrepancies and gallery-share references
+ * This will ensure dashboard displays show accurate counts and proper sharing links
  */
 async function fixAllPhotoCountDiscrepancies() {
   try {
@@ -2128,8 +2129,8 @@ async function fixAllPhotoCountDiscrepancies() {
       return false;
     }
     
-    console.log('Starting to fix all photo count discrepancies...');
-    showLoadingOverlay('Fixing photo counts...');
+    console.log('Starting to fix all data discrepancies...');
+    showLoadingOverlay('Fixing data consistency...');
     
     const db = firebase.firestore();
     
@@ -2243,6 +2244,37 @@ async function fixAllPhotoCountDiscrepancies() {
           );
         }
       }
+      
+      // NEW: Fix gallery-share references
+      if (galleryData.shareId) {
+        try {
+          // Find the share document with this shareId
+          const shareQuery = await db.collection('galleryShares')
+            .where('shareId', '==', galleryData.shareId)
+            .where('photographerId', '==', currentUser.uid)
+            .limit(1)
+            .get();
+          
+          if (!shareQuery.empty) {
+            const shareDoc = shareQuery.docs[0];
+            const shareData = shareDoc.data();
+            
+            // If galleryId doesn't match, fix it
+            if (shareData.galleryId !== galleryId) {
+              console.log(`Fixing share reference for gallery ${galleryId}: ${shareData.galleryId} → ${galleryId}`);
+              
+              galleryFixes.push(
+                db.collection('galleryShares').doc(shareDoc.id).update({
+                  galleryId: galleryId,
+                  updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                })
+              );
+            }
+          }
+        } catch (shareError) {
+          console.error(`Error fixing share reference for gallery ${galleryId}:`, shareError);
+        }
+      }
     }
     
     // Apply all fixes
@@ -2253,19 +2285,19 @@ async function fixAllPhotoCountDiscrepancies() {
       // Refresh dashboard data
       await refreshAllData();
       
-      showSuccessMessage(`Photo counts fixed successfully. ${galleryFixes.length} issues resolved.`);
+      showSuccessMessage(`Data consistency fixed successfully. ${galleryFixes.length} issues resolved.`);
     } else {
-      console.log('No fixes needed - all counts are correct');
-      showInfoMessage('All photo counts are already correct.');
+      console.log('No fixes needed - all data is already consistent');
+      showInfoMessage('All data is already consistent.');
     }
     
     hideLoadingOverlay();
     return true;
     
   } catch (error) {
-    console.error('Error fixing photo counts:', error);
+    console.error('Error fixing data consistency:', error);
     hideLoadingOverlay();
-    showErrorMessage(`Error fixing photo counts: ${error.message}`);
+    showErrorMessage(`Error fixing data consistency: ${error.message}`);
     return false;
   }
 }
