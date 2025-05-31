@@ -5113,7 +5113,7 @@
         
       
         function markButtonAsSubmitted(submissionId, timestamp) {
-          
+      
             const submitBtn = document.getElementById('submitSnapSelectionsBtn');
             if (submitBtn) {
                 submitBtn.disabled = true;
@@ -5125,14 +5125,11 @@
                 // Update button content
                 submitBtn.innerHTML = `
                     <i class="fas fa-check-circle" style="color: #28a745;"></i>
-                    <span class="button-text">✅ Submitted</span>
+                    <span class="button-text">SnapSelections Submitted Already!</span>
                 `;
                 
-                // SAFE timestamp handling using existing function
-                const displayDate = formatTimestampSafely(timestamp);
-                
-                // Update tooltip with safe date
-                submitBtn.title = `Submitted ${displayDate}`;
+                // Simple tooltip
+                submitBtn.title = 'Your photo selections already submitted successfully';
             }
         }
         
