@@ -4817,7 +4817,7 @@
        
         
         async function processActualSubmission() {
-             
+ 
             try {
                 console.log('🚀 Starting secure submission...');
                 
@@ -4847,7 +4847,7 @@
                         ratedPhotos: result.data.data?.ratedPhotos || Object.keys(photoRatings).length,
                         totalPhotos: result.data.data?.totalPhotos || allGalleryPhotos.length,
                         completionPercentage: result.data.data?.completionPercentage || calculateSubmissionProgress(),
-                        submittedAt: result.data.data?.submittedAt || new Date(),
+                        submittedAt: new Date(), // FIX: Always use current date instead of server timestamp
                         galleryId: getGalleryId(),
                         userId: getUserIdentifier()
                     };
@@ -5050,6 +5050,7 @@
         
       
         function markButtonAsSubmitted(submissionId, timestamp) {
+          
             const submitBtn = document.getElementById('submitSnapSelectionsBtn');
             if (submitBtn) {
                 submitBtn.disabled = true;
@@ -5064,42 +5065,8 @@
                     <span class="button-text">✅ Submitted</span>
                 `;
                 
-                // FIXED: Robust timestamp handling
-                let displayDate;
-                try {
-                    let dateObj;
-                    
-                    // Handle different timestamp formats
-                    if (timestamp instanceof Date) {
-                        // Already a Date object
-                        dateObj = timestamp;
-                    } else if (typeof timestamp === 'string') {
-                        // ISO string or date string
-                        dateObj = new Date(timestamp);
-                    } else if (timestamp && typeof timestamp.toDate === 'function') {
-                        // Firestore timestamp
-                        dateObj = timestamp.toDate();
-                    } else if (timestamp && timestamp.seconds) {
-                        // Firestore timestamp object format
-                        dateObj = new Date(timestamp.seconds * 1000);
-                    } else {
-                        // Fallback to current date
-                        console.warn('Unknown timestamp format, using current date:', timestamp);
-                        dateObj = new Date();
-                    }
-                    
-                    // Validate the date object
-                    if (isNaN(dateObj.getTime())) {
-                        throw new Error('Invalid date object created');
-                    }
-                    
-                    // Format the date
-                    displayDate = `on ${dateObj.toLocaleDateString()} at ${dateObj.toLocaleTimeString()}`;
-                    
-                } catch (error) {
-                    console.warn('Date formatting error:', error, 'Original timestamp:', timestamp);
-                    displayDate = 'recently';
-                }
+                // SAFE timestamp handling using existing function
+                const displayDate = formatTimestampSafely(timestamp);
                 
                 // Update tooltip with safe date
                 submitBtn.title = `Submitted ${displayDate}`;
@@ -5108,11 +5075,16 @@
         
         function addSubmissionOverlay(submissionData) {
             // Check if overlay already exists
+    
+        // Check if overlay already exists
             if (document.getElementById('submissionOverlay')) return;
             
             const overlay = document.createElement('div');
             overlay.id = 'submissionOverlay';
             overlay.className = 'submission-overlay';
+            
+            // SAFE timestamp formatting
+            const submittedTime = formatTimestampSafely(submissionData.submittedAt);
             
             const banner = document.createElement('div');
             banner.className = 'submission-banner';
@@ -5127,7 +5099,7 @@
                         <strong>Photos Selected:</strong> ${submissionData.ratedPhotos}/${submissionData.totalPhotos}
                     </div>
                     <div class="detail-item">
-                        <strong>Submitted:</strong> ${submissionData.submittedAt.toLocaleDateString()} at ${submissionData.submittedAt.toLocaleTimeString()}
+                        <strong>Submitted:</strong> ${submittedTime}
                     </div>
                     <div class="detail-item">
                         <strong>Completion:</strong> ${submissionData.completionPercentage}%
