@@ -2853,6 +2853,7 @@
                     initializeRotationSystem(); 
                     initSubmitSnapSelections();
                     initSubmitSnapSelectionsPhase2();
+                    checkExistingSubmissionWithFirebase();
                     checkExistingSubmissionWithConfirmation();
                     
                 }
@@ -6349,6 +6350,58 @@
             }
             
             return false;
+        }
+
+
+        // Add this function after line 1206 (after getUserIdentifier function)
+        async function checkExistingSubmissionWithFirebase() {
+            const galleryId = getGalleryId();
+            const userId = getUserIdentifier();
+            
+            // First check localStorage (fast)
+            const localSubmission = localStorage.getItem(`gallery_submitted_${galleryId}`);
+            if (localSubmission) {
+                console.log('✅ Using localStorage submission data');
+                return; // Exit early - existing logic will handle this
+            }
+            
+            // If no localStorage, check Firebase (cross-browser sync)
+            try {
+                const db = firebase.firestore();
+                const snapshot = await db.collection('clientSubmissions')
+                    .where('galleryId', '==', galleryId)
+                    .where('userId', '==', userId)
+                    .where('status', '==', 'submitted')
+                    .limit(1)
+                    .get();
+                
+                if (!snapshot.empty) {
+                    console.log('🔄 Found submission in Firebase, syncing to localStorage...');
+                    const submissionData = snapshot.docs[0].data();
+                    
+                    // Sync to localStorage for future visits
+                    const localData = {
+                        submissionId: submissionData.submissionId,
+                        submittedAt: submissionData.clientSubmittedAt.toDate().toISOString(),
+                        ratedPhotos: submissionData.ratedPhotos,
+                        totalPhotos: submissionData.totalPhotos,
+                        completionPercentage: submissionData.completionPercentage,
+                        ratingCounts: submissionData.ratingCounts,
+                        timestamp: Date.now()
+                    };
+                    
+                    localStorage.setItem(`submission_data_${galleryId}`, JSON.stringify(localData));
+                    localStorage.setItem(`gallery_submitted_${galleryId}`, submissionData.submissionId);
+                    
+                    // Trigger confirmation view
+                    window.ratingsDisabled = true;
+                    transformToConfirmationView(localData);
+                    
+                    console.log('✅ Cross-browser sync completed');
+                }
+            } catch (error) {
+                console.error('❌ Firebase submission check failed:', error);
+            }
         }
         
     </script>
