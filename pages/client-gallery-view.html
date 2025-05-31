@@ -4793,7 +4793,7 @@
                 };
                 
                 // Call Cloud Function directly without authentication
-                const functions = firebase.app().functions('asia-south1');
+                const functions = firebase.functions('asia-south1');
                 const submitSelections = functions.httpsCallable('submitClientSelections');
                 const result = await submitSelections(payload);
                 
