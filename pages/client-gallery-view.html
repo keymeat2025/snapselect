@@ -2203,11 +2203,19 @@
             };
             
             // Initialize Firebase
+          
             try {
                 if (firebase.apps.length === 0) {
                     firebase.initializeApp(firebaseConfig);
                     console.log("Firebase initialized successfully");
                 }
+                
+                // ADD THIS LINE - Initialize Firebase Functions region
+                if (firebase && firebase.functions) {
+                    firebase.app().functions("asia-south1");
+                }
+    
+    // ... rest of your existing code
                 
                 // Update current year in footer
                 document.getElementById('currentYear').textContent = new Date().getFullYear();
@@ -4780,6 +4788,7 @@
        
         
         async function processActualSubmission() {
+             
             try {
                 console.log('🚀 Starting secure submission...');
                 
@@ -4792,10 +4801,16 @@
                     currentUrl: window.location.href
                 };
                 
-                // Call Cloud Function directly without authentication
-                const functions = firebase.functions('asia-south1');
+                console.log('📦 Submission payload:', payload);
+                
+                // FIXED: Use the same pattern as your working dashboard
+                const functions = firebase.app().functions('asia-south1');
                 const submitSelections = functions.httpsCallable('submitClientSelections');
+                
+                console.log('☁️ Calling Cloud Function...');
                 const result = await submitSelections(payload);
+                
+                console.log('✅ Cloud Function response:', result);
                 
                 if (result.data?.success) {
                     const submissionData = {
@@ -4807,6 +4822,8 @@
                         galleryId: getGalleryId(),
                         userId: getUserIdentifier()
                     };
+                    
+                    console.log('📋 Processed submission data:', submissionData);
                     
                     completeGalleryLockdown(submissionData, submissionData.submissionId);
                     showRealSubmissionSuccess(submissionData, submissionData.submissionId);
