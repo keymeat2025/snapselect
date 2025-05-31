@@ -3114,24 +3114,7 @@
             });
             toolbar.appendChild(slideshowButton);
         
-            // Download button (EXISTING CODE)
-            const downloadButton = document.createElement('button');
-            downloadButton.className = 'modal-button';
-            downloadButton.innerHTML = '<i class="fas fa-download"></i>';
-            downloadButton.setAttribute('aria-label', 'Download photo');
-            downloadButton.addEventListener('click', function(e) {
-                e.stopPropagation();
-                
-                // Create a download link
-                const link = document.createElement('a');
-                link.href = photo.url;
-                link.download = photo.name || 'photo.jpg';
-                link.target = '_blank';
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-            });
-            toolbar.appendChild(downloadButton);
+        
             
             // Close button (EXISTING CODE)
             const closeButton = document.createElement('button');
