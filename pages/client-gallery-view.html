@@ -6126,6 +6126,25 @@
             img.alt = photo.name || 'Gallery photo';
             img.draggable = false;
             
+            // Add watermark overlay (same as before)
+            const watermarkOverlay = document.createElement('div');
+            watermarkOverlay.className = 'image-watermark';
+            imageContainer.appendChild(watermarkOverlay);
+            
+            // Add watermark text (same as before)
+            const watermarkText = document.createElement('div');
+            watermarkText.className = 'watermark-text';
+            watermarkText.textContent = 'SnapSelect © 2025';
+            imageContainer.appendChild(watermarkText);
+            
+            // Add protection layer (same as before)
+            const protectionLayer = document.createElement('div');
+            protectionLayer.className = 'protection-layer';
+            protectionLayer.addEventListener('click', function(e) {
+                e.stopPropagation();
+            });
+            imageContainer.appendChild(protectionLayer);
+            
             imageContainer.appendChild(img);
             
             // Add navigation if multiple photos
