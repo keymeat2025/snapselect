@@ -5021,6 +5021,7 @@
             console.log('🚫 All rating interactions disabled');
         }
         
+      
         function markButtonAsSubmitted(submissionId, timestamp) {
             const submitBtn = document.getElementById('submitSnapSelectionsBtn');
             if (submitBtn) {
@@ -5036,8 +5037,45 @@
                     <span class="button-text">✅ Submitted</span>
                 `;
                 
-                // Update tooltip
-                submitBtn.title = `Submitted on ${timestamp.toLocaleDateString()} at ${timestamp.toLocaleTimeString()}`;
+                // FIXED: Robust timestamp handling
+                let displayDate;
+                try {
+                    let dateObj;
+                    
+                    // Handle different timestamp formats
+                    if (timestamp instanceof Date) {
+                        // Already a Date object
+                        dateObj = timestamp;
+                    } else if (typeof timestamp === 'string') {
+                        // ISO string or date string
+                        dateObj = new Date(timestamp);
+                    } else if (timestamp && typeof timestamp.toDate === 'function') {
+                        // Firestore timestamp
+                        dateObj = timestamp.toDate();
+                    } else if (timestamp && timestamp.seconds) {
+                        // Firestore timestamp object format
+                        dateObj = new Date(timestamp.seconds * 1000);
+                    } else {
+                        // Fallback to current date
+                        console.warn('Unknown timestamp format, using current date:', timestamp);
+                        dateObj = new Date();
+                    }
+                    
+                    // Validate the date object
+                    if (isNaN(dateObj.getTime())) {
+                        throw new Error('Invalid date object created');
+                    }
+                    
+                    // Format the date
+                    displayDate = `on ${dateObj.toLocaleDateString()} at ${dateObj.toLocaleTimeString()}`;
+                    
+                } catch (error) {
+                    console.warn('Date formatting error:', error, 'Original timestamp:', timestamp);
+                    displayDate = 'recently';
+                }
+                
+                // Update tooltip with safe date
+                submitBtn.title = `Submitted ${displayDate}`;
             }
         }
         
