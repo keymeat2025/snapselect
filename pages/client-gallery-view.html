@@ -1316,6 +1316,33 @@
             return sessionStorage.getItem('actual_gallery_id');
         }
 
+        function formatTimestampSafely(timestamp) {
+            try {
+                let dateObj;
+                
+                if (timestamp instanceof Date) {
+                    dateObj = timestamp;
+                } else if (typeof timestamp === 'string') {
+                    dateObj = new Date(timestamp);
+                } else if (timestamp && typeof timestamp.toDate === 'function') {
+                    dateObj = timestamp.toDate();
+                } else if (timestamp && timestamp.seconds) {
+                    dateObj = new Date(timestamp.seconds * 1000);
+                } else {
+                    dateObj = new Date();
+                }
+                
+                if (isNaN(dateObj.getTime())) {
+                    throw new Error('Invalid date');
+                }
+                
+                return `${dateObj.toLocaleDateString()} at ${dateObj.toLocaleTimeString()}`;
+            } catch (error) {
+                console.warn('Date formatting error:', error);
+                return 'recently';
+            }
+        }
+
 
 
        
@@ -5144,7 +5171,8 @@
                         <p><strong>Submission ID:</strong> ${submissionId}</p>
                         <p><strong>Photos Selected:</strong> ${submissionData.ratedPhotos}/${submissionData.totalPhotos}</p>
                         <p><strong>Completion:</strong> ${submissionData.completionPercentage}%</p>
-                        <p><strong>Submitted:</strong> ${submissionData.submittedAt.toLocaleString()}</p>
+                        //<p><strong>Submitted:</strong> ${submissionData.submittedAt.toLocaleString()}</p>
+                        <p><strong>Submitted:</strong> ${formatTimestampSafely(submissionData.submittedAt)}</p>
                     </div>
                     <div class="success-note">
                         <p><strong>What's Next?</strong><br>
