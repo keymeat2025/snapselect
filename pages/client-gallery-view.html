@@ -2293,16 +2293,39 @@
                     welcomeDashboard.style.display = 'none';
                 }
                 
+            
+               // REPLACE the initialization section in the Firebase initialization (around line 2298) with this:
+
                 // Check gallery access and load
                 if (checkGalleryAccess()) {
-                    loadSharedGallery();
-                    // Initialize rating synchronization
-                    initRatingSync();
-                    initializeRotationSystem(); 
-                    initSubmitSnapSelections();
-                    initSubmitSnapSelectionsPhase2();
-                    checkExistingSubmission();
-                    
+                    // UPDATED: Make checkExistingSubmission async and wait for it
+                    checkExistingSubmission()
+                        .then((submissionExists) => {
+                            console.log('📊 Submission check completed. Exists:', submissionExists);
+                            
+                            // Always load gallery (even if submitted, user should see their selections)
+                            loadSharedGallery();
+                            
+                            // Initialize other systems
+                            initRatingSync();
+                            initializeRotationSystem(); 
+                            initSubmitSnapSelections();
+                            initSubmitSnapSelectionsPhase2();
+                            
+                            // If no existing submission was found, this was redundant but harmless
+                            // If submission exists, the lockdown is already applied above
+                        })
+                        .catch((error) => {
+                            console.error('❌ Error during submission check:', error);
+                            
+                            // If check fails, proceed normally but log the error
+                            console.log('🔄 Proceeding with normal gallery loading due to check error');
+                            loadSharedGallery();
+                            initRatingSync();
+                            initializeRotationSystem(); 
+                            initSubmitSnapSelections();
+                            initSubmitSnapSelectionsPhase2();
+                        });
                 }
                 
             } catch (error) {
@@ -4686,25 +4709,186 @@
         }
 
 
-        function checkExistingSubmission() {
+        
+         // REPLACE the existing checkExistingSubmission() function with this:
+        async function checkExistingSubmission() {
             const galleryId = getGalleryId();
+            const userId = getUserIdentifier();
             
-            console.log('🔍 Checking for existing submission...');
+            console.log('🔍 Checking for existing submission (server-authoritative)...');
+            console.log('📋 Gallery ID:', galleryId);
+            console.log('👤 User ID:', userId);
             
-            if (localStorage.getItem(`gallery_submitted_${galleryId}`) ||
-                sessionStorage.getItem(`submission_lockdown_${galleryId}`)) {
-                
-                console.log('🔒 Gallery already submitted - enabling lockdown');
-                window.ratingsDisabled = true;
-                disableAllRatingInteractions();
-                
-                // Update submit button if it exists
-                const submitBtn = document.getElementById('submitSnapSelectionsBtn');
-                if (submitBtn) {
-                    const submissionId = localStorage.getItem(`gallery_submitted_${galleryId}`);
-                    markButtonAsSubmitted(submissionId, new Date());
-                }
+            if (!galleryId || !userId) {
+                console.log('❌ Missing gallery ID or user ID - skipping submission check');
+                return false;
             }
+            
+            try {
+                // Check server data for existing submission
+                const db = firebase.firestore();
+                const galleryDoc = await db.collection('galleries').doc(galleryId).get();
+                
+                if (!galleryDoc.exists) {
+                    console.log('❌ Gallery document not found');
+                    return false;
+                }
+                
+                const galleryData = galleryDoc.data();
+                const submissionData = galleryData.submissionData;
+                
+                // Check if this user has already submitted
+                if (submissionData && submissionData.clientUserId === userId) {
+                    console.log('✅ EXISTING SUBMISSION FOUND in server data!');
+                    console.log('📝 Submission Details:', submissionData);
+                    
+                    // Calculate display date safely
+                    let displayDate = 'recently';
+                    if (submissionData.submittedAt) {
+                        try {
+                            const date = submissionData.submittedAt.toDate ? 
+                                        submissionData.submittedAt.toDate() : 
+                                        new Date(submissionData.submittedAt);
+                            displayDate = `${date.toLocaleDateString()} at ${date.toLocaleTimeString()}`;
+                        } catch (e) {
+                            console.warn('Date parsing error:', e);
+                            displayDate = 'recently';
+                        }
+                    }
+                    
+                    console.log('📅 Originally submitted:', displayDate);
+                    
+                    // Apply lockdown immediately
+                    console.log('🔒 Gallery already submitted - enabling lockdown');
+                    window.ratingsDisabled = true;
+                    disableAllRatingInteractions();
+                    
+                    // Set local storage flags for faster future checks (optimization)
+                    localStorage.setItem(`gallery_submitted_${galleryId}`, submissionData.submissionId || 'SUBMITTED');
+                    sessionStorage.setItem(`submission_lockdown_${galleryId}`, 'true');
+                    
+                    // Update submit button if it exists
+                    setTimeout(() => {
+                        const submitBtn = document.getElementById('submitSnapSelectionsBtn');
+                        if (submitBtn) {
+                            markButtonAsSubmitted(submissionData.submissionId || 'SUBMITTED', submissionData.submittedAt);
+                        }
+                        
+                        // Show submission status banner
+                        showSubmissionStatusBanner(displayDate, submissionData);
+                    }, 1000); // Small delay to ensure button is created
+                    
+                    return true;
+                } else {
+                    console.log('ℹ️ No existing submission found for this user');
+                    
+                    // Also check localStorage as backup (for optimization)
+                    if (localStorage.getItem(`gallery_submitted_${galleryId}`) ||
+                        sessionStorage.getItem(`submission_lockdown_${galleryId}`)) {
+                        console.log('⚠️ Found localStorage submission flag but no server data - clearing stale flags');
+                        localStorage.removeItem(`gallery_submitted_${galleryId}`);
+                        sessionStorage.removeItem(`submission_lockdown_${galleryId}`);
+                    }
+                    
+                    return false;
+                }
+                
+            } catch (error) {
+                console.error('❌ Error checking server submission status:', error);
+                
+                // Fallback to localStorage check if server check fails
+                console.log('🔄 Falling back to localStorage check...');
+                if (localStorage.getItem(`gallery_submitted_${galleryId}`) ||
+                    sessionStorage.getItem(`submission_lockdown_${galleryId}`)) {
+                    console.log('🔒 Found localStorage submission - enabling lockdown');
+                    window.ratingsDisabled = true;
+                    disableAllRatingInteractions();
+                    
+                    setTimeout(() => {
+                        const submitBtn = document.getElementById('submitSnapSelectionsBtn');
+                        if (submitBtn) {
+                            markButtonAsSubmitted('SUBMITTED', new Date());
+                        }
+                    }, 1000);
+                    
+                    return true;
+                }
+                
+                return false;
+            }
+        }
+        
+        // NEW HELPER FUNCTION: Add this new function after checkExistingSubmission()
+        function showSubmissionStatusBanner(displayDate, submissionData) {
+            // Remove existing banner if present
+            const existingBanner = document.getElementById('submissionStatusBanner');
+            if (existingBanner) {
+                existingBanner.remove();
+            }
+            
+            const banner = document.createElement('div');
+            banner.id = 'submissionStatusBanner';
+            banner.style.cssText = `
+                position: fixed;
+                top: 70px;
+                left: 50%;
+                transform: translateX(-50%);
+                background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
+                color: #155724;
+                padding: 12px 20px;
+                border-radius: 8px;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+                z-index: 2000;
+                font-weight: 600;
+                border: 2px solid #28a745;
+                animation: slideDown 0.5s ease;
+                text-align: center;
+                max-width: 90%;
+                font-size: 14px;
+            `;
+            
+            const submissionId = submissionData.submissionId || 'N/A';
+            
+            banner.innerHTML = `
+                ✅ Your photo selections were already submitted ${displayDate}
+                <div style="font-size: 12px; margin-top: 5px; opacity: 0.8;">
+                    Submission ID: ${submissionId}
+                </div>
+                <button onclick="this.parentElement.remove()" style="
+                    background: none; 
+                    border: none; 
+                    color: #155724; 
+                    font-size: 18px; 
+                    margin-left: 10px; 
+                    cursor: pointer;
+                    position: absolute;
+                    top: 8px;
+                    right: 12px;
+                ">×</button>
+            `;
+            
+            // Add animation keyframes if not already added
+            if (!document.getElementById('bannerAnimationStyles')) {
+                const style = document.createElement('style');
+                style.id = 'bannerAnimationStyles';
+                style.textContent = `
+                    @keyframes slideDown {
+                        from { transform: translateX(-50%) translateY(-100%); opacity: 0; }
+                        to { transform: translateX(-50%) translateY(0); opacity: 1; }
+                    }
+                `;
+                document.head.appendChild(style);
+            }
+            
+            document.body.appendChild(banner);
+            
+            // Auto-hide after 15 seconds
+            setTimeout(() => {
+                if (banner.parentElement) {
+                    banner.style.animation = 'slideDown 0.5s ease reverse';
+                    setTimeout(() => banner.remove(), 500);
+                }
+            }, 15000);
         }
 
 
