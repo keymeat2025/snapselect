@@ -1459,19 +1459,23 @@
             updateSubmitButton();
         }
 
-     
 
-
-        
-           
-           // Modified setPhotoRating function to update lightbox counters and rating indicator
-        
-      
-        // 1. REPLACE setPhotoRating() function
-        function setPhotoRating(photoId, rating) {
  
-            const userId = getUserIdentifier();
+        function setPhotoRating(photoId, rating) {
+            // ====== SECURITY LOCKDOWN CHECKS ======
             const galleryId = getGalleryId();
+            
+            // Check multiple lockdown indicators
+            if (window.ratingsDisabled || 
+                localStorage.getItem(`gallery_submitted_${galleryId}`) ||
+                sessionStorage.getItem(`submission_lockdown_${galleryId}`)) {
+                showToast("Cannot modify ratings after submission", 'error');
+                console.log('🔒 Rating blocked - gallery is locked down');
+                return; // STOP HERE - no Firebase operations
+            }
+            
+            // ====== REST OF EXISTING FUNCTION ======
+            const userId = getUserIdentifier();
             
             if (!galleryId || !userId) {
                 showToast("Error: Missing gallery or user info", 'error');
@@ -2161,10 +2165,37 @@
         }
         
         function enhanceRatingUI(ratingContainer, photoId) {
-            // Modify the rating container with our enhanced UI
+ 
+            // Check if ratings are disabled
+            if (window.ratingsDisabled) {
+                console.log('🔒 Skipping rating UI creation - ratings disabled');
+                
+                // Show read-only rating if photo has one
+                if (photoRatings[photoId]) {
+                    const currentRating = photoRatings[photoId];
+                    ratingContainer.innerHTML = `
+                        <div style="text-align: center; color: white; padding: 10px;">
+                            <div style="font-size: 24px; margin-bottom: 5px;">
+                                ${getRatingEmoji(currentRating)}
+                            </div>
+                            <div style="font-size: 12px;">
+                                ${getRatingLabel(currentRating)} (Locked)
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    ratingContainer.innerHTML = `
+                        <div style="text-align: center; color: white; padding: 10px; font-size: 12px;">
+                            Rating disabled after submission
+                        </div>
+                    `;
+                }
+                return; // Don't create interactive buttons
+            }
+            
+            // Original function continues here for non-locked galleries
             modifyRatingContainer(ratingContainer, photoId);
             
-            // Additional modifications to make the rating area more prominent
             ratingContainer.style.backgroundColor = 'rgba(0, 0, 0, 0.5)';
             ratingContainer.style.borderRadius = '20px';
             ratingContainer.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.3)';
@@ -2270,6 +2301,8 @@
                     initializeRotationSystem(); 
                     initSubmitSnapSelections();
                     initSubmitSnapSelectionsPhase2();
+                    checkExistingSubmission();
+                    
                 }
                 
             } catch (error) {
@@ -4653,6 +4686,27 @@
         }
 
 
+        function checkExistingSubmission() {
+            const galleryId = getGalleryId();
+            
+            console.log('🔍 Checking for existing submission...');
+            
+            if (localStorage.getItem(`gallery_submitted_${galleryId}`) ||
+                sessionStorage.getItem(`submission_lockdown_${galleryId}`)) {
+                
+                console.log('🔒 Gallery already submitted - enabling lockdown');
+                window.ratingsDisabled = true;
+                disableAllRatingInteractions();
+                
+                // Update submit button if it exists
+                const submitBtn = document.getElementById('submitSnapSelectionsBtn');
+                if (submitBtn) {
+                    const submissionId = localStorage.getItem(`gallery_submitted_${galleryId}`);
+                    markButtonAsSubmitted(submissionId, new Date());
+                }
+            }
+        }
+
 
         // Function to fix blue overlay hiding text behind it
         function fixBlueOverlayTextIssue() {
@@ -5031,18 +5085,27 @@
         
         function disableAllRatingInteractions() {
             // Disable thumbnail rating overlays
+       
+            console.log('🚫 Disabling all rating interactions...');
+            
+            // Hide thumbnail rating overlays
             document.querySelectorAll('.thumbnail-rating-overlay').forEach(overlay => {
                 overlay.style.display = 'none';
             });
             
-            // Disable all rating buttons (remove event listeners)
+            // Remove event listeners by cloning elements
             document.querySelectorAll('.rating-btn, .thumbnail-rating-btn').forEach(btn => {
-                btn.style.pointerEvents = 'none';
-                btn.style.opacity = '0.5';
-                btn.style.cursor = 'not-allowed';
+                const newBtn = btn.cloneNode(true);
+                btn.parentNode.replaceChild(newBtn, btn);
+                
+                // Disable the new button
+                newBtn.style.pointerEvents = 'none';
+                newBtn.style.opacity = '0.5';
+                newBtn.style.cursor = 'not-allowed';
+                newBtn.disabled = true;
             });
             
-            // Set global flag to disable future lightbox ratings
+            // Set global flag
             window.ratingsDisabled = true;
             
             console.log('🚫 All rating interactions disabled');
