@@ -1935,6 +1935,7 @@ tr:last-child .renew-plan-btn:hover::after {
     white-space: nowrap;
   }
 
+  /* Download Gallery Button Styles */
   .download-gallery-btn {
     background: #007bff !important;
     color: white !important;
@@ -1950,6 +1951,7 @@ tr:last-child .renew-plan-btn:hover::after {
     display: block !important;
     text-align: center !important;
     line-height: 1.2 !important;
+    min-height: 44px !important;
   }
   
   .download-gallery-btn:hover:not(:disabled) {
@@ -1981,10 +1983,39 @@ tr:last-child .renew-plan-btn:hover::after {
   }
   
   .btn-subtitle {
-    display: block;
-    font-size: 11px;
-    opacity: 0.8;
-    margin-top: 2px;
+    display: block !important;
+    font-size: 10px !important;
+    opacity: 0.9 !important;
+    margin-top: 3px !important;
+    font-weight: 400 !important;
+    line-height: 1.1 !important;
+  }
+  
+  .plan-actions-cell {
+    white-space: normal !important;
+    vertical-align: top !important;
+    min-width: 180px !important;
+    max-width: 200px !important;
+    padding: 12px !important;
+    text-align: center !important;
+  }
+  
+  .plan-actions-cell .btn {
+    width: 100% !important;
+    margin: 0 0 8px 0 !important;
+    display: block !important;
+    font-size: 13px !important;
+    padding: 10px 12px !important;
+    font-weight: 500 !important;
+    border-radius: 6px !important;
+    text-align: center !important;
+    line-height: 1.2 !important;
+    min-height: 44px !important;
+    box-sizing: border-box !important;
+  }
+  
+  .plan-actions-cell .btn:last-child {
+    margin-bottom: 0 !important;
   }
   
 }
