@@ -1729,6 +1729,336 @@ document.addEventListener('DOMContentLoaded', function() {
   initPlansUI();
 });
 
+/**
+ * Update download button states based on client submissions and download history
+ */
+async function updateDownloadButtonStates() {
+  const downloadButtons = document.querySelectorAll('.download-gallery-btn:not(.disabled)');
+  
+  for (const button of downloadButtons) {
+    const clientId = button.getAttribute('data-client-id');
+    const galleryId = button.getAttribute('data-gallery-id');
+    const planId = button.getAttribute('data-plan-id');
+    
+    try {
+      // Check if client has submitted selections
+      const hasSubmissions = await checkClientSubmissions(clientId, galleryId);
+      
+      // Check download history
+      const downloadHistory = await checkDownloadHistory(planId);
+      
+      // Update button state
+      updateButtonState(button, hasSubmissions, downloadHistory);
+      
+    } catch (error) {
+      console.error('Error checking button state:', error);
+      button.querySelector('.btn-subtitle').textContent = 'Error checking status';
+    }
+  }
+}
+
+/**
+ * Check if client has submitted their selections
+ */
+async function checkClientSubmissions(clientId, galleryId) {
+  try {
+    if (!galleryId) {
+      galleryId = await findGalleryByClientId(clientId);
+    }
+    
+    if (!galleryId) return false;
+    
+    const db = firebase.firestore();
+    
+    // Check if gallery has submission status
+    const galleryDoc = await db.collection('galleries').doc(galleryId).get();
+    
+    if (galleryDoc.exists) {
+      const galleryData = galleryDoc.data();
+      
+      // Check if gallery is marked as submitted
+      if (galleryData.submissionStatus === 'submitted' || galleryData.isSubmitted === true) {
+        return true;
+      }
+      
+      // Fallback: Check if there are any selections marked as submitted
+      const selectionsSnapshot = await db.collection('photoSelections')
+        .where('galleryId', '==', galleryId)
+        .where('selected', '==', true)
+        .limit(1)
+        .get();
+      
+      return !selectionsSnapshot.empty;
+    }
+    
+    return false;
+  } catch (error) {
+    console.error('Error checking submissions:', error);
+    return false;
+  }
+}
+
+/**
+ * Check download history for this plan
+ */
+async function checkDownloadHistory(planId) {
+  try {
+    const db = firebase.firestore();
+    
+    const downloadSnapshot = await db.collection('downloadHistory')
+      .where('planId', '==', planId)
+      .where('downloadType', '==', 'gallery')
+      .get();
+    
+    return downloadSnapshot.size; // Return number of downloads
+  } catch (error) {
+    console.error('Error checking download history:', error);
+    return 0;
+  }
+}
+
+/**
+ * Update button state based on submissions and download history
+ */
+function updateButtonState(button, hasSubmissions, downloadCount) {
+  const subtitle = button.querySelector('.btn-subtitle');
+  
+  if (!hasSubmissions) {
+    // No submissions - disable button
+    button.disabled = true;
+    button.classList.add('no-submissions');
+    subtitle.textContent = 'Client hasn\'t submitted selections';
+  } else if (downloadCount === 0) {
+    // Has submissions, no downloads yet - enable for free download
+    button.disabled = false;
+    button.classList.remove('no-submissions');
+    button.classList.add('free-download');
+    subtitle.textContent = 'Ready for FREE download';
+  } else {
+    // Has submissions, already downloaded - warn about paid download
+    button.disabled = false;
+    button.classList.remove('no-submissions', 'free-download');
+    button.classList.add('paid-download');
+    subtitle.textContent = `Download #${downloadCount + 1} - PAID`;
+  }
+}
+
+/**
+ * Smart download function with submission check and download limiting
+ */
+async function downloadClientGallery(clientId, galleryId, planId) {
+  try {
+    if (!currentUser) {
+      showErrorMessage('You must be logged in to download galleries');
+      return;
+    }
+    
+    // Get client info
+    const client = userClients.find(c => c.id === clientId);
+    const clientName = client?.name || 'Unknown Client';
+    
+    // Check submissions first
+    const hasSubmissions = await checkClientSubmissions(clientId, galleryId);
+    
+    if (!hasSubmissions) {
+      showErrorMessage(`${clientName} hasn't submitted their photo selections yet. Please ask them to complete their selection first.`);
+      return;
+    }
+    
+    // Check download history
+    const downloadCount = await checkDownloadHistory(planId);
+    
+    if (downloadCount > 0) {
+      // Show paid download warning
+      const confirmMessage = `⚠️ WARNING: This will be download #${downloadCount + 1} for ${clientName}.\n\nFirst download was FREE. Additional downloads may incur charges.\n\nDo you want to proceed with PAID download?`;
+      
+      if (!confirm(confirmMessage)) {
+        return;
+      }
+    } else {
+      // Show free download confirmation
+      const confirmMessage = `Download ${clientName}'s selected photos?\n\nThis is your FREE download for this gallery.`;
+      
+      if (!confirm(confirmMessage)) {
+        return;
+      }
+    }
+    
+    // Proceed with download
+    showLoadingOverlay('Preparing gallery download...');
+    
+    // Get gallery ID if not provided
+    if (!galleryId) {
+      galleryId = await findGalleryByClientId(clientId);
+      
+      if (!galleryId) {
+        hideLoadingOverlay();
+        showErrorMessage(`No gallery found for ${clientName}.`);
+        return;
+      }
+    }
+    
+    // Get selected photos only
+    const selectedPhotos = await getSelectedPhotos(galleryId);
+    
+    if (selectedPhotos.length === 0) {
+      hideLoadingOverlay();
+      showErrorMessage(`No selected photos found for ${clientName}.`);
+      return;
+    }
+    
+    // Download the selected photos
+    await downloadPhotosAsZip(selectedPhotos, clientName, galleryId);
+    
+    // Record download in history
+    await recordDownloadHistory(planId, galleryId, selectedPhotos.length);
+    
+    // Update button state
+    setTimeout(() => {
+      updateDownloadButtonStates();
+    }, 1000);
+    
+    hideLoadingOverlay();
+    showSuccessMessage(`Downloaded ${selectedPhotos.length} selected photos for ${clientName}!`);
+    
+  } catch (error) {
+    console.error('Error downloading gallery:', error);
+    hideLoadingOverlay();
+    showErrorMessage(`Error downloading gallery: ${error.message}`);
+  }
+}
+
+/**
+ * Get only selected photos from gallery
+ */
+async function getSelectedPhotos(galleryId) {
+  try {
+    const db = firebase.firestore();
+    
+    // Get selected photo IDs
+    const selectionsSnapshot = await db.collection('photoSelections')
+      .where('galleryId', '==', galleryId)
+      .where('selected', '==', true)
+      .get();
+    
+    if (selectionsSnapshot.empty) {
+      return [];
+    }
+    
+    const selectedPhotoIds = selectionsSnapshot.docs.map(doc => doc.data().photoId);
+    
+    // Get photo details
+    const photosSnapshot = await db.collection('photos')
+      .where('galleryId', '==', galleryId)
+      .where('status', '==', 'active')
+      .get();
+    
+    const allPhotos = photosSnapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    }));
+    
+    // Filter to only selected photos
+    return allPhotos.filter(photo => selectedPhotoIds.includes(photo.id));
+    
+  } catch (error) {
+    console.error('Error getting selected photos:', error);
+    return [];
+  }
+}
+
+/**
+ * Download photos as ZIP using JSZip
+ */
+async function downloadPhotosAsZip(photos, clientName, galleryId) {
+  try {
+    // Check if JSZip is available
+    if (typeof JSZip === 'undefined') {
+      throw new Error('JSZip library not loaded. Please add JSZip to download as ZIP.');
+    }
+    
+    const zip = new JSZip();
+    const folder = zip.folder(`${clientName}_Gallery_${galleryId.slice(-8)}`);
+    
+    console.log(`Creating ZIP with ${photos.length} photos...`);
+    
+    // Add each photo to the zip
+    for (let i = 0; i < photos.length; i++) {
+      const photo = photos[i];
+      
+      try {
+        // Update loading message
+        showLoadingOverlay(`Adding photo ${i + 1} of ${photos.length} to ZIP...`);
+        
+        // Fetch the photo data
+        const response = await fetch(photo.url);
+        if (!response.ok) {
+          console.warn(`Failed to fetch photo ${photo.filename}: ${response.statusText}`);
+          continue;
+        }
+        
+        const blob = await response.blob();
+        
+        // Use original filename or create one
+        const filename = photo.filename || photo.originalName || `photo_${i + 1}.jpg`;
+        
+        folder.file(filename, blob);
+        
+      } catch (photoError) {
+        console.error(`Error adding photo ${photo.filename} to ZIP:`, photoError);
+      }
+    }
+    
+    // Generate and download the ZIP
+    showLoadingOverlay('Generating ZIP file...');
+    
+    const zipBlob = await zip.generateAsync({ type: 'blob' });
+    
+    // Create download link
+    const downloadLink = document.createElement('a');
+    downloadLink.href = URL.createObjectURL(zipBlob);
+    downloadLink.download = `${clientName}_Gallery_${new Date().toISOString().split('T')[0]}.zip`;
+    
+    // Trigger download
+    document.body.appendChild(downloadLink);
+    downloadLink.click();
+    document.body.removeChild(downloadLink);
+    
+    // Clean up object URL
+    URL.revokeObjectURL(downloadLink.href);
+    
+    console.log('ZIP download completed');
+    
+  } catch (error) {
+    console.error('Error creating ZIP:', error);
+    throw new Error(`Failed to create ZIP file: ${error.message}`);
+  }
+}
+
+/**
+ * Record download in history
+ */
+async function recordDownloadHistory(planId, galleryId, photoCount) {
+  try {
+    const db = firebase.firestore();
+    
+    await db.collection('downloadHistory').add({
+      planId: planId,
+      galleryId: galleryId,
+      photographerId: currentUser.uid,
+      downloadType: 'gallery',
+      photoCount: photoCount,
+      downloadedAt: firebase.firestore.FieldValue.serverTimestamp(),
+      userAgent: navigator.userAgent,
+      downloadMethod: 'zip'
+    });
+    
+  } catch (error) {
+    console.error('Error recording download history:', error);
+  }
+}
+
+
 // Export global functions
 
 window.subscriptionManager = {
