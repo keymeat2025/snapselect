@@ -1992,102 +1992,89 @@ tr:last-child .renew-plan-btn:hover::after {
   }
   
   /* Download Gallery Button Styles - Higher Specificity */
-  .plans-table .plan-actions-cell {
+/* Force Vertical Layout for Download Buttons - Maximum Specificity */
+  table.plans-table td.plan-actions-cell,
+  .plans-table td.plan-actions-cell,
+  .plan-actions-cell {
     white-space: normal !important;
     vertical-align: top !important;
     min-width: 180px !important;
-    max-width: 200px !important;
     padding: 12px !important;
     text-align: center !important;
   }
   
-  .plans-table .plan-actions-cell .btn {
+  table.plans-table td.plan-actions-cell .btn,
+  .plans-table td.plan-actions-cell .btn,
+  .plan-actions-cell .btn {
     width: 100% !important;
-    margin: 0 0 8px 0 !important;
     display: block !important;
+    margin-bottom: 8px !important;
     font-size: 13px !important;
     padding: 10px 12px !important;
-    font-weight: 500 !important;
-    border-radius: 6px !important;
-    text-align: center !important;
-    line-height: 1.2 !important;
-    min-height: 44px !important;
     box-sizing: border-box !important;
   }
   
-  .plans-table .plan-actions-cell .btn:last-child {
+  table.plans-table td.plan-actions-cell .btn:last-child,
+  .plans-table td.plan-actions-cell .btn:last-child,
+  .plan-actions-cell .btn:last-child {
     margin-bottom: 0 !important;
   }
   
-  .plans-table .download-gallery-btn {
+  /* Download Gallery Button Specific Styles */
+  table.plans-table .download-gallery-btn,
+  .plans-table .download-gallery-btn,
+  .download-gallery-btn {
     background: #007bff !important;
     color: white !important;
     border: 1px solid #007bff !important;
-    padding: 8px 16px !important;
     border-radius: 6px !important;
-    font-size: 14px !important;
     font-weight: 500 !important;
     cursor: pointer !important;
     transition: all 0.2s ease !important;
-    width: 100% !important;
-    margin-top: 8px !important;
-    display: block !important;
     text-align: center !important;
     line-height: 1.2 !important;
     min-height: 44px !important;
   }
   
-  .plans-table .download-gallery-btn:hover:not(:disabled) {
+  table.plans-table .download-gallery-btn:hover:not(:disabled),
+  .plans-table .download-gallery-btn:hover:not(:disabled),
+  .download-gallery-btn:hover:not(:disabled) {
     background: #ff6b35 !important;
     border-color: #ff6b35 !important;
   }
   
-  .plans-table .download-gallery-btn.disabled,
-  .plans-table .download-gallery-btn:disabled {
+  table.plans-table .download-gallery-btn.no-submissions,
+  .plans-table .download-gallery-btn.no-submissions,
+  .download-gallery-btn.no-submissions {
     background: #6c757d !important;
     border-color: #6c757d !important;
     cursor: not-allowed !important;
   }
   
-  .plans-table .download-gallery-btn.no-submissions {
-    background: #6c757d !important;
-    border-color: #6c757d !important;
-  }
-  
-  .plans-table .download-gallery-btn.free-download {
+  table.plans-table .download-gallery-btn.free-download,
+  .plans-table .download-gallery-btn.free-download,
+  .download-gallery-btn.free-download {
     background: #28a745 !important;
     border-color: #28a745 !important;
   }
   
-  .plans-table .download-gallery-btn.paid-download {
+  table.plans-table .download-gallery-btn.paid-download,
+  .plans-table .download-gallery-btn.paid-download,
+  .download-gallery-btn.paid-download {
     background: #ffc107 !important;
     border-color: #ffc107 !important;
     color: #212529 !important;
   }
   
-  .plans-table .btn-subtitle {
+  table.plans-table .btn-subtitle,
+  .plans-table .btn-subtitle,
+  .btn-subtitle {
     display: block !important;
     font-size: 10px !important;
     opacity: 0.9 !important;
     margin-top: 3px !important;
     font-weight: 400 !important;
     line-height: 1.1 !important;
-  }
-  
-  /* Force vertical layout */
-  .plans-table td.plan-actions-cell {
-    display: table-cell !important;
-    vertical-align: top !important;
-  }
-  
-  .plans-table .plan-actions-cell > * {
-    display: block !important;
-    width: 100% !important;
-    margin-bottom: 8px !important;
-  }
-  
-  .plans-table .plan-actions-cell > *:last-child {
-    margin-bottom: 0 !important;
   }
   
   
