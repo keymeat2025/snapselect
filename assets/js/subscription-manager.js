@@ -2591,85 +2591,16 @@ function updateButtonState(button, hasSubmissions, downloadCount) {
 /**
  * Smart download function with submission check and download limiting
  */
+
+
 async function downloadClientGallery(clientId, galleryId, planId) {
-  try {
-    if (!currentUser) {
-      showErrorMessage('You must be logged in to download galleries');
-      return;
-    }
-    
-    // Get client info
-    const client = userClients.find(c => c.id === clientId);
-    const clientName = client?.name || 'Unknown Client';
-    
-    // Check submissions first
-    const hasSubmissions = await checkClientSubmissions(clientId, galleryId);
-    
-    if (!hasSubmissions) {
-      showErrorMessage(`${clientName} hasn't submitted their photo selections yet. Please ask them to complete their selection first.`);
-      return;
-    }
-    
-    // Check download history
-    const downloadCount = await checkDownloadHistory(planId);
-    
-    if (downloadCount > 0) {
-      // Show paid download warning
-      const confirmMessage = `⚠️ WARNING: This will be download #${downloadCount + 1} for ${clientName}.\n\nFirst download was FREE. Additional downloads may incur charges.\n\nDo you want to proceed with PAID download?`;
-      
-      if (!confirm(confirmMessage)) {
-        return;
-      }
-    } else {
-      // Show free download confirmation
-      const confirmMessage = `Download ${clientName}'s selected photos?\n\nThis is your FREE download for this gallery.`;
-      
-      if (!confirm(confirmMessage)) {
-        return;
-      }
-    }
-    
-    // Proceed with download
-    showLoadingOverlay('Preparing gallery download...');
-    
-    // Get gallery ID if not provided
-    if (!galleryId) {
-      galleryId = await findGalleryByClientId(clientId);
-      
-      if (!galleryId) {
-        hideLoadingOverlay();
-        showErrorMessage(`No gallery found for ${clientName}.`);
-        return;
-      }
-    }
-    
-    // Get selected photos only
-    const selectedPhotos = await getSelectedPhotos(galleryId);
-    
-    if (selectedPhotos.length === 0) {
-      hideLoadingOverlay();
-      showErrorMessage(`No selected photos found for ${clientName}.`);
-      return;
-    }
-    
-    // Download the selected photos
-    await downloadPhotosAsZip(selectedPhotos, clientName, galleryId);
-    
-    // Record download in history
-    await recordDownloadHistory(planId, galleryId, selectedPhotos.length);
-    
-    // Update button state
-    setTimeout(() => {
-      updateDownloadButtonStates();
-    }, 1000);
-    
-    hideLoadingOverlay();
-    showSuccessMessage(`Downloaded ${selectedPhotos.length} selected photos for ${clientName}!`);
-    
-  } catch (error) {
-    console.error('Error downloading gallery:', error);
-    hideLoadingOverlay();
-    showErrorMessage(`Error downloading gallery: ${error.message}`);
+  console.log('📥 Download request delegated to secure system');
+  
+  if (window.GalleryDownloadSystem) {
+    return window.GalleryDownloadSystem.initiateSecureDownload(clientId, galleryId, planId);
+  } else {
+    console.error('Gallery Download System not loaded');
+    showErrorMessage('Download system not loaded. Please refresh the page.');
   }
 }
 
