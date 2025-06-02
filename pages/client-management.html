@@ -822,6 +822,76 @@
             
             // Initialize notification system
             NotificationSystem.initialize();
+
+            // Simple client loading function
+            async function loadClients() {
+                try {
+                    console.log('Loading clients...');
+                    
+                    // Wait for Firebase to be ready
+                    if (!firebase.auth().currentUser) {
+                        console.log('No user logged in');
+                        return [];
+                    }
+                    
+                    const userId = firebase.auth().currentUser.uid;
+                    console.log('User ID:', userId);
+                    
+                    // Get Firestore reference
+                    const db = firebase.firestore();
+                    
+                    // Query clients collection
+                    const snapshot = await db.collection('clients')
+                        .where('photographerId', '==', userId)
+                        .get();
+                    
+                    console.log('Query executed, docs found:', snapshot.size);
+                    
+                    // Convert to array
+                    const clients = [];
+                    snapshot.forEach(doc => {
+                        console.log('Client doc:', doc.id, doc.data());
+                        clients.push({
+                            id: doc.id,
+                            ...doc.data()
+                        });
+                    });
+                    
+                    return clients;
+                    
+                } catch (error) {
+                    console.error('Error loading clients:', error);
+                    return [];
+                }
+            }
+            
+            // Test it
+            firebase.auth().onAuthStateChanged(async (user) => {
+                if (user) {
+                    console.log('User authenticated:', user.uid);
+                    const clients = await loadClients();
+                    console.log('Clients loaded:', clients);
+                    
+                    // Display clients
+                    displayClients(clients);
+                }
+            });
+            
+            function displayClients(clients) {
+                const container = document.getElementById('clientContent');
+                if (clients.length === 0) {
+                    container.innerHTML = '<p>No clients found</p>';
+                    return;
+                }
+                
+                container.innerHTML = clients.map(client => `
+                    <div style="border: 1px solid #ccc; padding: 10px; margin: 10px;">
+                        <h3>${client.name || 'No name'}</h3>
+                        <p>Email: ${client.email || 'No email'}</p>
+                        <p>Phone: ${client.phone || 'No phone'}</p>
+                    </div>
+                `).join('');
+            }
             
             // Check if Firebase is available
            // Wait for external Firebase scripts to load first
@@ -842,7 +912,7 @@
                     }
                     
                     // Set up authentication listener
-                    firebase.auth().onAuthStateChanged(handleAuthStateChange);
+                    //firebase.auth().onAuthStateChanged(handleAuthStateChange);
                 } else {
                     console.log('Waiting for Firebase external scripts...');
                     setTimeout(initializeWhenReady, 500);
