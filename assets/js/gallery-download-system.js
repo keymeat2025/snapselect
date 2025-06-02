@@ -8,6 +8,10 @@ class GalleryDownloadSystem {
   static init() {
     console.log('✅ Gallery Download System Initialized');
     this.setupEventListeners();
+    // Refresh button states on page load
+    setTimeout(() => {
+      this.refreshAllDownloadButtonStates();
+    }, 2000); // Wait 2 seconds for page to fully load
   }
   
   static setupEventListeners() {
@@ -742,6 +746,124 @@ class GalleryDownloadSystem {
       
     } catch (error) {
       console.error('❌ Error updating button state:', error);
+    }
+  }
+
+  // ===== ADD THESE MISSING FUNCTIONS =====
+  
+  // Enhanced function for faster button state checking using gallery document
+  static async checkDownloadStatusFromGallery(galleryId) {
+    try {
+      const db = firebase.firestore();
+      const galleryDoc = await db.collection('galleries').doc(galleryId).get();
+      
+      if (galleryDoc.exists) {
+        const galleryData = galleryDoc.data();
+        const downloadStatus = galleryData.downloadStatus;
+        
+        if (downloadStatus) {
+          console.log(`📊 Gallery ${galleryId} download status:`, downloadStatus);
+          return {
+            totalDownloads: downloadStatus.totalDownloads || 0,
+            downloadLimit: downloadStatus.downloadLimit || 1,
+            downloadLimitReached: downloadStatus.downloadLimitReached || false,
+            lastDownloadAt: downloadStatus.lastDownloadAt,
+            planType: downloadStatus.planType
+          };
+        }
+      }
+      
+      // Default status if no download history exists
+      return {
+        totalDownloads: 0,
+        downloadLimit: 1,
+        downloadLimitReached: false,
+        lastDownloadAt: null,
+        planType: 'unknown'
+      };
+      
+    } catch (error) {
+      console.error('❌ Error checking gallery download status:', error);
+      return null;
+    }
+  }
+  
+  // Enhanced button state refresh using hybrid approach
+  static async refreshAllDownloadButtonStates() {
+    console.log('🔄 Refreshing all download button states (hybrid approach)...');
+    
+    try {
+      const downloadButtons = document.querySelectorAll('.download-gallery-btn:not(.disabled)');
+      console.log(`Found ${downloadButtons.length} download buttons to check`);
+      
+      for (const button of downloadButtons) {
+        const clientId = button.getAttribute('data-client-id');
+        const galleryId = button.getAttribute('data-gallery-id');
+        const planId = button.getAttribute('data-plan-id');
+        
+        if (!clientId || !galleryId) {
+          console.warn('Button missing required attributes:', { clientId, galleryId });
+          continue;
+        }
+        
+        try {
+          // NEW: Use gallery document for faster status checking
+          const downloadStatus = await this.checkDownloadStatusFromGallery(galleryId);
+          
+          if (!downloadStatus) {
+            console.warn(`Could not get download status for gallery: ${galleryId}`);
+            continue;
+          }
+          
+          console.log(`🔍 Button for client ${clientId}:`, downloadStatus);
+          
+          // Update button based on download status
+          if (downloadStatus.downloadLimitReached) {
+            // Disable button - limit reached
+            button.disabled = true;
+            button.classList.add('download-limit-reached');
+            button.style.backgroundColor = '#6c757d';
+            button.style.cursor = 'not-allowed';
+            button.style.opacity = '0.6';
+            
+            const subtitle = button.querySelector('.btn-subtitle');
+            if (subtitle) {
+              subtitle.textContent = 'Download limit reached';
+            }
+            
+            // Change button text
+            const icon = button.querySelector('i');
+            if (icon && icon.nextSibling) {
+              icon.nextSibling.textContent = ' Downloaded';
+            }
+            
+            console.log(`🚫 Button disabled for client ${clientId} - limit reached`);
+            
+          } else {
+            // Button should be enabled
+            const remaining = downloadStatus.downloadLimit === 999 ? 
+              'Unlimited' : 
+              `${downloadStatus.downloadLimit - downloadStatus.totalDownloads}`;
+            
+            const subtitle = button.querySelector('.btn-subtitle');
+            if (subtitle) {
+              subtitle.textContent = downloadStatus.downloadLimit === 999 ? 
+                'Unlimited downloads available' : 
+                `${remaining} downloads remaining`;
+            }
+            
+            console.log(`✅ Button enabled for client ${clientId} - ${remaining} remaining`);
+          }
+          
+        } catch (error) {
+          console.error(`❌ Error checking button state for client ${clientId}:`, error);
+        }
+      }
+      
+      console.log('✅ Hybrid button state refresh completed');
+      
+    } catch (error) {
+      console.error('❌ Error in hybrid button state refresh:', error);
     }
   }
 }
