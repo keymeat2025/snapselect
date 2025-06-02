@@ -745,11 +745,18 @@
         </div>
     </footer>
 
-    <!-- Firebase Scripts -->
+ 
+  <!-- Firebase Scripts -->
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-functions-compat.js"></script>
+    
+    <!-- Load your Firebase config scripts -->
+    <script src="../assets/js/firebase-config.js"></script>
+    <script src="../assets/js/firebase-auth.js"></script>
+    <script src="../assets/js/firebase-db.js"></script>
+    <script src="../assets/js/header-auth.js"></script>
 
     <script>
         // Simple Notification System
@@ -905,27 +912,23 @@
            // Wait for external Firebase scripts to load first
         
           // Wait for external Firebase config to load
-            function initializeWhenReady() {
-                // Check if Firebase is loaded AND initialized by external scripts
-                if (typeof firebase !== 'undefined' && 
-                    firebase.apps && 
-                    firebase.apps.length > 0 && 
-                    firebase.auth) {
-                    
-                    console.log('Firebase ready from external scripts');
-                    
-                    // Set Firebase region
-                    if (firebase.functions) {
-                        firebase.app().functions("asia-south1");
-                    }
-                    
-                    // Set up authentication listener
-                    //firebase.auth().onAuthStateChanged(handleAuthStateChange);
-                } else {
-                    console.log('Waiting for Firebase external scripts...');
-                    setTimeout(initializeWhenReady, 500);
-                }
+    
+            // Firebase should be ready from external scripts
+            if (firebase.functions) {
+                firebase.app().functions("asia-south1");
             }
+            
+            // Set up the simple auth listener  
+            firebase.auth().onAuthStateChanged(async (user) => {
+                if (user) {
+                    console.log('User authenticated:', user.uid);
+                    const clients = await loadClients();
+                    console.log('Clients loaded:', clients);
+                    
+                    // Display clients
+                    displayClients(clients);
+                }
+            });
             
             // Start checking after DOM and scripts load
             setTimeout(initializeWhenReady, 1000);
