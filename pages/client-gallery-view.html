@@ -1,4 +1,4 @@
-/* client-gallery-view.html */
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -1599,7 +1599,7 @@
             
             console.log(`Selection progress: ${totalSelections} / ${totalPhotos}`); // ADD THIS
             updateSubmitButton();
-            const totalRatings = Object.values(ratingCounts).reduce((a, b) => a + b, 0);
+          
             submissionState.setState({
                 ratingsCount: totalRatings,
                 totalPhotos: allGalleryPhotos.length
