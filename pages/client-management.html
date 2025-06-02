@@ -197,6 +197,10 @@
     <script src="../assets/js/notification-system.js"></script>
 
     <script>
+        // Global variables for initialization tracking
+        let userAuthenticated = false;
+        let notificationSystemReady = false;
+
         document.addEventListener('DOMContentLoaded', function() {
             // Debug notification elements
             console.log('Toast container exists:', !!document.getElementById('toastContainer'));
@@ -208,6 +212,55 @@
                 firebase.app().functions("asia-south1");
             }
             
+            // Wait for authentication state change
+            firebase.auth().onAuthStateChanged(function(user) {
+                if (user) {
+                    console.log('User authenticated:', user.uid);
+                    userAuthenticated = true;
+                    
+                    // Initialize notification system after user is authenticated
+                    initializeNotificationSystem();
+                } else {
+                    console.log('User not authenticated');
+                    userAuthenticated = false;
+                    notificationSystemReady = false;
+                }
+            });
+            
+            // Initialize UI components that don't require authentication
+            initializeUIComponents();
+        });
+
+        function initializeNotificationSystem() {
+            // Give the notification system time to initialize
+            setTimeout(() => {
+                if (window.NotificationSystem && userAuthenticated) {
+                    try {
+                        // Check if notification system is properly initialized
+                        if (typeof window.NotificationSystem.initialize === 'function') {
+                            window.NotificationSystem.initialize();
+                        }
+                        notificationSystemReady = true;
+                        console.log('Notification system initialized');
+                        
+                        // Now it's safe to show welcome notification
+                        setTimeout(() => {
+                            if (notificationSystemReady && window.NotificationSystem) {
+                                window.NotificationSystem.showNotification(
+                                    'info',
+                                    'Client Management',
+                                    'Welcome to the client management section'
+                                );
+                            }
+                        }, 500);
+                    } catch (error) {
+                        console.error('Error initializing notification system:', error);
+                    }
+                }
+            }, 1000);
+        }
+
+        function initializeUIComponents() {
             // Mobile menu toggle
             const hamburger = document.querySelector('.hamburger');
             const navLinks = document.querySelector('.nav-links');
@@ -256,9 +309,13 @@
                     e.stopPropagation();
                     notificationDropdown.classList.toggle('active');
                     
-                    // Mark notifications as read when opening dropdown
-                    if (window.NotificationSystem && notificationDropdown.classList.contains('active')) {
-                        window.NotificationSystem.markAllAsRead();
+                    // Only mark as read if notification system is ready
+                    if (notificationSystemReady && window.NotificationSystem && notificationDropdown.classList.contains('active')) {
+                        try {
+                            window.NotificationSystem.markAllAsRead();
+                        } catch (error) {
+                            console.error('Error marking notifications as read:', error);
+                        }
                     }
                 });
                 
@@ -274,23 +331,16 @@
             const markAllReadBtn = document.getElementById('markAllReadBtn');
             if (markAllReadBtn) {
                 markAllReadBtn.addEventListener('click', function() {
-                    if (window.NotificationSystem) {
-                        window.NotificationSystem.markAllAsRead();
+                    if (notificationSystemReady && window.NotificationSystem) {
+                        try {
+                            window.NotificationSystem.markAllAsRead();
+                        } catch (error) {
+                            console.error('Error marking all notifications as read:', error);
+                        }
                     }
                 });
             }
-            
-            // Show success notification when page loads (optional)
-            setTimeout(() => {
-                if (window.NotificationSystem) {
-                    window.NotificationSystem.showNotification(
-                        'info',
-                        'Client Management',
-                        'Welcome to the client management section'
-                    );
-                }
-            }, 1000);
-        });
+        }
     </script>
 </body>
 </html>
