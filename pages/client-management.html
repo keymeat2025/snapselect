@@ -494,9 +494,194 @@
     <script src="../assets/js/firebase-auth.js"></script>
     <script src="../assets/js/firebase-db.js"></script>
     <script src="../assets/js/header-auth.js"></script>
-    <!-- Load notification system before subscription manager -->
-    <script src="../assets/js/notification-system.js"></script>
-    <script src="../assets/js/subscription-manager.js"></script>
+    
+    <!-- Fallback Notification System -->
+    <script>
+        // Simple NotificationSystem fallback if the main one doesn't load
+        if (!window.NotificationSystem) {
+            window.NotificationSystem = {
+                notifications: [],
+                unreadCount: 0,
+                
+                initialize: function() {
+                    console.log('Fallback NotificationSystem initialized');
+                    this.updateBadge();
+                    this.loadSampleNotifications();
+                },
+                
+                showNotification: function(type, title, message) {
+                    console.log(`${type.toUpperCase()}: ${title} - ${message}`);
+                    this.createToast(type, title, message);
+                },
+                
+                createToast: function(type, title, message) {
+                    const toastContainer = document.getElementById('toastContainer');
+                    if (!toastContainer) return;
+                    
+                    const toast = document.createElement('div');
+                    toast.className = `toast toast-${type}`;
+                    toast.innerHTML = `
+                        <div class="toast-content">
+                            <div class="toast-icon">
+                                <i class="fas fa-${this.getIcon(type)}"></i>
+                            </div>
+                            <div class="toast-message">
+                                <div class="toast-title">${title}</div>
+                                <div class="toast-text">${message}</div>
+                            </div>
+                            <button class="toast-close" onclick="this.parentElement.remove()">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                    `;
+                    
+                    this.addToastCSS();
+                    toastContainer.appendChild(toast);
+                    
+                    setTimeout(() => {
+                        if (toast.parentElement) {
+                            toast.remove();
+                        }
+                    }, 5000);
+                },
+                
+                addToastCSS: function() {
+                    if (document.getElementById('toast-styles')) return;
+                    
+                    const style = document.createElement('style');
+                    style.id = 'toast-styles';
+                    style.textContent = `
+                        .toast {
+                            background: white;
+                            border-radius: 8px;
+                            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+                            margin-bottom: 10px;
+                            overflow: hidden;
+                            animation: slideIn 0.3s ease-out;
+                            border-left: 4px solid #3b82f6;
+                            min-width: 300px;
+                        }
+                        .toast-success { border-left-color: #10b981; }
+                        .toast-error { border-left-color: #ef4444; }
+                        .toast-warning { border-left-color: #f59e0b; }
+                        .toast-info { border-left-color: #3b82f6; }
+                        
+                        .toast-content {
+                            display: flex;
+                            align-items: center;
+                            padding: 16px;
+                            gap: 12px;
+                        }
+                        
+                        .toast-icon {
+                            font-size: 18px;
+                            color: #6b7280;
+                        }
+                        .toast-success .toast-icon { color: #10b981; }
+                        .toast-error .toast-icon { color: #ef4444; }
+                        .toast-warning .toast-icon { color: #f59e0b; }
+                        .toast-info .toast-icon { color: #3b82f6; }
+                        
+                        .toast-message {
+                            flex: 1;
+                        }
+                        
+                        .toast-title {
+                            font-weight: 600;
+                            color: #1f2937;
+                            margin-bottom: 2px;
+                            font-size: 14px;
+                        }
+                        
+                        .toast-text {
+                            font-size: 13px;
+                            color: #6b7280;
+                        }
+                        
+                        .toast-close {
+                            background: none;
+                            border: none;
+                            color: #9ca3af;
+                            cursor: pointer;
+                            padding: 4px;
+                            border-radius: 4px;
+                        }
+                        .toast-close:hover {
+                            background: #f3f4f6;
+                            color: #6b7280;
+                        }
+                        
+                        @keyframes slideIn {
+                            from {
+                                transform: translateX(100%);
+                                opacity: 0;
+                            }
+                            to {
+                                transform: translateX(0);
+                                opacity: 1;
+                            }
+                        }
+                    `;
+                    document.head.appendChild(style);
+                },
+                
+                getIcon: function(type) {
+                    const icons = {
+                        success: 'check-circle',
+                        error: 'exclamation-circle',
+                        warning: 'exclamation-triangle',
+                        info: 'info-circle'
+                    };
+                    return icons[type] || 'info-circle';
+                },
+                
+                updateBadge: function() {
+                    const badge = document.getElementById('notificationCount');
+                    if (badge) {
+                        badge.textContent = this.unreadCount;
+                        badge.style.display = this.unreadCount > 0 ? 'flex' : 'none';
+                    }
+                },
+                
+                loadSampleNotifications: function() {
+                    this.notifications = [];
+                    this.unreadCount = 0;
+                    this.updateBadge();
+                    
+                    const list = document.getElementById('notificationList');
+                    if (list) {
+                        list.innerHTML = '<div style="padding: 20px; text-align: center; color: #6b7280;">No new notifications</div>';
+                    }
+                },
+                
+                markAllAsRead: function() {
+                    this.unreadCount = 0;
+                    this.updateBadge();
+                }
+            };
+        }
+    </script>
+    
+    <!-- Try to load the main notification system, but don't fail if it's missing -->
+    <script>
+        // Try to load notification system, but use fallback if it fails
+        const script = document.createElement('script');
+        script.src = '../assets/js/notification-system.js';
+        script.onerror = function() {
+            console.log('Main notification system not found, using fallback');
+        };
+        document.head.appendChild(script);
+    </script>
+    
+    <!-- Try to load subscription manager -->
+    <script>
+        const subScript = document.createElement('script');
+        subScript.src = '../assets/js/subscription-manager.js';
+        subScript.onerror = function() {
+            console.log('Subscription manager not found');
+        };
+        document.head.appendChild(subScript);
+    </script>
 
     <script>
         let clientToDelete = null;
@@ -517,17 +702,14 @@
                 firebase.app().functions("asia-south1");
             }
             
-            // Wait a bit for all scripts to load, then initialize
-            setTimeout(() => {
-                // Initialize header functionality
-                initializeHeader();
-                
-                // Initialize client management specific features
-                updateCounts();
-                
-                // Set up modal close functionality
-                setupModals();
-            }, 500); // Give scripts time to load
+            // Initialize immediately
+            initializeHeader();
+            
+            // Initialize client management specific features
+            updateCounts();
+            
+            // Set up modal close functionality
+            setupModals();
         });
 
         function initializeHeader() {
@@ -575,32 +757,26 @@
         }
 
         function setupNotifications() {
-            // Wait for notification system to load
-            const initNotificationSystem = () => {
-                if (window.NotificationSystem && typeof window.NotificationSystem.initialize === 'function') {
+            console.log('Setting up notifications...');
+            console.log('NotificationSystem available:', !!window.NotificationSystem);
+            console.log('NotificationSystem initialize function:', typeof window.NotificationSystem?.initialize);
+            
+            // Ensure NotificationSystem exists and has initialize function
+            if (window.NotificationSystem && typeof window.NotificationSystem.initialize === 'function') {
+                try {
                     console.log('Initializing notification system...');
-                    try {
-                        window.NotificationSystem.initialize();
-                    } catch (error) {
-                        console.warn('Error initializing notification system:', error);
-                    }
-                } else {
-                    console.log('NotificationSystem not available, using fallback');
-                    // Set default notification count
-                    const notificationCount = document.getElementById('notificationCount');
-                    if (notificationCount) {
-                        notificationCount.textContent = '0';
-                        notificationCount.style.display = 'none';
-                    }
+                    window.NotificationSystem.initialize();
+                } catch (error) {
+                    console.error('Error initializing notification system:', error);
                 }
-            };
-
-            // Try to initialize immediately, or wait for script to load
-            if (window.NotificationSystem) {
-                initNotificationSystem();
             } else {
-                // Wait for the script to load
-                setTimeout(initNotificationSystem, 1000);
+                console.log('NotificationSystem not available or missing initialize function');
+                // Set default notification count
+                const notificationCount = document.getElementById('notificationCount');
+                if (notificationCount) {
+                    notificationCount.textContent = '0';
+                    notificationCount.style.display = 'none';
+                }
             }
             
             // Setup notification button
