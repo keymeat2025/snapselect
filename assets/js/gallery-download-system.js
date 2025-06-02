@@ -429,28 +429,7 @@ class GalleryDownloadSystem {
     ❓ Unrated: ${photosByRating.unrated.length} photos
     
     Total Photos: ${totalPhotos}
-    <!--
-    FOLDER STRUCTURE:
-    📁 ❤️_Heart_Selected/ - Client's absolute favorites (${photosByRating.heart.length} photos)
-    📁 👍_Thumbs_Up/ - Photos client liked (${photosByRating.thumbsUp.length} photos)
-    📁 🤔_Thinking/ - Photos client is unsure about (${photosByRating.thinking.length} photos)
-    📁 👎_Thumbs_Down/ - Photos client rejected (${photosByRating.thumbsDown.length} photos)
-    📁 ❓_Unrated/ - Photos client didn't rate (${photosByRating.unrated.length} photos)
-    
-    WORKFLOW RECOMMENDATIONS:
-    1. ⭐ START HERE: Heart folder contains client's top picks
-    2. 🎯 PRIORITY: Thumbs Up folder for additional strong choices
-    3. 🤔 REVIEW: Thinking folder for borderline selections
-    4. ❌ AVOID: Thumbs Down folder shows definite rejections
-    5. 📋 CHECK: Unrated folder for photos client might have missed
-    
-    FILE NAMING CONVENTION:
-    - HEART_[filename] = Client's top selections
-    - LIKED_[filename] = Client approved these
-    - MAYBE_[filename] = Client undecided
-    - REJECTED_[filename] = Client doesn't want these
-    - UNRATED_[filename] = Client didn't rate
-    -->
+
     SUMMARY STATISTICS:
     Client Engagement: ${Math.round((Object.keys(photoRatings).length / Object.keys(photosByUrl).length) * 100)}% of photos rated
     Top Choice Rate: ${Math.round((photosByRating.heart.length / totalPhotos) * 100)}% heart selections
