@@ -3833,15 +3833,76 @@
         }
         
         // 2. Update submit button based on progress
+     
         function updateSubmitButton() {
-      
             const ratingsCount = Object.keys(photoRatings).length;
             const totalPhotos = allGalleryPhotos.length;
             
+            // Update state for the state manager
             submissionState.setState({
                 ratingsCount: ratingsCount,
                 totalPhotos: totalPhotos
             });
+            
+            // ALSO update the traditional button logic for backward compatibility
+            const submitBtn = document.getElementById('submitSnapSelectionsBtn');
+            if (!submitBtn) return;
+            
+            const progress = calculateSubmissionProgress();
+            
+            // Update progress bar
+            const progressBar = submitBtn.querySelector('.progress-bar');
+            if (progressBar) {
+                progressBar.style.width = `${progress}%`;
+            }
+            
+            // Update text
+            const buttonText = submitBtn.querySelector('.button-text');
+            if (buttonText) {
+                if (progress === 0) {
+                    buttonText.textContent = 'Submit SnapSelections';
+                } else {
+                    buttonText.textContent = `Submit SnapSelections (${ratingsCount}/${totalPhotos})`;
+                }
+            }
+            
+            // Update button state and styling
+            submitBtn.className = 'submit-snapselections-btn';
+            
+            if (progress === 0) {
+                submitBtn.classList.add('no-progress');
+                submitBtn.disabled = true;
+                if (progressBar) progressBar.style.backgroundColor = '#ccc';
+            } else if (progress < 80) {
+                submitBtn.classList.add('in-progress');
+                submitBtn.disabled = true;
+                if (progressBar) progressBar.style.backgroundColor = '#ff9500'; // Orange
+            } else if (progress < 100) {
+                submitBtn.classList.add('ready');
+                submitBtn.disabled = false;
+                if (progressBar) progressBar.style.backgroundColor = '#007bff'; // Blue
+                
+                // Add gentle pulse effect
+                if (!submitBtn.classList.contains('pulse-added')) {
+                    submitBtn.style.animation = 'gentle-pulse 2s infinite';
+                    submitBtn.classList.add('pulse-added');
+                }
+            } else {
+                submitBtn.classList.add('complete');
+                submitBtn.disabled = false;
+                if (progressBar) progressBar.style.backgroundColor = '#28a745'; // Green
+                
+                // Add completion highlight
+                if (!submitBtn.classList.contains('complete-animation-done')) {
+                    submitBtn.style.animation = 'completion-highlight 1s ease-out';
+                    submitBtn.classList.add('complete-animation-done');
+                }
+            }
+            
+            // Update tooltip
+            updateSubmitButtonTooltip(submitBtn, progress, ratingsCount, totalPhotos);
+            
+            console.log(`🔄 Button updated: ${progress}% complete, ${ratingsCount}/${totalPhotos} rated, disabled: ${submitBtn.disabled}`);
         }
         
         // 3. Update button tooltip based on state
