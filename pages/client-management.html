@@ -1138,164 +1138,9 @@
                 }
             }
             
-            function displayEnhancedClients(clients) {
-                const container = document.getElementById('clientContent');
-                
-                if (clients.length === 0) {
-                    container.innerHTML = '<div class="empty-state"><h3>No Clients Found</h3><p>No galleries found for your account.</p></div>';
-                    return;
-                }
-                
-                const clientCardsHTML = clients.map(client => createEnhancedClientCard(client)).join('');
-                
-                container.innerHTML = `
-                    <div class="clients-container">
-                        <div class="section-header">
-                            <h2>Your Clients (${clients.length})</h2>
-                        </div>
-                        <div class="enhanced-clients-grid">
-                            ${clientCardsHTML}
-                        </div>
-                    </div>
-                `;
-            }
+        
             
-            function createEnhancedClientCard(client) {
-                const galleries = client.galleries || [];
-                const activeGalleries = galleries.filter(g => g.status === 'active');
-                
-                // Calculate overall stats
-                let totalPhotos = 0;
-                let totalRated = 0;
-                let totalHearts = 0;
-                let totalThumbs = 0;
-                let latestActivity = null;
-                let criticalStatus = '';
-                let statusClass = 'healthy';
-                let hasSubmissions = false;
-                let latestSubmission = null;
-                
-                galleries.forEach(gallery => {
-                    if (gallery.photosCount) totalPhotos += gallery.photosCount;
-                    if (gallery.submissionProgress?.ratedPhotos) totalRated += gallery.submissionProgress.ratedPhotos;
-                    if (gallery.clientRatings?.heart) totalHearts += gallery.clientRatings.heart;
-                    if (gallery.clientRatings?.thumbsUp) totalThumbs += gallery.clientRatings.thumbsUp;
-                    if (gallery.clientRatings?.thumbsDown) totalThumbs += gallery.clientRatings.thumbsDown;
-                    
-                    // Check for submissions
-                    if (gallery.submissionData && gallery.submissionData.submittedAt) {
-                        hasSubmissions = true;
-                        const submissionDate = gallery.submissionData.submittedAt.toDate();
-                        if (!latestSubmission || submissionDate > latestSubmission) {
-                            latestSubmission = submissionDate;
-                        }
-                    }
-                    
-                    // Check for latest activity
-                    if (gallery.submissionProgress?.lastActivity) {
-                        const activityDate = gallery.submissionProgress.lastActivity.toDate();
-                        if (!latestActivity || activityDate > latestActivity) {
-                            latestActivity = activityDate;
-                        }
-                    }
-                    
-                    // Check for expiring plans
-                    if (gallery.expiryDate) {
-                        const expiryDate = gallery.expiryDate.toDate();
-                        const daysUntilExpiry = Math.ceil((expiryDate - new Date()) / (1000 * 60 * 60 * 24));
-                        
-                        if (daysUntilExpiry < 0) {
-                            criticalStatus = 'EXPIRED';
-                            statusClass = 'critical';
-                        } else if (daysUntilExpiry <= 2) {
-                            criticalStatus = `EXPIRING IN ${daysUntilExpiry} DAY${daysUntilExpiry !== 1 ? 'S' : ''}`;
-                            statusClass = 'critical';
-                        } else if (daysUntilExpiry <= 7) {
-                            criticalStatus = `EXPIRES IN ${daysUntilExpiry} DAYS`;
-                            statusClass = 'warning';
-                        }
-                    }
-                });
-                
-                const completionPercentage = totalPhotos > 0 ? Math.round((totalRated / totalPhotos) * 100) : 0;
-                const initials = client.name ? client.name.split(' ').map(n => n[0]).join('').toUpperCase() : 'C';
-                const lastActivityText = latestActivity ? getTimeAgo(latestActivity) : 'No activity';
-                const submissionText = latestSubmission ? `Submitted ${getTimeAgo(latestSubmission)}` : 'No submissions';
-                
-                // Get plan info from first gallery
-                const planType = galleries[0]?.planType || 'Unknown';
-                
-                return `
-                    <div class="enhanced-client-card ${statusClass}" data-client-id="${client.id}">
-                        ${criticalStatus ? `<div class="critical-alert">${criticalStatus}</div>` : ''}
-                        
-                        <div class="client-header">
-                            <div class="avatar-circle">${initials}</div>
-                            <div class="client-basic-info">
-                                <h3 class="client-name">${client.name || 'Unnamed Client'}</h3>
-                                <p class="client-email">${client.email || 'No email'}</p>
-                            </div>
-                            ${galleries.length === 0 ? 
-                                `<button class="delete-btn" onclick="deleteClientWithoutGalleries('${client.id}', '${client.name}')" title="Delete Client (No Galleries)">
-                                    <i class="fas fa-trash"></i>
-                                </button>` : 
-                                `<span class="no-delete-tooltip" title="Cannot delete - client has galleries">
-                                    <i class="fas fa-archive" style="color: var(--text-muted);"></i>
-                                </span>`
-                            }
-                        </div>
-                        
-                        <div class="client-stats-row">
-                            <div class="stat-item">
-                                <i class="fas fa-images"></i>
-                                <span>${activeGalleries.length} galleries</span>
-                            </div>
-                            <div class="stat-item">
-                                <i class="fas fa-crown"></i>
-                                <span>${planType}</span>
-                            </div>
-                        </div>
-                        
-                        <div class="progress-section">
-                            <div class="progress-bar">
-                                <div class="progress-fill" style="width: ${completionPercentage}%"></div>
-                            </div>
-                            <div class="progress-text">${totalRated}/${totalPhotos} photos rated (${completionPercentage}%)</div>
-                        </div>
-                        
-                        <div class="submission-section">
-                            <div class="submission-status ${hasSubmissions ? 'submitted' : 'pending'}">
-                                <i class="fas fa-${hasSubmissions ? 'check-circle' : 'clock'}"></i>
-                                <span>${submissionText}</span>
-                            </div>
-                        </div>
-                        
-                        <div class="engagement-row">
-                            <div class="ratings">
-                                <span title="Hearts"><i class="fas fa-heart" style="color: #e91e63;"></i> ${totalHearts}</span>
-                                <span title="Thumbs"><i class="fas fa-thumbs-up" style="color: #4caf50;"></i> ${totalThumbs}</span>
-                            </div>
-                            <div class="last-activity">
-                                <i class="fas fa-clock"></i> ${lastActivityText}
-                            </div>
-                        </div>
-                        
-                        
-                    </div>
-                `;
-            }
-            
-            function getTimeAgo(date) {
-                const now = new Date();
-                const diffMs = now - date;
-                const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-                
-                if (diffDays === 0) return 'Today';
-                if (diffDays === 1) return 'Yesterday';
-                if (diffDays < 7) return `${diffDays} days ago`;
-                if (diffDays < 30) return `${Math.floor(diffDays / 7)} weeks ago`;
-                return `${Math.floor(diffDays / 30)} months ago`;
-            }
+   
             
             function deleteClient(clientId, clientName) {
                 if (confirm(`Are you sure you want to delete "${clientName}"? This will remove all their galleries.`)) {
@@ -1369,6 +1214,169 @@
   
         });
 
+
+        function getTimeAgo(date) {
+            const now = new Date();
+            const diffMs = now - date;
+            const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+            
+            if (diffDays === 0) return 'Today';
+            if (diffDays === 1) return 'Yesterday';
+            if (diffDays < 7) return `${diffDays} days ago`;
+            if (diffDays < 30) return `${Math.floor(diffDays / 7)} weeks ago`;
+            return `${Math.floor(diffDays / 30)} months ago`;
+        }
+
+
+
+        function createEnhancedClientCard(client) {
+            const galleries = client.galleries || [];
+            const activeGalleries = galleries.filter(g => g.status === 'active');
+            
+            // Calculate overall stats
+            let totalPhotos = 0;
+            let totalRated = 0;
+            let totalHearts = 0;
+            let totalThumbs = 0;
+            let latestActivity = null;
+            let criticalStatus = '';
+            let statusClass = 'healthy';
+            let hasSubmissions = false;
+            let latestSubmission = null;
+            
+            galleries.forEach(gallery => {
+                if (gallery.photosCount) totalPhotos += gallery.photosCount;
+                if (gallery.submissionProgress?.ratedPhotos) totalRated += gallery.submissionProgress.ratedPhotos;
+                if (gallery.clientRatings?.heart) totalHearts += gallery.clientRatings.heart;
+                if (gallery.clientRatings?.thumbsUp) totalThumbs += gallery.clientRatings.thumbsUp;
+                if (gallery.clientRatings?.thumbsDown) totalThumbs += gallery.clientRatings.thumbsDown;
+                
+                // Check for submissions
+                if (gallery.submissionData && gallery.submissionData.submittedAt) {
+                    hasSubmissions = true;
+                    const submissionDate = gallery.submissionData.submittedAt.toDate();
+                    if (!latestSubmission || submissionDate > latestSubmission) {
+                        latestSubmission = submissionDate;
+                    }
+                }
+                
+                // Check for latest activity
+                if (gallery.submissionProgress?.lastActivity) {
+                    const activityDate = gallery.submissionProgress.lastActivity.toDate();
+                    if (!latestActivity || activityDate > latestActivity) {
+                        latestActivity = activityDate;
+                    }
+                }
+                
+                // Check for expiring plans
+                if (gallery.expiryDate) {
+                    const expiryDate = gallery.expiryDate.toDate();
+                    const daysUntilExpiry = Math.ceil((expiryDate - new Date()) / (1000 * 60 * 60 * 24));
+                    
+                    if (daysUntilExpiry < 0) {
+                        criticalStatus = 'EXPIRED';
+                        statusClass = 'critical';
+                    } else if (daysUntilExpiry <= 2) {
+                        criticalStatus = `EXPIRING IN ${daysUntilExpiry} DAY${daysUntilExpiry !== 1 ? 'S' : ''}`;
+                        statusClass = 'critical';
+                    } else if (daysUntilExpiry <= 7) {
+                        criticalStatus = `EXPIRES IN ${daysUntilExpiry} DAYS`;
+                        statusClass = 'warning';
+                    }
+                }
+            });
+            
+            const completionPercentage = totalPhotos > 0 ? Math.round((totalRated / totalPhotos) * 100) : 0;
+            const initials = client.name ? client.name.split(' ').map(n => n[0]).join('').toUpperCase() : 'C';
+            const lastActivityText = latestActivity ? getTimeAgo(latestActivity) : 'No activity';
+            const submissionText = latestSubmission ? `Submitted ${getTimeAgo(latestSubmission)}` : 'No submissions';
+            
+            // Get plan info from first gallery
+            const planType = galleries[0]?.planType || 'Unknown';
+            
+            return `
+                <div class="enhanced-client-card ${statusClass}" data-client-id="${client.id}">
+                    ${criticalStatus ? `<div class="critical-alert">${criticalStatus}</div>` : ''}
+                    
+                    <div class="client-header">
+                        <div class="avatar-circle">${initials}</div>
+                        <div class="client-basic-info">
+                            <h3 class="client-name">${client.name || 'Unnamed Client'}</h3>
+                            <p class="client-email">${client.email || 'No email'}</p>
+                        </div>
+                        ${galleries.length === 0 ? 
+                            `<button class="delete-btn" onclick="deleteClientWithoutGalleries('${client.id}', '${client.name}')" title="Delete Client (No Galleries)">
+                                <i class="fas fa-trash"></i>
+                            </button>` : 
+                            `<span class="no-delete-tooltip" title="Cannot delete - client has galleries">
+                                <i class="fas fa-archive" style="color: var(--text-muted);"></i>
+                            </span>`
+                        }
+                    </div>
+                    
+                    <div class="client-stats-row">
+                        <div class="stat-item">
+                            <i class="fas fa-images"></i>
+                            <span>${activeGalleries.length} galleries</span>
+                        </div>
+                        <div class="stat-item">
+                            <i class="fas fa-crown"></i>
+                            <span>${planType}</span>
+                        </div>
+                    </div>
+                    
+                    <div class="progress-section">
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: ${completionPercentage}%"></div>
+                        </div>
+                        <div class="progress-text">${totalRated}/${totalPhotos} photos rated (${completionPercentage}%)</div>
+                    </div>
+                    
+                    <div class="submission-section">
+                        <div class="submission-status ${hasSubmissions ? 'submitted' : 'pending'}">
+                            <i class="fas fa-${hasSubmissions ? 'check-circle' : 'clock'}"></i>
+                            <span>${submissionText}</span>
+                        </div>
+                    </div>
+                    
+                    <div class="engagement-row">
+                        <div class="ratings">
+                            <span title="Hearts"><i class="fas fa-heart" style="color: #e91e63;"></i> ${totalHearts}</span>
+                            <span title="Thumbs"><i class="fas fa-thumbs-up" style="color: #4caf50;"></i> ${totalThumbs}</span>
+                        </div>
+                        <div class="last-activity">
+                            <i class="fas fa-clock"></i> ${lastActivityText}
+                        </div>
+                    </div>
+                    
+                    
+                </div>
+            `;
+        }
+
+
+        function displayEnhancedClients(clients) {
+            const container = document.getElementById('clientContent');
+            
+            if (clients.length === 0) {
+                container.innerHTML = '<div class="empty-state"><h3>No Clients Found</h3><p>No galleries found for your account.</p></div>';
+                return;
+            }
+            
+            const clientCardsHTML = clients.map(client => createEnhancedClientCard(client)).join('');
+            
+            container.innerHTML = `
+                <div class="clients-container">
+                    <div class="section-header">
+                        <h2>Your Clients (${clients.length})</h2>
+                    </div>
+                    <div class="enhanced-clients-grid">
+                        ${clientCardsHTML}
+                    </div>
+                </div>
+            `;
+        }
+        
         function handleAuthStateChange(user) {
             currentUser = user;
             
@@ -1604,6 +1612,9 @@
             }
         }
 
+
+
+            // Move this function OUTSIDE the DOMContentLoaded event listener, around line 1600
         async function deleteClientWithoutGalleries(clientId, clientName) {
             if (confirm(`Permanently delete "${clientName}"? This client has no galleries and will be completely removed.`)) {
                 try {
@@ -1615,9 +1626,8 @@
                         window.NotificationSystem.showNotification('success', 'Client Deleted', `${clientName} has been permanently deleted.`);
                     }
                     
-                    // Reload the client list
-                    const updatedClients = await loadClientsWithGalleries();
-                    displayEnhancedClients(updatedClients);
+                    // Reload the client list - call the global function
+                    reloadClientList();
                     
                 } catch (error) {
                     console.error('Error deleting client:', error);
@@ -1627,6 +1637,53 @@
                 }
             }
         }
+        
+        // Add this helper function to reload clients
+        async function reloadClientList() {
+            try {
+                if (!firebase.auth().currentUser) return;
+                
+                const userId = firebase.auth().currentUser.uid;
+                const db = firebase.firestore();
+                
+                // Get ALL clients for this photographer
+                const clientsSnapshot = await db.collection('clients')
+                    .where('photographerId', '==', userId)
+                    .get();
+                
+                // Get all galleries for this photographer
+                const galleriesSnapshot = await db.collection('galleries')
+                    .where('photographerId', '==', userId)
+                    .get();
+                
+                // Group galleries by clientId
+                const clientGalleries = {};
+                galleriesSnapshot.forEach(doc => {
+                    const gallery = { id: doc.id, ...doc.data() };
+                    const clientId = gallery.clientId;
+                    
+                    if (!clientGalleries[clientId]) {
+                        clientGalleries[clientId] = [];
+                    }
+                    clientGalleries[clientId].push(gallery);
+                });
+                
+                // Combine all clients with their galleries
+                const enrichedClients = [];
+                clientsSnapshot.forEach(doc => {
+                    const client = { id: doc.id, ...doc.data() };
+                    client.galleries = clientGalleries[doc.id] || [];
+                    enrichedClients.push(client);
+                });
+                
+                // Display updated clients
+                displayEnhancedClients(enrichedClients);
+                
+            } catch (error) {
+                console.error('Error reloading clients:', error);
+            }
+        }
+   
         function initializeUIComponents() {
             // Mobile menu toggle
             const hamburger = document.querySelector('.hamburger');
