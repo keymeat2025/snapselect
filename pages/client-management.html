@@ -866,16 +866,24 @@
             }
             
             // Test it
-            firebase.auth().onAuthStateChanged(async (user) => {
-                if (user) {
-                    console.log('User authenticated:', user.uid);
-                    const clients = await loadClients();
-                    console.log('Clients loaded:', clients);
-                    
-                    // Display clients
-                    displayClients(clients);
+         // Wait for Firebase to be ready before setting up auth listener
+            setTimeout(() => {
+                if (typeof firebase !== 'undefined' && firebase.apps && firebase.apps.length > 0) {
+                    firebase.auth().onAuthStateChanged(async (user) => {
+                        if (user) {
+                            console.log('User authenticated:', user.uid);
+                            const clients = await loadClients();
+                            console.log('Clients loaded:', clients);
+                            
+                            // Display clients
+                            displayClients(clients);
+                        }
+                    });
+                } else {
+                    console.log('Firebase not ready, retrying...');
+                    setTimeout(arguments.callee, 1000);
                 }
-            });
+            }, 3000);
             
             function displayClients(clients) {
                 const container = document.getElementById('clientContent');
