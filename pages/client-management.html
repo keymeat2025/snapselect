@@ -825,8 +825,17 @@
             
             // Check if Firebase is available
            // Wait for external Firebase scripts to load first
-            setTimeout(() => {
-                if (typeof firebase !== 'undefined' && firebase.apps && firebase.apps.length > 0) {
+        
+          // Wait for external Firebase config to load
+            function initializeWhenReady() {
+                // Check if Firebase is loaded AND initialized by external scripts
+                if (typeof firebase !== 'undefined' && 
+                    firebase.apps && 
+                    firebase.apps.length > 0 && 
+                    firebase.auth) {
+                    
+                    console.log('Firebase ready from external scripts');
+                    
                     // Set Firebase region
                     if (firebase.functions) {
                         firebase.app().functions("asia-south1");
@@ -835,13 +844,13 @@
                     // Set up authentication listener
                     firebase.auth().onAuthStateChanged(handleAuthStateChange);
                 } else {
-                    // Use demo mode if Firebase not available
-                    setTimeout(() => {
-                        currentUser = { uid: 'demo-user', email: 'demo@example.com' };
-                        handleAuthStateChange(currentUser);
-                    }, 1000);
+                    console.log('Waiting for Firebase external scripts...');
+                    setTimeout(initializeWhenReady, 500);
                 }
-            }, 2000);
+            }
+            
+            // Start checking after DOM and scripts load
+            setTimeout(initializeWhenReady, 1000);
         });
 
         function handleAuthStateChange(user) {
