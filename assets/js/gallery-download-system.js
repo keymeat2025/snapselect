@@ -418,7 +418,6 @@ class GalleryDownloadSystem {
     =====================================
     
     Client: ${clientName}
-    Gallery: ${galleryId}
     Download Date: ${new Date().toLocaleString()}
     Download Type: Organized by Client Ratings
     
@@ -430,7 +429,7 @@ class GalleryDownloadSystem {
     ❓ Unrated: ${photosByRating.unrated.length} photos
     
     Total Photos: ${totalPhotos}
-    
+    <!--
     FOLDER STRUCTURE:
     📁 ❤️_Heart_Selected/ - Client's absolute favorites (${photosByRating.heart.length} photos)
     📁 👍_Thumbs_Up/ - Photos client liked (${photosByRating.thumbsUp.length} photos)
@@ -451,7 +450,7 @@ class GalleryDownloadSystem {
     - MAYBE_[filename] = Client undecided
     - REJECTED_[filename] = Client doesn't want these
     - UNRATED_[filename] = Client didn't rate
-    
+    -->
     SUMMARY STATISTICS:
     Client Engagement: ${Math.round((Object.keys(photoRatings).length / Object.keys(photosByUrl).length) * 100)}% of photos rated
     Top Choice Rate: ${Math.round((photosByRating.heart.length / totalPhotos) * 100)}% heart selections
