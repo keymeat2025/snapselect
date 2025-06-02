@@ -4900,41 +4900,14 @@
                 <div style="font-size: 12px; margin-top: 5px; opacity: 0.8;">
                     Submission ID: ${submissionId}
                 </div>
-                <button onclick="this.parentElement.remove()" style="
-                    background: none; 
-                    border: none; 
-                    color: #155724; 
-                    font-size: 18px; 
-                    margin-left: 10px; 
-                    cursor: pointer;
-                    position: absolute;
-                    top: 8px;
-                    right: 12px;
-                ">×</button>
+               
             `;
             
-            // Add animation keyframes if not already added
-            if (!document.getElementById('bannerAnimationStyles')) {
-                const style = document.createElement('style');
-                style.id = 'bannerAnimationStyles';
-                style.textContent = `
-                    @keyframes slideDown {
-                        from { transform: translateX(-50%) translateY(-100%); opacity: 0; }
-                        to { transform: translateX(-50%) translateY(0); opacity: 1; }
-                    }
-                `;
-                document.head.appendChild(style);
-            }
+          
             
             document.body.appendChild(banner);
             
-            // Auto-hide after 15 seconds
-            setTimeout(() => {
-                if (banner.parentElement) {
-                    banner.style.animation = 'slideDown 0.5s ease reverse';
-                    setTimeout(() => banner.remove(), 500);
-                }
-            }, 15000);
+            
         }
 
 
