@@ -11,7 +11,18 @@
     <link rel="stylesheet" href="../assets/css/responsive.css">
     <link rel="stylesheet" href="../assets/css/user-menu.css">
     <link rel="stylesheet" href="../assets/css/animations.css">
+    <link rel="stylesheet" href="../assets/css/features.css">
+    <link rel="stylesheet" href="../assets/css/payment.css">
+    <link rel="stylesheet" href="../assets/css/gallery-sharing.css">
     <style>
+        /* Toast Container - same as dashboard */
+        #toastContainer {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 9999;
+        }
+
         /* Client-specific styles */
         .clients-section {
             background: white;
@@ -249,7 +260,16 @@
     </style>
 </head>
 <body>
-    <!-- Header (same as dashboard) -->
+    <!-- Toast Container for Notifications -->
+    <div id="toastContainer" class="toast-container"></div>
+
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="loading-overlay">
+        <div class="loading-spinner"></div>
+        <div class="loading-text">Loading...</div>
+    </div>
+
+    <!-- Header (enhanced with all dashboard features) -->
     <header>
         <div class="container">
             <nav>
@@ -266,7 +286,7 @@
                         <div class="user-menu">
                             <button class="user-menu-btn" id="userMenuBtn">
                                 <div class="avatar-placeholder">U</div>
-                                <span class="user-name" id="userName">John Studio</span>
+                                <span class="user-name" id="userName">User</span>
                                 <i class="fas fa-chevron-down"></i>
                             </button>
                             <div class="user-dropdown" id="userDropdown">
@@ -282,6 +302,24 @@
                 <div class="hamburger">
                     <i class="fas fa-bars"></i>
                 </div>
+              
+            <!-- Notification Bell -->
+                <div class="notification-container">
+                  <button id="notificationBtn" class="notification-btn">
+                    <i class="fas fa-bell"></i>
+                    <span id="notificationCount" class="notification-badge">0</span>
+                  </button>
+                  
+                  <div id="notificationDropdown" class="notification-dropdown">
+                    <div class="notification-header">
+                      <h3>Notifications</h3>
+                      <button id="markAllReadBtn" class="mark-all-read">Mark all as read</button>
+                    </div>
+                    <div id="notificationList" class="notification-list">
+                      <!-- Notifications will be loaded here -->
+                    </div>
+                  </div>
+                </div>
             </nav>
         </div>
     </header>
@@ -295,7 +333,7 @@
                     <p>Manage your client profiles and subscriptions</p>
                 </div>
                 <div class="dashboard-stats">
-                    <div class="stat-card">
+                    <div class="stat-card animate-in">
                         <div class="stat-icon">
                             <i class="fas fa-users"></i>
                         </div>
@@ -304,7 +342,7 @@
                             <span class="stat-label">Total Clients</span>
                         </div>
                     </div>
-                    <div class="stat-card">
+                    <div class="stat-card animate-in" style="animation-delay: 0.1s;">
                         <div class="stat-icon">
                             <i class="fas fa-user-check"></i>
                         </div>
@@ -317,7 +355,7 @@
             </section>
 
             <!-- Clients Section -->
-            <section class="clients-section">
+            <section class="clients-section animate-in" style="animation-delay: 0.2s;">
                 <div class="section-header">
                     <h2>Your Clients</h2>
                     <button class="btn primary" onclick="createNewClient()">
@@ -433,9 +471,202 @@
         </div>
     </div>
 
+    <!-- Same footer as dashboard -->
+    <footer class="dashboard-footer">
+        <div class="container">
+            <div class="footer-bottom">
+                <p class="copyright">&copy; 2025 SnapSelect. All rights reserved.</p>
+                <div class="footer-links">
+                    <a href="#">Privacy Policy</a>
+                    <a href="#">Terms of Service</a>
+                    <a href="#" id="footerHelpLink">Help Center</a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Firebase and other scripts - SAME AS DASHBOARD -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-functions-compat.js"></script>
+    <script src="../assets/js/firebase-config.js"></script>
+    <script src="../assets/js/firebase-auth.js"></script>
+    <script src="../assets/js/firebase-db.js"></script>
+    <script src="../assets/js/header-auth.js"></script>
+    <!-- Load notification system before subscription manager -->
+    <script src="../assets/js/notification-system.js"></script>
+    <script src="../assets/js/subscription-manager.js"></script>
+
     <script>
         let clientToDelete = null;
         let clientNameToDelete = null;
+
+        // Initialize when DOM is loaded
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Client Management page loaded');
+            
+            // Debug notification elements
+            console.log('Toast container exists:', !!document.getElementById('toastContainer'));
+            console.log('Notification button exists:', !!document.getElementById('notificationBtn'));
+            console.log('Notification dropdown exists:', !!document.getElementById('notificationDropdown'));
+            
+            // Initialize Firebase region
+            if (firebase && firebase.functions) {
+                firebase.app().functions("asia-south1");
+            }
+            
+            // Initialize header functionality
+            initializeHeader();
+            
+            // Initialize client management specific features
+            updateCounts();
+            
+            // Set up modal close functionality
+            setupModals();
+        });
+
+        function initializeHeader() {
+            // Setup user menu dropdown
+            const userMenuBtn = document.getElementById('userMenuBtn');
+            const userDropdown = document.getElementById('userDropdown');
+            
+            if (userMenuBtn && userDropdown) {
+                userMenuBtn.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    userDropdown.classList.toggle('active');
+                });
+                
+                // Close dropdown when clicking outside
+                document.addEventListener('click', function() {
+                    userDropdown.classList.remove('active');
+                });
+            }
+
+            // Setup logout functionality
+            const logoutBtn = document.getElementById('logoutBtn');
+            if (logoutBtn) {
+                logoutBtn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    handleLogout();
+                });
+            }
+
+            // Setup hamburger menu for mobile
+            const hamburger = document.querySelector('.hamburger');
+            const navLinks = document.querySelector('.nav-links');
+            
+            if (hamburger && navLinks) {
+                hamburger.addEventListener('click', function() {
+                    navLinks.classList.toggle('active');
+                    hamburger.classList.toggle('active');
+                });
+            }
+
+            // Setup notification functionality
+            setupNotifications();
+            
+            // Load user data
+            loadUserData();
+        }
+
+        function setupNotifications() {
+            // Initialize notification system if available
+            if (window.NotificationSystem) {
+                console.log('Initializing notification system...');
+                window.NotificationSystem.initialize();
+            }
+            
+            // Setup notification button
+            const notificationBtn = document.getElementById('notificationBtn');
+            const notificationDropdown = document.getElementById('notificationDropdown');
+            
+            if (notificationBtn && notificationDropdown) {
+                notificationBtn.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    notificationDropdown.classList.toggle('active');
+                    
+                    // Mark notifications as read when opened
+                    if (window.NotificationSystem) {
+                        window.NotificationSystem.markAllAsRead();
+                    }
+                });
+                
+                // Close notification dropdown when clicking outside
+                document.addEventListener('click', function() {
+                    notificationDropdown.classList.remove('active');
+                });
+            }
+        }
+
+        async function loadUserData() {
+            try {
+                // Listen for auth state changes
+                firebase.auth().onAuthStateChanged((user) => {
+                    if (user) {
+                        updateUserDisplay(user);
+                    } else {
+                        // Redirect to login if no user
+                        window.location.href = '../index.html';
+                    }
+                });
+            } catch (error) {
+                console.error('Error loading user data:', error);
+            }
+        }
+
+        function updateUserDisplay(user) {
+            const userName = document.getElementById('userName');
+            const avatarPlaceholder = document.querySelector('.avatar-placeholder');
+            
+            if (user) {
+                // Update user name
+                if (userName) {
+                    userName.textContent = user.displayName || 
+                                         user.email?.split('@')[0] || 
+                                         'User';
+                }
+                
+                // Update avatar
+                if (avatarPlaceholder) {
+                    const initials = getInitials(user.displayName || user.email);
+                    avatarPlaceholder.textContent = initials;
+                }
+            }
+        }
+
+        function getInitials(name) {
+            if (!name) return 'U';
+            return name.split(' ')
+                      .map(word => word.charAt(0))
+                      .join('')
+                      .substring(0, 2)
+                      .toUpperCase();
+        }
+
+        async function handleLogout() {
+            try {
+                await firebase.auth().signOut();
+                window.location.href = '../index.html';
+            } catch (error) {
+                console.error('Error signing out:', error);
+                if (window.NotificationSystem) {
+                    window.NotificationSystem.showNotification('error', 'Error', 'Failed to sign out');
+                } else {
+                    showToast('error', 'Failed to sign out');
+                }
+            }
+        }
+
+        function setupModals() {
+            // Close modal when clicking outside
+            window.onclick = function(event) {
+                const modal = document.getElementById('deleteModal');
+                if (event.target === modal) {
+                    closeDeleteModal();
+                }
+            }
+        }
 
         // Show delete confirmation modal
         function confirmDelete(clientId, clientName) {
@@ -480,8 +711,12 @@
                     }, 300);
                 }
 
-                // Show success message
-                showToast('success', `${clientNameToDelete} has been deleted successfully`);
+                // Show success message using notification system if available
+                if (window.NotificationSystem) {
+                    window.NotificationSystem.showNotification('success', 'Success', `${clientNameToDelete} has been deleted successfully`);
+                } else {
+                    showToast('success', `${clientNameToDelete} has been deleted successfully`);
+                }
 
                 // Close modal
                 closeDeleteModal();
@@ -492,7 +727,12 @@
 
             } catch (error) {
                 console.error('Error deleting client:', error);
-                showToast('error', 'Failed to delete client. Please try again.');
+                
+                if (window.NotificationSystem) {
+                    window.NotificationSystem.showNotification('error', 'Error', 'Failed to delete client. Please try again.');
+                } else {
+                    showToast('error', 'Failed to delete client. Please try again.');
+                }
                 
                 // Reset button
                 const deleteBtn = document.getElementById('confirmDeleteBtn');
@@ -530,7 +770,7 @@
             }
         }
 
-        // Show toast notification
+        // Show toast notification (fallback if NotificationSystem not available)
         function showToast(type, message) {
             const toast = document.createElement('div');
             toast.className = `toast ${type}`;
@@ -548,21 +788,28 @@
 
         // Placeholder for create new client
         function createNewClient() {
-            showToast('info', 'Create new client functionality would be implemented here');
-        }
-
-        // Close modal when clicking outside
-        window.onclick = function(event) {
-            const modal = document.getElementById('deleteModal');
-            if (event.target === modal) {
-                closeDeleteModal();
+            // Check if we can use the subscription manager from dashboard
+            if (window.subscriptionManager && window.subscriptionManager.createClient) {
+                // Open the create client modal from dashboard functionality
+                const createClientModal = document.getElementById('createClientModal');
+                if (createClientModal) {
+                    createClientModal.style.display = 'block';
+                } else {
+                    // Show a message to go to dashboard for now
+                    if (window.NotificationSystem) {
+                        window.NotificationSystem.showNotification('info', 'Info', 'Please use the Dashboard to create new clients for now');
+                    } else {
+                        showToast('info', 'Please use the Dashboard to create new clients for now');
+                    }
+                }
+            } else {
+                if (window.NotificationSystem) {
+                    window.NotificationSystem.showNotification('info', 'Info', 'Create new client functionality - please use the Dashboard');
+                } else {
+                    showToast('info', 'Create new client functionality would be implemented here');
+                }
             }
         }
-
-        // Initialize page
-        document.addEventListener('DOMContentLoaded', function() {
-            updateCounts();
-        });
     </script>
 </body>
 </html>
