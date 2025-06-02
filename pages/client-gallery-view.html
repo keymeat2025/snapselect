@@ -1327,22 +1327,16 @@
                 }
             }
             
+         
             renderSubmittedState() {
                 const btn = this.buttonElement;
-                btn.disabled = true;
-                btn.style.cursor = 'not-allowed';
-                btn.style.backgroundColor = '#d4edda';
-                btn.style.borderColor = '#28a745';
-                btn.style.color = '#155724';
+                if (!btn) return;
                 
-                btn.innerHTML = `
-                    <i class="fas fa-check-circle" style="color: #28a745;"></i>
-                    <span class="button-text">SnapSelections Submitted!</span>
-                `;
+                // ===== SIMPLE SOLUTION: JUST HIDE THE BUTTON =====
+                btn.style.display = 'none';
+                // ===== END =====
                 
-                const timestamp = this.state.submittedAt ? 
-                    formatTimestampSafely(this.state.submittedAt) : 'recently';
-                btn.title = `Submitted ${timestamp} (ID: ${this.state.submissionId || 'N/A'})`;
+                console.log('✅ Submit button hidden - gallery already submitted');
             }
             
             renderLoadingState() {
