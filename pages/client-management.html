@@ -1230,22 +1230,15 @@
                     <div class="enhanced-client-card ${statusClass}" data-client-id="${client.id}">
                         ${criticalStatus ? `<div class="critical-alert">${criticalStatus}</div>` : ''}
                         
-                      
-                        // In createEnhancedClientCard function, change the delete button section:
                         <div class="client-header">
                             <div class="avatar-circle">${initials}</div>
                             <div class="client-basic-info">
                                 <h3 class="client-name">${client.name || 'Unnamed Client'}</h3>
                                 <p class="client-email">${client.email || 'No email'}</p>
                             </div>
-                            ${galleries.length === 0 ? 
-                                `<button class="delete-btn" onclick="deleteClientWithoutGalleries('${client.id}', '${client.name}')" title="Delete Client">
-                                    <i class="fas fa-trash"></i>
-                                </button>` : 
-                                `<span class="no-delete-tooltip" title="Cannot delete - client has galleries">
-                                    <i class="fas fa-archive" style="color: var(--text-muted);"></i>
-                                </span>`
-                            }
+                            <button class="delete-btn" onclick="deleteClient('${client.id}', '${client.name}')" title="Delete Client">
+                                <i class="fas fa-trash"></i>
+                            </button>
                         </div>
                         
                         <div class="client-stats-row">
@@ -1287,29 +1280,7 @@
                     </div>
                 `;
             }
-
-
-            async function deleteClientWithoutGalleries(clientId, clientName) {
-                if (confirm(`Permanently delete "${clientName}"? This client has no galleries and will be completely removed.`)) {
-                    try {
-                        const db = firebase.firestore();
-                        await db.collection('clients').doc(clientId).delete();
-                        
-                        // Show success notification
-                        if (window.NotificationSystem) {
-                            window.NotificationSystem.showNotification('success', 'Client Deleted', `${clientName} has been permanently deleted.`);
-                        }
-                        
-                        // Reload the client list
-                        const updatedClients = await loadClientsWithGalleries();
-                        displayEnhancedClients(updatedClients);
-                        
-                    } catch (error) {
-                        console.error('Error deleting client:', error);
-                        alert('Error deleting client: ' + error.message);
-                    }
-                }
-            }
+            
             function getTimeAgo(date) {
                 const now = new Date();
                 const diffMs = now - date;
