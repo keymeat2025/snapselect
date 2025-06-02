@@ -510,20 +510,24 @@
             console.log('Toast container exists:', !!document.getElementById('toastContainer'));
             console.log('Notification button exists:', !!document.getElementById('notificationBtn'));
             console.log('Notification dropdown exists:', !!document.getElementById('notificationDropdown'));
+            console.log('NotificationSystem available:', !!window.NotificationSystem);
             
             // Initialize Firebase region
             if (firebase && firebase.functions) {
                 firebase.app().functions("asia-south1");
             }
             
-            // Initialize header functionality
-            initializeHeader();
-            
-            // Initialize client management specific features
-            updateCounts();
-            
-            // Set up modal close functionality
-            setupModals();
+            // Wait a bit for all scripts to load, then initialize
+            setTimeout(() => {
+                // Initialize header functionality
+                initializeHeader();
+                
+                // Initialize client management specific features
+                updateCounts();
+                
+                // Set up modal close functionality
+                setupModals();
+            }, 500); // Give scripts time to load
         });
 
         function initializeHeader() {
@@ -571,10 +575,32 @@
         }
 
         function setupNotifications() {
-            // Initialize notification system if available
+            // Wait for notification system to load
+            const initNotificationSystem = () => {
+                if (window.NotificationSystem && typeof window.NotificationSystem.initialize === 'function') {
+                    console.log('Initializing notification system...');
+                    try {
+                        window.NotificationSystem.initialize();
+                    } catch (error) {
+                        console.warn('Error initializing notification system:', error);
+                    }
+                } else {
+                    console.log('NotificationSystem not available, using fallback');
+                    // Set default notification count
+                    const notificationCount = document.getElementById('notificationCount');
+                    if (notificationCount) {
+                        notificationCount.textContent = '0';
+                        notificationCount.style.display = 'none';
+                    }
+                }
+            };
+
+            // Try to initialize immediately, or wait for script to load
             if (window.NotificationSystem) {
-                console.log('Initializing notification system...');
-                window.NotificationSystem.initialize();
+                initNotificationSystem();
+            } else {
+                // Wait for the script to load
+                setTimeout(initNotificationSystem, 1000);
             }
             
             // Setup notification button
@@ -587,8 +613,12 @@
                     notificationDropdown.classList.toggle('active');
                     
                     // Mark notifications as read when opened
-                    if (window.NotificationSystem) {
-                        window.NotificationSystem.markAllAsRead();
+                    if (window.NotificationSystem && typeof window.NotificationSystem.markAllAsRead === 'function') {
+                        try {
+                            window.NotificationSystem.markAllAsRead();
+                        } catch (error) {
+                            console.warn('Error marking notifications as read:', error);
+                        }
                     }
                 });
                 
@@ -650,8 +680,13 @@
                 window.location.href = '../index.html';
             } catch (error) {
                 console.error('Error signing out:', error);
-                if (window.NotificationSystem) {
-                    window.NotificationSystem.showNotification('error', 'Error', 'Failed to sign out');
+                if (window.NotificationSystem && typeof window.NotificationSystem.showNotification === 'function') {
+                    try {
+                        window.NotificationSystem.showNotification('error', 'Error', 'Failed to sign out');
+                    } catch (notifError) {
+                        console.warn('Error showing notification:', notifError);
+                        showToast('error', 'Failed to sign out');
+                    }
                 } else {
                     showToast('error', 'Failed to sign out');
                 }
@@ -712,8 +747,13 @@
                 }
 
                 // Show success message using notification system if available
-                if (window.NotificationSystem) {
-                    window.NotificationSystem.showNotification('success', 'Success', `${clientNameToDelete} has been deleted successfully`);
+                if (window.NotificationSystem && typeof window.NotificationSystem.showNotification === 'function') {
+                    try {
+                        window.NotificationSystem.showNotification('success', 'Success', `${clientNameToDelete} has been deleted successfully`);
+                    } catch (error) {
+                        console.warn('Error showing notification:', error);
+                        showToast('success', `${clientNameToDelete} has been deleted successfully`);
+                    }
                 } else {
                     showToast('success', `${clientNameToDelete} has been deleted successfully`);
                 }
@@ -728,8 +768,13 @@
             } catch (error) {
                 console.error('Error deleting client:', error);
                 
-                if (window.NotificationSystem) {
-                    window.NotificationSystem.showNotification('error', 'Error', 'Failed to delete client. Please try again.');
+                if (window.NotificationSystem && typeof window.NotificationSystem.showNotification === 'function') {
+                    try {
+                        window.NotificationSystem.showNotification('error', 'Error', 'Failed to delete client. Please try again.');
+                    } catch (error) {
+                        console.warn('Error showing notification:', error);
+                        showToast('error', 'Failed to delete client. Please try again.');
+                    }
                 } else {
                     showToast('error', 'Failed to delete client. Please try again.');
                 }
@@ -796,15 +841,25 @@
                     createClientModal.style.display = 'block';
                 } else {
                     // Show a message to go to dashboard for now
-                    if (window.NotificationSystem) {
-                        window.NotificationSystem.showNotification('info', 'Info', 'Please use the Dashboard to create new clients for now');
+                    if (window.NotificationSystem && typeof window.NotificationSystem.showNotification === 'function') {
+                        try {
+                            window.NotificationSystem.showNotification('info', 'Info', 'Please use the Dashboard to create new clients for now');
+                        } catch (error) {
+                            console.warn('Error showing notification:', error);
+                            showToast('info', 'Please use the Dashboard to create new clients for now');
+                        }
                     } else {
                         showToast('info', 'Please use the Dashboard to create new clients for now');
                     }
                 }
             } else {
-                if (window.NotificationSystem) {
-                    window.NotificationSystem.showNotification('info', 'Info', 'Create new client functionality - please use the Dashboard');
+                if (window.NotificationSystem && typeof window.NotificationSystem.showNotification === 'function') {
+                    try {
+                        window.NotificationSystem.showNotification('info', 'Info', 'Create new client functionality - please use the Dashboard');
+                    } catch (error) {
+                        console.warn('Error showing notification:', error);
+                        showToast('info', 'Create new client functionality would be implemented here');
+                    }
                 } else {
                     showToast('info', 'Create new client functionality would be implemented here');
                 }
