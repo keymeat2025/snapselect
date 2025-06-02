@@ -251,14 +251,33 @@ class GalleryDownloadSystem {
       // Call our tested download function
       await this.downloadGalleryByRating(galleryId, authData.clientData.name);
       
-      // Success!
+   
+     // Success! Now record the download and update button state
       progressFill.style.width = '100%';
       progressText.textContent = '✅ Download completed successfully!';
       
-      // Close modal after 2 seconds
+      // 🎯 ADD THESE LINES - Record download and update button
+      console.log('🎯 About to record download history...');
+      await this.recordDownloadHistory(authData, clientId, galleryId, planId);
+      console.log('🎯 Download history recording completed');
+      
+      // Update button state immediately
+      this.updateDownloadButtonState(clientId, authData);
+      
+      // Show completion message
+      if (window.NotificationSystem) {
+        window.NotificationSystem.showNotification(
+          'success', 
+          'Download Complete', 
+          `Gallery downloaded and organized by ratings. Downloads used: ${authData.currentDownloads + 1}/${authData.maxDownloads}`
+        );
+      }
+      
+      // Close modal after 3 seconds
       setTimeout(() => {
-        document.getElementById('galleryDownloadModal').remove();
-      }, 2000);
+        const modal = document.getElementById('galleryDownloadModal');
+        if (modal) modal.remove();
+      }, 3000);
       
     } catch (error) {
       console.error('❌ Download execution failed:', error);
@@ -523,7 +542,98 @@ class GalleryDownloadSystem {
     
     console.log('✅ Organized download completed!');
   }
+
+
+  // Add this method to record download history
+  static async recordDownloadHistory(authData, clientId, galleryId, planId) {
+    console.log('📝 Recording download history...');
+    
+    try {
+      const db = firebase.firestore();
+      const currentUser = firebase.auth().currentUser;
+      
+      const downloadRecord = {
+        planId: planId,
+        galleryId: galleryId,
+        clientId: clientId,
+        photographerId: currentUser.uid,
+        downloadType: 'gallery_organized',
+        planType: authData.planType,
+        photoCount: authData.galleryData.photosCount,
+        clientRatings: authData.galleryData.clientRatings,
+        downloadMethod: 'secure_modal_system',
+        downloadedAt: firebase.firestore.FieldValue.serverTimestamp(),
+        userAgent: navigator.userAgent,
+        clientName: authData.clientData.name,
+        galleryName: authData.galleryData.name
+      };
+      
+      await db.collection('downloadHistory').add(downloadRecord);
+      console.log('✅ Download history recorded successfully');
+      
+    } catch (error) {
+      console.error('❌ Error recording download history:', error);
+      // Don't throw error - download was successful, just logging failed
+    }
+  }
+
+// Add this method to update button state
+  static updateDownloadButtonState(clientId, authData) {
+    console.log('🔄 Updating download button state...');
+    
+    try {
+      const downloadBtn = document.querySelector(`[data-client-id="${clientId}"]`);
+      if (!downloadBtn) {
+        console.warn('Download button not found for client:', clientId);
+        return;
+      }
+      
+      const currentDownloads = authData.currentDownloads + 1; // Increment by 1
+      const maxDownloads = authData.maxDownloads;
+      
+      if (maxDownloads === 'unlimited') {
+        // For unlimited plans, just update subtitle
+        const subtitle = downloadBtn.querySelector('.btn-subtitle');
+        if (subtitle) {
+          subtitle.textContent = `Downloaded ${currentDownloads} times`;
+        }
+      } else {
+        // For limited plans, check if limit reached
+        if (currentDownloads >= maxDownloads) {
+          // Disable button - limit reached
+          downloadBtn.disabled = true;
+          downloadBtn.classList.add('download-limit-reached');
+          
+          const subtitle = downloadBtn.querySelector('.btn-subtitle');
+          if (subtitle) {
+            subtitle.textContent = 'Download limit reached';
+          }
+          
+          // Change button text
+          const buttonIcon = downloadBtn.querySelector('i');
+          if (buttonIcon && buttonIcon.nextSibling) {
+            buttonIcon.nextSibling.textContent = ' Downloaded';
+          }
+          
+          console.log('🚫 Download button disabled - limit reached');
+        } else {
+          // Still has downloads remaining
+          const remaining = maxDownloads - currentDownloads;
+          const subtitle = downloadBtn.querySelector('.btn-subtitle');
+          if (subtitle) {
+            subtitle.textContent = `${remaining} downloads remaining`;
+          }
+          
+          console.log(`📊 Downloads remaining: ${remaining}`);
+        }
+      }
+      
+    } catch (error) {
+      console.error('❌ Error updating button state:', error);
+    }
+  }
 }
+
 
 // Auto-initialize when page loads
 document.addEventListener('DOMContentLoaded', function() {
