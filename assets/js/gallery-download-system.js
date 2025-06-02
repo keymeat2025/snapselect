@@ -545,13 +545,17 @@ class GalleryDownloadSystem {
 
 
   // Add this method to record download history
+
+// Enhanced function to update both collections (HYBRID APPROACH)
   static async recordDownloadHistory(authData, clientId, galleryId, planId) {
-    console.log('📝 Recording download history...');
+    console.log('📝 Recording download history (hybrid approach)...');
     
     try {
       const db = firebase.firestore();
       const currentUser = firebase.auth().currentUser;
+      const now = firebase.firestore.FieldValue.serverTimestamp();
       
+      // 1. Create detailed record for downloadHistory collection
       const downloadRecord = {
         planId: planId,
         galleryId: galleryId,
@@ -562,20 +566,128 @@ class GalleryDownloadSystem {
         photoCount: authData.galleryData.photosCount,
         clientRatings: authData.galleryData.clientRatings,
         downloadMethod: 'secure_modal_system',
-        downloadedAt: firebase.firestore.FieldValue.serverTimestamp(),
+        downloadedAt: now,
         userAgent: navigator.userAgent,
         clientName: authData.clientData.name,
-        galleryName: authData.galleryData.name
+        galleryName: authData.galleryData.name,
+        downloadToken: authData.downloadToken
       };
       
-      await db.collection('downloadHistory').add(downloadRecord);
-      console.log('✅ Download history recorded successfully');
+      // 2. Calculate new download status for gallery
+      const newDownloadCount = authData.currentDownloads + 1;
+      const isLimitReached = authData.maxDownloads !== 'unlimited' && newDownloadCount >= authData.maxDownloads;
+      
+      const galleryDownloadStatus = {
+        totalDownloads: newDownloadCount,
+        downloadLimit: authData.maxDownloads === 'unlimited' ? 999 : authData.maxDownloads,
+        downloadLimitReached: isLimitReached,
+        lastDownloadAt: now,
+        planType: authData.planType
+      };
+      
+      // Add firstDownloadAt if this is the first download
+      if (authData.currentDownloads === 0) {
+        galleryDownloadStatus.firstDownloadAt = now;
+      }
+      
+      console.log('💾 Preparing hybrid update:', {
+        downloadRecord: 'Will be added to downloadHistory collection',
+        galleryUpdate: galleryDownloadStatus
+      });
+      
+      // 3. Execute both updates in a transaction for consistency
+      await db.runTransaction(async (transaction) => {
+        // Add detailed record to downloadHistory collection
+        const downloadRef = db.collection('downloadHistory').doc();
+        transaction.set(downloadRef, downloadRecord);
+        
+        // Update gallery document with download status
+        const galleryRef = db.collection('galleries').doc(galleryId);
+        transaction.update(galleryRef, {
+          downloadStatus: galleryDownloadStatus,
+          lastDownloadUpdate: now
+        });
+        
+        console.log('🔄 Transaction prepared for both collections');
+      });
+      
+      console.log('✅ Hybrid download history recorded successfully');
+      console.log(`📊 Gallery now shows: ${newDownloadCount}/${authData.maxDownloads} downloads`);
       
     } catch (error) {
-      console.error('❌ Error recording download history:', error);
-      // Don't throw error - download was successful, just logging failed
+      console.error('❌ Error recording hybrid download history:', error);
+      throw error; // Re-throw to handle in calling function
     }
   }
+
+
+// ===== ONE-TIME MIGRATION SCRIPT =====
+// Add this function to migrate your existing gallery
+  
+  static async migrateExistingGalleryToHybrid(galleryId, planId) {
+    console.log('🔄 Migrating existing gallery to hybrid approach...');
+    
+    try {
+      const db = firebase.firestore();
+      const currentUser = firebase.auth().currentUser;
+      
+      // Check if gallery already has downloadStatus
+      const galleryDoc = await db.collection('galleries').doc(galleryId).get();
+      
+      if (galleryDoc.exists && galleryDoc.data().downloadStatus) {
+        console.log('✅ Gallery already has download status');
+        return galleryDoc.data().downloadStatus;
+      }
+      
+      // Count existing downloads for this plan
+      const downloadHistory = await db.collection('downloadHistory')
+        .where('planId', '==', planId)
+        .where('photographerId', '==', currentUser.uid)
+        .get();
+      
+      const totalDownloads = downloadHistory.size;
+      const downloadLimit = 1; // Lite plan
+      const downloadLimitReached = totalDownloads >= downloadLimit;
+      
+      let lastDownloadAt = null;
+      let firstDownloadAt = null;
+      
+      if (!downloadHistory.empty) {
+        // Get timestamps from existing downloads
+        const downloads = downloadHistory.docs.map(doc => doc.data());
+        downloads.sort((a, b) => a.downloadedAt.toMillis() - b.downloadedAt.toMillis());
+        
+        firstDownloadAt = downloads[0].downloadedAt;
+        lastDownloadAt = downloads[downloads.length - 1].downloadedAt;
+      }
+      
+      const downloadStatus = {
+        totalDownloads: totalDownloads,
+        downloadLimit: downloadLimit,
+        downloadLimitReached: downloadLimitReached,
+        lastDownloadAt: lastDownloadAt,
+        firstDownloadAt: firstDownloadAt,
+        planType: 'lite',
+        migratedAt: firebase.firestore.FieldValue.serverTimestamp()
+      };
+      
+      // Update gallery with download status
+      await db.collection('galleries').doc(galleryId).update({
+        downloadStatus: downloadStatus,
+        lastDownloadUpdate: firebase.firestore.FieldValue.serverTimestamp()
+      });
+      
+      console.log('✅ Gallery migration completed:', downloadStatus);
+      return downloadStatus;
+      
+    } catch (error) {
+      console.error('❌ Error migrating gallery:', error);
+      throw error;
+    }
+  }
+
+
+  
 
 // Add this method to update button state
   static updateDownloadButtonState(clientId, authData) {
