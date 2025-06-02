@@ -808,10 +808,7 @@
         // Make it globally available
         window.NotificationSystem = NotificationSystem;
 
-        // Firebase Configuration (Mock for demo)
-        const firebaseConfig = {
-            // Your Firebase config would go here
-        };
+    
 
         // Global state
         let isInitialized = false;
@@ -914,24 +911,7 @@
           // Wait for external Firebase config to load
     
             // Firebase should be ready from external scripts
-            if (firebase.functions) {
-                firebase.app().functions("asia-south1");
-            }
-            
-            // Set up the simple auth listener  
-            firebase.auth().onAuthStateChanged(async (user) => {
-                if (user) {
-                    console.log('User authenticated:', user.uid);
-                    const clients = await loadClients();
-                    console.log('Clients loaded:', clients);
-                    
-                    // Display clients
-                    displayClients(clients);
-                }
-            });
-            
-            // Start checking after DOM and scripts load
-            setTimeout(initializeWhenReady, 1000);
+  
         });
 
         function handleAuthStateChange(user) {
