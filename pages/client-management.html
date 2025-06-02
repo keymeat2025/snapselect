@@ -23,6 +23,91 @@
             z-index: 9999;
         }
 
+        /* User dropdown styling - ensure it's visible */
+        .user-dropdown {
+            position: absolute;
+            top: 100%;
+            right: 0;
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            min-width: 200px;
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(-10px);
+            transition: all 0.2s ease;
+            z-index: 1000;
+        }
+
+        .user-dropdown.active {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+        }
+
+        .user-dropdown a {
+            display: block;
+            padding: 12px 16px;
+            color: #374151;
+            text-decoration: none;
+            transition: background-color 0.2s;
+            border-bottom: 1px solid #f1f5f9;
+        }
+
+        .user-dropdown a:last-child {
+            border-bottom: none;
+        }
+
+        .user-dropdown a:hover {
+            background-color: #f8fafc;
+        }
+
+        .user-dropdown a.active {
+            background-color: #eff6ff;
+            color: #2563eb;
+            font-weight: 500;
+        }
+
+        /* User menu button */
+        .user-menu {
+            position: relative;
+        }
+
+        .user-menu-btn {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: none;
+            border: none;
+            padding: 8px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .user-menu-btn:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+
+        .avatar-placeholder {
+            width: 32px;
+            height: 32px;
+            background: #3b82f6;
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 500;
+            font-size: 14px;
+        }
+
+        .user-name {
+            color: #1f2937;
+            font-weight: 500;
+        }
+
         /* Client-specific styles */
         .clients-section {
             background: white;
@@ -696,37 +781,65 @@
             console.log('Notification button exists:', !!document.getElementById('notificationBtn'));
             console.log('Notification dropdown exists:', !!document.getElementById('notificationDropdown'));
             console.log('NotificationSystem available:', !!window.NotificationSystem);
+            console.log('User menu button exists:', !!document.getElementById('userMenuBtn'));
+            console.log('User dropdown exists:', !!document.getElementById('userDropdown'));
             
             // Initialize Firebase region
             if (firebase && firebase.functions) {
                 firebase.app().functions("asia-south1");
             }
             
-            // Initialize immediately
-            initializeHeader();
-            
-            // Initialize client management specific features
-            updateCounts();
-            
-            // Set up modal close functionality
-            setupModals();
+            // Add a small delay to ensure all DOM elements are ready
+            setTimeout(() => {
+                // Initialize header functionality
+                initializeHeader();
+                
+                // Initialize client management specific features
+                updateCounts();
+                
+                // Set up modal close functionality
+                setupModals();
+            }, 100);
         });
 
         function initializeHeader() {
+            console.log('Initializing header...');
+            
             // Setup user menu dropdown
             const userMenuBtn = document.getElementById('userMenuBtn');
             const userDropdown = document.getElementById('userDropdown');
             
+            console.log('User menu button found:', !!userMenuBtn);
+            console.log('User dropdown found:', !!userDropdown);
+            
             if (userMenuBtn && userDropdown) {
-                userMenuBtn.addEventListener('click', function(e) {
+                // Remove any existing event listeners
+                userMenuBtn.replaceWith(userMenuBtn.cloneNode(true));
+                const newUserMenuBtn = document.getElementById('userMenuBtn');
+                
+                newUserMenuBtn.addEventListener('click', function(e) {
+                    console.log('User menu clicked');
+                    e.preventDefault();
                     e.stopPropagation();
+                    
+                    // Toggle dropdown
+                    const isActive = userDropdown.classList.contains('active');
                     userDropdown.classList.toggle('active');
+                    
+                    console.log('Dropdown toggled. Active:', !isActive);
                 });
                 
                 // Close dropdown when clicking outside
-                document.addEventListener('click', function() {
-                    userDropdown.classList.remove('active');
+                document.addEventListener('click', function(e) {
+                    if (!userMenuBtn.contains(e.target) && !userDropdown.contains(e.target)) {
+                        userDropdown.classList.remove('active');
+                        console.log('Dropdown closed by outside click');
+                    }
                 });
+                
+                console.log('User menu event listeners attached');
+            } else {
+                console.error('User menu elements not found');
             }
 
             // Setup logout functionality
@@ -734,6 +847,7 @@
             if (logoutBtn) {
                 logoutBtn.addEventListener('click', function(e) {
                     e.preventDefault();
+                    console.log('Logout clicked');
                     handleLogout();
                 });
             }
@@ -754,6 +868,8 @@
             
             // Load user data
             loadUserData();
+            
+            console.log('Header initialization complete');
         }
 
         function setupNotifications() {
