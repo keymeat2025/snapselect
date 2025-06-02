@@ -855,6 +855,32 @@
                 grid-template-columns: 1fr;
             }
         }
+        .sort-dropdown {
+            padding: 0.5rem 1rem;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            background: var(--background-white);
+            color: var(--text-primary);
+            font-size: 0.875rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .sort-dropdown:hover {
+            border-color: var(--primary-color);
+        }
+        
+        .sort-dropdown:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(var(--primary-rgb), 0.15);
+        }
+        
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
     </style>
 </head>
 <body>
@@ -1356,10 +1382,14 @@
 
 
         function displayEnhancedClients(clients) {
+  
             const container = document.getElementById('clientContent');
             
+            // Cache all clients data for sorting
+            window.allClientsCache = clients;
+            
             if (clients.length === 0) {
-                container.innerHTML = '<div class="empty-state"><h3>No Clients Found</h3><p>No galleries found for your account.</p></div>';
+                container.innerHTML = '<div class="empty-state"><h3>No Clients Found</h3><p>No clients match the current filter.</p></div>';
                 return;
             }
             
@@ -1369,6 +1399,13 @@
                 <div class="clients-container">
                     <div class="section-header">
                         <h2>Your Clients (${clients.length})</h2>
+                        <div class="header-actions">
+                            <select id="clientSort" onchange="sortClients()" class="sort-dropdown">
+                                <option value="all">All Clients</option>
+                                <option value="with-galleries">With Galleries</option>
+                                <option value="without-galleries">Without Galleries</option>
+                            </select>
+                        </div>
                     </div>
                     <div class="enhanced-clients-grid">
                         ${clientCardsHTML}
@@ -1682,6 +1719,34 @@
             } catch (error) {
                 console.error('Error reloading clients:', error);
             }
+        }
+
+        // ADD THIS NEW FUNCTION HERE:
+        function sortClients() {
+            const sortValue = document.getElementById('clientSort').value;
+            const allClientsData = window.allClientsCache || []; // We'll cache the data
+            
+            let filteredClients = [];
+            
+            switch(sortValue) {
+                case 'with-galleries':
+                    filteredClients = allClientsData.filter(client => 
+                        client.galleries && client.galleries.length > 0
+                    );
+                    break;
+                case 'without-galleries':
+                    filteredClients = allClientsData.filter(client => 
+                        !client.galleries || client.galleries.length === 0
+                    );
+                    break;
+                default: // 'all'
+                    filteredClients = allClientsData;
+            }
+            
+            // Update the display
+            displayEnhancedClients(filteredClients);
+            
+            console.log(`Showing ${filteredClients.length} clients (filter: ${sortValue})`);
         }
    
         function initializeUIComponents() {
