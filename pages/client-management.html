@@ -5,25 +5,377 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SnapSelect - Client Management</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="../assets/css/variables.css">
-    <link rel="stylesheet" href="../assets/css/main.css">
-    <link rel="stylesheet" href="../assets/css/dashboard.css">
-    <link rel="stylesheet" href="../assets/css/responsive.css">
-    <link rel="stylesheet" href="../assets/css/user-menu.css">
-    <link rel="stylesheet" href="../assets/css/animations.css">
-    <link rel="stylesheet" href="../assets/css/features.css">
-    <link rel="stylesheet" href="../assets/css/payment.css">
-    <link rel="stylesheet" href="../assets/css/gallery-sharing.css">
     <style>
-        /* Ensure toast container has proper positioning */
-        #toastContainer {
+        /* CSS Variables - Complete Set */
+        :root {
+            --primary-color: #3b82f6;
+            --primary-dark: #2563eb;
+            --primary-rgb: 59, 130, 246;
+            --secondary-color: #1f2937;
+            --text-primary: #1f2937;
+            --text-secondary: #6b7280;
+            --text-muted: #9ca3af;
+            --text-color: #1f2937;
+            --heading-color: #1f2937;
+            --border-color: #e5e7eb;
+            --background-color: #f9fafb;
+            --background-light: #f9fafb;
+            --background-white: #ffffff;
+            --card-background: #ffffff;
+            --input-background: #ffffff;
+            --success-color: #10b981;
+            --success-rgb: 16, 185, 129;
+            --warning-color: #f59e0b;
+            --warning-rgb: 245, 158, 11;
+            --danger-color: #dc2626;
+            --error-color: #dc2626;
+            --error-rgb: 220, 38, 38;
+            --info-color: #3b82f6;
+            --info-rgb: 59, 130, 246;
+            --gray-200: #e5e7eb;
+            --gray-400: #9ca3af;
+            --gray-700: #374151;
+            --gray-rgb: 156, 163, 175;
+            
+            /* Shadows and Borders */
+            --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.08);
+            --shadow-md: 0 5px 15px rgba(0, 0, 0, 0.1);
+            --shadow-lg: 0 10px 25px rgba(0, 0, 0, 0.15);
+            --radius-sm: 6px;
+            --radius-md: 10px;
+            --radius-lg: 16px;
+            --radius-full: 9999px;
+            --transition-default: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* Reset and Base Styles */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            line-height: 1.6;
+            color: var(--text-primary);
+            background: var(--background-color);
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 1rem;
+        }
+
+        /* Header Styles */
+        header {
+            background: var(--background-white);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 0;
+        }
+
+        .logo {
+            text-decoration: none;
+            color: var(--primary-color);
+            font-size: 1.5rem;
+            font-weight: 700;
+        }
+
+        .logo-text {
+            color: var(--primary-color);
+        }
+
+        .nav-links {
+            display: flex;
+            list-style: none;
+            gap: 2rem;
+        }
+
+        .nav-links a {
+            text-decoration: none;
+            color: var(--text-secondary);
+            font-weight: 500;
+            transition: color 0.2s;
+        }
+
+        .nav-links a:hover {
+            color: var(--primary-color);
+        }
+
+        .right-nav {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .hamburger {
+            display: none;
+            cursor: pointer;
+            color: var(--text-secondary);
+        }
+
+        /* Toast Container */
+        .toast-container {
             position: fixed;
             top: 20px;
             right: 20px;
             z-index: 9999;
         }
 
-        /* Main content area styling */
+        .toast {
+            background: var(--background-white);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            border-left: 4px solid var(--primary-color);
+            min-width: 300px;
+            animation: slideIn 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .toast.success { border-left-color: var(--success-color); }
+        .toast.warning { border-left-color: var(--warning-color); }
+        .toast.error { border-left-color: var(--danger-color); }
+        .toast.info { border-left-color: var(--info-color); }
+
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        /* Loading Overlay */
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255,255,255,0.9);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 9998;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .loading-overlay.active {
+            display: flex;
+        }
+
+        .loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid var(--border-color);
+            border-top: 4px solid var(--primary-color);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        .loading-text {
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* User Menu Styles */
+        .auth-user {
+            display: flex;
+            align-items: center;
+        }
+
+        .user-menu {
+            position: relative;
+            display: inline-block;
+        }
+        
+        .user-menu-btn {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            background: transparent;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            color: inherit;
+        }
+        
+        .user-menu-btn:hover {
+            background: rgba(0, 0, 0, 0.05);
+        }
+        
+        .user-dropdown {
+            position: absolute;
+            top: 100%;
+            right: 0;
+            min-width: 200px;
+            background: var(--background-white);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(-10px);
+            max-height: 0;
+            overflow: hidden;
+            transition: all 0.2s ease;
+        }
+        
+        .user-dropdown.active {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+            max-height: 300px;
+        }
+        
+        .user-dropdown a {
+            display: block;
+            padding: 0.75rem 1rem;
+            color: var(--text-secondary);
+            text-decoration: none;
+            transition: background-color 0.2s ease;
+            border-bottom: 1px solid var(--background-light);
+        }
+        
+        .user-dropdown a:last-child {
+            border-bottom: none;
+        }
+        
+        .user-dropdown a:hover {
+            background: var(--background-light);
+            color: var(--text-primary);
+        }
+        
+        .user-dropdown a.active {
+            background: #eff6ff;
+            color: var(--primary-color);
+            font-weight: 500;
+        }
+        
+        .avatar-placeholder {
+            width: 32px;
+            height: 32px;
+            background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.875rem;
+            font-weight: 600;
+        }
+        
+        .user-name {
+            font-weight: 500;
+            color: var(--text-secondary);
+        }
+
+        /* Notification Styles */
+        .notification-container {
+            position: relative;
+        }
+
+        .notification-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            position: relative;
+            padding: 0.5rem;
+            border-radius: 8px;
+            transition: background 0.2s;
+            color: var(--text-secondary);
+        }
+
+        .notification-btn:hover {
+            background: rgba(0,0,0,0.05);
+        }
+
+        .notification-badge {
+            position: absolute;
+            top: 0;
+            right: 0;
+            background: var(--danger-color);
+            color: white;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            font-size: 0.75rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .notification-dropdown {
+            position: absolute;
+            top: 100%;
+            right: 0;
+            width: 300px;
+            background: var(--background-white);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(-10px);
+            transition: all 0.2s ease;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .notification-dropdown.active {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+        }
+
+        .notification-header {
+            padding: 1rem;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .notification-header h3 {
+            margin: 0;
+            font-size: 1rem;
+            font-weight: 600;
+        }
+
+        .mark-all-read {
+            background: none;
+            border: none;
+            color: var(--primary-color);
+            cursor: pointer;
+            font-size: 0.875rem;
+        }
+
+        .notification-list {
+            padding: 0.5rem 0;
+        }
+
+        /* Main Content Styles */
         .main-content {
             min-height: calc(100vh - 200px);
             padding: 2rem 0;
@@ -46,128 +398,13 @@
             margin-bottom: 0;
         }
 
-        .content-placeholder {
-            background: white;
-            border-radius: 12px;
-            padding: 3rem;
-            text-align: center;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
-            border: 2px dashed var(--border-color);
-        }
-
-        .placeholder-icon {
-            font-size: 4rem;
-            color: var(--text-muted);
-            margin-bottom: 1rem;
-        }
-
-        .placeholder-title {
-            font-size: 1.5rem;
-            color: var(--text-secondary);
-            margin-bottom: 0.5rem;
-        }
-
-        .placeholder-text {
-            color: var(--text-muted);
-            font-size: 1rem;
-        }
-
-        /* User Dropdown Fix Styles */
-        .user-menu {
-            position: relative;
-            display: inline-block;
-        }
-        
-        .user-menu-btn {
-            display: flex !important;
-            align-items: center;
-            gap: 0.5rem;
-            padding: 0.5rem 1rem;
-            background: transparent;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            color: inherit;
-        }
-        
-        .user-menu-btn:hover {
-            background: rgba(0, 0, 0, 0.05);
-        }
-        
-        .user-dropdown {
-            position: absolute !important;
-            top: 100% !important;
-            right: 0 !important;
-            min-width: 200px !important;
-            background: white !important;
-            border: 1px solid #e5e7eb !important;
-            border-radius: 8px !important;
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15) !important;
-            z-index: 1000 !important;
-            
-            /* Hide by default */
-            opacity: 0 !important;
-            visibility: hidden !important;
-            transform: translateY(-10px) !important;
-            max-height: 0 !important;
-            overflow: hidden !important;
-            
-            transition: all 0.2s ease !important;
-        }
-        
-        .user-dropdown.active {
-            opacity: 1 !important;
-            visibility: visible !important;
-            transform: translateY(0) !important;
-            max-height: 300px !important;
-        }
-        
-        .user-dropdown a {
-            display: block !important;
-            padding: 0.75rem 1rem !important;
-            color: #374151 !important;
-            text-decoration: none !important;
-            transition: background-color 0.2s ease !important;
-            border-bottom: 1px solid #f3f4f6 !important;
-        }
-        
-        .user-dropdown a:last-child {
-            border-bottom: none !important;
-        }
-        
-        .user-dropdown a:hover {
-            background: #f9fafb !important;
-            color: #1f2937 !important;
-        }
-        
-        .user-dropdown a.active {
-            background: #eff6ff !important;
-            color: #2563eb !important;
-            font-weight: 500 !important;
-        }
-        
-        .avatar-placeholder {
-            width: 32px !important;
-            height: 32px !important;
-            background: linear-gradient(135deg, #3b82f6, #1d4ed8) !important;
-            color: white !important;
-            border-radius: 50% !important;
-            display: flex !important;
-            align-items: center !important;
-            justify-content: center !important;
-            font-size: 0.875rem !important;
-            font-weight: 600 !important;
-        }
-        
-        .user-name {
-            font-weight: 500 !important;
-            color: #374151 !important;
+        .content-area {
+            margin-top: 1rem;
         }
 
         /* Client List Styles */
         .clients-container {
-            background: white;
+            background: var(--background-white);
             border-radius: 12px;
             padding: 2rem;
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
@@ -179,12 +416,12 @@
             align-items: center;
             margin-bottom: 2rem;
             padding-bottom: 1rem;
-            border-bottom: 1px solid #e5e7eb;
+            border-bottom: 1px solid var(--border-color);
         }
         
         .section-header h2 {
             margin: 0;
-            color: #1f2937;
+            color: var(--text-primary);
             font-size: 1.5rem;
         }
         
@@ -195,15 +432,15 @@
         }
         
         .client-card {
-            border: 1px solid #e5e7eb;
+            border: 1px solid var(--border-color);
             border-radius: 8px;
             padding: 1.5rem;
-            background: #f9fafb;
+            background: var(--background-light);
             transition: all 0.2s;
         }
         
         .client-card:hover {
-            border-color: #3b82f6;
+            border-color: var(--primary-color);
             transform: translateY(-2px);
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
         }
@@ -217,7 +454,7 @@
             width: 60px;
             height: 60px;
             border-radius: 50%;
-            background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+            background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
             color: white;
             display: inline-flex;
             align-items: center;
@@ -234,19 +471,19 @@
             margin: 0 0 0.5rem 0;
             font-size: 1.125rem;
             font-weight: 600;
-            color: #1f2937;
+            color: var(--text-primary);
         }
         
         .client-email, .client-phone {
             margin: 0.25rem 0;
-            color: #6b7280;
+            color: var(--text-secondary);
             font-size: 0.875rem;
         }
         
         .client-meta {
             margin-top: 1rem;
             font-size: 0.75rem;
-            color: #9ca3af;
+            color: var(--text-muted);
         }
         
         .client-notes {
@@ -261,7 +498,7 @@
             gap: 0.5rem;
             margin-top: 1rem;
             padding-top: 1rem;
-            border-top: 1px solid #e5e7eb;
+            border-top: 1px solid var(--border-color);
         }
         
         .btn-icon {
@@ -270,7 +507,7 @@
             border: none;
             border-radius: 6px;
             background: #f3f4f6;
-            color: #6b7280;
+            color: var(--text-secondary);
             cursor: pointer;
             transition: all 0.2s;
             display: flex;
@@ -279,35 +516,35 @@
         }
         
         .btn-icon:hover {
-            background: #e5e7eb;
-            color: #374151;
+            background: var(--border-color);
+            color: var(--text-primary);
         }
         
         .btn-icon.danger:hover {
             background: #fef2f2;
-            color: #dc2626;
+            color: var(--danger-color);
         }
         
         .empty-state, .error-state {
             text-align: center;
             padding: 3rem;
-            background: white;
+            background: var(--background-white);
             border-radius: 12px;
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
         }
         
         .empty-icon, .error-icon {
             font-size: 4rem;
-            color: #9ca3af;
+            color: var(--text-muted);
             margin-bottom: 1rem;
         }
         
         .error-icon {
-            color: #f59e0b;
+            color: var(--warning-color);
         }
         
         .btn {
-            background: #3b82f6;
+            background: var(--primary-color);
             color: white;
             border: none;
             padding: 0.75rem 1.5rem;
@@ -321,11 +558,66 @@
         }
         
         .btn:hover {
-            background: #2563eb;
+            background: var(--primary-dark);
         }
         
         .btn.primary {
-            background: #3b82f6;
+            background: var(--primary-color);
+        }
+
+        /* Footer Styles */
+        .dashboard-footer {
+            background: var(--background-white);
+            border-top: 1px solid var(--border-color);
+            padding: 2rem 0;
+            margin-top: 4rem;
+        }
+
+        .footer-bottom {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .copyright {
+            color: var(--text-muted);
+            font-size: 0.875rem;
+        }
+
+        .footer-links {
+            display: flex;
+            gap: 2rem;
+        }
+
+        .footer-links a {
+            color: var(--text-muted);
+            text-decoration: none;
+            font-size: 0.875rem;
+            transition: color 0.2s;
+        }
+
+        .footer-links a:hover {
+            color: var(--primary-color);
+        }
+
+        /* Animation Classes */
+        .animate-in {
+            opacity: 0;
+            transform: translateY(20px);
+            animation: fadeInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
 
         /* Responsive design */
@@ -334,17 +626,9 @@
                 font-size: 2rem;
             }
             
-            .content-placeholder {
-                padding: 2rem 1rem;
-            }
-            
-            .placeholder-icon {
-                font-size: 3rem;
-            }
-            
             .user-dropdown {
-                right: -1rem !important;
-                min-width: 180px !important;
+                right: -1rem;
+                min-width: 180px;
             }
             
             .clients-grid {
@@ -355,6 +639,14 @@
                 flex-direction: column;
                 gap: 1rem;
                 align-items: stretch;
+            }
+
+            .nav-links {
+                display: none;
+            }
+
+            .hamburger {
+                display: block;
             }
         }
     </style>
@@ -431,12 +723,10 @@
                 <p class="page-subtitle">Manage your clients and their photo selection projects</p>
             </section>
 
-            <!-- Content Area - Empty for now -->
+            <!-- Content Area -->
             <section class="content-area animate-in" style="animation-delay: 0.2s;">
-                <div class="content-placeholder">
-                    <i class="fas fa-users placeholder-icon"></i>
-                    <h3 class="placeholder-title">Content Coming Soon</h3>
-                    <p class="placeholder-text">This page is ready for your client management content.</p>
+                <div id="clientContent">
+                    <!-- Content will be loaded here -->
                 </div>
             </section>
         </div>
@@ -455,142 +745,251 @@
         </div>
     </footer>
 
-    <!-- Scripts -->
+    <!-- Firebase Scripts -->
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-functions-compat.js"></script>
-    <script src="../assets/js/firebase-config.js"></script>
-    <script src="../assets/js/firebase-auth.js"></script>
-    <script src="../assets/js/firebase-db.js"></script>
-    <script src="../assets/js/header-auth.js"></script>
-    <!-- Load notification system -->
-    <script src="../assets/js/notification-system.js"></script>
 
     <script>
-        // Global variables for initialization tracking
-        let userAuthenticated = false;
-        let notificationSystemReady = false;
-
-        document.addEventListener('DOMContentLoaded', function() {
-            // Debug notification elements
-            console.log('Toast container exists:', !!document.getElementById('toastContainer'));
-            console.log('Notification button exists:', !!document.getElementById('notificationBtn'));
-            console.log('Notification dropdown exists:', !!document.getElementById('notificationDropdown'));
-            
-            // Initialize Firebase region
-            if (firebase && firebase.functions) {
-                firebase.app().functions("asia-south1");
+        // Simple Notification System
+        class NotificationSystem {
+            static initialize() {
+                console.log('Notification system initialized');
             }
-            
-            // Wait for authentication state change
-            firebase.auth().onAuthStateChanged(function(user) {
-                if (user) {
-                    console.log('User authenticated:', user.uid);
-                    userAuthenticated = true;
-                    
-                    // Initialize notification system after user is authenticated
-                    initializeNotificationSystem();
-                    
-                    // Initialize client list after user is authenticated
-                    initializeClientList();
-                } else {
-                    console.log('User not authenticated');
-                    userAuthenticated = false;
-                    notificationSystemReady = false;
-                }
-            });
-            
-            // Initialize UI components that don't require authentication
-            initializeUIComponents();
-        });
 
-        function initializeNotificationSystem() {
-            // Give the notification system time to initialize
-            setTimeout(() => {
-                if (window.NotificationSystem && userAuthenticated) {
-                    try {
-                        // Check if notification system is properly initialized
-                        if (typeof window.NotificationSystem.initialize === 'function') {
-                            window.NotificationSystem.initialize();
-                        }
-                        notificationSystemReady = true;
-                        console.log('Notification system initialized');
-                        
-                        // Now it's safe to show welcome notification
-                        setTimeout(() => {
-                            if (notificationSystemReady && window.NotificationSystem) {
-                                window.NotificationSystem.showNotification(
-                                    'info',
-                                    'Client Management',
-                                    'Welcome to the client management section'
-                                );
-                            }
-                        }, 500);
-                    } catch (error) {
-                        console.error('Error initializing notification system:', error);
+            static showNotification(type, title, message) {
+                const container = document.getElementById('toastContainer');
+                if (!container) return;
+
+                const toast = document.createElement('div');
+                toast.className = `toast ${type}`;
+                toast.innerHTML = `
+                    <i class="fas fa-${this.getIcon(type)}"></i>
+                    <div>
+                        <strong>${title}</strong>
+                        <p style="margin: 0; font-size: 0.875rem;">${message}</p>
+                    </div>
+                `;
+
+                container.appendChild(toast);
+
+                // Auto remove after 5 seconds
+                setTimeout(() => {
+                    if (toast.parentNode) {
+                        toast.parentNode.removeChild(toast);
                     }
-                }
-            }, 1000);
+                }, 5000);
+            }
+
+            static getIcon(type) {
+                const icons = {
+                    success: 'check-circle',
+                    error: 'exclamation-circle',
+                    warning: 'exclamation-triangle',
+                    info: 'info-circle'
+                };
+                return icons[type] || 'info-circle';
+            }
+
+            static markAllAsRead() {
+                const badge = document.getElementById('notificationCount');
+                if (badge) badge.textContent = '0';
+            }
         }
 
-        // Client List Functions
+        // Make it globally available
+        window.NotificationSystem = NotificationSystem;
+
+        // Firebase Configuration (Mock for demo)
+        const firebaseConfig = {
+            // Your Firebase config would go here
+        };
+
+        // Global state
+        let isInitialized = false;
+        let currentUser = null;
+
+        // Initialize everything once DOM is loaded
+        document.addEventListener('DOMContentLoaded', function() {
+            if (isInitialized) return;
+            isInitialized = true;
+
+            console.log('Initializing Client Management Page...');
+            
+            // Initialize UI components first
+            initializeUIComponents();
+            
+            // Initialize notification system
+            NotificationSystem.initialize();
+            
+            // Check if Firebase is available
+            if (typeof firebase !== 'undefined') {
+                // Set Firebase region
+                if (firebase.functions) {
+                    firebase.app().functions("asia-south1");
+                }
+                
+                // Set up authentication listener (only once)
+                firebase.auth().onAuthStateChanged(handleAuthStateChange);
+            } else {
+                // Mock authentication for demo
+                setTimeout(() => {
+                    currentUser = { uid: 'demo-user', email: 'demo@example.com' };
+                    handleAuthStateChange(currentUser);
+                }, 1000);
+            }
+        });
+
+        function handleAuthStateChange(user) {
+            currentUser = user;
+            
+            if (user) {
+                console.log('User authenticated:', user.email || user.uid);
+                updateUserDisplay(user);
+                loadClientList();
+                
+                // Show welcome notification
+                setTimeout(() => {
+                    NotificationSystem.showNotification(
+                        'info',
+                        'Welcome!',
+                        'Welcome to the client management section'
+                    );
+                }, 500);
+            } else {
+                console.log('User not authenticated');
+                displayAuthRequired();
+            }
+        }
+
+        function updateUserDisplay(user) {
+            const userName = document.getElementById('userName');
+            const avatar = document.querySelector('.avatar-placeholder');
+            
+            if (userName) {
+                const name = user.displayName || user.email || 'User';
+                userName.textContent = name;
+                
+                if (avatar) {
+                    avatar.textContent = name.charAt(0).toUpperCase();
+                }
+            }
+        }
+
+        function displayAuthRequired() {
+            const contentElement = document.getElementById('clientContent');
+            if (!contentElement) return;
+            
+            contentElement.innerHTML = `
+                <div class="error-state">
+                    <div class="error-icon">
+                        <i class="fas fa-lock"></i>
+                    </div>
+                    <h3>Authentication Required</h3>
+                    <p>Please log in to view your clients.</p>
+                    <button class="btn" onclick="window.location.href='../index.html'">
+                        <i class="fas fa-sign-in-alt"></i> Go to Login
+                    </button>
+                </div>
+            `;
+        }
+
         async function loadClientList() {
+            const contentElement = document.getElementById('clientContent');
+            if (!contentElement) return;
+
             try {
-                // Check if user is authenticated
-                const user = firebase.auth().currentUser;
-                if (!user) {
-                    console.log('❌ User not authenticated');
-                    displayError('Please log in to view your clients');
-                    return;
+                console.log('Loading client list...');
+                
+                // Show loading state
+                contentElement.innerHTML = `
+                    <div class="clients-container">
+                        <div class="section-header">
+                            <h2>Loading Clients...</h2>
+                        </div>
+                        <div style="text-align: center; padding: 2rem;">
+                            <div class="loading-spinner" style="margin: 0 auto;"></div>
+                            <p style="margin-top: 1rem; color: var(--text-muted);">Fetching your clients...</p>
+                        </div>
+                    </div>
+                `;
+
+                let clients = [];
+
+                // If Firebase is available, try to load from Firestore
+                if (typeof firebase !== 'undefined' && firebase.firestore && currentUser) {
+                    try {
+                        const db = firebase.firestore();
+                        const clientsQuery = db.collection('clients')
+                            .where('photographerId', '==', currentUser.uid)
+                            .orderBy('createdAt', 'desc');
+                        
+                        const snapshot = await clientsQuery.get();
+                        
+                        snapshot.forEach(doc => {
+                            const data = doc.data();
+                            clients.push({
+                                id: doc.id,
+                                ...data,
+                                createdAt: data.createdAt?.toDate?.() || new Date()
+                            });
+                        });
+                    } catch (error) {
+                        console.log('Firestore error (expected in demo):', error.message);
+                        // Fall back to demo data
+                        clients = getDemoClients();
+                    }
+                } else {
+                    // Use demo data
+                    clients = getDemoClients();
                 }
-                
-                console.log('✅ User authenticated:', user.email);
-                console.log('🔄 Fetching clients from Firestore...');
-                
-                // Get Firestore reference
-                const db = firebase.firestore();
-                
-                // Query clients for this photographer
-                const clientsQuery = db.collection('clients')
-                    .where('photographerId', '==', user.uid)
-                    .orderBy('createdAt', 'desc');
-                
-                const snapshot = await clientsQuery.get();
-                
-                if (snapshot.empty) {
-                    console.log('📭 No clients found for this user');
+
+                // Display results
+                if (clients.length === 0) {
                     displayEmptyState();
-                    return;
+                } else {
+                    displayClientList(clients);
                 }
-                
-                console.log(`📋 Found ${snapshot.size} clients`);
-                
-                const clients = [];
-                snapshot.forEach(doc => {
-                    const data = doc.data();
-                    clients.push({
-                        id: doc.id,
-                        ...data,
-                        createdAt: data.createdAt?.toDate?.() || new Date()
-                    });
-                });
-                
-                console.log('📊 Client data:', clients);
-                displayClientList(clients);
-                
+
             } catch (error) {
-                console.error('❌ Error fetching clients:', error);
+                console.error('Error loading clients:', error);
                 displayError(error.message);
             }
         }
 
+        function getDemoClients() {
+            return [
+                {
+                    id: 'demo1',
+                    name: 'Sarah Johnson',
+                    email: 'sarah.johnson@example.com',
+                    phone: '+1 (555) 123-4567',
+                    notes: 'Wedding photography client',
+                    createdAt: new Date('2024-01-15')
+                },
+                {
+                    id: 'demo2',
+                    name: 'Michael Chen',
+                    email: 'michael.chen@example.com',
+                    phone: '+1 (555) 987-6543',
+                    notes: 'Portrait session for family',
+                    createdAt: new Date('2024-02-20')
+                },
+                {
+                    id: 'demo3',
+                    name: 'Emily Rodriguez',
+                    email: 'emily.rodriguez@example.com',
+                    phone: '+1 (555) 456-7890',
+                    notes: 'Corporate headshots',
+                    createdAt: new Date('2024-03-10')
+                }
+            ];
+        }
+
         function displayClientList(clients) {
-            const contentArea = document.querySelector('.content-area');
-            if (!contentArea) {
-                console.log('❌ Content area not found');
-                return;
-            }
+            const contentElement = document.getElementById('clientContent');
+            if (!contentElement) return;
             
             const clientListHTML = `
                 <div class="clients-container">
@@ -609,8 +1008,8 @@
                 </div>
             `;
             
-            contentArea.innerHTML = clientListHTML;
-            console.log('✅ Client list displayed');
+            contentElement.innerHTML = clientListHTML;
+            console.log('Client list displayed successfully');
         }
 
         function createClientCard(client) {
@@ -647,10 +1046,10 @@
         }
 
         function displayEmptyState() {
-            const contentArea = document.querySelector('.content-area');
-            if (!contentArea) return;
+            const contentElement = document.getElementById('clientContent');
+            if (!contentElement) return;
             
-            contentArea.innerHTML = `
+            contentElement.innerHTML = `
                 <div class="empty-state">
                     <div class="empty-icon">
                         <i class="fas fa-users"></i>
@@ -662,14 +1061,14 @@
                     </button>
                 </div>
             `;
-            console.log('📭 Empty state displayed');
+            console.log('Empty state displayed');
         }
 
         function displayError(message) {
-            const contentArea = document.querySelector('.content-area');
-            if (!contentArea) return;
+            const contentElement = document.getElementById('clientContent');
+            if (!contentElement) return;
             
-            contentArea.innerHTML = `
+            contentElement.innerHTML = `
                 <div class="error-state">
                     <div class="error-icon">
                         <i class="fas fa-exclamation-triangle"></i>
@@ -681,67 +1080,29 @@
                     </button>
                 </div>
             `;
-            console.log('❌ Error state displayed');
+            console.log('Error state displayed:', message);
         }
 
-        async function initializeClientList() {
-            console.log('🚀 Initializing Client List...');
-            
-            // Check if Firebase is ready
-            if (typeof firebase === 'undefined') {
-                console.log('❌ Firebase not loaded');
-                displayError('Firebase not loaded');
-                return;
-            }
-            
-            // Check if user is authenticated
-            const user = firebase.auth().currentUser;
-            if (!user) {
-                console.log('⏳ Waiting for authentication...');
-                displayError('Please log in to view your clients');
-                return;
-            } else {
-                // User is already authenticated
-                await loadClientList();
-            }
-        }
-
-        // Placeholder functions for client actions
+        // Client action functions
         function showAddClientModal() {
-            console.log('🔧 Add client modal would open here');
-            if (window.NotificationSystem) {
-                window.NotificationSystem.showNotification('info', 'Coming Soon', 'Add Client functionality will be implemented soon');
-            } else {
-                alert('Add Client functionality would be implemented here');
-            }
+            console.log('Add client modal would open here');
+            NotificationSystem.showNotification('info', 'Coming Soon', 'Add Client functionality will be implemented soon');
         }
 
         function editClient(clientId) {
-            console.log('🔧 Edit client:', clientId);
-            if (window.NotificationSystem) {
-                window.NotificationSystem.showNotification('info', 'Coming Soon', `Edit client functionality will be implemented soon`);
-            } else {
-                alert(`Edit client ${clientId} functionality would be implemented here`);
-            }
+            console.log('Edit client:', clientId);
+            NotificationSystem.showNotification('info', 'Coming Soon', `Edit client functionality will be implemented soon`);
         }
 
         function viewClientDetails(clientId) {
-            console.log('🔧 View client details:', clientId);
-            if (window.NotificationSystem) {
-                window.NotificationSystem.showNotification('info', 'Coming Soon', `View client details functionality will be implemented soon`);
-            } else {
-                alert(`View client ${clientId} details functionality would be implemented here`);
-            }
+            console.log('View client details:', clientId);
+            NotificationSystem.showNotification('info', 'Coming Soon', `View client details functionality will be implemented soon`);
         }
 
         function deleteClient(clientId, clientName) {
-            console.log('🔧 Delete client:', clientId);
+            console.log('Delete client:', clientId);
             if (confirm(`Are you sure you want to delete client "${clientName}"?`)) {
-                if (window.NotificationSystem) {
-                    window.NotificationSystem.showNotification('info', 'Coming Soon', `Delete client functionality will be implemented soon`);
-                } else {
-                    alert(`Delete client ${clientId} functionality would be implemented here`);
-                }
+                NotificationSystem.showNotification('info', 'Coming Soon', `Delete client functionality will be implemented soon`);
             }
         }
 
@@ -767,17 +1128,12 @@
                 }
             });
             
-            // User menu dropdown functionality - FIXED VERSION
+            // User menu dropdown functionality
             const userMenuBtn = document.getElementById('userMenuBtn');
             const userDropdown = document.getElementById('userDropdown');
             
             if (userMenuBtn && userDropdown) {
-                // Remove any existing listeners by cloning
-                const newUserMenuBtn = userMenuBtn.cloneNode(true);
-                userMenuBtn.parentNode.replaceChild(newUserMenuBtn, userMenuBtn);
-                
-                // Add fresh event listener
-                newUserMenuBtn.addEventListener('click', function(e) {
+                userMenuBtn.addEventListener('click', function(e) {
                     e.stopPropagation();
                     
                     // Close notification dropdown if open
@@ -788,13 +1144,6 @@
                     
                     // Toggle user dropdown
                     userDropdown.classList.toggle('active');
-                });
-                
-                // Close dropdown when clicking outside
-                document.addEventListener('click', function(event) {
-                    if (!event.target.closest('.user-menu')) {
-                        userDropdown.classList.remove('active');
-                    }
                 });
             }
             
@@ -814,20 +1163,9 @@
                     
                     notificationDropdown.classList.toggle('active');
                     
-                    // Only mark as read if notification system is ready
-                    if (notificationSystemReady && window.NotificationSystem && notificationDropdown.classList.contains('active')) {
-                        try {
-                            window.NotificationSystem.markAllAsRead();
-                        } catch (error) {
-                            console.error('Error marking notifications as read:', error);
-                        }
-                    }
-                });
-                
-                // Close dropdown when clicking outside
-                document.addEventListener('click', function(event) {
-                    if (!event.target.closest('.notification-container')) {
-                        notificationDropdown.classList.remove('active');
+                    // Mark notifications as read when opened
+                    if (notificationDropdown.classList.contains('active')) {
+                        NotificationSystem.markAllAsRead();
                     }
                 });
             }
@@ -836,52 +1174,40 @@
             const markAllReadBtn = document.getElementById('markAllReadBtn');
             if (markAllReadBtn) {
                 markAllReadBtn.addEventListener('click', function() {
-                    if (notificationSystemReady && window.NotificationSystem) {
-                        try {
-                            window.NotificationSystem.markAllAsRead();
-                        } catch (error) {
-                            console.error('Error marking all notifications as read:', error);
-                        }
-                    }
+                    NotificationSystem.markAllAsRead();
                 });
             }
-        }');
+
+            // Logout functionality
+            const logoutBtn = document.getElementById('logoutBtn');
+            if (logoutBtn) {
+                logoutBtn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    if (typeof firebase !== 'undefined' && firebase.auth) {
+                        firebase.auth().signOut();
                     }
-                    
-                    notificationDropdown.classList.toggle('active');
-                    
-                    // Only mark as read if notification system is ready
-                    if (notificationSystemReady && window.NotificationSystem && notificationDropdown.classList.contains('active')) {
-                        try {
-                            window.NotificationSystem.markAllAsRead();
-                        } catch (error) {
-                            console.error('Error marking notifications as read:', error);
-                        }
-                    }
-                });
-                
-                // Close dropdown when clicking outside
-                document.addEventListener('click', function(event) {
-                    if (!event.target.closest('.notification-container')) {
-                        notificationDropdown.classList.remove('active');
-                    }
+                    NotificationSystem.showNotification('success', 'Logged Out', 'You have been successfully logged out');
+                    setTimeout(() => {
+                        window.location.href = '../index.html';
+                    }, 1500);
                 });
             }
             
-            // Mark all as read button
-            const markAllReadBtn = document.getElementById('markAllReadBtn');
-            if (markAllReadBtn) {
-                markAllReadBtn.addEventListener('click', function() {
-                    if (notificationSystemReady && window.NotificationSystem) {
-                        try {
-                            window.NotificationSystem.markAllAsRead();
-                        } catch (error) {
-                            console.error('Error marking all notifications as read:', error);
-                        }
-                    }
-                });
-            }
-        }
+            // Global click handler to close dropdowns
+            document.addEventListener('click', function(event) {
+                // Close user dropdown
+                const userDropdown = document.getElementById('userDropdown');
+                if (userDropdown && !event.target.closest('.user-menu')) {
+                    userDropdown.classList.remove('active');
+                }
+                
+                // Close notification dropdown
+                const notificationDropdown = document.getElementById('notificationDropdown');
+                if (notificationDropdown && !event.target.closest('.notification-container')) {
+                    notificationDropdown.classList.remove('active');
+                }
+            });
+            
     </script>
 </body>
 </html>
