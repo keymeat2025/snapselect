@@ -824,21 +824,24 @@
             NotificationSystem.initialize();
             
             // Check if Firebase is available
-            if (typeof firebase !== 'undefined') {
-                // Set Firebase region
-                if (firebase.functions) {
-                    firebase.app().functions("asia-south1");
+           // Wait for external Firebase scripts to load first
+            setTimeout(() => {
+                if (typeof firebase !== 'undefined' && firebase.apps && firebase.apps.length > 0) {
+                    // Set Firebase region
+                    if (firebase.functions) {
+                        firebase.app().functions("asia-south1");
+                    }
+                    
+                    // Set up authentication listener
+                    firebase.auth().onAuthStateChanged(handleAuthStateChange);
+                } else {
+                    // Use demo mode if Firebase not available
+                    setTimeout(() => {
+                        currentUser = { uid: 'demo-user', email: 'demo@example.com' };
+                        handleAuthStateChange(currentUser);
+                    }, 1000);
                 }
-                
-                // Set up authentication listener (only once)
-                firebase.auth().onAuthStateChanged(handleAuthStateChange);
-            } else {
-                // Mock authentication for demo
-                setTimeout(() => {
-                    currentUser = { uid: 'demo-user', email: 'demo@example.com' };
-                    handleAuthStateChange(currentUser);
-                }, 1000);
-            }
+            }, 2000);
         });
 
         function handleAuthStateChange(user) {
