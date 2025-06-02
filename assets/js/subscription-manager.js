@@ -2435,6 +2435,9 @@ function updatePlansDisplay(plans) {
   // Check submissions and update button states
   setTimeout(() => {
     updateDownloadButtonStates();
+    if (window.GalleryDownloadSystem) {
+     window.GalleryDownloadSystem.refreshAllDownloadButtonStates();
+   }
   }, 500);
 
  
