@@ -72,6 +72,99 @@
             font-size: 1rem;
         }
 
+        /* User Dropdown Fix Styles */
+        .user-menu {
+            position: relative;
+            display: inline-block;
+        }
+        
+        .user-menu-btn {
+            display: flex !important;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            background: transparent;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            color: inherit;
+        }
+        
+        .user-menu-btn:hover {
+            background: rgba(0, 0, 0, 0.05);
+        }
+        
+        .user-dropdown {
+            position: absolute !important;
+            top: 100% !important;
+            right: 0 !important;
+            min-width: 200px !important;
+            background: white !important;
+            border: 1px solid #e5e7eb !important;
+            border-radius: 8px !important;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15) !important;
+            z-index: 1000 !important;
+            
+            /* Hide by default */
+            opacity: 0 !important;
+            visibility: hidden !important;
+            transform: translateY(-10px) !important;
+            max-height: 0 !important;
+            overflow: hidden !important;
+            
+            transition: all 0.2s ease !important;
+        }
+        
+        .user-dropdown.active {
+            opacity: 1 !important;
+            visibility: visible !important;
+            transform: translateY(0) !important;
+            max-height: 300px !important;
+        }
+        
+        .user-dropdown a {
+            display: block !important;
+            padding: 0.75rem 1rem !important;
+            color: #374151 !important;
+            text-decoration: none !important;
+            transition: background-color 0.2s ease !important;
+            border-bottom: 1px solid #f3f4f6 !important;
+        }
+        
+        .user-dropdown a:last-child {
+            border-bottom: none !important;
+        }
+        
+        .user-dropdown a:hover {
+            background: #f9fafb !important;
+            color: #1f2937 !important;
+        }
+        
+        .user-dropdown a.active {
+            background: #eff6ff !important;
+            color: #2563eb !important;
+            font-weight: 500 !important;
+        }
+        
+        .avatar-placeholder {
+            width: 32px !important;
+            height: 32px !important;
+            background: linear-gradient(135deg, #3b82f6, #1d4ed8) !important;
+            color: white !important;
+            border-radius: 50% !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            font-size: 0.875rem !important;
+            font-weight: 600 !important;
+        }
+        
+        .user-name {
+            font-weight: 500 !important;
+            color: #374151 !important;
+        }
+
         /* Responsive design */
         @media (max-width: 768px) {
             .page-title {
@@ -84,6 +177,11 @@
             
             .placeholder-icon {
                 font-size: 3rem;
+            }
+            
+            .user-dropdown {
+                right: -1rem !important;
+                min-width: 180px !important;
             }
         }
     </style>
@@ -282,13 +380,26 @@
                 }
             });
             
-            // User menu dropdown functionality
+            // User menu dropdown functionality - FIXED VERSION
             const userMenuBtn = document.getElementById('userMenuBtn');
             const userDropdown = document.getElementById('userDropdown');
             
             if (userMenuBtn && userDropdown) {
-                userMenuBtn.addEventListener('click', function(e) {
+                // Remove any existing listeners by cloning
+                const newUserMenuBtn = userMenuBtn.cloneNode(true);
+                userMenuBtn.parentNode.replaceChild(newUserMenuBtn, userMenuBtn);
+                
+                // Add fresh event listener
+                newUserMenuBtn.addEventListener('click', function(e) {
                     e.stopPropagation();
+                    
+                    // Close notification dropdown if open
+                    const notificationDropdown = document.getElementById('notificationDropdown');
+                    if (notificationDropdown && notificationDropdown.classList.contains('active')) {
+                        notificationDropdown.classList.remove('active');
+                    }
+                    
+                    // Toggle user dropdown
                     userDropdown.classList.toggle('active');
                 });
                 
@@ -307,6 +418,13 @@
             if (notificationBtn && notificationDropdown) {
                 notificationBtn.addEventListener('click', function(e) {
                     e.stopPropagation();
+                    
+                    // Close user dropdown if open
+                    const userDropdown = document.getElementById('userDropdown');
+                    if (userDropdown && userDropdown.classList.contains('active')) {
+                        userDropdown.classList.remove('active');
+                    }
+                    
                     notificationDropdown.classList.toggle('active');
                     
                     // Only mark as read if notification system is ready
