@@ -649,6 +649,212 @@
                 display: block;
             }
         }
+
+        /* Add these styles to your existing CSS */
+        .enhanced-clients-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+            gap: 1.5rem;
+            margin-top: 1.5rem;
+        }
+        
+        .enhanced-client-card {
+            background: var(--background-white);
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+            border: 2px solid var(--border-color);
+            transition: all 0.2s ease;
+            position: relative;
+        }
+        
+        .enhanced-client-card.critical {
+            border-color: var(--danger-color);
+            background: #fef2f2;
+        }
+        
+        .enhanced-client-card.warning {
+            border-color: var(--warning-color);
+            background: #fffaf0;
+        }
+        
+        .enhanced-client-card.healthy {
+            border-color: var(--success-color);
+        }
+        
+        .critical-alert {
+            background: var(--danger-color);
+            color: white;
+            padding: 0.5rem;
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: 0.875rem;
+            margin-bottom: 1rem;
+            text-align: center;
+        }
+        
+        .client-header {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+        
+        .client-basic-info h3 {
+            margin: 0;
+            font-size: 1.125rem;
+            color: var(--text-primary);
+        }
+        
+        .client-basic-info p {
+            margin: 0;
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+        }
+        
+        .delete-btn {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            padding: 0.5rem;
+            border-radius: 4px;
+            transition: all 0.2s;
+            margin-left: auto;
+        }
+        
+        .delete-btn:hover {
+            background: #fef2f2;
+            color: var(--danger-color);
+        }
+        
+        .client-stats-row {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+        
+        .stat-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+        }
+        
+        .progress-section {
+            margin-bottom: 1rem;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: var(--border-color);
+            border-radius: 4px;
+            overflow: hidden;
+            margin-bottom: 0.5rem;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: var(--success-color);
+            transition: width 0.3s ease;
+        }
+        
+        .progress-text {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+        }
+        
+        .submission-section {
+            margin-bottom: 1rem;
+        }
+        
+        .submission-status {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem;
+            border-radius: 6px;
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+        
+        .submission-status.submitted {
+            background: #f0fdf4;
+            color: var(--success-color);
+        }
+        
+        .submission-status.pending {
+            background: #fffbeb;
+            color: var(--warning-color);
+        }
+        
+        .engagement-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+            font-size: 0.875rem;
+        }
+        
+        .ratings {
+            display: flex;
+            gap: 1rem;
+        }
+        
+        .last-activity {
+            color: var(--text-muted);
+        }
+        
+        .client-actions {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+        
+        .btn-sm {
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 6px;
+            font-size: 0.875rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: all 0.2s;
+        }
+        
+        .btn-sm.primary {
+            background: var(--primary-color);
+            color: white;
+        }
+        
+        .btn-sm.secondary {
+            background: var(--background-color);
+            color: var(--text-secondary);
+            border: 1px solid var(--border-color);
+        }
+        
+        .btn-sm.success {
+            background: var(--success-color);
+            color: white;
+        }
+        
+        .btn-sm.warning {
+            background: var(--warning-color);
+            color: white;
+        }
+        
+        .btn-sm:hover {
+            transform: translateY(-1px);
+        }
+        
+        @media (max-width: 768px) {
+            .enhanced-clients-grid {
+                grid-template-columns: 1fr;
+            }
+        }
     </style>
 </head>
 <body>
@@ -868,6 +1074,268 @@
                     return [];
                 }
             }
+
+
+            // Add these new functions after your existing loadClients function
+            async function loadClientsWithGalleries() {
+                try {
+                    console.log('Loading clients with galleries...');
+                    
+                    if (!firebase.auth().currentUser) {
+                        console.log('No user logged in');
+                        return [];
+                    }
+                    
+                    const userId = firebase.auth().currentUser.uid;
+                    console.log('User ID:', userId);
+                    
+                    const db = firebase.firestore();
+                    
+                    // Get all galleries for this photographer
+                    const galleriesSnapshot = await db.collection('galleries')
+                        .where('photographerId', '==', userId)
+                        .get();
+                    
+                    console.log('Galleries found:', galleriesSnapshot.size);
+                    
+                    // Group galleries by clientId
+                    const clientGalleries = {};
+                    galleriesSnapshot.forEach(doc => {
+                        const gallery = { id: doc.id, ...doc.data() };
+                        const clientId = gallery.clientId;
+                        
+                        if (!clientGalleries[clientId]) {
+                            clientGalleries[clientId] = [];
+                        }
+                        clientGalleries[clientId].push(gallery);
+                    });
+                    
+                    // Get unique client IDs and fetch client details
+                    const clientIds = Object.keys(clientGalleries);
+                    console.log('Unique clients found:', clientIds.length);
+                    
+                    if (clientIds.length === 0) {
+                        return [];
+                    }
+                    
+                    // Fetch client details
+                    const clientsSnapshot = await db.collection('clients')
+                        .where(firebase.firestore.FieldPath.documentId(), 'in', clientIds)
+                        .get();
+                    
+                    const enrichedClients = [];
+                    clientsSnapshot.forEach(doc => {
+                        const client = { id: doc.id, ...doc.data() };
+                        client.galleries = clientGalleries[doc.id] || [];
+                        enrichedClients.push(client);
+                    });
+                    
+                    console.log('Enriched clients:', enrichedClients);
+                    return enrichedClients;
+                    
+                } catch (error) {
+                    console.error('Error loading clients with galleries:', error);
+                    return [];
+                }
+            }
+            
+            function displayEnhancedClients(clients) {
+                const container = document.getElementById('clientContent');
+                
+                if (clients.length === 0) {
+                    container.innerHTML = '<div class="empty-state"><h3>No Clients Found</h3><p>No galleries found for your account.</p></div>';
+                    return;
+                }
+                
+                const clientCardsHTML = clients.map(client => createEnhancedClientCard(client)).join('');
+                
+                container.innerHTML = `
+                    <div class="clients-container">
+                        <div class="section-header">
+                            <h2>Your Clients (${clients.length})</h2>
+                        </div>
+                        <div class="enhanced-clients-grid">
+                            ${clientCardsHTML}
+                        </div>
+                    </div>
+                `;
+            }
+            
+            function createEnhancedClientCard(client) {
+                const galleries = client.galleries || [];
+                const activeGalleries = galleries.filter(g => g.status === 'active');
+                
+                // Calculate overall stats
+                let totalPhotos = 0;
+                let totalRated = 0;
+                let totalHearts = 0;
+                let totalThumbs = 0;
+                let latestActivity = null;
+                let criticalStatus = '';
+                let statusClass = 'healthy';
+                let hasSubmissions = false;
+                let latestSubmission = null;
+                
+                galleries.forEach(gallery => {
+                    if (gallery.photosCount) totalPhotos += gallery.photosCount;
+                    if (gallery.submissionProgress?.ratedPhotos) totalRated += gallery.submissionProgress.ratedPhotos;
+                    if (gallery.clientRatings?.heart) totalHearts += gallery.clientRatings.heart;
+                    if (gallery.clientRatings?.thumbsUp) totalThumbs += gallery.clientRatings.thumbsUp;
+                    if (gallery.clientRatings?.thumbsDown) totalThumbs += gallery.clientRatings.thumbsDown;
+                    
+                    // Check for submissions
+                    if (gallery.submissionData && gallery.submissionData.submittedAt) {
+                        hasSubmissions = true;
+                        const submissionDate = gallery.submissionData.submittedAt.toDate();
+                        if (!latestSubmission || submissionDate > latestSubmission) {
+                            latestSubmission = submissionDate;
+                        }
+                    }
+                    
+                    // Check for latest activity
+                    if (gallery.submissionProgress?.lastActivity) {
+                        const activityDate = gallery.submissionProgress.lastActivity.toDate();
+                        if (!latestActivity || activityDate > latestActivity) {
+                            latestActivity = activityDate;
+                        }
+                    }
+                    
+                    // Check for expiring plans
+                    if (gallery.expiryDate) {
+                        const expiryDate = gallery.expiryDate.toDate();
+                        const daysUntilExpiry = Math.ceil((expiryDate - new Date()) / (1000 * 60 * 60 * 24));
+                        
+                        if (daysUntilExpiry < 0) {
+                            criticalStatus = 'EXPIRED';
+                            statusClass = 'critical';
+                        } else if (daysUntilExpiry <= 2) {
+                            criticalStatus = `EXPIRING IN ${daysUntilExpiry} DAY${daysUntilExpiry !== 1 ? 'S' : ''}`;
+                            statusClass = 'critical';
+                        } else if (daysUntilExpiry <= 7) {
+                            criticalStatus = `EXPIRES IN ${daysUntilExpiry} DAYS`;
+                            statusClass = 'warning';
+                        }
+                    }
+                });
+                
+                const completionPercentage = totalPhotos > 0 ? Math.round((totalRated / totalPhotos) * 100) : 0;
+                const initials = client.name ? client.name.split(' ').map(n => n[0]).join('').toUpperCase() : 'C';
+                const lastActivityText = latestActivity ? getTimeAgo(latestActivity) : 'No activity';
+                const submissionText = latestSubmission ? `Submitted ${getTimeAgo(latestSubmission)}` : 'No submissions';
+                
+                // Get plan info from first gallery
+                const planType = galleries[0]?.planType || 'Unknown';
+                
+                return `
+                    <div class="enhanced-client-card ${statusClass}" data-client-id="${client.id}">
+                        ${criticalStatus ? `<div class="critical-alert">${criticalStatus}</div>` : ''}
+                        
+                        <div class="client-header">
+                            <div class="avatar-circle">${initials}</div>
+                            <div class="client-basic-info">
+                                <h3 class="client-name">${client.name || 'Unnamed Client'}</h3>
+                                <p class="client-email">${client.email || 'No email'}</p>
+                            </div>
+                            <button class="delete-btn" onclick="deleteClient('${client.id}', '${client.name}')" title="Delete Client">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                        
+                        <div class="client-stats-row">
+                            <div class="stat-item">
+                                <i class="fas fa-images"></i>
+                                <span>${activeGalleries.length} galleries</span>
+                            </div>
+                            <div class="stat-item">
+                                <i class="fas fa-crown"></i>
+                                <span>${planType}</span>
+                            </div>
+                        </div>
+                        
+                        <div class="progress-section">
+                            <div class="progress-bar">
+                                <div class="progress-fill" style="width: ${completionPercentage}%"></div>
+                            </div>
+                            <div class="progress-text">${totalRated}/${totalPhotos} photos rated (${completionPercentage}%)</div>
+                        </div>
+                        
+                        <div class="submission-section">
+                            <div class="submission-status ${hasSubmissions ? 'submitted' : 'pending'}">
+                                <i class="fas fa-${hasSubmissions ? 'check-circle' : 'clock'}"></i>
+                                <span>${submissionText}</span>
+                            </div>
+                        </div>
+                        
+                        <div class="engagement-row">
+                            <div class="ratings">
+                                <span title="Hearts"><i class="fas fa-heart" style="color: #e91e63;"></i> ${totalHearts}</span>
+                                <span title="Thumbs"><i class="fas fa-thumbs-up" style="color: #4caf50;"></i> ${totalThumbs}</span>
+                            </div>
+                            <div class="last-activity">
+                                <i class="fas fa-clock"></i> ${lastActivityText}
+                            </div>
+                        </div>
+                        
+                        <div class="client-actions">
+                            <button class="btn-sm primary" onclick="viewClientGalleries('${client.id}')">
+                                <i class="fas fa-eye"></i> View
+                            </button>
+                            <button class="btn-sm secondary" onclick="messageClient('${client.id}')">
+                                <i class="fas fa-envelope"></i> Message
+                            </button>
+                            ${hasSubmissions ? 
+                                `<button class="btn-sm success" onclick="reviewSubmissions('${client.id}')">
+                                    <i class="fas fa-star"></i> Review
+                                </button>` : ''
+                            }
+                            ${statusClass === 'critical' ? 
+                                `<button class="btn-sm warning" onclick="extendPlan('${client.id}')">
+                                    <i class="fas fa-clock"></i> Extend
+                                </button>` : ''
+                            }
+                        </div>
+                    </div>
+                `;
+            }
+            
+            function getTimeAgo(date) {
+                const now = new Date();
+                const diffMs = now - date;
+                const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+                
+                if (diffDays === 0) return 'Today';
+                if (diffDays === 1) return 'Yesterday';
+                if (diffDays < 7) return `${diffDays} days ago`;
+                if (diffDays < 30) return `${Math.floor(diffDays / 7)} weeks ago`;
+                return `${Math.floor(diffDays / 30)} months ago`;
+            }
+            
+            function deleteClient(clientId, clientName) {
+                if (confirm(`Are you sure you want to delete "${clientName}"? This will remove all their galleries.`)) {
+                    console.log('Deleting client:', clientId);
+                    alert('Delete functionality would be implemented here');
+                }
+            }
+            
+            function reviewSubmissions(clientId) {
+                console.log('Review submissions for client:', clientId);
+                alert('Review submissions functionality would be implemented here');
+            }
+            
+            function viewClientGalleries(clientId) {
+                console.log('View galleries for client:', clientId);
+                alert('View galleries functionality would be implemented here');
+            }
+            
+            function messageClient(clientId) {
+                console.log('Message client:', clientId);
+                alert('Message client functionality would be implemented here');
+            }
+            
+            function extendPlan(clientId) {
+                console.log('Extend plan for client:', clientId);
+                alert('Extend plan functionality would be implemented here');
+            }
             
             // Test it
          // Wait for Firebase to be ready before setting up auth listener
@@ -876,11 +1344,11 @@
                     firebase.auth().onAuthStateChanged(async (user) => {
                         if (user) {
                             console.log('User authenticated:', user.uid);
-                            const clients = await loadClients();
-                            console.log('Clients loaded:', clients);
+                            const clients = await loadClientsWithGalleries();
+                            console.log('Enhanced clients loaded:', clients);
                             
-                            // Display clients
-                            displayClients(clients);
+                            // Display enhanced clients
+                            displayEnhancedClients(clients);
                         }
                     });
                 } else {
