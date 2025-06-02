@@ -1261,6 +1261,148 @@
     <!-- Inline script to load the gallery -->
     <script>
         // Variable to store all gallery photos and ratings
+
+    
+    
+
+        // ====== ADD THIS ENTIRE BLOCK HERE ======
+        class SubmissionStateManager {
+            constructor() {
+                this.state = {
+                    isSubmitted: false,
+                    submissionId: null,
+                    submittedAt: null,
+                    isLoading: false,
+                    ratingsCount: 0,
+                    totalPhotos: 0,
+                    isInitialized: false
+                };
+                this.listeners = [];
+                this.buttonElement = null;
+            }
+            
+            subscribe(callback) {
+                this.listeners.push(callback);
+                return () => {
+                    this.listeners = this.listeners.filter(cb => cb !== callback);
+                };
+            }
+            
+            setState(newState) {
+                const prevState = { ...this.state };
+                this.state = { ...this.state, ...newState };
+                
+                console.log('🔄 State updated:', { prevState, newState: this.state });
+                
+                this.listeners.forEach(callback => {
+                    try {
+                        callback(this.state, prevState);
+                    } catch (error) {
+                        console.error('State listener error:', error);
+                    }
+                });
+            }
+            
+            getState() {
+                return { ...this.state };
+            }
+            
+            registerButton(buttonElement) {
+                this.buttonElement = buttonElement;
+                console.log('✅ Button registered with state manager');
+                this.syncButtonWithState();
+            }
+            
+            syncButtonWithState() {
+                if (!this.buttonElement) return;
+                
+                const state = this.state;
+                
+                if (state.isSubmitted) {
+                    this.renderSubmittedState();
+                } else if (state.isLoading) {
+                    this.renderLoadingState();
+                } else {
+                    this.renderNormalState();
+                }
+            }
+            
+            renderSubmittedState() {
+                const btn = this.buttonElement;
+                btn.disabled = true;
+                btn.style.cursor = 'not-allowed';
+                btn.style.backgroundColor = '#d4edda';
+                btn.style.borderColor = '#28a745';
+                btn.style.color = '#155724';
+                
+                btn.innerHTML = `
+                    <i class="fas fa-check-circle" style="color: #28a745;"></i>
+                    <span class="button-text">SnapSelections Submitted!</span>
+                `;
+                
+                const timestamp = this.state.submittedAt ? 
+                    formatTimestampSafely(this.state.submittedAt) : 'recently';
+                btn.title = `Submitted ${timestamp} (ID: ${this.state.submissionId || 'N/A'})`;
+            }
+            
+            renderLoadingState() {
+                const btn = this.buttonElement;
+                btn.disabled = true;
+                btn.innerHTML = `
+                    <div class="submit-btn-spinner">
+                        <i class="fas fa-spinner fa-spin"></i>
+                    </div>
+                    <span class="button-text">Submitting...</span>
+                `;
+            }
+            
+            renderNormalState() {
+                const btn = this.buttonElement;
+                const progress = this.calculateProgress();
+                
+                const progressBar = btn.querySelector('.progress-bar');
+                if (progressBar) {
+                    progressBar.style.width = `${progress}%`;
+                }
+                
+                const buttonText = btn.querySelector('.button-text');
+                if (buttonText) {
+                    if (progress === 0) {
+                        buttonText.textContent = 'Submit SnapSelections';
+                    } else {
+                        buttonText.textContent = `Submit SnapSelections (${this.state.ratingsCount}/${this.state.totalPhotos})`;
+                    }
+                }
+                
+                btn.className = 'submit-snapselections-btn';
+                
+                if (progress === 0) {
+                    btn.classList.add('no-progress');
+                    btn.disabled = true;
+                } else if (progress < 80) {
+                    btn.classList.add('in-progress');
+                    btn.disabled = true;
+                } else if (progress < 100) {
+                    btn.classList.add('ready');
+                    btn.disabled = false;
+                } else {
+                    btn.classList.add('complete');
+                    btn.disabled = false;
+                }
+            }
+            
+            calculateProgress() {
+                if (this.state.totalPhotos === 0) return 0;
+                return Math.round((this.state.ratingsCount / this.state.totalPhotos) * 100);
+            }
+        }
+    
+        // Create global instance
+        const submissionState = new SubmissionStateManager();
+        // ====== END OF NEW CODE ======
+    
+        // Variable to store all gallery photos and ratings (EXISTING CODE CONTINUES)
+    
         let allGalleryPhotos = [];
         let slideshowInterval = null; // For slideshow feature
         let photoRatings = {}; // Store ratings for each photo
@@ -1457,6 +1599,11 @@
             
             console.log(`Selection progress: ${totalSelections} / ${totalPhotos}`); // ADD THIS
             updateSubmitButton();
+            const totalRatings = Object.values(ratingCounts).reduce((a, b) => a + b, 0);
+            submissionState.setState({
+                ratingsCount: totalRatings,
+                totalPhotos: allGalleryPhotos.length
+            });
         }
 
 
@@ -2297,29 +2444,35 @@
                // REPLACE the initialization section in the Firebase initialization (around line 2298) with this:
 
                 // Check gallery access and load
+             
                 if (checkGalleryAccess()) {
-                    // UPDATED: Make checkExistingSubmission async and wait for it
                     checkExistingSubmission()
                         .then((submissionExists) => {
                             console.log('📊 Submission check completed. Exists:', submissionExists);
                             
-                            // Always load gallery (even if submitted, user should see their selections)
-                            loadSharedGallery();
+                            // **ADD THESE LINES**
+                            submissionState.setState({
+                                isInitialized: true,
+                                isSubmitted: submissionExists
+                            });
                             
-                            // Initialize other systems
+                            // KEEP ALL EXISTING CODE:
+                            loadSharedGallery();
                             initRatingSync();
                             initializeRotationSystem(); 
                             initSubmitSnapSelections();
                             initSubmitSnapSelectionsPhase2();
-                            
-                            // If no existing submission was found, this was redundant but harmless
-                            // If submission exists, the lockdown is already applied above
                         })
                         .catch((error) => {
                             console.error('❌ Error during submission check:', error);
                             
-                            // If check fails, proceed normally but log the error
-                            console.log('🔄 Proceeding with normal gallery loading due to check error');
+                            // **ADD THESE LINES**
+                            submissionState.setState({
+                                isInitialized: true,
+                                isSubmitted: false
+                            });
+                            
+                            // KEEP ALL EXISTING CODE:
                             loadSharedGallery();
                             initRatingSync();
                             initializeRotationSystem(); 
@@ -3681,73 +3834,14 @@
         
         // 2. Update submit button based on progress
         function updateSubmitButton() {
-            const submitBtn = document.getElementById('submitSnapSelectionsBtn');
-            if (!submitBtn) return;
-            
-            const progress = calculateSubmissionProgress();
+      
+            const ratingsCount = Object.keys(photoRatings).length;
             const totalPhotos = allGalleryPhotos.length;
-            const ratedPhotos = Object.keys(photoRatings).length;
             
-            // Update progress bar
-            const progressBar = submitBtn.querySelector('.progress-bar');
-            if (progressBar) {
-                progressBar.style.width = `${progress}%`;
-            }
-            
-            // Update text
-            const buttonText = submitBtn.querySelector('.button-text');
-            if (buttonText) {
-                if (progress === 0) {
-                    buttonText.textContent = 'Submit SnapSelections';
-                } else {
-                    buttonText.textContent = `Submit SnapSelections (${ratedPhotos}/${totalPhotos})`;
-                }
-            }
-            
-            // Update button state and styling
-            submitBtn.className = 'submit-snapselections-btn';
-            
-            if (progress === 0) {
-                // No progress state
-                submitBtn.classList.add('no-progress');
-                submitBtn.disabled = true;
-                progressBar.style.backgroundColor = '#ccc';
-            } else if (progress < 80) {
-                // In progress state
-                submitBtn.classList.add('in-progress');
-                submitBtn.disabled = true;
-                progressBar.style.backgroundColor = '#ff9500'; // Orange
-            } else if (progress < 100) {
-                // Ready state (80-99%)
-                submitBtn.classList.add('ready');
-                submitBtn.disabled = false;
-                progressBar.style.backgroundColor = '#007bff'; // Blue
-                
-                // Add gentle pulse effect
-                if (!submitBtn.classList.contains('pulse-added')) {
-                    submitBtn.style.animation = 'gentle-pulse 2s infinite';
-                    submitBtn.classList.add('pulse-added');
-                }
-            } else {
-                // Complete state (100%)
-                submitBtn.classList.add('complete');
-                submitBtn.disabled = false;
-                progressBar.style.backgroundColor = '#28a745'; // Green
-                
-                // Add completion highlight
-                if (!submitBtn.classList.contains('complete-animation-done')) {
-                    submitBtn.style.animation = 'completion-highlight 1s ease-out';
-                    submitBtn.classList.add('complete-animation-done');
-                }
-            }
-            
-            // Update tooltip
-            updateSubmitButtonTooltip(submitBtn, progress, ratedPhotos, totalPhotos);
-
-            // Apply blue overlay fixes after button updates
-            setTimeout(() => {
-                fixBlueOverlayTextIssue();
-            }, 100);
+            submissionState.setState({
+                ratingsCount: ratingsCount,
+                totalPhotos: totalPhotos
+            });
         }
         
         // 3. Update button tooltip based on state
@@ -3767,26 +3861,22 @@
      
 
         // 4. Create the submit button element - UPDATED to place in studio info
+   
         function createSubmitSnapSelectionsButton() {
-            // Check if button already exists
             if (document.getElementById('submitSnapSelectionsBtn')) return;
             
-            // Wait for studio info to be available
             const waitForStudioInfo = () => {
                 const studioInfo = document.getElementById('studioInfo');
                 if (!studioInfo) {
-                    // Studio info not ready yet, try again in 500ms
                     setTimeout(waitForStudioInfo, 500);
                     return;
                 }
                 
-                // Create the submit button
                 const submitBtn = document.createElement('button');
                 submitBtn.id = 'submitSnapSelectionsBtn';
                 submitBtn.className = 'submit-snapselections-btn no-progress';
                 submitBtn.disabled = true;
                 
-                // Create button structure
                 submitBtn.innerHTML = `
                     <div class="progress-container">
                         <div class="progress-bar"></div>
@@ -3795,7 +3885,6 @@
                     <span class="button-text">Submit SnapSelections</span>
                 `;
                 
-                // Add click handler
                 submitBtn.addEventListener('click', function() {
                     if (!submitBtn.disabled) {
                         console.log('Submit button clicked..');
@@ -3803,49 +3892,41 @@
                     }
                 });
                 
-                // MODIFIED: Place button in studio info section instead of fixed position
-                // Make studio info container flexbox for right alignment
                 studioInfo.style.display = 'flex';
                 studioInfo.style.justifyContent = 'space-between';
                 studioInfo.style.alignItems = 'flex-start';
                 studioInfo.style.gap = '20px';
                 
-                // Create left content container for text
                 const leftContent = document.createElement('div');
                 leftContent.className = 'studio-left-content';
                 leftContent.style.flex = '1';
                 
-                // Move all existing content to left container
                 const existingContent = Array.from(studioInfo.children);
                 existingContent.forEach(child => {
                     leftContent.appendChild(child);
                 });
                 
-                // Create right container for button
                 const rightContainer = document.createElement('div');
                 rightContainer.className = 'studio-right-container';
                 rightContainer.style.display = 'flex';
                 rightContainer.style.alignItems = 'center';
                 rightContainer.style.minWidth = 'auto';
                 
-                // Style button for new location
                 submitBtn.style.position = 'static';
                 submitBtn.style.top = 'auto';
                 submitBtn.style.right = 'auto';
                 submitBtn.style.margin = '0';
-                submitBtn.style.transform = 'scale(0.9)'; // Slightly smaller
+                submitBtn.style.transform = 'scale(0.9)';
                 submitBtn.style.whiteSpace = 'nowrap';
                 
-                // Add button to right container
                 rightContainer.appendChild(submitBtn);
-                
-                // Add both containers to studio info
                 studioInfo.appendChild(leftContent);
                 studioInfo.appendChild(rightContainer);
                 
-                // Initial update
-                updateSubmitButton();
-                // Apply fixes after button creation
+                // ====== THIS IS THE KEY CHANGE ======
+                submissionState.registerButton(submitBtn);
+                // ====== END KEY CHANGE ======
+                
                 setTimeout(() => {
                     fixBlueOverlayTextIssue();
                     console.log('Blue overlay fixes applied to submit button');
@@ -3854,7 +3935,6 @@
                 console.log('Submit button created and placed in studio info section');
             };
             
-            // Start waiting for studio info
             waitForStudioInfo();
         }
             
@@ -4295,28 +4375,11 @@
         
         // 9. Set submit button loading state
      
+   
         function setSubmitButtonLoading(isLoading) {
-            const submitBtn = document.querySelector('.modal-btn-submit') || 
-                             document.getElementById('submitSnapSelectionsBtn') ||
-                             document.querySelector('.submit-snapselections-btn');
-            
-            if (!submitBtn) {
-                console.warn('⚠️ Submit button not found - skipping loading state update');
-                return;
-            }
-            
-            const textSpan = submitBtn.querySelector('.submit-btn-text');
-            const spinner = submitBtn.querySelector('.submit-btn-spinner');
-            
-            if (isLoading) {
-                submitBtn.disabled = true;
-                if (textSpan) textSpan.style.display = 'none';
-                if (spinner) spinner.style.display = 'inline-flex';
-            } else {
-                submitBtn.disabled = false;
-                if (textSpan) textSpan.style.display = 'inline';
-                if (spinner) spinner.style.display = 'none';
-            }
+            submissionState.setState({
+                isLoading: isLoading
+            });
         }
      
         
@@ -5279,25 +5342,14 @@
         }
         
       
-        function markButtonAsSubmitted(submissionId, timestamp) {
       
-            const submitBtn = document.getElementById('submitSnapSelectionsBtn');
-            if (submitBtn) {
-                submitBtn.disabled = true;
-                submitBtn.style.cursor = 'not-allowed';
-                submitBtn.style.backgroundColor = '#d4edda';
-                submitBtn.style.borderColor = '#28a745';
-                submitBtn.style.color = '#155724';
-                
-                // Update button content
-                submitBtn.innerHTML = `
-                    <i class="fas fa-check-circle" style="color: #28a745;"></i>
-                    <span class="button-text">SnapSelections Submitted Already!</span>
-                `;
-                
-                // Simple tooltip
-                submitBtn.title = 'Your photo selections already submitted successfully';
-            }
+        function markButtonAsSubmitted(submissionId, timestamp) {
+            submissionState.setState({
+                isSubmitted: true,
+                submissionId: submissionId,
+                submittedAt: timestamp,
+                isLoading: false
+            });
         }
         
         function addSubmissionOverlay(submissionData) {
