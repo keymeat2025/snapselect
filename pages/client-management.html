@@ -921,31 +921,29 @@
                 let clients = [];
 
                 // If Firebase is available, try to load from Firestore
+           
+             // Load real clients from Firebase
                 if (typeof firebase !== 'undefined' && firebase.firestore && currentUser) {
-                    try {
-                        const db = firebase.firestore();
-                        const clientsQuery = db.collection('clients')
-                            .where('photographerId', '==', currentUser.uid)
-                            .orderBy('createdAt', 'desc');
-                        
-                        const snapshot = await clientsQuery.get();
-                        
-                        snapshot.forEach(doc => {
-                            const data = doc.data();
-                            clients.push({
-                                id: doc.id,
-                                ...data,
-                                createdAt: data.createdAt?.toDate?.() || new Date()
-                            });
+                    const db = firebase.firestore();
+                    const clientsQuery = db.collection('clients')
+                        .where('photographerId', '==', currentUser.uid)
+                        .orderBy('createdAt', 'desc');
+                    
+                    const snapshot = await clientsQuery.get();
+                    
+                    snapshot.forEach(doc => {
+                        const data = doc.data();
+                        clients.push({
+                            id: doc.id,
+                            ...data,
+                            createdAt: data.createdAt?.toDate?.() || new Date()
                         });
-                    } catch (error) {
-                        console.log('Firestore error (expected in demo):', error.message);
-                        // Fall back to demo data
-                        clients = getDemoClients();
-                    }
+                    });
+                    
+                    console.log(`Found ${clients.length} clients for photographer ${currentUser.uid}`);
                 } else {
-                    // Use demo data
-                    clients = getDemoClients();
+                    console.log('Firebase not available or user not authenticated');
+                    throw new Error('Authentication required');
                 }
 
                 // Display results
@@ -961,34 +959,6 @@
             }
         }
 
-        function getDemoClients() {
-            return [
-                {
-                    id: 'demo1',
-                    name: 'Sarah Johnson',
-                    email: 'sarah.johnson@example.com',
-                    phone: '+1 (555) 123-4567',
-                    notes: 'Wedding photography client',
-                    createdAt: new Date('2024-01-15')
-                },
-                {
-                    id: 'demo2',
-                    name: 'Michael Chen',
-                    email: 'michael.chen@example.com',
-                    phone: '+1 (555) 987-6543',
-                    notes: 'Portrait session for family',
-                    createdAt: new Date('2024-02-20')
-                },
-                {
-                    id: 'demo3',
-                    name: 'Emily Rodriguez',
-                    email: 'emily.rodriguez@example.com',
-                    phone: '+1 (555) 456-7890',
-                    notes: 'Corporate headshots',
-                    createdAt: new Date('2024-03-10')
-                }
-            ];
-        }
 
         function displayClientList(clients) {
             const contentElement = document.getElementById('clientContent');
