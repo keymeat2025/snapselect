@@ -1276,24 +1276,7 @@
                             </div>
                         </div>
                         
-                        <div class="client-actions">
-                            <button class="btn-sm primary" onclick="viewClientGalleries('${client.id}')">
-                                <i class="fas fa-eye"></i> View
-                            </button>
-                            <button class="btn-sm secondary" onclick="messageClient('${client.id}')">
-                                <i class="fas fa-envelope"></i> Message
-                            </button>
-                            ${hasSubmissions ? 
-                                `<button class="btn-sm success" onclick="reviewSubmissions('${client.id}')">
-                                    <i class="fas fa-star"></i> Review
-                                </button>` : ''
-                            }
-                            ${statusClass === 'critical' ? 
-                                `<button class="btn-sm warning" onclick="extendPlan('${client.id}')">
-                                    <i class="fas fa-clock"></i> Extend
-                                </button>` : ''
-                            }
-                        </div>
+                        
                     </div>
                 `;
             }
