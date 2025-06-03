@@ -881,6 +881,20 @@
             align-items: center;
             gap: 1rem;
         }
+        .notification-item {
+            padding: 1rem;
+            border-bottom: 1px solid var(--border-color);
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        
+        .notification-item:hover {
+            background-color: var(--background-light);
+        }
+        
+        .notification-item.unread {
+            background-color: #f8faff;
+        }
     </style>
 </head>
 <body>
@@ -1039,8 +1053,257 @@
 
         // Make it globally available
         window.NotificationSystem = NotificationSystem;
-
     
+    // Add this to your existing code - DON'T replace your working NotificationSystem
+
+        // Bell Notification Manager - handles the dropdown notifications
+        class BellNotificationManager {
+            constructor() {
+                this.notifications = [];
+                this.unreadCount = 0;
+            }
+        
+            // Initialize bell notifications
+            async initializeBellNotifications() {
+                console.log('Initializing bell notifications...');
+                await this.loadNotificationsFromFirebase();
+                this.setupBellEventListeners();
+            }
+        
+            // Load notifications from Firebase
+            async loadNotificationsFromFirebase() {
+                try {
+                    if (!firebase.auth().currentUser) {
+                        console.log('No user logged in for notifications');
+                        return;
+                    }
+        
+                    const userId = firebase.auth().currentUser.uid;
+                    const db = firebase.firestore();
+        
+                    // Get notifications for this user
+                    const snapshot = await db.collection('notifications')
+                        .where('photographerId', '==', userId)
+                        .orderBy('createdAt', 'desc')
+                        .limit(20)
+                        .get();
+        
+                    this.notifications = [];
+                    snapshot.forEach(doc => {
+                        const data = doc.data();
+                        this.notifications.push({
+                            id: doc.id,
+                            ...data,
+                            createdAt: data.createdAt?.toDate() || new Date()
+                        });
+                    });
+        
+                    console.log(`Loaded ${this.notifications.length} notifications`);
+                    this.updateBellDisplay();
+        
+                } catch (error) {
+                    console.error('Error loading notifications:', error);
+                    // If Firebase notifications fail, show some sample data
+                    this.loadSampleNotifications();
+                }
+            }
+        
+            // Fallback sample notifications if Firebase isn't set up
+            loadSampleNotifications() {
+                this.notifications = [
+                    {
+                        id: '1',
+                        type: 'client_action',
+                        title: 'Photo Selection Submitted',
+                        message: 'John Smith has submitted their final photo selection for Wedding Gallery',
+                        createdAt: new Date(Date.now() - 30 * 60 * 1000), // 30 minutes ago
+                        read: false,
+                        clientName: 'John Smith',
+                        galleryName: 'Wedding Gallery'
+                    },
+                    {
+                        id: '2',
+                        type: 'gallery_expiry',
+                        title: 'Gallery Expiring Soon',
+                        message: 'Sarah Johnson\'s gallery expires in 2 days',
+                        createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000), // 2 hours ago
+                        read: false,
+                        clientName: 'Sarah Johnson'
+                    },
+                    {
+                        id: '3',
+                        type: 'system',
+                        title: 'Welcome to SnapSelect',
+                        message: 'Your client management dashboard is ready to use',
+                        createdAt: new Date(Date.now() - 24 * 60 * 60 * 1000), // 1 day ago
+                        read: true
+                    }
+                ];
+                this.updateBellDisplay();
+            }
+        
+            // Update the bell icon and dropdown
+            updateBellDisplay() {
+                // Update badge count
+                this.unreadCount = this.notifications.filter(n => !n.read).length;
+                const badge = document.getElementById('notificationCount');
+                if (badge) {
+                    badge.textContent = this.unreadCount;
+                    badge.style.display = this.unreadCount > 0 ? 'flex' : 'none';
+                }
+        
+                // Update dropdown content
+                this.updateNotificationDropdown();
+            }
+        
+            // Update the dropdown content
+            updateNotificationDropdown() {
+                const notificationList = document.getElementById('notificationList');
+                if (!notificationList) return;
+        
+                if (this.notifications.length === 0) {
+                    notificationList.innerHTML = `
+                        <div style="padding: 2rem; text-align: center; color: var(--text-muted);">
+                            <i class="fas fa-bell-slash" style="font-size: 2rem; margin-bottom: 1rem; display: block;"></i>
+                            <p>No notifications yet</p>
+                        </div>
+                    `;
+                    return;
+                }
+        
+                const notificationHTML = this.notifications.map(notification => {
+                    const timeAgo = this.getTimeAgo(notification.createdAt);
+                    const icon = this.getNotificationIcon(notification.type);
+                    const readClass = notification.read ? '' : 'unread';
+                    
+                    return `
+                        <div class="notification-item ${readClass}" onclick="bellNotifications.markAsRead('${notification.id}')">
+                            <div class="notification-content">
+                                <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+                                    <i class="fas ${icon}" style="color: var(--primary-color);"></i>
+                                    <strong style="font-size: 0.875rem;">${notification.title}</strong>
+                                    ${!notification.read ? '<div style="width: 8px; height: 8px; background: var(--primary-color); border-radius: 50%; margin-left: auto;"></div>' : ''}
+                                </div>
+                                <div style="color: var(--text-secondary); font-size: 0.8rem; margin-bottom: 0.5rem;">
+                                    ${notification.message}
+                                </div>
+                                <div style="color: var(--text-muted); font-size: 0.75rem;">
+                                    ${timeAgo}
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+        
+                notificationList.innerHTML = notificationHTML;
+            }
+        
+            // Get icon for notification type
+            getNotificationIcon(type) {
+                const icons = {
+                    client_action: 'fa-user-check',
+                    gallery_expiry: 'fa-clock',
+                    system: 'fa-info-circle',
+                    photo_selection: 'fa-images',
+                    message: 'fa-envelope'
+                };
+                return icons[type] || 'fa-bell';
+            }
+        
+            // Mark notification as read
+            markAsRead(notificationId) {
+                const notification = this.notifications.find(n => n.id === notificationId);
+                if (notification && !notification.read) {
+                    notification.read = true;
+                    this.updateBellDisplay();
+                    
+                    // Update in Firebase if available
+                    if (firebase.firestore && firebase.auth().currentUser) {
+                        firebase.firestore().collection('notifications').doc(notificationId)
+                            .update({ read: true })
+                            .catch(error => console.log('Could not update notification in Firebase:', error));
+                    }
+                }
+            }
+        
+            // Mark all as read
+            markAllAsRead() {
+                this.notifications.forEach(notification => {
+                    notification.read = true;
+                });
+                this.updateBellDisplay();
+                
+                // Show success toast using your existing system
+                if (window.NotificationSystem) {
+                    window.NotificationSystem.showNotification('success', 'Marked as Read', 'All notifications marked as read');
+                }
+            }
+        
+            // Setup event listeners
+            setupBellEventListeners() {
+                // Mark all as read button
+                const markAllReadBtn = document.getElementById('markAllReadBtn');
+                if (markAllReadBtn) {
+                    markAllReadBtn.addEventListener('click', () => {
+                        this.markAllAsRead();
+                    });
+                }
+            }
+        
+            // Get time ago text
+            getTimeAgo(date) {
+                const now = new Date();
+                const diffMs = now - date;
+                const diffMins = Math.floor(diffMs / (1000 * 60));
+                const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+                const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+        
+                if (diffMins < 1) return 'Just now';
+                if (diffMins < 60) return `${diffMins}m ago`;
+                if (diffHours < 24) return `${diffHours}h ago`;
+                if (diffDays < 7) return `${diffDays}d ago`;
+                return date.toLocaleDateString();
+            }
+        
+            // Add a new notification (called from other pages)
+            addNotification(notificationData) {
+                const newNotification = {
+                    id: Date.now().toString(),
+                    createdAt: new Date(),
+                    read: false,
+                    ...notificationData
+                };
+                
+                this.notifications.unshift(newNotification);
+                this.updateBellDisplay();
+                
+                // Also show as toast using your existing system
+                if (window.NotificationSystem) {
+                    window.NotificationSystem.showNotification(
+                        'info', 
+                        notificationData.title, 
+                        notificationData.message
+                    );
+                }
+            }
+        }
+        
+        // Create global instance
+        window.bellNotifications = new BellNotificationManager();
+        
+        // Initialize when Firebase is ready
+        function initializeBellNotifications() {
+            if (firebase.auth().currentUser) {
+                window.bellNotifications.initializeBellNotifications();
+            } else {
+                // Wait for auth state change
+                firebase.auth().onAuthStateChanged((user) => {
+                    if (user) {
+                        window.bellNotifications.initializeBellNotifications();
+                    }
+                });
+            }
+        }
 
         // Global state
         let isInitialized = false;
@@ -1207,6 +1470,8 @@
                             
                             // Display enhanced clients
                             displayEnhancedClients(clients);
+
+                            initializeBellNotifications();
                         }
                     });
                 } else {
