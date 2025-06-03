@@ -1008,6 +1008,19 @@
     <script>
         // Simple Notification System
 
+        const NotificationSystem = {
+        showNotification: (type, title, message) => {
+            if (window.NotificationSystem && window.NotificationSystem.showToast) {
+                window.NotificationSystem.showToast(type, title, message);
+            }
+        },
+        markAllAsRead: () => {
+            if (window.NotificationSystem && window.NotificationSystem.markAllAsRead) {
+                window.NotificationSystem.markAllAsRead();
+            }
+        }
+    };
+
     /*
         class NotificationSystem {
             static initialize() {
