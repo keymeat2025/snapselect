@@ -1057,7 +1057,7 @@
         
 
         // Make it globally available
-        window.NotificationSystem = NotificationSystem;
+        //window.NotificationSystem = NotificationSystem;
 
     
     
@@ -1327,8 +1327,11 @@
             // Initialize UI components first
             initializeUIComponents();
             
+        
             // Initialize notification system
-           // NotificationSystem.initialize();
+            if (window.NotificationSystem) {
+                NotificationSystem.initialize();
+            }
 
             // Simple client loading function
             async function loadClients() {
@@ -2078,11 +2081,11 @@
                     }
                     
                     notificationDropdown.classList.toggle('active');
-                    /*
+                    
                     // Mark notifications as read when opened
-                    if (notificationDropdown.classList.contains('active')) {
+                    if (notificationDropdown.classList.contains('active') && window.NotificationSystem) {
                         NotificationSystem.markAllAsRead();
-                    } */
+                    }
                 });
             }
             
@@ -2090,7 +2093,9 @@
             const markAllReadBtn = document.getElementById('markAllReadBtn');
             if (markAllReadBtn) {
                 markAllReadBtn.addEventListener('click', function() {
-                    NotificationSystem.markAllAsRead();
+                    if (window.NotificationSystem) {
+                        NotificationSystem.markAllAsRead();
+                    }
                 });
             }
 
@@ -2102,7 +2107,10 @@
                     if (typeof firebase !== 'undefined' && firebase.auth) {
                         firebase.auth().signOut();
                     }
-                    NotificationSystem.showNotification('success', 'Logged Out', 'You have been successfully logged out');
+                    //NotificationSystem.showNotification('success', 'Logged Out', 'You have been successfully logged out');
+                    if (window.NotificationSystem) {
+                        NotificationSystem.showNotification('success', 'Logged Out', 'You have been successfully logged out');
+                    }
                     setTimeout(() => {
                         window.location.href = '../index.html';
                     }, 1500);
