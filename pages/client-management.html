@@ -1570,17 +1570,23 @@
         
         // Fix for dropdown after external scripts load
         function setupDropdownFix() {
+            console.log('🔧 Setting up dropdown fix...');
+            
             const userMenuBtn = document.getElementById('userMenuBtn');
             const userDropdown = document.getElementById('userDropdown');
             
             if (userMenuBtn && userDropdown) {
-                // Remove all existing event listeners
+                console.log('✅ Elements found, fixing dropdown...');
+                
+                // Remove ALL existing event listeners by cloning the button
                 const newUserMenuBtn = userMenuBtn.cloneNode(true);
                 userMenuBtn.parentNode.replaceChild(newUserMenuBtn, userMenuBtn);
                 
-                // Set up fresh event listener
-                newUserMenuBtn.onclick = function(e) {
+                // Add fresh event listener
+                newUserMenuBtn.addEventListener('click', function(e) {
+                    e.preventDefault();
                     e.stopPropagation();
+                    console.log('👆 User menu clicked!');
                     
                     // Close notification dropdown if open
                     const notificationDropdown = document.getElementById('notificationDropdown');
@@ -1589,10 +1595,25 @@
                     }
                     
                     // Toggle user dropdown
-                    userDropdown.classList.toggle('active');
-                };
+                    if (userDropdown.classList.contains('active')) {
+                        userDropdown.classList.remove('active');
+                        console.log('📤 Dropdown closed');
+                    } else {
+                        userDropdown.classList.add('active');
+                        console.log('📥 Dropdown opened');
+                    }
+                });
                 
-                console.log('✅ Dropdown functionality restored - external script conflicts resolved!');
+                // Close when clicking outside
+                document.addEventListener('click', function(e) {
+                    if (!newUserMenuBtn.contains(e.target) && !userDropdown.contains(e.target)) {
+                        userDropdown.classList.remove('active');
+                    }
+                });
+                
+                console.log('✅ Dropdown functionality restored permanently!');
+            } else {
+                console.error('❌ Dropdown elements not found');
             }
         }        
     </script>
