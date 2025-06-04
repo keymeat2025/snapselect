@@ -650,7 +650,7 @@
             }
         }
 
-        /* Add these styles to your existing CSS */
+        /* Enhanced Client Styles */
         .enhanced-clients-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
@@ -807,54 +807,6 @@
             color: var(--text-muted);
         }
         
-        .client-actions {
-            display: flex;
-            gap: 0.5rem;
-            flex-wrap: wrap;
-        }
-        
-        .btn-sm {
-            padding: 0.5rem 1rem;
-            border: none;
-            border-radius: 6px;
-            font-size: 0.875rem;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            transition: all 0.2s;
-        }
-        
-        .btn-sm.primary {
-            background: var(--primary-color);
-            color: white;
-        }
-        
-        .btn-sm.secondary {
-            background: var(--background-color);
-            color: var(--text-secondary);
-            border: 1px solid var(--border-color);
-        }
-        
-        .btn-sm.success {
-            background: var(--success-color);
-            color: white;
-        }
-        
-        .btn-sm.warning {
-            background: var(--warning-color);
-            color: white;
-        }
-        
-        .btn-sm:hover {
-            transform: translateY(-1px);
-        }
-        
-        @media (max-width: 768px) {
-            .enhanced-clients-grid {
-                grid-template-columns: 1fr;
-            }
-        }
         .sort-dropdown {
             padding: 0.5rem 1rem;
             border: 1px solid var(--border-color);
@@ -881,6 +833,7 @@
             align-items: center;
             gap: 1rem;
         }
+        
         .notification-item {
             padding: 1rem;
             border-bottom: 1px solid var(--border-color);
@@ -894,6 +847,12 @@
         
         .notification-item.unread {
             background-color: #f8faff;
+        }
+
+        @media (max-width: 768px) {
+            .enhanced-clients-grid {
+                grid-template-columns: 1fr;
+            }
         }
     </style>
 </head>
@@ -940,7 +899,7 @@
                 <div class="notification-container">
                     <button id="notificationBtn" class="notification-btn">
                         <i class="fas fa-bell"></i>
-                        <span id="notificationCount" class="notification-badge">0</span>
+                        <span id="notificationCount" class="notification-badge">3</span>
                     </button>
                     
                     <div id="notificationDropdown" class="notification-dropdown">
@@ -949,7 +908,19 @@
                             <button id="markAllReadBtn" class="mark-all-read">Mark all as read</button>
                         </div>
                         <div id="notificationList" class="notification-list">
-                            <!-- Notifications will be loaded here -->
+                            <div class="notification-item unread">
+                                <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+                                    <i class="fas fa-user-check" style="color: var(--primary-color);"></i>
+                                    <strong style="font-size: 0.875rem;">Photo Selection Submitted</strong>
+                                    <div style="width: 8px; height: 8px; background: var(--primary-color); border-radius: 50%; margin-left: auto;"></div>
+                                </div>
+                                <div style="color: var(--text-secondary); font-size: 0.8rem; margin-bottom: 0.5rem;">
+                                    John Smith has submitted their final photo selection for Wedding Gallery
+                                </div>
+                                <div style="color: var(--text-muted); font-size: 0.75rem;">
+                                    30m ago
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -972,7 +943,117 @@
             <!-- Content Area -->
             <section class="content-area animate-in" style="animation-delay: 0.2s;">
                 <div id="clientContent">
-                    <!-- Content will be loaded here -->
+                    <div class="clients-container">
+                        <div class="section-header">
+                            <h2>Your Clients (2)</h2>
+                            <div class="header-actions">
+                                <select id="clientSort" onchange="sortClients()" class="sort-dropdown">
+                                    <option value="all">All Clients</option>
+                                    <option value="with-galleries">With Galleries</option>
+                                    <option value="without-galleries">Without Galleries</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="enhanced-clients-grid">
+                            <div class="enhanced-client-card healthy">
+                                <div class="client-header">
+                                    <div class="avatar-circle">JS</div>
+                                    <div class="client-basic-info">
+                                        <h3 class="client-name">John Smith</h3>
+                                        <p class="client-email">john@example.com</p>
+                                    </div>
+                                    <span class="no-delete-tooltip" title="Cannot delete - client has galleries">
+                                        <i class="fas fa-archive" style="color: var(--text-muted);"></i>
+                                    </span>
+                                </div>
+                                
+                                <div class="client-stats-row">
+                                    <div class="stat-item">
+                                        <i class="fas fa-images"></i>
+                                        <span>2 galleries</span>
+                                    </div>
+                                    <div class="stat-item">
+                                        <i class="fas fa-crown"></i>
+                                        <span>Premium</span>
+                                    </div>
+                                </div>
+                                
+                                <div class="progress-section">
+                                    <div class="progress-bar">
+                                        <div class="progress-fill" style="width: 75%;"></div>
+                                    </div>
+                                    <div class="progress-text">180/240 photos rated (75%)</div>
+                                </div>
+                                
+                                <div class="submission-section">
+                                    <div class="submission-status submitted">
+                                        <i class="fas fa-check-circle"></i>
+                                        <span>Submitted Today</span>
+                                    </div>
+                                </div>
+                                
+                                <div class="engagement-row">
+                                    <div class="ratings">
+                                        <span title="Hearts"><i class="fas fa-heart" style="color: #e91e63;"></i> 24</span>
+                                        <span title="Thumbs"><i class="fas fa-thumbs-up" style="color: #4caf50;"></i> 156</span>
+                                    </div>
+                                    <div class="last-activity">
+                                        <i class="fas fa-clock"></i> 2 hours ago
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="enhanced-client-card warning">
+                                <div class="critical-alert">EXPIRES IN 3 DAYS</div>
+                                
+                                <div class="client-header">
+                                    <div class="avatar-circle">SJ</div>
+                                    <div class="client-basic-info">
+                                        <h3 class="client-name">Sarah Johnson</h3>
+                                        <p class="client-email">sarah@example.com</p>
+                                    </div>
+                                    <span class="no-delete-tooltip" title="Cannot delete - client has galleries">
+                                        <i class="fas fa-archive" style="color: var(--text-muted);"></i>
+                                    </span>
+                                </div>
+                                
+                                <div class="client-stats-row">
+                                    <div class="stat-item">
+                                        <i class="fas fa-images"></i>
+                                        <span>1 galleries</span>
+                                    </div>
+                                    <div class="stat-item">
+                                        <i class="fas fa-crown"></i>
+                                        <span>Basic</span>
+                                    </div>
+                                </div>
+                                
+                                <div class="progress-section">
+                                    <div class="progress-bar">
+                                        <div class="progress-fill" style="width: 40%;"></div>
+                                    </div>
+                                    <div class="progress-text">40/100 photos rated (40%)</div>
+                                </div>
+                                
+                                <div class="submission-section">
+                                    <div class="submission-status pending">
+                                        <i class="fas fa-clock"></i>
+                                        <span>No submissions</span>
+                                    </div>
+                                </div>
+                                
+                                <div class="engagement-row">
+                                    <div class="ratings">
+                                        <span title="Hearts"><i class="fas fa-heart" style="color: #e91e63;"></i> 8</span>
+                                        <span title="Thumbs"><i class="fas fa-thumbs-up" style="color: #4caf50;"></i> 32</span>
+                                    </div>
+                                    <div class="last-activity">
+                                        <i class="fas fa-clock"></i> Yesterday
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </section>
         </div>
@@ -991,8 +1072,7 @@
         </div>
     </footer>
 
- 
-  <!-- Firebase Scripts -->
+    <!-- Firebase Scripts -->
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
@@ -1006,313 +1086,6 @@
     <script src="../assets/js/notification-system.js"></script>
 
     <script>
-        // Simple Notification System
-
-    /*
-        class NotificationSystem {
-            static initialize() {
-                console.log('Notification system initialized');
-            }
-
-            static showNotification(type, title, message) {
-                const container = document.getElementById('toastContainer');
-                if (!container) return;
-
-                const toast = document.createElement('div');
-                toast.className = `toast ${type}`;
-                toast.innerHTML = `
-                    <i class="fas fa-${this.getIcon(type)}"></i>
-                    <div>
-                        <strong>${title}</strong>
-                        <p style="margin: 0; font-size: 0.875rem;">${message}</p>
-                    </div>
-                `;
-
-                container.appendChild(toast);
-
-                // Auto remove after 5 seconds
-                setTimeout(() => {
-                    if (toast.parentNode) {
-                        toast.parentNode.removeChild(toast);
-                    }
-                }, 5000);
-            }
-
-            static getIcon(type) {
-                const icons = {
-                    success: 'check-circle',
-                    error: 'exclamation-circle',
-                    warning: 'exclamation-triangle',
-                    info: 'info-circle'
-                };
-                return icons[type] || 'info-circle';
-            }
-
-            static markAllAsRead() {
-                const badge = document.getElementById('notificationCount');
-                if (badge) badge.textContent = '0';
-            }
-        }
-
-        
-
-        // Make it globally available
-        //window.NotificationSystem = NotificationSystem;
-
-    
-    
-    // Add this to your existing code - DON'T replace your working NotificationSystem
-
-        // Bell Notification Manager - handles the dropdown notifications
-        class BellNotificationManager {    
-            constructor() {
-                this.notifications = [];
-                this.unreadCount = 0;
-            }
-        
-            // Initialize bell notifications
-            async initializeBellNotifications() {
-                console.log('Initializing bell notifications...');
-                await this.loadNotificationsFromFirebase();
-                this.setupBellEventListeners();
-            }
-        
-            // Load notifications from Firebase
-            async loadNotificationsFromFirebase() {
-                try {
-                    if (!firebase.auth().currentUser) {
-                        console.log('No user logged in for notifications');
-                        return;
-                    }
-        
-                    const userId = firebase.auth().currentUser.uid;
-                    const db = firebase.firestore();
-        
-                    // Get notifications for this user
-                    const snapshot = await db.collection('notifications')
-                        .where('photographerId', '==', userId)
-                        .orderBy('createdAt', 'desc')
-                        .limit(20)
-                        .get();
-        
-                    this.notifications = [];
-                    snapshot.forEach(doc => {
-                        const data = doc.data();
-                        this.notifications.push({
-                            id: doc.id,
-                            ...data,
-                            createdAt: data.createdAt?.toDate() || new Date()
-                        });
-                    });
-        
-                    console.log(`Loaded ${this.notifications.length} notifications`);
-                    this.updateBellDisplay();
-        
-                } catch (error) {
-                    console.error('Error loading notifications:', error);
-                    // If Firebase notifications fail, show some sample data
-                    this.loadSampleNotifications();
-                }
-            }
-        
-            // Fallback sample notifications if Firebase isn't set up
-            loadSampleNotifications() {
-                this.notifications = [
-                    {
-                        id: '1',
-                        type: 'client_action',
-                        title: 'Photo Selection Submitted',
-                        message: 'John Smith has submitted their final photo selection for Wedding Gallery',
-                        createdAt: new Date(Date.now() - 30 * 60 * 1000), // 30 minutes ago
-                        read: false,
-                        clientName: 'John Smith',
-                        galleryName: 'Wedding Gallery'
-                    },
-                    {
-                        id: '2',
-                        type: 'gallery_expiry',
-                        title: 'Gallery Expiring Soon',
-                        message: 'Sarah Johnson\'s gallery expires in 2 days',
-                        createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000), // 2 hours ago
-                        read: false,
-                        clientName: 'Sarah Johnson'
-                    },
-                    {
-                        id: '3',
-                        type: 'system',
-                        title: 'Welcome to SnapSelect',
-                        message: 'Your client management dashboard is ready to use',
-                        createdAt: new Date(Date.now() - 24 * 60 * 60 * 1000), // 1 day ago
-                        read: true
-                    }
-                ];
-                this.updateBellDisplay();
-            }
-        
-            // Update the bell icon and dropdown
-            updateBellDisplay() {
-                // Update badge count
-                this.unreadCount = this.notifications.filter(n => !n.read).length;
-                const badge = document.getElementById('notificationCount');
-                if (badge) {
-                    badge.textContent = this.unreadCount;
-                    badge.style.display = this.unreadCount > 0 ? 'flex' : 'none';
-                }
-        
-                // Update dropdown content
-                this.updateNotificationDropdown();
-            }
-        
-            // Update the dropdown content
-            updateNotificationDropdown() {
-                const notificationList = document.getElementById('notificationList');
-                if (!notificationList) return;
-        
-                if (this.notifications.length === 0) {
-                    notificationList.innerHTML = `
-                        <div style="padding: 2rem; text-align: center; color: var(--text-muted);">
-                            <i class="fas fa-bell-slash" style="font-size: 2rem; margin-bottom: 1rem; display: block;"></i>
-                            <p>No notifications yet</p>
-                        </div>
-                    `;
-                    return;
-                }
-        
-                const notificationHTML = this.notifications.map(notification => {
-                    const timeAgo = this.getTimeAgo(notification.createdAt);
-                    const icon = this.getNotificationIcon(notification.type);
-                    const readClass = notification.read ? '' : 'unread';
-                    
-                    return `
-                        <div class="notification-item ${readClass}" onclick="bellNotifications.markAsRead('${notification.id}')">
-                            <div class="notification-content">
-                                <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
-                                    <i class="fas ${icon}" style="color: var(--primary-color);"></i>
-                                    <strong style="font-size: 0.875rem;">${notification.title}</strong>
-                                    ${!notification.read ? '<div style="width: 8px; height: 8px; background: var(--primary-color); border-radius: 50%; margin-left: auto;"></div>' : ''}
-                                </div>
-                                <div style="color: var(--text-secondary); font-size: 0.8rem; margin-bottom: 0.5rem;">
-                                    ${notification.message}
-                                </div>
-                                <div style="color: var(--text-muted); font-size: 0.75rem;">
-                                    ${timeAgo}
-                                </div>
-                            </div>
-                        </div>
-                    `;
-                }).join('');
-        
-                notificationList.innerHTML = notificationHTML;
-            }
-        
-            // Get icon for notification type
-            getNotificationIcon(type) {
-                const icons = {
-                    client_action: 'fa-user-check',
-                    gallery_expiry: 'fa-clock',
-                    system: 'fa-info-circle',
-                    photo_selection: 'fa-images',
-                    message: 'fa-envelope'
-                };
-                return icons[type] || 'fa-bell';
-            }
-        
-            // Mark notification as read
-            markAsRead(notificationId) {
-                const notification = this.notifications.find(n => n.id === notificationId);
-                if (notification && !notification.read) {
-                    notification.read = true;
-                    this.updateBellDisplay();
-                    
-                    // Update in Firebase if available
-                    if (firebase.firestore && firebase.auth().currentUser) {
-                        firebase.firestore().collection('notifications').doc(notificationId)
-                            .update({ read: true })
-                            .catch(error => console.log('Could not update notification in Firebase:', error));
-                    }
-                }
-            }
-        
-            // Mark all as read
-            markAllAsRead() {
-                this.notifications.forEach(notification => {
-                    notification.read = true;
-                });
-                this.updateBellDisplay();
-                
-                // Show success toast using your existing system
-                if (window.NotificationSystem) {
-                    window.NotificationSystem.showNotification('success', 'Marked as Read', 'All notifications marked as read');
-                }
-            }
-        
-            // Setup event listeners
-            setupBellEventListeners() {
-                // Mark all as read button
-                const markAllReadBtn = document.getElementById('markAllReadBtn');
-                if (markAllReadBtn) {
-                    markAllReadBtn.addEventListener('click', () => {
-                        this.markAllAsRead();
-                    });
-                }
-            }
-        
-            // Get time ago text
-            getTimeAgo(date) {
-                const now = new Date();
-                const diffMs = now - date;
-                const diffMins = Math.floor(diffMs / (1000 * 60));
-                const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
-                const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-        
-                if (diffMins < 1) return 'Just now';
-                if (diffMins < 60) return `${diffMins}m ago`;
-                if (diffHours < 24) return `${diffHours}h ago`;
-                if (diffDays < 7) return `${diffDays}d ago`;
-                return date.toLocaleDateString();
-            }
-        
-            // Add a new notification (called from other pages)
-            addNotification(notificationData) {
-                const newNotification = {
-                    id: Date.now().toString(),
-                    createdAt: new Date(),
-                    read: false,
-                    ...notificationData
-                };
-                
-                this.notifications.unshift(newNotification);
-                this.updateBellDisplay();
-                
-                // Also show as toast using your existing system
-                if (window.NotificationSystem) {
-                    window.NotificationSystem.showNotification(
-                        'info', 
-                        notificationData.title, 
-                        notificationData.message
-                    );
-                }
-            }
-        }
-        
-        // Create global instance
-        window.bellNotifications = new BellNotificationManager();
-        
-        // Initialize when Firebase is ready
-        function initializeBellNotifications() {
-            if (firebase.auth().currentUser) {
-                window.bellNotifications.initializeBellNotifications();
-            } else {
-                // Wait for auth state change
-                firebase.auth().onAuthStateChanged((user) => {
-                    if (user) {
-                        window.bellNotifications.initializeBellNotifications();
-                    }
-                });
-            }
-        }
-
-        */
         // Global state
         let isInitialized = false;
         let currentUser = null;
@@ -1326,19 +1099,12 @@
             
             // Initialize UI components first
             initializeUIComponents();
-            
-        
-            // Initialize notification system
-            if (window.NotificationSystem) {
-                NotificationSystem.initialize();
-            }
 
             // Simple client loading function
             async function loadClients() {
                 try {
                     console.log('Loading clients...');
                     
-                    // Wait for Firebase to be ready
                     if (!firebase.auth().currentUser) {
                         console.log('No user logged in');
                         return [];
@@ -1347,17 +1113,14 @@
                     const userId = firebase.auth().currentUser.uid;
                     console.log('User ID:', userId);
                     
-                    // Get Firestore reference
                     const db = firebase.firestore();
                     
-                    // Query clients collection
                     const snapshot = await db.collection('clients')
                         .where('photographerId', '==', userId)
                         .get();
                     
                     console.log('Query executed, docs found:', snapshot.size);
                     
-                    // Convert to array
                     const clients = [];
                     snapshot.forEach(doc => {
                         console.log('Client doc:', doc.id, doc.data());
@@ -1375,10 +1138,7 @@
                 }
             }
 
-
-            // Add these new functions after your existing loadClients function
             async function loadClientsWithGalleries() {
-       
                 try {
                     console.log('Loading all clients with their galleries...');
                     
@@ -1392,21 +1152,18 @@
                     
                     const db = firebase.firestore();
                     
-                    // FIRST: Get ALL clients for this photographer
                     const clientsSnapshot = await db.collection('clients')
                         .where('photographerId', '==', userId)
                         .get();
                     
                     console.log('All clients found:', clientsSnapshot.size);
                     
-                    // SECOND: Get all galleries for this photographer
                     const galleriesSnapshot = await db.collection('galleries')
                         .where('photographerId', '==', userId)
                         .get();
                     
                     console.log('Galleries found:', galleriesSnapshot.size);
                     
-                    // Group galleries by clientId
                     const clientGalleries = {};
                     galleriesSnapshot.forEach(doc => {
                         const gallery = { id: doc.id, ...doc.data() };
@@ -1418,11 +1175,10 @@
                         clientGalleries[clientId].push(gallery);
                     });
                     
-                    // THIRD: Combine all clients with their galleries (or empty array)
                     const enrichedClients = [];
                     clientsSnapshot.forEach(doc => {
                         const client = { id: doc.id, ...doc.data() };
-                        client.galleries = clientGalleries[doc.id] || []; // Empty array if no galleries
+                        client.galleries = clientGalleries[doc.id] || [];
                         enrichedClients.push(client);
                     });
                     
@@ -1437,40 +1193,8 @@
                     return [];
                 }
             }
-            
-        
-            
-   
-            
-            function deleteClient(clientId, clientName) {
-                if (confirm(`Are you sure you want to delete "${clientName}"? This will remove all their galleries.`)) {
-                    console.log('Deleting client:', clientId);
-                    alert('Delete functionality would be implemented here');
-                }
-            }
-            
-            function reviewSubmissions(clientId) {
-                console.log('Review submissions for client:', clientId);
-                alert('Review submissions functionality would be implemented here');
-            }
-            
-            function viewClientGalleries(clientId) {
-                console.log('View galleries for client:', clientId);
-                alert('View galleries functionality would be implemented here');
-            }
-            
-            function messageClient(clientId) {
-                console.log('Message client:', clientId);
-                alert('Message client functionality would be implemented here');
-            }
-            
-            function extendPlan(clientId) {
-                console.log('Extend plan for client:', clientId);
-                alert('Extend plan functionality would be implemented here');
-            }
-            
-            // Test it
-         // Wait for Firebase to be ready before setting up auth listener
+
+            // Wait for Firebase to be ready before setting up auth listener
             setTimeout(() => {
                 if (typeof firebase !== 'undefined' && firebase.apps && firebase.apps.length > 0) {
                     firebase.auth().onAuthStateChanged(async (user) => {
@@ -1481,8 +1205,6 @@
                             
                             // Display enhanced clients
                             displayEnhancedClients(clients);
-
-                            //initializeBellNotifications();
                         }
                     });
                 } else {
@@ -1490,32 +1212,7 @@
                     setTimeout(arguments.callee, 1000);
                 }
             }, 3000);
-            
-            function displayClients(clients) {
-                const container = document.getElementById('clientContent');
-                if (clients.length === 0) {
-                    container.innerHTML = '<p>No clients found</p>';
-                    return;
-                }
-                
-                container.innerHTML = clients.map(client => `
-                    <div style="border: 1px solid #ccc; padding: 10px; margin: 10px;">
-                        <h3>${client.name || 'No name'}</h3>
-                        <p>Email: ${client.email || 'No email'}</p>
-                        <p>Phone: ${client.phone || 'No phone'}</p>
-                    </div>
-                `).join('');
-            }
-            
-            // Check if Firebase is available
-           // Wait for external Firebase scripts to load first
-        
-          // Wait for external Firebase config to load
-    
-            // Firebase should be ready from external scripts
-  
         });
-
 
         function getTimeAgo(date) {
             const now = new Date();
@@ -1529,13 +1226,10 @@
             return `${Math.floor(diffDays / 30)} months ago`;
         }
 
-
-
         function createEnhancedClientCard(client) {
             const galleries = client.galleries || [];
             const activeGalleries = galleries.filter(g => g.status === 'active');
             
-            // Calculate overall stats
             let totalPhotos = 0;
             let totalRated = 0;
             let totalHearts = 0;
@@ -1553,7 +1247,6 @@
                 if (gallery.clientRatings?.thumbsUp) totalThumbs += gallery.clientRatings.thumbsUp;
                 if (gallery.clientRatings?.thumbsDown) totalThumbs += gallery.clientRatings.thumbsDown;
                 
-                // Check for submissions
                 if (gallery.submissionData && gallery.submissionData.submittedAt) {
                     hasSubmissions = true;
                     const submissionDate = gallery.submissionData.submittedAt.toDate();
@@ -1562,7 +1255,6 @@
                     }
                 }
                 
-                // Check for latest activity
                 if (gallery.submissionProgress?.lastActivity) {
                     const activityDate = gallery.submissionProgress.lastActivity.toDate();
                     if (!latestActivity || activityDate > latestActivity) {
@@ -1570,7 +1262,6 @@
                     }
                 }
                 
-                // Check for expiring plans
                 if (gallery.expiryDate) {
                     const expiryDate = gallery.expiryDate.toDate();
                     const daysUntilExpiry = Math.ceil((expiryDate - new Date()) / (1000 * 60 * 60 * 24));
@@ -1593,7 +1284,6 @@
             const lastActivityText = latestActivity ? getTimeAgo(latestActivity) : 'No activity';
             const submissionText = latestSubmission ? `Submitted ${getTimeAgo(latestSubmission)}` : 'No submissions';
             
-            // Get plan info from first gallery
             const planType = galleries[0]?.planType || 'Unknown';
             
             return `
@@ -1650,18 +1340,13 @@
                             <i class="fas fa-clock"></i> ${lastActivityText}
                         </div>
                     </div>
-                    
-                    
                 </div>
             `;
         }
 
-
         function displayEnhancedClients(clients) {
-  
             const container = document.getElementById('clientContent');
             
-            // Cache all clients data for sorting
             window.allClientsCache = clients;
             
             if (clients.length === 0) {
@@ -1689,257 +1374,17 @@
                 </div>
             `;
         }
-        
-        function handleAuthStateChange(user) {
-            currentUser = user;
-            
-            if (user) {
-                console.log('User authenticated:', user.email || user.uid);
-                updateUserDisplay(user);
-                loadClientList();
-                
-                // Show welcome notification
-                setTimeout(() => {
-                    NotificationSystem.showNotification(
-                        'info',
-                        'Welcome!',
-                        'Welcome to the client management section'
-                    );
-                }, 500);
-            } else {
-                console.log('User not authenticated');
-                displayAuthRequired();
-            }
-        }
 
-        function updateUserDisplay(user) {
-            const userName = document.getElementById('userName');
-            const avatar = document.querySelector('.avatar-placeholder');
-            
-            if (userName) {
-                const name = user.displayName || user.email || 'User';
-                userName.textContent = name;
-                
-                if (avatar) {
-                    avatar.textContent = name.charAt(0).toUpperCase();
-                }
-            }
-        }
-
-        function displayAuthRequired() {
-            const contentElement = document.getElementById('clientContent');
-            if (!contentElement) return;
-            
-            contentElement.innerHTML = `
-                <div class="error-state">
-                    <div class="error-icon">
-                        <i class="fas fa-lock"></i>
-                    </div>
-                    <h3>Authentication Required</h3>
-                    <p>Please log in to view your clients.</p>
-                    <button class="btn" onclick="window.location.href='../index.html'">
-                        <i class="fas fa-sign-in-alt"></i> Go to Login
-                    </button>
-                </div>
-            `;
-        }
-
-        async function loadClientList() {
-            const contentElement = document.getElementById('clientContent');
-            if (!contentElement) return;
-
-            try {
-                console.log('Loading client list...');
-                
-                // Show loading state
-                contentElement.innerHTML = `
-                    <div class="clients-container">
-                        <div class="section-header">
-                            <h2>Loading Clients...</h2>
-                        </div>
-                        <div style="text-align: center; padding: 2rem;">
-                            <div class="loading-spinner" style="margin: 0 auto;"></div>
-                            <p style="margin-top: 1rem; color: var(--text-muted);">Fetching your clients...</p>
-                        </div>
-                    </div>
-                `;
-
-                let clients = [];
-
-                // If Firebase is available, try to load from Firestore
-           
-             // Load real clients from Firebase
-                if (typeof firebase !== 'undefined' && firebase.firestore && currentUser) {
-                    const db = firebase.firestore();
-                    const clientsQuery = db.collection('clients')
-                        .where('photographerId', '==', currentUser.uid)
-                        .orderBy('createdAt', 'desc');
-                    
-                    const snapshot = await clientsQuery.get();
-                    
-                    snapshot.forEach(doc => {
-                        const data = doc.data();
-                        clients.push({
-                            id: doc.id,
-                            ...data,
-                            createdAt: data.createdAt?.toDate?.() || new Date()
-                        });
-                    });
-                    
-                    console.log(`Found ${clients.length} clients for photographer ${currentUser.uid}`);
-                } else {
-                    console.log('Firebase not available or user not authenticated');
-                    throw new Error('Authentication required');
-                }
-
-                // Display results
-                if (clients.length === 0) {
-                    displayEmptyState();
-                } else {
-                    displayClientList(clients);
-                }
-
-            } catch (error) {
-                console.error('Error loading clients:', error);
-                displayError(error.message);
-            }
-        }
-
-
-        function displayClientList(clients) {
-            const contentElement = document.getElementById('clientContent');
-            if (!contentElement) return;
-            
-            const clientListHTML = `
-                <div class="clients-container">
-                    <div class="section-header">
-                        <h2>Your Clients (${clients.length})</h2>
-                        <div class="header-actions">
-                            <button class="btn primary" onclick="showAddClientModal()">
-                                <i class="fas fa-plus"></i> Add Client
-                            </button>
-                        </div>
-                    </div>
-                    
-                    <div class="clients-grid">
-                        ${clients.map(client => createClientCard(client)).join('')}
-                    </div>
-                </div>
-            `;
-            
-            contentElement.innerHTML = clientListHTML;
-            console.log('Client list displayed successfully');
-        }
-
-        function createClientCard(client) {
-            const createdDate = client.createdAt ? new Date(client.createdAt).toLocaleDateString() : 'Unknown';
-            const initials = client.name ? client.name.split(' ').map(n => n[0]).join('').toUpperCase() : 'C';
-            
-            return `
-                <div class="client-card" data-client-id="${client.id}">
-                    <div class="client-avatar">
-                        <div class="avatar-circle">${initials}</div>
-                    </div>
-                    <div class="client-info">
-                        <h3 class="client-name">${client.name || 'Unnamed Client'}</h3>
-                        <p class="client-email">${client.email || 'No email provided'}</p>
-                        <p class="client-phone">${client.phone || 'No phone provided'}</p>
-                        <div class="client-meta">
-                            <span class="created-date">Added: ${createdDate}</span>
-                            ${client.notes ? `<span class="client-notes">${client.notes}</span>` : ''}
-                        </div>
-                    </div>
-                    <div class="client-actions">
-                        <button class="btn-icon" onclick="editClient('${client.id}')" title="Edit Client">
-                            <i class="fas fa-edit"></i>
-                        </button>
-                        <button class="btn-icon" onclick="viewClientDetails('${client.id}')" title="View Details">
-                            <i class="fas fa-eye"></i>
-                        </button>
-                        <button class="btn-icon danger" onclick="deleteClient('${client.id}', '${client.name}')" title="Delete Client">
-                            <i class="fas fa-trash"></i>
-                        </button>
-                    </div>
-                </div>
-            `;
-        }
-
-        function displayEmptyState() {
-            const contentElement = document.getElementById('clientContent');
-            if (!contentElement) return;
-            
-            contentElement.innerHTML = `
-                <div class="empty-state">
-                    <div class="empty-icon">
-                        <i class="fas fa-users"></i>
-                    </div>
-                    <h3>No Clients Yet</h3>
-                    <p>Start by adding your first client to begin managing their photo selections.</p>
-                    <button class="btn primary" onclick="showAddClientModal()">
-                        <i class="fas fa-plus"></i> Add Your First Client
-                    </button>
-                </div>
-            `;
-            console.log('Empty state displayed');
-        }
-
-        function displayError(message) {
-            const contentElement = document.getElementById('clientContent');
-            if (!contentElement) return;
-            
-            contentElement.innerHTML = `
-                <div class="error-state">
-                    <div class="error-icon">
-                        <i class="fas fa-exclamation-triangle"></i>
-                    </div>
-                    <h3>Error Loading Clients</h3>
-                    <p>${message}</p>
-                    <button class="btn" onclick="loadClientList()">
-                        <i class="fas fa-refresh"></i> Try Again
-                    </button>
-                </div>
-            `;
-            console.log('Error state displayed:', message);
-        }
-
-        // Client action functions
-        function showAddClientModal() {
-            console.log('Add client modal would open here');
-            NotificationSystem.showNotification('info', 'Coming Soon', 'Add Client functionality will be implemented soon');
-        }
-
-        function editClient(clientId) {
-            console.log('Edit client:', clientId);
-            NotificationSystem.showNotification('info', 'Coming Soon', `Edit client functionality will be implemented soon`);
-        }
-
-        function viewClientDetails(clientId) {
-            console.log('View client details:', clientId);
-            NotificationSystem.showNotification('info', 'Coming Soon', `View client details functionality will be implemented soon`);
-        }
-
-        function deleteClient(clientId, clientName) {
-            console.log('Delete client:', clientId);
-            if (confirm(`Are you sure you want to delete client "${clientName}"?`)) {
-                NotificationSystem.showNotification('info', 'Coming Soon', `Delete client functionality will be implemented soon`);
-            }
-        }
-
-
-
-            // Move this function OUTSIDE the DOMContentLoaded event listener, around line 1600
         async function deleteClientWithoutGalleries(clientId, clientName) {
             if (confirm(`Permanently delete "${clientName}"? This client has no galleries and will be completely removed.`)) {
                 try {
                     const db = firebase.firestore();
                     await db.collection('clients').doc(clientId).delete();
                     
-                    // Show success notification
                     if (window.NotificationSystem) {
                         window.NotificationSystem.showNotification('success', 'Client Deleted', `${clientName} has been permanently deleted.`);
                     }
                     
-                    // Reload the client list - call the global function
                     reloadClientList();
                     
                 } catch (error) {
@@ -1951,7 +1396,6 @@
             }
         }
         
-        // Add this helper function to reload clients
         async function reloadClientList() {
             try {
                 if (!firebase.auth().currentUser) return;
@@ -1959,17 +1403,14 @@
                 const userId = firebase.auth().currentUser.uid;
                 const db = firebase.firestore();
                 
-                // Get ALL clients for this photographer
                 const clientsSnapshot = await db.collection('clients')
                     .where('photographerId', '==', userId)
                     .get();
                 
-                // Get all galleries for this photographer
                 const galleriesSnapshot = await db.collection('galleries')
                     .where('photographerId', '==', userId)
                     .get();
                 
-                // Group galleries by clientId
                 const clientGalleries = {};
                 galleriesSnapshot.forEach(doc => {
                     const gallery = { id: doc.id, ...doc.data() };
@@ -1981,7 +1422,6 @@
                     clientGalleries[clientId].push(gallery);
                 });
                 
-                // Combine all clients with their galleries
                 const enrichedClients = [];
                 clientsSnapshot.forEach(doc => {
                     const client = { id: doc.id, ...doc.data() };
@@ -1989,7 +1429,6 @@
                     enrichedClients.push(client);
                 });
                 
-                // Display updated clients
                 displayEnhancedClients(enrichedClients);
                 
             } catch (error) {
@@ -1997,10 +1436,9 @@
             }
         }
 
-        // ADD THIS NEW FUNCTION HERE:
         function sortClients() {
             const sortValue = document.getElementById('clientSort').value;
-            const allClientsData = window.allClientsCache || []; // We'll cache the data
+            const allClientsData = window.allClientsCache || [];
             
             let filteredClients = [];
             
@@ -2015,11 +1453,10 @@
                         !client.galleries || client.galleries.length === 0
                     );
                     break;
-                default: // 'all'
+                default:
                     filteredClients = allClientsData;
             }
             
-            // Update the display
             displayEnhancedClients(filteredClients);
             
             console.log(`Showing ${filteredClients.length} clients (filter: ${sortValue})`);
@@ -2081,11 +1518,6 @@
                     }
                     
                     notificationDropdown.classList.toggle('active');
-                    
-                    // Mark notifications as read when opened
-                    if (notificationDropdown.classList.contains('active') && window.NotificationSystem) {
-                        NotificationSystem.markAllAsRead();
-                    }
                 });
             }
             
@@ -2094,7 +1526,11 @@
             if (markAllReadBtn) {
                 markAllReadBtn.addEventListener('click', function() {
                     if (window.NotificationSystem) {
-                        NotificationSystem.markAllAsRead();
+                        window.NotificationSystem.markAllAsRead();
+                    } else {
+                        // Fallback - just update the badge
+                        const badge = document.getElementById('notificationCount');
+                        if (badge) badge.textContent = '0';
                     }
                 });
             }
@@ -2107,9 +1543,8 @@
                     if (typeof firebase !== 'undefined' && firebase.auth) {
                         firebase.auth().signOut();
                     }
-                    //NotificationSystem.showNotification('success', 'Logged Out', 'You have been successfully logged out');
                     if (window.NotificationSystem) {
-                        NotificationSystem.showNotification('success', 'Logged Out', 'You have been successfully logged out');
+                        window.NotificationSystem.showNotification('success', 'Logged Out', 'You have been successfully logged out');
                     }
                     setTimeout(() => {
                         window.location.href = '../index.html';
