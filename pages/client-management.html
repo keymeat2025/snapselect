@@ -1098,10 +1098,7 @@
             console.log('Initializing Client Management Page...');
             
             // Initialize UI components first
-  
-            setTimeout(() => {
-                initializeUIComponents();
-            }, 1000);
+            initializeUIComponents();
 
             // Simple client loading function
             async function loadClients() {
@@ -1569,6 +1566,34 @@
                     notificationDropdown.classList.remove('active');
                 }
             });
+        }
+        
+        // Fix for dropdown after external scripts load
+        function setupDropdownFix() {
+            const userMenuBtn = document.getElementById('userMenuBtn');
+            const userDropdown = document.getElementById('userDropdown');
+            
+            if (userMenuBtn && userDropdown) {
+                // Remove all existing event listeners
+                const newUserMenuBtn = userMenuBtn.cloneNode(true);
+                userMenuBtn.parentNode.replaceChild(newUserMenuBtn, userMenuBtn);
+                
+                // Set up fresh event listener
+                newUserMenuBtn.onclick = function(e) {
+                    e.stopPropagation();
+                    
+                    // Close notification dropdown if open
+                    const notificationDropdown = document.getElementById('notificationDropdown');
+                    if (notificationDropdown && notificationDropdown.classList.contains('active')) {
+                        notificationDropdown.classList.remove('active');
+                    }
+                    
+                    // Toggle user dropdown
+                    userDropdown.classList.toggle('active');
+                };
+                
+                console.log('✅ Dropdown functionality restored - external script conflicts resolved!');
+            }
         }        
     </script>
 </body>
