@@ -1098,7 +1098,10 @@
             console.log('Initializing Client Management Page...');
             
             // Initialize UI components first
-            initializeUIComponents();
+  
+            setTimeout(() => {
+                initializeUIComponents();
+            }, 1000);
 
             // Simple client loading function
             async function loadClients() {
