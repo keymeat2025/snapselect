@@ -952,6 +952,28 @@
                 letter-spacing: -0.4px;
             }
         }
+
+        .loading-state {
+            background: var(--background-white);
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 3rem;
+            background: var(--background-white);
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        }
+        
+        .empty-icon {
+            font-size: 4rem;
+            color: var(--text-muted);
+            margin-bottom: 1rem;
+        }
+
+        
     </style>
 </head>
 <body>
@@ -998,7 +1020,8 @@
                 <div class="notification-container">
                     <button id="notificationBtn" class="notification-btn">
                         <i class="fas fa-bell"></i>
-                        <span id="notificationCount" class="notification-badge">3</span>
+
+                        <span id="notificationCount" class="notification-badge" style="display: none;">0</span>
                     </button>
                     
                     <div id="notificationDropdown" class="notification-dropdown">
@@ -1006,21 +1029,15 @@
                             <h3>Notifications</h3>
                             <button id="markAllReadBtn" class="mark-all-read">Mark all as read</button>
                         </div>
+                    
                         <div id="notificationList" class="notification-list">
-                            <div class="notification-item unread">
-                                <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
-                                    <i class="fas fa-user-check" style="color: var(--primary-color);"></i>
-                                    <strong style="font-size: 0.875rem;">Photo Selection Submitted</strong>
-                                    <div style="width: 8px; height: 8px; background: var(--primary-color); border-radius: 50%; margin-left: auto;"></div>
-                                </div>
-                                <div style="color: var(--text-secondary); font-size: 0.8rem; margin-bottom: 0.5rem;">
-                                    John Smith has submitted their final photo selection for Wedding Gallery
-                                </div>
-                                <div style="color: var(--text-muted); font-size: 0.75rem;">
-                                    30m ago
-                                </div>
+                            <!-- Real notifications will be loaded here -->
+                            <div class="notification-item" style="text-align: center; padding: 2rem; color: var(--text-muted);">
+                                <p>No new notifications</p>
                             </div>
                         </div>
+
+                        
                     </div>
                 </div>
                 
@@ -1039,12 +1056,14 @@
                 <p class="page-subtitle">Manage your clients and their photo selection projects</p>
             </section>
 
-            <!-- Content Area -->
+       
+           <!-- Content Area -->
             <section class="content-area animate-in" style="animation-delay: 0.2s;">
                 <div id="clientContent">
+                    <!-- Initial loading state -->
                     <div class="clients-container">
                         <div class="section-header">
-                            <h2>Your Clients (2)</h2>
+                            <h2 id="clientCountHeader">Your Clients</h2>
                             <div class="header-actions">
                                 <select id="clientSort" onchange="sortClients()" class="sort-dropdown">
                                     <option value="all">All Clients</option>
@@ -1053,108 +1072,18 @@
                                 </select>
                             </div>
                         </div>
-                        <div class="enhanced-clients-grid">
-                            <div class="enhanced-client-card healthy">
-                                <div class="client-header">
-                                    <div class="avatar-circle">JS</div>
-                                    <div class="client-basic-info">
-                                        <h3 class="client-name">John Smith</h3>
-                                        <p class="client-email">john@example.com</p>
-                                    </div>
-                                    <span class="no-delete-tooltip" title="Cannot delete - client has galleries">
-                                        <i class="fas fa-archive" style="color: var(--text-muted);"></i>
-                                    </span>
-                                </div>
-                                
-                                <div class="client-stats-row">
-                                    <div class="stat-item">
-                                        <i class="fas fa-images"></i>
-                                        <span>2 galleries</span>
-                                    </div>
-                                    <div class="stat-item">
-                                        <i class="fas fa-crown"></i>
-                                        <span>Premium</span>
-                                    </div>
-                                </div>
-                                
-                                <div class="progress-section">
-                                    <div class="progress-bar">
-                                        <div class="progress-fill" style="width: 75%;"></div>
-                                    </div>
-                                    <div class="progress-text">180/240 photos rated (75%)</div>
-                                </div>
-                                
-                                <div class="submission-section">
-                                    <div class="submission-status submitted">
-                                        <i class="fas fa-check-circle"></i>
-                                        <span>Submitted Today</span>
-                                    </div>
-                                </div>
-                                
-                                <div class="engagement-row">
-                                    <div class="ratings">
-                                        <span title="Hearts"><i class="fas fa-heart" style="color: #e91e63;"></i> 24</span>
-                                        <span title="Thumbs"><i class="fas fa-thumbs-up" style="color: #4caf50;"></i> 156</span>
-                                    </div>
-                                    <div class="last-activity">
-                                        <i class="fas fa-clock"></i> 2 hours ago
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="enhanced-client-card warning">
-                                <div class="critical-alert">EXPIRES IN 3 DAYS</div>
-                                
-                                <div class="client-header">
-                                    <div class="avatar-circle">SJ</div>
-                                    <div class="client-basic-info">
-                                        <h3 class="client-name">Sarah Johnson</h3>
-                                        <p class="client-email">sarah@example.com</p>
-                                    </div>
-                                    <span class="no-delete-tooltip" title="Cannot delete - client has galleries">
-                                        <i class="fas fa-archive" style="color: var(--text-muted);"></i>
-                                    </span>
-                                </div>
-                                
-                                <div class="client-stats-row">
-                                    <div class="stat-item">
-                                        <i class="fas fa-images"></i>
-                                        <span>1 galleries</span>
-                                    </div>
-                                    <div class="stat-item">
-                                        <i class="fas fa-crown"></i>
-                                        <span>Basic</span>
-                                    </div>
-                                </div>
-                                
-                                <div class="progress-section">
-                                    <div class="progress-bar">
-                                        <div class="progress-fill" style="width: 40%;"></div>
-                                    </div>
-                                    <div class="progress-text">40/100 photos rated (40%)</div>
-                                </div>
-                                
-                                <div class="submission-section">
-                                    <div class="submission-status pending">
-                                        <i class="fas fa-clock"></i>
-                                        <span>No submissions</span>
-                                    </div>
-                                </div>
-                                
-                                <div class="engagement-row">
-                                    <div class="ratings">
-                                        <span title="Hearts"><i class="fas fa-heart" style="color: #e91e63;"></i> 8</span>
-                                        <span title="Thumbs"><i class="fas fa-thumbs-up" style="color: #4caf50;"></i> 32</span>
-                                    </div>
-                                    <div class="last-activity">
-                                        <i class="fas fa-clock"></i> Yesterday
-                                    </div>
-                                </div>
+                        
+                        <!-- Loading state -->
+                        <div class="loading-state" id="loadingState">
+                            <div style="text-align: center; padding: 3rem;">
+                                <div class="loading-spinner" style="margin: 0 auto 1rem;"></div>
+                                <p style="color: var(--text-secondary);">Loading your clients...</p>
                             </div>
                         </div>
                     </div>
                 </div>
             </section>
+
         </div>
     </main>
 
@@ -1299,11 +1228,22 @@
                     firebase.auth().onAuthStateChanged(async (user) => {
                         if (user) {
                             console.log('User authenticated:', user.uid);
+                            
+                            // Show loading state
+                            const loadingState = document.getElementById('loadingState');
+                            if (loadingState) {
+                                loadingState.style.display = 'block';
+                            }
+                            
+                            // Load real data
                             const clients = await loadClientsWithGalleries();
                             console.log('Enhanced clients loaded:', clients);
                             
-                            // Display enhanced clients
+                            // Display real clients (this will hide loading state)
                             displayEnhancedClients(clients);
+                        } else {
+                            // User not logged in - redirect or show login prompt
+                            window.location.href = '../index.html';
                         }
                     });
                 } else {
@@ -1443,13 +1383,50 @@
             `;
         }
 
+   
         function displayEnhancedClients(clients) {
             const container = document.getElementById('clientContent');
+            const loadingState = document.getElementById('loadingState');
+            
+            // Hide loading state
+            if (loadingState) {
+                loadingState.style.display = 'none';
+            }
+            
+            // Update client count in header
+            const headerElement = document.getElementById('clientCountHeader');
+            if (headerElement) {
+                headerElement.textContent = `Your Clients (${clients.length})`;
+            }
             
             window.allClientsCache = clients;
             
             if (clients.length === 0) {
-                container.innerHTML = '<div class="empty-state"><h3>No Clients Found</h3><p>No clients match the current filter.</p></div>';
+                container.innerHTML = `
+                    <div class="clients-container">
+                        <div class="section-header">
+                            <h2>Your Clients (0)</h2>
+                            <div class="header-actions">
+                                <select id="clientSort" onchange="sortClients()" class="sort-dropdown">
+                                    <option value="all">All Clients</option>
+                                    <option value="with-galleries">With Galleries</option>
+                                    <option value="without-galleries">Without Galleries</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="empty-state">
+                            <div class="empty-icon">
+                                <i class="fas fa-users"></i>
+                            </div>
+                            <h3>No Clients Yet</h3>
+                            <p>You haven't added any clients to your account yet.</p>
+                            <button class="btn primary" onclick="window.location.href='photographer-dashboard.html'">
+                                <i class="fas fa-plus"></i>
+                                Add Your First Client
+                            </button>
+                        </div>
+                    </div>
+                `;
                 return;
             }
             
