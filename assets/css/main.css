@@ -11,12 +11,13 @@
 }
 
 .logo-image {
-    height: 45px;
-    width: 45px;
-    object-fit: contain;
-    margin-right: 15px;
-    border-radius: 8px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    height: 50px;
+    width: 50px;
+    object-fit: cover;
+    margin-right: 16px;
+    border-radius: 10px;
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.15);
+    border: 2px solid rgba(255, 255, 255, 0.8);
 }
 
 .logo-text {
@@ -25,7 +26,14 @@
     color: var(--primary);
     letter-spacing: -0.8px;
     font-family: 'Segoe UI', system-ui, sans-serif;
+    line-height: 1;
 }
+
+.logo:hover .logo-image {
+    transform: scale(1.05);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+}
+
 .logo:hover .logo-text {
     color: var(--accent);
 }
@@ -106,13 +114,13 @@ nav {
 
 @media (max-width: 768px) {
     .logo-image {
-        height: 38px;
-        width: 38px;
-        margin-right: 12px;
+        height: 42px;
+        width: 42px;
+        margin-right: 14px;
     }
     
     .logo-text {
-        font-size: 26px;
+        font-size: 28px;
         letter-spacing: -0.6px;
     }
 }
