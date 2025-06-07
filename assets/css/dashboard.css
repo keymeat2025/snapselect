@@ -148,8 +148,9 @@ header .logo {
 
 /* Dashboard Main Layout */
 .dashboard-main {
-    padding: 2.5rem 0;
-    min-height: calc(100vh - 80px - 60px); /* Viewport height minus header and footer */
+    padding-top: 120px;
+    padding-bottom: 2.5rem;
+    min-height: calc(100vh - 120px - 60px);
     background-color: var(--background-color);
 }
 
