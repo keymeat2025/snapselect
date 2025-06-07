@@ -148,8 +148,7 @@ header .logo {
 
 /* Dashboard Main Layout */
 .dashboard-main {
-    padding-top: 120px;
-    padding-bottom: 2.5rem;
+    padding: 120px 0 2.5rem 0;
     min-height: calc(100vh - 120px - 60px);
     background-color: var(--background-color);
 }
@@ -1301,6 +1300,23 @@ input:focus {
         grid-template-columns: 1fr;
     }
 }
+
+
+/* Mobile responsive adjustments */
+@media (max-width: 768px) {
+    .dashboard-main {
+        padding-top: 100px;
+        min-height: calc(100vh - 100px - 60px);
+    }
+}
+
+@media (max-width: 480px) {
+    .dashboard-main {
+        padding-top: 90px;
+        min-height: calc(100vh - 90px - 60px);
+    }
+}
+
 
 /* Mobile adjustments - Match home page responsive */
 @media (max-width: 768px) {
