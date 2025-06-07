@@ -1305,15 +1305,17 @@ input:focus {
 /* Mobile responsive adjustments */
 @media (max-width: 768px) {
     .dashboard-main {
-        padding-top: 100px;
-        min-height: calc(100vh - 100px - 60px);
+        padding-top: 130px;
+        padding-bottom: 2.5rem;
+        min-height: calc(100vh - 130px - 60px);
     }
 }
 
 @media (max-width: 480px) {
     .dashboard-main {
-        padding-top: 90px;
-        min-height: calc(100vh - 90px - 60px);
+        padding-top: 120px;
+        padding-bottom: 2.5rem;
+        min-height: calc(100vh - 120px - 60px);
     }
 }
 
