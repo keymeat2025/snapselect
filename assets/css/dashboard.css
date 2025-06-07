@@ -2,6 +2,26 @@
 /* This file contains enhanced styles for the photographer dashboard */
 
 /* Root Variable Additions - Add these to your variables.css */
+
+
+/* Dashboard Header Logo Override */
+header .logo-image {
+    height: 50px !important;
+    width: 50px !important;
+    margin-right: 14px !important;
+    border-radius: 10px !important;
+    border: 2px solid rgba(255, 255, 255, 0.9) !important;
+}
+
+header .logo-text {
+    font-size: 24px !important;
+    letter-spacing: -0.6px !important;
+}
+
+header .logo {
+    padding: 8px 0 !important;
+}
+
 :root {
   /* Adding these here for reference - you should move them to variables.css */
   --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.08);
@@ -1273,6 +1293,31 @@ input:focus {
     
     .gallery-grid {
         grid-template-columns: 1fr;
+    }
+}
+
+/* Mobile adjustments for dashboard header */
+@media (max-width: 768px) {
+    header .logo-image {
+        height: 42px !important;
+        width: 42px !important;
+        margin-right: 12px !important;
+    }
+    
+    header .logo-text {
+        font-size: 20px !important;
+    }
+}
+
+@media (max-width: 480px) {
+    header .logo-image {
+        height: 38px !important;
+        width: 38px !important;
+        margin-right: 10px !important;
+    }
+    
+    header .logo-text {
+        font-size: 18px !important;
     }
 }
 
