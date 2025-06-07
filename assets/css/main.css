@@ -29,9 +29,6 @@
     color: var(--primary);
 }
 
-.logo:hover .logo-text {
-    color: var(--accent);
-}
 
 /* For responsive design, you may want to adjust the logo size on smaller screens */
 @media (max-width: 768px) {
