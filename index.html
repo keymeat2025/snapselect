@@ -9,6 +9,28 @@
     <link rel="stylesheet" href="assets/css/main.css">
     <link rel="stylesheet" href="assets/css/responsive.css">
     <link rel="stylesheet" href="assets/css/user-menu.css">
+    <style>
+        .auth-loading {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            color: #666;
+            font-size: 14px;
+        }
+        
+        .loading-logo {
+            width: 24px;
+            height: 24px;
+            border-radius: 4px;
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+    </style>
 </head>
 <body>
     <!-- Navigation Header with Firebase Authentication Integration -->
@@ -35,6 +57,21 @@
                     <!-- User not logged in - show login button -->
                     <div class="auth-guest" id="guestNav">
                         <a href="pages/studiopanel-login.html" class="login-btn">Log In</a>
+                    </div>
+
+                    <div class="auth-loading" id="authLoading">
+                        <img src="assets/images/snapselect-logo.jpeg" alt="SnapSelect" class="loading-logo">
+                        <span>Loading...</span>
+                    </div>
+                    
+                    <!-- CHANGE: Add style="display: none;" to guest nav -->
+                    <div class="auth-guest" id="guestNav" style="display: none;">
+                        <a href="pages/studiopanel-login.html" class="login-btn">Log In</a>
+                    </div>
+                    
+                    <!-- User nav stays the same (already has display: none) -->
+                    <div class="auth-user" id="userNav" style="display: none;">
+                        <!-- existing user menu code unchanged -->
                     </div>
                     
                     <!-- User logged in - show user menu with logout -->
