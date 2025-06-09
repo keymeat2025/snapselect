@@ -9,7 +9,7 @@
 .toast {
   display: flex;
   align-items: center;
-  background-color: white; /* Ensure this is more visible */
+  background-color: black; /* Ensure this is more visible */
   border-radius: 8px;
   box-shadow: 0 4px 15px rgba(0,0,0,0.15); /* Slightly stronger shadow */
   padding: 15px;
