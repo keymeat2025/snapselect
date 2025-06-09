@@ -165,7 +165,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Update UI for logged in user
     function updateUIForUser(user) {
         console.log("Updating UI for logged in user");
-        
+        document.getElementById('authLoading').style.display = 'none';
         if (guestNav) guestNav.style.display = 'none';
         if (userNav) userNav.style.display = 'block';
         
@@ -187,6 +187,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Update UI for logged out user
     function updateUIForGuest() {
         console.log("Updating UI for guest user");
+        document.getElementById('authLoading').style.display = 'none';
         
         if (guestNav) guestNav.style.display = 'block';
         if (userNav) userNav.style.display = 'none';
