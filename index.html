@@ -1,1 +1,363 @@
 
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SnapSelect - Streamline Your Photo Workflow</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="assets/css/variables.css">
+    <link rel="stylesheet" href="assets/css/main.css">
+    <link rel="stylesheet" href="assets/css/responsive.css">
+    <link rel="stylesheet" href="assets/css/user-menu.css">
+</head>
+<body>
+    <!-- Navigation Header with Firebase Authentication Integration -->
+    <header>
+        <div class="container">
+            <nav>
+                <!--
+                <a href="#" class="logo">
+                    <img src="assets/images/snapselect-logo.jpeg" alt="SnapSelect" class="logo-image">
+                    //<img src="assets/images/snapselect-logo.png" alt="SnapSelect" class="logo-image">
+                </a>
+                -->
+
+                <a href="#" class="logo">
+                    <img src="assets/images/snapselect-logo.jpeg" alt="SnapSelect" class="logo-image">
+                    <div class="logo-text">SnapSelect</div>
+                </a>
+                <ul class="nav-links">
+                    <li><a href="#features">Features</a></li>
+                    <li><a href="#how-it-works">How It Works</a></li>
+                    <li><a href="#pricing">Pricing</a></li>
+                </ul>
+                <div class="right-nav">
+                    <!-- User not logged in - show login button -->
+                    <div class="auth-guest" id="guestNav">
+                        <a href="pages/studiopanel-login.html" class="login-btn">Log In</a>
+                    </div>
+                    
+                    <!-- User logged in - show user menu with logout -->
+                    <div class="auth-user" id="userNav" style="display: none;">
+                        <div class="user-menu">
+                            <button class="user-menu-btn" id="userMenuBtn">
+                                <img src="assets/images/placeholder-avatar.jpg" id="userAvatar" class="user-avatar" alt="User">
+                                <span class="user-name" id="userName">User</span>
+                                <i class="fas fa-chevron-down"></i>
+                            </button>
+                         
+
+                            <div class="user-dropdown" id="userDropdown">
+                                <!-- Change the dashboard link to use # instead of direct path -->
+                                <a href="#" id="dashboardNavLink">Dashboard</a>
+                                <a href="pages/account-settings.html">Account Settings</a>
+                                <a href="#" id="logoutBtn">Logout</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="hamburger">
+                    <i class="fas fa-bars"></i>
+                </div>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="container">
+            <div class="hero-content">
+                <div class="hero-text">
+                    <h1>Streamline Your Photo Workflow with SnapSelect</h1>
+                    <p>The platform where clients select their favorites, so you can focus on editing what matters.</p>
+                    <a href="pages/photographer_registration.html" class="btn">Get Started</a>
+                </div>
+                <div class="hero-image">
+                    <img src="assets/images/hero-image.jpg" alt="Photographer and client reviewing photos">
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section class="features" id="features">
+        <div class="container">
+            <div class="section-title">
+                <h2>Key Features</h2>
+                <p>SnapSelect helps photographers save time and focus on what matters most.</p>
+            </div>
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-upload"></i>
+                    </div>
+                    <h3>Effortless Uploads</h3>
+                    <p>Drag-and-drop interface for batch uploads. Automatic organization by shoot date and client.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-check-circle"></i>
+                    </div>
+                    <h3>Client Selection</h3>
+                    <p>Simple sharing via custom links. Real-time notifications when clients make selections.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-sync-alt"></i>
+                    </div>
+                    <h3>Workflow Integration</h3>
+                    <p>Export selected photos to editing software. Progress tracking from selection to final delivery.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- How It Works Section -->
+    <section class="how-it-works" id="how-it-works">
+        <div class="container">
+            <div class="section-title">
+                <h2>How It Works</h2>
+                <p>A simple three-step process that saves you hours of editing time.</p>
+            </div>
+            <div class="steps">
+                <div class="step">
+                    <div class="step-number">1</div>
+                    <h3>Upload Photos</h3>
+                    <p>Create collections for your clients and upload your photos in batches.</p>
+                </div>
+                <div class="step">
+                    <div class="step-number">2</div>
+                    <h3>Clients Select</h3>
+                    <p>They mark their favorite photos through an intuitive interface.</p>
+                </div>
+                <div class="step">
+                    <div class="step-number">3</div>
+                    <h3>Edit & Deliver</h3>
+                    <p>Focus only on selected photos, saving time and resources.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Testimonials Section -->
+    <section class="testimonials">
+        <div class="container">
+            <div class="section-title">
+                <h2>Photographers Love SnapSelect</h2>
+                <p>Hear what professional photographers have to say about our platform.</p>
+            </div>
+            <div class="testimonial">
+                <div class="testimonial-image">
+                    <!-- Placeholder for testimonial image -->
+                </div>
+                <p class="testimonial-text">"SnapSelect saved me hours of editing time. My clients love the selection process and I only edit what they truly want. This has revolutionized my workflow and made my business more efficient."</p>
+                <p class="testimonial-author">Sarah Johnson</p>
+                <p class="testimonial-role">Wedding Photographer</p>
+            </div>
+        </div>
+    </section>
+
+        <!-- Pricing Section -->
+    <section class="pricing" id="pricing">
+        <div class="container">
+            <div class="section-title">
+                <h2>Pricing Plans</h2>
+                <p>Choose the plan that best fits your photography business needs. Pay only per client session.</p>
+                <a href="pages/pricing-comparison.html" class="btn btn-outline">View Detailed Comparison</a>
+            </div>
+            <div class="pricing-grid">
+                <div class="pricing-card">
+                    <h3 class="price-title">Lite</h3>
+                    <div class="price">₹79<span>/client</span></div>
+                    <ul class="pricing-features">
+                        <li>Up to 100 photo uploads per client</li>
+                        <li>2GB total storage</li>
+                        <li>Basic image quality (up to 5MB per image)</li>
+                        <li>7-day client selection window</li>
+                        <li>Simple gallery layout</li>
+                        <li>Perfect for beginners and occasional photography projects</li>
+                    </ul>
+                    <a href="pages/photographer_registration.html" class="btn btn-outline">Get Started</a>
+                </div>
+                <div class="pricing-card">
+                    <h3 class="price-title">Mini</h3>
+                    <div class="price">₹149<span>/client</span></div>
+                    <ul class="pricing-features">
+                        <li>Up to 200 photo uploads per client</li>
+                        <li>5GB total storage</li>
+                        <li>Standard image quality (up to 8MB per image)</li>
+                        <li>14-day client selection window</li>
+                        <li>Basic gallery customization</li>
+                        <li>Ideal for hobby photographers with regular projects</li>
+                    </ul>
+                    <a href="pages/photographer_registration.html" class="btn btn-outline">Get Started</a>
+                </div>
+                <div class="pricing-card">
+                    <h3 class="price-title">Basic</h3>
+                    <div class="price">₹399<span>/client</span></div>
+                    <ul class="pricing-features">
+                        <li>Up to 500 photo uploads per client</li>
+                        <li>15GB total storage</li>
+                        <li>Enhanced image quality (up to 12MB per image)</li>
+                        <li>30-day client selection window</li>
+                        <li>Custom gallery branding</li>
+                        <li>Ideal for part-time professionals</li>
+                    </ul>
+                    <a href="pages/photographer_registration.html" class="btn btn-outline">Get Started</a>
+                </div>
+                <div class="pricing-card">
+                    <h3 class="price-title">Pro</h3>
+                    <div class="price">₹799<span>/client</span></div>
+                    <ul class="pricing-features">
+                        <li>Up to 800 photo uploads per client</li>
+                        <li>25GB total storage</li>
+                        <li>High image quality (up to 15MB per image)</li>
+                        <li>45-day client selection window</li>
+                        <li>Advanced gallery customization</li>
+                        <li>Client favorites collection feature</li>
+                        <li>Perfect for growing photography businesses</li>
+                    </ul>
+                    <a href="pages/photographer_registration.html" class="btn btn-outline">Get Started</a>
+                </div>
+                <div class="pricing-card featured">
+                    <h3 class="price-title">Premium</h3>
+                    <div class="price">₹1,499<span>/client</span></div>
+                    <ul class="pricing-features">
+                        <li>Up to 1,200 photo uploads per client</li>
+                        <li>50GB total storage</li>
+                        <li>Premium image quality (up to 20MB per image)</li>
+                        <li>60-day client selection window</li>
+                        <li>Complete branding customization</li>
+                        <li>Priority customer support</li>
+                        <li>Client favorites and comments</li>
+                        <li>Ideal for established professional photographers</li>
+                    </ul>
+                    <a href="pages/photographer_registration.html" class="btn">Get Started</a>
+                </div>
+                <div class="pricing-card">
+                    <h3 class="price-title">Ultimate</h3>
+                    <div class="price">₹2,999<span>/client</span></div>
+                    <ul class="pricing-features">
+                        <li>Unlimited photo uploads per client</li>
+                        <li>100GB total storage</li>
+                        <li>Maximum image quality (up to 25MB per image)</li>
+                        <li>90-day client selection window</li>
+                        <li>All Premium features plus:</li>
+                        <li>Direct client downloads</li>
+                        <li>Advanced analytics dashboard</li>
+                        <li>White-label experience</li>
+                        <li>Perfect for studios and high-volume photographers</li>
+                    </ul>
+                    <a href="pages/photographer_registration.html" class="btn btn-outline">Get Started</a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer CTA -->
+    <section class="cta-section">
+        <div class="container">
+            <h2>Ready to streamline your workflow?</h2>
+            <a href="pages/photographer_registration.html" class="btn">Get Started</a>
+        </div>
+    </section>
+    
+    <!-- Footer -->
+    <footer>
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-column">
+                    <h3>Product</h3>
+                    <ul>
+                        <li><a href="#">Features</a></li>
+                        <li><a href="#">Pricing</a></li>
+                        <li><a href="#">Integrations</a></li>
+                        <li><a href="#">Updates</a></li>
+                    </ul>
+                </div>
+                <div class="footer-column">
+                    <h3>Resources</h3>
+                    <ul>
+                        <li><a href="#">Blog</a></li>
+                        <li><a href="#">Tutorials</a></li>
+                        <li><a href="#">Help Center</a></li>
+                        <li><a href="#">Community</a></li>
+                    </ul>
+                </div>
+                <div class="footer-column">
+                    <h3>Company</h3>
+                    <ul>
+                        <li><a href="#">About Us</a></li>
+                        <li><a href="#">Careers</a></li>
+                        <li><a href="#">Contact</a></li>
+                        <li><a href="#">Partners</a></li>
+                    </ul>
+                </div>
+                <div class="footer-column">
+                    <h3>Legal</h3>
+                    <ul>
+                        <li><a href="#">Privacy Policy</a></li>
+                        <li><a href="#">Terms of Service</a></li>
+                        <li><a href="#">Cookie Policy</a></li>
+                        <li><a href="#">GDPR</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>Connect with us</p>
+                <div class="social-icons">
+                    <a href="#"><i class="fab fa-facebook"></i></a>
+                    <a href="#"><i class="fab fa-twitter"></i></a>
+                    <a href="#"><i class="fab fa-instagram"></i></a>
+                    <a href="#"><i class="fab fa-linkedin"></i></a>
+                </div>
+                <p class="copyright">&copy; 2025 SnapSelect. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Firebase Scripts - Load before header integration -->
+    <!-- Firebase SDK - Should be loaded first -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    
+    <!-- Your Firebase configuration and modules -->
+    <script src="assets/js/firebase-config.js"></script>
+    <script src="assets/js/firebase-auth.js"></script>
+    <script src="assets/js/firebase-db.js"></script>
+    
+    <!-- Main application script -->
+    <script src="assets/js/main.js"></script>
+    
+    <!-- Header authentication integration - Load last -->
+    <script src="assets/js/header-auth.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Secure dashboard navigation
+            const dashboardNavLink = document.getElementById('dashboardNavLink');
+            if (dashboardNavLink) {
+                dashboardNavLink.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    
+                    // Check authentication
+                    const auth = window.firebaseServices?.auth;
+                    const user = auth?.currentUser;
+                    
+                    if (user) {
+                        // Set authorization flag
+                        sessionStorage.setItem('authorizedAccess', 'true');
+                        
+                        // Navigate to dashboard
+                        window.location.href = 'pages/photographer-dashboard.html';
+                    } else {
+                        // Redirect to login
+                        window.location.href = 'pages/studiopanel-login.html';
+                    }
+                });
+            }
+        });
+    </script>
+</body>
+</html>
