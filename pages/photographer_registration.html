@@ -21,9 +21,77 @@
         body {background-color:var(--white); color:var(--dark); line-height:1.6; display:flex; min-height:100vh;}
         .left-panel {flex:0.5; background-color:var(--primary-light); padding:60px 40px; display:flex; flex-direction:column;}
         .right-panel {flex:1; padding:60px 40px; display:flex; flex-direction:column; justify-content:center;}
-        .logo {font-size:32px; font-weight:700; color:var(--primary); text-decoration:none; margin-bottom:60px;}
-        .logo-container {display:flex; align-items:center; gap:10px;}
-        .logo-icon {font-size:24px; color:var(--primary);}
+        .logo-container {
+            display: flex;
+            align-items: center;
+            justify-content: flex-start;
+            margin-bottom: 60px;
+        }
+        
+        .logo {
+            display: flex;
+            align-items: center;
+            text-decoration: none;
+            color: var(--primary);
+            padding: 10px 0;
+        }
+        
+        .logo-image {
+            height: 70px;
+            width: 70px;
+            margin-right: 18px;
+            border-radius: 12px;
+            border: 3px solid rgba(0, 160, 233, 0.2);
+            box-shadow: 0 4px 12px rgba(0, 160, 233, 0.15);
+            object-fit: cover;
+        }
+        
+        .logo-text {
+            font-size: 30px;
+            font-weight: 800;
+            letter-spacing: -0.8px;
+            line-height: 1;
+            margin: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: var(--primary);
+        }
+        
+        /* Mobile responsive adjustments */
+        @media (max-width: 768px) {
+            .logo-image {
+                height: 60px;
+                width: 60px;
+                margin-right: 15px;
+                border: 2px solid rgba(0, 160, 233, 0.2);
+            }
+            
+            .logo-text {
+                font-size: 26px;
+                letter-spacing: -0.6px;
+            }
+            
+            .logo-container {
+                margin-bottom: 40px;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .logo-image {
+                height: 50px;
+                width: 50px;
+                margin-right: 12px;
+            }
+            
+            .logo-text {
+                font-size: 22px;
+                letter-spacing: -0.4px;
+            }
+            
+            .logo-container {
+                margin-bottom: 30px;
+            }
+        }
+    
         .trial-headline {font-size:32px; color:var(--dark); margin-bottom:15px; font-weight:600;}
         .testimonial {background-color:var(--white); padding:30px; border-radius:10px; margin:40px 0; box-shadow:0 5px 15px rgba(0,0,0,0.05);}
         .steps {display:flex; margin-bottom:30px;}
@@ -75,7 +143,13 @@
 </head>
 <body>
     <div class="left-panel">
-        <div class="logo-container"><a href="#" class="logo">SnapSelect</a><i class="fas fa-camera logo-icon"></i></div>
+      
+        <div class="logo-container">
+            <a href="/snapselect/index.html" class="logo">
+                <img src="../assets/images/snapselect-logo.jpeg" alt="SnapSelect" class="logo-image">
+                <div class="logo-text">SnapSelect</div>
+            </a>
+        </div>
         <h1 class="trial-headline">Start your SnapSelect Journey today.</h1>
         <p>Streamline your photo memories workflow with client happiness</p>
         <div class="testimonial">
