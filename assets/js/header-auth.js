@@ -1,558 +1,362 @@
-// header-auth.js
-// Integrates Firebase Authentication with the website header
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SnapSelect - Streamline Your Photo Workflow</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="assets/css/variables.css">
+    <link rel="stylesheet" href="assets/css/main.css">
+    <link rel="stylesheet" href="assets/css/responsive.css">
+    <link rel="stylesheet" href="assets/css/user-menu.css">
+</head>
+<body>
+    <!-- Navigation Header with Firebase Authentication Integration -->
+    <header>
+        <div class="container">
+            <nav>
+                <!--
+                <a href="#" class="logo">
+                    <img src="assets/images/snapselect-logo.jpeg" alt="SnapSelect" class="logo-image">
+                    //<img src="assets/images/snapselect-logo.png" alt="SnapSelect" class="logo-image">
+                </a>
+                -->
 
-document.addEventListener('DOMContentLoaded', function() {
-    // Elements
-    const guestNav = document.getElementById('guestNav');
-    const userNav = document.getElementById('userNav');
-    const userName = document.getElementById('userName');
-    const userAvatar = document.querySelector('.avatar-placeholder');
-    const userMenuBtn = document.getElementById('userMenuBtn');
-    const userDropdown = document.getElementById('userDropdown');
-    const logoutBtn = document.getElementById('logoutBtn');
-    
-    // Check if this is a protected page
-    checkProtectedPage();
-    
-    // Wait for Firebase initialization
-    waitForFirebase();
-    
-    // Set up header UI interactions
-    setupHeaderInteractions();
-    
-    // Set up secure navigation
-    setupSecureNavigation();
-    
-    // Check if current page requires authentication
-    function checkProtectedPage() {
-        console.log("Checking if current page is protected");
-        
-        const isProtectedPage = window.location.pathname.includes('/pages/') && 
-                               !window.location.pathname.includes('login') &&
-                               !window.location.pathname.includes('register');
-        
-        if (isProtectedPage) {
-            console.log("Current page is protected");
-            
-            // Check if user previously logged out
-            const userLoggedOut = sessionStorage.getItem('userLoggedOut') === 'true';
-            if (userLoggedOut) {
-                // If user intentionally logged out and is trying to use back button
-                console.log("User previously logged out - preventing access via back button");
-                sessionStorage.removeItem('userLoggedOut'); // Clear the flag
-                window.location.replace('studiopanel-login.html'); // Use replace to avoid adding to history
-                return;
-            }
-            
-            // Check for authorization flag
-            const hasAuthorizationFlag = sessionStorage.getItem('authorizedAccess') === 'true';
-            console.log("Authorization flag:", hasAuthorizationFlag);
-            
-            if (!hasAuthorizationFlag) {
-                // No authorization flag - redirect to login
-                console.log("No authorization flag found - redirecting to login");
-                window.location.replace('studiopanel-login.html');
-                return;
-            }
-            
-            // Don't check Firebase auth immediately to avoid race conditions
-            // The auth state observer will handle this once Firebase is initialized
-        } else {
-            console.log("Current page is not protected");
-        }
-    }
-    
-    // Wait for Firebase to initialize
-    function waitForFirebase() {
-        if (typeof window.firebaseServices === 'undefined' || 
-            typeof window.firebaseAuth === 'undefined') {
-            console.log("Waiting for Firebase to initialize...");
-            setTimeout(waitForFirebase, 100);
-            return;
-        }
-        
-        console.log("Firebase initialized, setting up auth observer");
-        // Firebase is ready, set up auth observer
-        setupAuthObserver();
-    }
-    
-    // Set up Firebase auth state observer
-    function setupAuthObserver() {
-        console.log("Setting up auth observer");
-        
-        window.firebaseAuth.setupAuthObserver(
-            // User logged in
-            async function(user) {
-                console.log("User is logged in:", user.email);
-                
-                // Update UI for authenticated user
-                updateUIForUser(user);
-                
-                // Fetch additional user data if needed
-                try {
-                    const db = window.firebaseServices.db;
-                    // Important: Query the document based on the current user's ID
-                    const querySnapshot = await db.collection('photographer')
-                        .where('uid', '==', user.uid)
-                        .limit(1)
-                        .get();
+                <a href="#" class="logo">
+                    <img src="assets/images/snapselect-logo.jpeg" alt="SnapSelect" class="logo-image">
+                    <div class="logo-text">SnapSelect</div>
+                </a>
+                <ul class="nav-links">
+                    <li><a href="#features">Features</a></li>
+                    <li><a href="#how-it-works">How It Works</a></li>
+                    <li><a href="#pricing">Pricing</a></li>
+                </ul>
+                <div class="right-nav">
+                    <!-- User not logged in - show login button -->
+                    <div class="auth-guest" id="guestNav">
+                        <a href="pages/studiopanel-login.html" class="login-btn">Log In</a>
+                    </div>
                     
-                    if (!querySnapshot.empty) {
-                        const userData = querySnapshot.docs[0].data();
-                        // Update display name if available
-                        if (userData.ownerName) {
-                            if (userName) {
-                                userName.textContent = userData.ownerName.split(' ')[0];
-                            }
-                            if (userAvatar) {
-                                userAvatar.textContent = userData.ownerName.charAt(0).toUpperCase();
-                            }
-                        }
-                    } else {
-                        // If no photographer profile found, use email
-                        if (userName) {
-                            userName.textContent = user.email.split('@')[0];
-                        }
-                        if (userAvatar) {
-                            userAvatar.textContent = user.email.charAt(0).toUpperCase();
-                        }
-                    }
-                } catch (error) {
-                    console.error("Error fetching user data:", error);
-                    // Fallback to email if there's an error
-                    if (userName) {
-                        userName.textContent = user.email.split('@')[0];
-                    }
-                    if (userAvatar) {
-                        userAvatar.textContent = user.email.charAt(0).toUpperCase();
-                    }
-                }
-            },
-            // User logged out
-            function() {
-                console.log("User is logged out");
-                updateUIForGuest();
-                
-                // Check if we're on a protected page
-                const isProtectedPage = window.location.pathname.includes('/pages/') && 
-                                      !window.location.pathname.includes('login') &&
-                                      !window.location.pathname.includes('register');
-                
-                if (isProtectedPage) {
-                    // Clear authorization flag
-                    sessionStorage.removeItem('authorizedAccess');
-                    sessionStorage.removeItem('authTimestamp');
-                    
-                    // Set logout flag
-                    sessionStorage.setItem('userLoggedOut', 'true');
-                    
-                    // Redirect to login
-                    console.log("User logged out while on protected page - redirecting to login");
-                    window.location.replace('studiopanel-login.html');
-                } else {
-                    // Force immediate UI update
-                    setTimeout(() => {
-                        if (guestNav && userNav) {
-                            guestNav.style.display = 'block';
-                            userNav.style.display = 'none';
-                        }
-                    }, 100);
-                }
-            }
-        );
-    }
-    
-    // Update UI for logged in user
-    function updateUIForUser(user) {
-        console.log("Updating UI for logged in user");
-        document.getElementById('authLoading').style.display = 'none';
-        if (guestNav) guestNav.style.display = 'none';
-        if (userNav) userNav.style.display = 'block';
-        
-        // Display user's name
-        if (userName) {
-            if (user.displayName) {
-                userName.textContent = user.displayName.split(' ')[0];
-            } else {
-                userName.textContent = user.email.split('@')[0];
-            }
-        }
-        
-        // Display user's avatar
-        if (userAvatar) {
-            userAvatar.textContent = user.email.charAt(0).toUpperCase();
-        }
-    }
-    
-    // Update UI for logged out user
-    function updateUIForGuest() {
-        console.log("Updating UI for guest user");
-        document.getElementById('authLoading').style.display = 'none';
-        
-        if (guestNav) guestNav.style.display = 'block';
-        if (userNav) userNav.style.display = 'none';
-        
-        // Clear user data from UI
-        if (userName) userName.textContent = 'User';
-        if (userAvatar) userAvatar.textContent = 'U';
-        
-        // Close dropdown if open
-        if (userDropdown) {
-            userDropdown.classList.remove('active');
-        }
-    }
-    
-    // Set up header UI interactions
-    function setupHeaderInteractions() {
-        // Handle user menu dropdown toggle
-        if (userMenuBtn) {
-            userMenuBtn.addEventListener('click', function(e) {
-                e.preventDefault();
-                e.stopPropagation();
-                userDropdown.classList.toggle('active');
-            });
+                    <!-- User logged in - show user menu with logout -->
+                    <div class="auth-user" id="userNav" style="display: none;">
+                        <div class="user-menu">
+                            <button class="user-menu-btn" id="userMenuBtn">
+                                <img src="assets/images/placeholder-avatar.jpg" id="userAvatar" class="user-avatar" alt="User">
+                                <span class="user-name" id="userName">User</span>
+                                <i class="fas fa-chevron-down"></i>
+                            </button>
+                         
 
-            // Close dropdown when clicking outside
-            document.addEventListener('click', function(e) {
-                if (!userMenuBtn.contains(e.target) && !userDropdown.contains(e.target)) {
-                    userDropdown.classList.remove('active');
-                }
-            });
-        }
-        
-        // Handle logout button click
-        if (logoutBtn) {
-            logoutBtn.addEventListener('click', function(e) {
-                e.preventDefault();
-                e.stopPropagation();
-                
-                // Close the dropdown
-                userDropdown.classList.remove('active');
-                
-                // Show confirmation dialog
-                showLogoutConfirmation();
-            });
-        }
-    }
-    
-    // Set up secure navigation for dashboard and other protected pages
-    function setupSecureNavigation() {
-        console.log("Setting up secure navigation");
-        
-        // Apply to dashboard link in user dropdown
-        const dashboardLink = document.querySelector('.user-dropdown a[href*="dashboard"]');
-        if (dashboardLink) {
-            console.log("Found dashboard link in dropdown, setting up secure navigation");
-            // Update the href to prevent direct access
-            dashboardLink.href = '#';
-            
-            // Add secure navigation
-            dashboardLink.addEventListener('click', navigateToDashboard);
-        }
-        
-        // Also handle any other dashboard links on the page
-        const allDashboardLinks = document.querySelectorAll('a[href*="dashboard"]');
-        allDashboardLinks.forEach(link => {
-            // Check if it's not the dropdown link (already handled)
-            if (!link.closest('.user-dropdown')) {
-                console.log("Found additional dashboard link, setting up secure navigation");
-                link.href = '#';
-                link.addEventListener('click', navigateToDashboard);
-            }
-        });
-    }
-    
-    // Function to authorize dashboard access - IMPROVED VERSION
-    function navigateToDashboard(event) {
-        event.preventDefault();
-        console.log("Dashboard link clicked");
-        
-        // Check if user is authenticated
-        const auth = window.firebaseServices?.auth;
-        const user = auth?.currentUser;
-        
-        if (user) {
-            console.log("User authenticated, setting authorization flag");
-            
-            // First, verify we can access sessionStorage
-            try {
-                // Set authorization flag with explicit storage access check
-                sessionStorage.setItem('authorizedAccess', 'true');
-                sessionStorage.setItem('authTimestamp', Date.now().toString());
-                
-                // Double-check that the flag was set properly
-                const flagSet = sessionStorage.getItem('authorizedAccess') === 'true';
-                console.log("Authorization flag set successfully:", flagSet);
-                
-                if (!flagSet) {
-                    throw new Error("Failed to set authorization flag");
-                }
-                
-                // Increased delay to ensure flag is set and Firebase state is synchronized
-                setTimeout(() => {
-                    // Determine correct path based on current location
-                    let dashboardPath;
-                    if (window.location.pathname.includes('/pages/')) {
-                        dashboardPath = 'photographer-dashboard.html';
-                    } else {
-                        dashboardPath = 'pages/photographer-dashboard.html';
-                    }
-                    
-                    console.log("Navigating to dashboard:", dashboardPath);
-                    window.location.href = dashboardPath;
-                }, 300); // Increased delay for better synchronization
-            } catch (e) {
-                console.error("Error setting session storage:", e);
-                // Fall back to direct navigation if sessionStorage fails
-                const dashboardPath = window.location.pathname.includes('/pages/') ? 
-                                     'photographer-dashboard.html' : 
-                                     'pages/photographer-dashboard.html';
-                window.location.href = dashboardPath;
-            }
-        } else {
-            console.log("User not authenticated, redirecting to login");
-            // Redirect to login if not authenticated
-            window.location.href = window.location.pathname.includes('/pages/') ? 
-                                  'studiopanel-login.html' : 
-                                  'pages/studiopanel-login.html';
-        }
-    }
-    
-    // Show logout confirmation dialog
-    function showLogoutConfirmation() {
-        // Create confirmation dialog if it doesn't exist
-        if (!document.getElementById('logoutConfirm')) {
-            const confirmDialog = document.createElement('div');
-            confirmDialog.id = 'logoutConfirm';
-            confirmDialog.className = 'logout-confirm';
-            confirmDialog.innerHTML = `
-                <div class="logout-confirm-content">
-                    <h3>Logout Confirmation</h3>
-                    <p>Are you sure you want to log out of SnapSelect?</p>
-                    <div class="logout-confirm-buttons">
-                        <button class="btn-cancel" id="cancelLogout">Cancel</button>
-                        <button class="btn-logout" id="confirmLogout">Logout</button>
+                            <div class="user-dropdown" id="userDropdown">
+                                <!-- Change the dashboard link to use # instead of direct path -->
+                                <a href="#" id="dashboardNavLink">Dashboard</a>
+                                <a href="pages/account-settings.html">Account Settings</a>
+                                <a href="#" id="logoutBtn">Logout</a>
+                            </div>
+                        </div>
                     </div>
                 </div>
-            `;
-            document.body.appendChild(confirmDialog);
-            
-            // Add event listeners
-            document.getElementById('cancelLogout').addEventListener('click', function() {
-                confirmDialog.classList.remove('active');
-            });
-            
-            document.getElementById('confirmLogout').addEventListener('click', function() {
-                // Show loading state
-                const confirmBtn = this;
-                const originalText = confirmBtn.textContent;
-                confirmBtn.innerHTML = '<span class="loading-spinner"></span>Logging out...';
-                confirmBtn.disabled = true;
-                
-                // Perform logout
-                performLogout()
-                    .then(() => {
-                        // Success - dialog will be hidden by auth state change
-                    })
-                    .catch(error => {
-                        console.error("Logout error:", error);
-                        // Reset button
-                        confirmBtn.innerHTML = originalText;
-                        confirmBtn.disabled = false;
-                        // Show error message
-                        alert("Logout failed. Please try again.");
-                    });
-            });
-            
-            // Close when clicking outside
-            confirmDialog.addEventListener('click', function(e) {
-                if (e.target === confirmDialog) {
-                    confirmDialog.classList.remove('active');
-                }
-            });
-        }
-        
-        // Show the dialog
-        document.getElementById('logoutConfirm').classList.add('active');
-    }
+                <div class="hamburger">
+                    <i class="fas fa-bars"></i>
+                </div>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="container">
+            <div class="hero-content">
+                <div class="hero-text">
+                    <h1>Streamline Your Photo Workflow with SnapSelect</h1>
+                    <p>The platform where clients select their favorites, so you can focus on editing what matters.</p>
+                    <a href="pages/photographer_registration.html" class="btn">Get Started</a>
+                </div>
+                <div class="hero-image">
+                    <img src="assets/images/hero-image.jpg" alt="Photographer and client reviewing photos">
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section class="features" id="features">
+        <div class="container">
+            <div class="section-title">
+                <h2>Key Features</h2>
+                <p>SnapSelect helps photographers save time and focus on what matters most.</p>
+            </div>
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-upload"></i>
+                    </div>
+                    <h3>Effortless Uploads</h3>
+                    <p>Drag-and-drop interface for batch uploads. Automatic organization by shoot date and client.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-check-circle"></i>
+                    </div>
+                    <h3>Client Selection</h3>
+                    <p>Simple sharing via custom links. Real-time notifications when clients make selections.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-sync-alt"></i>
+                    </div>
+                    <h3>Workflow Integration</h3>
+                    <p>Export selected photos to editing software. Progress tracking from selection to final delivery.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- How It Works Section -->
+    <section class="how-it-works" id="how-it-works">
+        <div class="container">
+            <div class="section-title">
+                <h2>How It Works</h2>
+                <p>A simple three-step process that saves you hours of editing time.</p>
+            </div>
+            <div class="steps">
+                <div class="step">
+                    <div class="step-number">1</div>
+                    <h3>Upload Photos</h3>
+                    <p>Create collections for your clients and upload your photos in batches.</p>
+                </div>
+                <div class="step">
+                    <div class="step-number">2</div>
+                    <h3>Clients Select</h3>
+                    <p>They mark their favorite photos through an intuitive interface.</p>
+                </div>
+                <div class="step">
+                    <div class="step-number">3</div>
+                    <h3>Edit & Deliver</h3>
+                    <p>Focus only on selected photos, saving time and resources.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Testimonials Section -->
+    <section class="testimonials">
+        <div class="container">
+            <div class="section-title">
+                <h2>Photographers Love SnapSelect</h2>
+                <p>Hear what professional photographers have to say about our platform.</p>
+            </div>
+            <div class="testimonial">
+                <div class="testimonial-image">
+                    <!-- Placeholder for testimonial image -->
+                </div>
+                <p class="testimonial-text">"SnapSelect saved me hours of editing time. My clients love the selection process and I only edit what they truly want. This has revolutionized my workflow and made my business more efficient."</p>
+                <p class="testimonial-author">Sarah Johnson</p>
+                <p class="testimonial-role">Wedding Photographer</p>
+            </div>
+        </div>
+    </section>
+
+        <!-- Pricing Section -->
+    <section class="pricing" id="pricing">
+        <div class="container">
+            <div class="section-title">
+                <h2>Pricing Plans</h2>
+                <p>Choose the plan that best fits your photography business needs. Pay only per client session.</p>
+                <a href="pages/pricing-comparison.html" class="btn btn-outline">View Detailed Comparison</a>
+            </div>
+            <div class="pricing-grid">
+                <div class="pricing-card">
+                    <h3 class="price-title">Lite</h3>
+                    <div class="price">₹79<span>/client</span></div>
+                    <ul class="pricing-features">
+                        <li>Up to 100 photo uploads per client</li>
+                        <li>2GB total storage</li>
+                        <li>Basic image quality (up to 5MB per image)</li>
+                        <li>7-day client selection window</li>
+                        <li>Simple gallery layout</li>
+                        <li>Perfect for beginners and occasional photography projects</li>
+                    </ul>
+                    <a href="pages/photographer_registration.html" class="btn btn-outline">Get Started</a>
+                </div>
+                <div class="pricing-card">
+                    <h3 class="price-title">Mini</h3>
+                    <div class="price">₹149<span>/client</span></div>
+                    <ul class="pricing-features">
+                        <li>Up to 200 photo uploads per client</li>
+                        <li>5GB total storage</li>
+                        <li>Standard image quality (up to 8MB per image)</li>
+                        <li>14-day client selection window</li>
+                        <li>Basic gallery customization</li>
+                        <li>Ideal for hobby photographers with regular projects</li>
+                    </ul>
+                    <a href="pages/photographer_registration.html" class="btn btn-outline">Get Started</a>
+                </div>
+                <div class="pricing-card">
+                    <h3 class="price-title">Basic</h3>
+                    <div class="price">₹399<span>/client</span></div>
+                    <ul class="pricing-features">
+                        <li>Up to 500 photo uploads per client</li>
+                        <li>15GB total storage</li>
+                        <li>Enhanced image quality (up to 12MB per image)</li>
+                        <li>30-day client selection window</li>
+                        <li>Custom gallery branding</li>
+                        <li>Ideal for part-time professionals</li>
+                    </ul>
+                    <a href="pages/photographer_registration.html" class="btn btn-outline">Get Started</a>
+                </div>
+                <div class="pricing-card">
+                    <h3 class="price-title">Pro</h3>
+                    <div class="price">₹799<span>/client</span></div>
+                    <ul class="pricing-features">
+                        <li>Up to 800 photo uploads per client</li>
+                        <li>25GB total storage</li>
+                        <li>High image quality (up to 15MB per image)</li>
+                        <li>45-day client selection window</li>
+                        <li>Advanced gallery customization</li>
+                        <li>Client favorites collection feature</li>
+                        <li>Perfect for growing photography businesses</li>
+                    </ul>
+                    <a href="pages/photographer_registration.html" class="btn btn-outline">Get Started</a>
+                </div>
+                <div class="pricing-card featured">
+                    <h3 class="price-title">Premium</h3>
+                    <div class="price">₹1,499<span>/client</span></div>
+                    <ul class="pricing-features">
+                        <li>Up to 1,200 photo uploads per client</li>
+                        <li>50GB total storage</li>
+                        <li>Premium image quality (up to 20MB per image)</li>
+                        <li>60-day client selection window</li>
+                        <li>Complete branding customization</li>
+                        <li>Priority customer support</li>
+                        <li>Client favorites and comments</li>
+                        <li>Ideal for established professional photographers</li>
+                    </ul>
+                    <a href="pages/photographer_registration.html" class="btn">Get Started</a>
+                </div>
+                <div class="pricing-card">
+                    <h3 class="price-title">Ultimate</h3>
+                    <div class="price">₹2,999<span>/client</span></div>
+                    <ul class="pricing-features">
+                        <li>Unlimited photo uploads per client</li>
+                        <li>100GB total storage</li>
+                        <li>Maximum image quality (up to 25MB per image)</li>
+                        <li>90-day client selection window</li>
+                        <li>All Premium features plus:</li>
+                        <li>Direct client downloads</li>
+                        <li>Advanced analytics dashboard</li>
+                        <li>White-label experience</li>
+                        <li>Perfect for studios and high-volume photographers</li>
+                    </ul>
+                    <a href="pages/photographer_registration.html" class="btn btn-outline">Get Started</a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer CTA -->
+    <section class="cta-section">
+        <div class="container">
+            <h2>Ready to streamline your workflow?</h2>
+            <a href="pages/photographer_registration.html" class="btn">Get Started</a>
+        </div>
+    </section>
     
-    // Perform the actual logout
-    async function performLogout() {
-        if (!window.firebaseAuth) {
-            throw new Error("Firebase Auth not initialized");
-        }
-        
-        try {
-            // Clear authorization flag immediately before logout
-            console.log("Clearing authorization flags");
-            sessionStorage.removeItem('authorizedAccess');
-            sessionStorage.removeItem('authTimestamp');
-            
-            // Set logout flag in sessionStorage instead of manipulating history
-            sessionStorage.setItem('userLoggedOut', 'true');
-            
-            // Clear any unsaved changes or local state if needed
-            clearLocalState();
-            
-            // Sign out from Firebase
-            await window.firebaseAuth.signOut();
-            console.log("Firebase sign out completed");
-            
-            // Close confirmation dialog
-            const confirmDialog = document.getElementById('logoutConfirm');
-            if (confirmDialog) {
-                confirmDialog.classList.remove('active');
-            }
-            
-            // Update UI immediately before redirect
-            updateUIForGuest();
-            
-            // Redirect to home page
-            console.log("Redirecting after logout");
-            const currentPath = window.location.pathname;
-            
-            if (currentPath.includes('index.html') || currentPath === '/' || currentPath === '/snapselect/') {
-                // Force reload to reset state
-                window.location.reload();
-            } else {
-                // Use relative path for GitHub Pages
-                // If we're in a subdirectory, go up to the root
-                let redirectPath = '';
-                
-                // If we're in the 'pages' directory, go up one level
-                if (currentPath.includes('/pages/')) {
-                    redirectPath = '../index.html';
-                } else {
-                    // Otherwise, just use the root path
-                    redirectPath = 'index.html';
-                }
-                
-                console.log("Redirecting to:", redirectPath);
-                // Use replace instead of href to avoid adding to history stack
-                window.location.replace(redirectPath);
-            }
-            
-            return true;
-        } catch (error) {
-            console.error("Logout error:", error);
-            throw error;
-        }
-    }
+    <!-- Footer -->
+    <footer>
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-column">
+                    <h3>Product</h3>
+                    <ul>
+                        <li><a href="#">Features</a></li>
+                        <li><a href="#">Pricing</a></li>
+                        <li><a href="#">Integrations</a></li>
+                        <li><a href="#">Updates</a></li>
+                    </ul>
+                </div>
+                <div class="footer-column">
+                    <h3>Resources</h3>
+                    <ul>
+                        <li><a href="#">Blog</a></li>
+                        <li><a href="#">Tutorials</a></li>
+                        <li><a href="#">Help Center</a></li>
+                        <li><a href="#">Community</a></li>
+                    </ul>
+                </div>
+                <div class="footer-column">
+                    <h3>Company</h3>
+                    <ul>
+                        <li><a href="#">About Us</a></li>
+                        <li><a href="#">Careers</a></li>
+                        <li><a href="#">Contact</a></li>
+                        <li><a href="#">Partners</a></li>
+                    </ul>
+                </div>
+                <div class="footer-column">
+                    <h3>Legal</h3>
+                    <ul>
+                        <li><a href="#">Privacy Policy</a></li>
+                        <li><a href="#">Terms of Service</a></li>
+                        <li><a href="#">Cookie Policy</a></li>
+                        <li><a href="#">GDPR</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>Connect with us</p>
+                <div class="social-icons">
+                    <a href="#"><i class="fab fa-facebook"></i></a>
+                    <a href="#"><i class="fab fa-twitter"></i></a>
+                    <a href="#"><i class="fab fa-instagram"></i></a>
+                    <a href="#"><i class="fab fa-linkedin"></i></a>
+                </div>
+                <p class="copyright">&copy; 2025 SnapSelect. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Firebase Scripts - Load before header integration -->
+    <!-- Firebase SDK - Should be loaded first -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
     
-    // Clear any local state
-    function clearLocalState() {
-        // Clear any localStorage items that are not related to Firebase
-        // but are used by your application
-        localStorage.removeItem('snapselect_preferences');
-        localStorage.removeItem('snapselect_recent_galleries');
-        localStorage.removeItem('snapselect_draft_uploads');
-        
-        // Clear all session storage except the logout flag
-        const logoutFlag = sessionStorage.getItem('userLoggedOut');
-        
-        // Clear all items from sessionStorage
-        sessionStorage.clear();
-        
-        // Restore the logout flag if it was set
-        if (logoutFlag) {
-            sessionStorage.setItem('userLoggedOut', logoutFlag);
-        }
-        
-        // Clear cookies related to the application
-        // (but not Firebase Auth cookies, those will be handled by Firebase)
-        const appCookies = ['snapselect_preferences', 'snapselect_lastVisited', 'snapselect_theme'];
-        appCookies.forEach(cookieName => {
-            document.cookie = `${cookieName}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
-        });
-        
-        console.log("Local application state cleared");
-    }
+    <!-- Your Firebase configuration and modules -->
+    <script src="assets/js/firebase-config.js"></script>
+    <script src="assets/js/firebase-auth.js"></script>
+    <script src="assets/js/firebase-db.js"></script>
     
-    // Special handling for cache control
-    function setupCacheControl() {
-        // Add no-cache headers for protected pages
-        if (window.location.pathname.includes('/pages/') && 
-            !window.location.pathname.includes('login') &&
-            !window.location.pathname.includes('register')) {
-            
-            // Add meta tags to prevent caching
-            const metaNoCache = document.createElement('meta');
-            metaNoCache.setAttribute('http-equiv', 'Cache-Control');
-            metaNoCache.setAttribute('content', 'no-cache, no-store, must-revalidate');
-            document.head.appendChild(metaNoCache);
-            
-            const metaNoStore = document.createElement('meta');
-            metaNoStore.setAttribute('http-equiv', 'Pragma');
-            metaNoStore.setAttribute('content', 'no-cache');
-            document.head.appendChild(metaNoStore);
-            
-            const metaExpires = document.createElement('meta');
-            metaExpires.setAttribute('http-equiv', 'Expires');
-            metaExpires.setAttribute('content', '0');
-            document.head.appendChild(metaExpires);
-            
-            console.log("Cache control headers added to protected page");
-        }
-    }
+    <!-- Main application script -->
+    <script src="assets/js/main.js"></script>
     
-    // Setup cache control when the page loads
-    setupCacheControl();
-    
-    // Handle browser navigation events
-    function setupNavigationHandling() {
-        // Listen for popstate event (user pressing back or forward buttons)
-        window.addEventListener('popstate', function(event) {
-            console.log("Navigation event detected");
-            
-            // Check if we're on a protected page
-            const isProtectedPage = window.location.pathname.includes('/pages/') && 
-                                   !window.location.pathname.includes('login') &&
-                                   !window.location.pathname.includes('register');
-            
-            if (isProtectedPage) {
-                // Re-verify authorization on navigation events
-                const hasAuthorizationFlag = sessionStorage.getItem('authorizedAccess') === 'true';
-                const userLoggedOut = sessionStorage.getItem('userLoggedOut') === 'true';
-                
-                if (!hasAuthorizationFlag || userLoggedOut) {
-                    console.log("Invalid session state after navigation - redirecting to login");
-                    // Clear flags
-                    sessionStorage.removeItem('userLoggedOut');
+    <!-- Header authentication integration - Load last -->
+    <script src="assets/js/header-auth.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Secure dashboard navigation
+            const dashboardNavLink = document.getElementById('dashboardNavLink');
+            if (dashboardNavLink) {
+                dashboardNavLink.addEventListener('click', function(e) {
+                    e.preventDefault();
                     
-                    // Redirect
-                    window.location.replace('studiopanel-login.html');
-                }
-            }
-        });
-        
-        // Handle page visibility changes
-        document.addEventListener('visibilitychange', function() {
-            if (document.visibilityState === 'visible') {
-                console.log("Page became visible - verifying session");
-                
-                // Check if we're on a protected page
-                const isProtectedPage = window.location.pathname.includes('/pages/') && 
-                                       !window.location.pathname.includes('login') &&
-                                       !window.location.pathname.includes('register');
-                
-                if (isProtectedPage) {
-                    // Re-verify authorization
-                    const hasAuthorizationFlag = sessionStorage.getItem('authorizedAccess') === 'true';
-                    const userLoggedOut = sessionStorage.getItem('userLoggedOut') === 'true';
+                    // Check authentication
+                    const auth = window.firebaseServices?.auth;
+                    const user = auth?.currentUser;
                     
-                    if (!hasAuthorizationFlag || userLoggedOut) {
-                        console.log("Invalid session state when returning to page - redirecting to login");
-                        // Clear flags
-                        sessionStorage.removeItem('userLoggedOut');
+                    if (user) {
+                        // Set authorization flag
+                        sessionStorage.setItem('authorizedAccess', 'true');
                         
-                        // Redirect
-                        window.location.replace('studiopanel-login.html');
+                        // Navigate to dashboard
+                        window.location.href = 'pages/photographer-dashboard.html';
+                    } else {
+                        // Redirect to login
+                        window.location.href = 'pages/studiopanel-login.html';
                     }
-                }
+                });
             }
         });
-    }
-    
-    // Setup navigation event handling
-    setupNavigationHandling();
-});
+    </script>
+</body>
+</html>
