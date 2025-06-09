@@ -111,14 +111,14 @@
             box-shadow: 0 5px 20px rgba(0,0,0,0.1);
             padding: 40px;
             width: 100%;
-            max-width: 500px;
+            max-width: 450px;
             margin: 0 auto;
         }
         
         .login-title {
             font-size: 28px;
             color: var(--dark);
-            margin-bottom: 30px;
+            margin-bottom: 20px;
             text-align: center;
         }
 
@@ -263,6 +263,31 @@
             margin-top: 15px;
             display: none;
             text-align: center;
+        }
+
+        /* Responsive spacing for login container */
+        @media (max-width: 768px) {
+            .login-container {
+                padding: 25px;
+                max-width: 400px;
+            }
+            
+            .login-title {
+                font-size: 24px;
+                margin-bottom: 18px;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .login-container {
+                padding: 20px;
+                margin: 0 15px;
+            }
+            
+            .login-title {
+                font-size: 22px;
+                margin-bottom: 15px;
+            }
         }
     </style>
 </head>
