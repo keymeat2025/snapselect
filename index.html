@@ -10,6 +10,30 @@
     <link rel="stylesheet" href="assets/css/main.css">
     <link rel="stylesheet" href="assets/css/responsive.css">
     <link rel="stylesheet" href="assets/css/user-menu.css">
+    <style>
+        .auth-loading {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            color: #666;
+            font-size: 14px;
+        }
+        
+        .loading-logo {
+            width: 24px;
+            height: 24px;
+            border-radius: 4px;
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+    </style>
+
+    
 </head>
 <body>
     <!-- Navigation Header with Firebase Authentication Integration -->
