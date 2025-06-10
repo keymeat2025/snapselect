@@ -571,6 +571,183 @@
         .revoke-1:hover {
           animation: shake 0.5s;
         }
+
+
+
+        /* NOTIFICATION SYSTEM CSS - Add these missing styles */
+        .notification-container {
+            position: relative;
+            margin-right: 1rem;
+        }
+        
+        .notification-btn {
+            background: none;
+            border: none;
+            color: var(--text-color, #1f2937);
+            font-size: 1.25rem;
+            cursor: pointer;
+            position: relative;
+            display: flex;
+            align-items: center;
+            padding: 8px;
+            border-radius: 50%;
+            transition: all 0.25s ease;
+        }
+        
+        .notification-btn:hover {
+            background-color: rgba(59, 130, 246, 0.08);
+            color: #3b82f6;
+        }
+        
+        .notification-badge {
+            position: absolute;
+            top: -6px;
+            right: -6px;
+            background-color: #ef4444;
+            color: white;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            font-size: 0.75rem;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-weight: 600;
+            box-shadow: 0 2px 5px rgba(239, 68, 68, 0.4);
+            min-width: 20px;
+        }
+        
+        .notification-dropdown {
+            position: absolute;
+            top: 100%;
+            right: -120px;
+            width: 360px;
+            background-color: white;
+            border-radius: 16px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+            display: none;
+            z-index: 100;
+            max-height: 420px;
+            overflow-y: auto;
+            border: 1px solid rgba(59, 130, 246, 0.15);
+            animation: fadeInDown 0.3s ease forwards;
+        }
+        
+        .notification-dropdown.show {
+            display: block;
+        }
+        
+        .notification-header {
+            padding: 1.25rem;
+            border-bottom: 1px solid #e5e7eb;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .notification-header h3 {
+            margin: 0;
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+        
+        .mark-all-read {
+            background: none;
+            border: none;
+            color: #3b82f6;
+            font-size: 0.9rem;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.25s ease;
+            padding: 4px 8px;
+            border-radius: 6px;
+        }
+        
+        .mark-all-read:hover {
+            background-color: rgba(59, 130, 246, 0.1);
+        }
+        
+        .notification-list {
+            padding: 0.5rem 0;
+        }
+        
+        .notification-item {
+            padding: 1rem 1.25rem;
+            border-bottom: 1px solid #e5e7eb;
+            transition: all 0.25s ease;
+            position: relative;
+            cursor: pointer;
+        }
+        
+        .notification-item:last-child {
+            border-bottom: none;
+        }
+        
+        .notification-item:hover {
+            background-color: rgba(59, 130, 246, 0.05);
+        }
+        
+        .notification-item.unread {
+            background-color: rgba(59, 130, 246, 0.08);
+        }
+        
+        .notification-item.unread:before {
+            content: "";
+            display: block;
+            width: 8px;
+            height: 8px;
+            background-color: #3b82f6;
+            border-radius: 50%;
+            position: absolute;
+            left: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+        
+        .notification-content {
+            margin-left: 24px;
+        }
+        
+        .notification-title {
+            font-weight: 600;
+            color: #111827;
+            margin-bottom: 0.4rem;
+            line-height: 1.4;
+        }
+        
+        .notification-time {
+            font-size: 0.8rem;
+            color: #6b7280;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        
+        .empty-notification {
+            padding: 2rem 1.5rem;
+            text-align: center;
+            color: #6b7280;
+            font-size: 1rem;
+        }
+        
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        /* Mobile responsive */
+        @media (max-width: 768px) {
+            .notification-dropdown {
+                width: 300px;
+                right: -140px;
+            }
+        }
     </style>
 </head>
 <body>
@@ -595,6 +772,22 @@
                     <li><a href="analytics.html">Analytics</a></li>
                 </ul>
                 <div class="right-nav">
+                     <div class="notification-container">
+                        <button id="notificationBtn" class="notification-btn">
+                            <i class="fas fa-bell"></i>
+                            <span id="notificationCount" class="notification-badge">0</span>
+                        </button>
+                        
+                        <div id="notificationDropdown" class="notification-dropdown">
+                            <div class="notification-header">
+                                <h3>Notifications</h3>
+                                <button id="markAllReadBtn" class="mark-all-read">Mark all as read</button>
+                            </div>
+                            <div id="notificationList" class="notification-list">
+                                <!-- Notifications will be loaded here -->
+                            </div>
+                        </div>
+                    </div>
                     <div class="auth-user" id="userNav">
                         <div class="user-menu">
                             <button class="user-menu-btn" id="userMenuBtn">
@@ -616,23 +809,7 @@
                     <i class="fas fa-bars"></i>
                 </div>
               
-                <!-- Notification Bell -->
-                <div class="notification-container">
-                  <button id="notificationBtn" class="notification-btn">
-                    <i class="fas fa-bell"></i>
-                    <span id="notificationCount" class="notification-badge">0</span>
-                  </button>
-                  
-                  <div id="notificationDropdown" class="notification-dropdown">
-                    <div class="notification-header">
-                      <h3>Notifications</h3>
-                      <button id="markAllReadBtn" class="mark-all-read">Mark all as read</button>
-                    </div>
-                    <div id="notificationList" class="notification-list">
-                      <!-- Notifications will be loaded here -->
-                    </div>
-                  </div>
-                </div>
+
             </nav>
         </div>
     </header>
@@ -960,8 +1137,9 @@
     <script src="../assets/js/firebase-config.js"></script>
     <script src="../assets/js/firebase-auth.js"></script>
     <script src="../assets/js/firebase-db.js"></script>
-    <script src="../assets/js/header-auth.js"></script>
     <script src="../assets/js/notification-system.js"></script>
+    <script src="../assets/js/header-auth.js"></script>
+    
     //<script src="../assets/js/gallery-view.js"></script>
     //<script src="../assets/js/gallery-sharing.js"></script>
     <script src="../assets/js/gallery-share-modal.js"></script>
