@@ -188,7 +188,6 @@
         <div class="loading-text">Loading...</div>
     </div>
 
-
     <header>
         <div class="container">
             <nav>
@@ -202,25 +201,6 @@
                     <li><a href="../index.html#pricing">Pricing</a></li>
                 </ul>
                 <div class="right-nav">
-                    <!-- Notification Bell - MOVED INSIDE right-nav -->
-                    <div class="notification-container">
-                        <button id="notificationBtn" class="notification-btn">
-                            <i class="fas fa-bell"></i>
-                            <span id="notificationCount" class="notification-badge">0</span>
-                        </button>
-                        
-                        <div id="notificationDropdown" class="notification-dropdown">
-                            <div class="notification-header">
-                                <h3>Notifications</h3>
-                                <button id="markAllReadBtn" class="mark-all-read">Mark all as read</button>
-                            </div>
-                            <div id="notificationList" class="notification-list">
-                                <!-- Notifications will be loaded here -->
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- User Menu -->
                     <div class="auth-user" id="userNav">
                         <div class="user-menu">
                             <button class="user-menu-btn" id="userMenuBtn">
@@ -240,6 +220,24 @@
                 </div>
                 <div class="hamburger">
                     <i class="fas fa-bars"></i>
+                </div>
+              
+            <!-- Notification Bell -->
+                <div class="notification-container">
+                  <button id="notificationBtn" class="notification-btn">
+                    <i class="fas fa-bell"></i>
+                    <span id="notificationCount" class="notification-badge">0</span>
+                  </button>
+                  
+                  <div id="notificationDropdown" class="notification-dropdown">
+                    <div class="notification-header">
+                      <h3>Notifications</h3>
+                      <button id="markAllReadBtn" class="mark-all-read">Mark all as read</button>
+                    </div>
+                    <div id="notificationList" class="notification-list">
+                      <!-- Notifications will be loaded here -->
+                    </div>
+                  </div>
                 </div>
             </nav>
         </div>
