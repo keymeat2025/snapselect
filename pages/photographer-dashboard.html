@@ -17,6 +17,9 @@
     <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <style>
+
+   
+
         /* Ensure toast container has proper positioning */
         #toastContainer {
             position: fixed;
@@ -24,8 +27,46 @@
             right: 20px;
             z-index: 9999;
         }
-
         
+        /* ADD THIS NEW CSS BLOCK HERE: */
+        /* Fix toast notification backgrounds */
+        .toast {
+            background: #ffffff !important;
+            border-radius: 8px !important;
+            padding: 1rem !important;
+            margin-bottom: 1rem !important;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15) !important;
+            border-left: 4px solid var(--primary) !important;
+            min-width: 300px !important;
+            animation: slideIn 0.3s ease !important;
+            display: flex !important;
+            align-items: center !important;
+            gap: 0.75rem !important;
+            opacity: 1 !important;
+            visibility: visible !important;
+        }
+        
+        .toast.success { 
+            border-left-color: #10b981 !important; 
+            background: #ffffff !important;
+        }
+        .toast.warning { 
+            border-left-color: #f59e0b !important; 
+            background: #ffffff !important;
+        }
+        .toast.error { 
+            border-left-color: #dc2626 !important; 
+            background: #ffffff !important;
+        }
+        .toast.info { 
+            border-left-color: #3b82f6 !important; 
+            background: #ffffff !important;
+        }
+        
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
 
         /* Tooltip styling for revoke button */
         .tooltip-container {
@@ -201,6 +242,24 @@
                     <li><a href="../index.html#pricing">Pricing</a></li>
                 </ul>
                 <div class="right-nav">
+
+                      <!-- ADD NOTIFICATION HERE, BEFORE auth-user -->
+                    <div class="notification-container">
+                        <button id="notificationBtn" class="notification-btn">
+                            <i class="fas fa-bell"></i>
+                            <span id="notificationCount" class="notification-badge">0</span>
+                        </button>
+                        
+                        <div id="notificationDropdown" class="notification-dropdown">
+                            <div class="notification-header">
+                                <h3>Notifications</h3>
+                                <button id="markAllReadBtn" class="mark-all-read">Mark all as read</button>
+                            </div>
+                            <div id="notificationList" class="notification-list">
+                                <!-- Notifications will be loaded here -->
+                            </div>
+                        </div>
+                    </div>
                     <div class="auth-user" id="userNav">
                         <div class="user-menu">
                             <button class="user-menu-btn" id="userMenuBtn">
@@ -222,23 +281,7 @@
                     <i class="fas fa-bars"></i>
                 </div>
               
-            <!-- Notification Bell -->
-                <div class="notification-container">
-                  <button id="notificationBtn" class="notification-btn">
-                    <i class="fas fa-bell"></i>
-                    <span id="notificationCount" class="notification-badge">0</span>
-                  </button>
-                  
-                  <div id="notificationDropdown" class="notification-dropdown">
-                    <div class="notification-header">
-                      <h3>Notifications</h3>
-                      <button id="markAllReadBtn" class="mark-all-read">Mark all as read</button>
-                    </div>
-                    <div id="notificationList" class="notification-list">
-                      <!-- Notifications will be loaded here -->
-                    </div>
-                  </div>
-                </div>
+          
             </nav>
         </div>
     </header>
