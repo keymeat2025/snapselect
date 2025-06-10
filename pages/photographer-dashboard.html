@@ -17,206 +17,183 @@
     <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <style>
-
-   
-
-        /* Ensure toast container has proper positioning */
-        #toastContainer {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            z-index: 9999;
-        }
-        
-        /* ADD THIS NEW CSS BLOCK HERE: */
-        /* Fix toast notification backgrounds */
-        .toast {
-            background: #ffffff !important;
-            border-radius: 8px !important;
-            padding: 1rem !important;
-            margin-bottom: 1rem !important;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15) !important;
-            border-left: 4px solid var(--primary) !important;
-            min-width: 300px !important;
-            animation: slideIn 0.3s ease !important;
-            display: flex !important;
-            align-items: center !important;
-            gap: 0.75rem !important;
-            opacity: 1 !important;
-            visibility: visible !important;
-        }
-        
-        .toast.success { 
-            border-left-color: #10b981 !important; 
-            background: #ffffff !important;
-        }
-        .toast.warning { 
-            border-left-color: #f59e0b !important; 
-            background: #ffffff !important;
-        }
-        .toast.error { 
-            border-left-color: #dc2626 !important; 
-            background: #ffffff !important;
-        }
-        .toast.info { 
-            border-left-color: #3b82f6 !important; 
-            background: #ffffff !important;
-        }
-        
-        @keyframes slideIn {
-            from { transform: translateX(100%); opacity: 0; }
-            to { transform: translateX(0); opacity: 1; }
-        }
-
-        /* Tooltip styling for revoke button */
-        .tooltip-container {
-          position: relative;
-          display: inline-block;
-        }
-        
-        .tooltip-text {
-          visibility: hidden;
-          width: 300px;
-          background-color: rgba(0, 0, 0, 0.8);
-          color: #fff;
-          text-align: center;
-          border-radius: 6px;
-          padding: 10px;
-          position: absolute;
-          z-index: 1000;
-          bottom: 125%;
-          left: 50%;
-          margin-left: -150px;
-          opacity: 0;
-          transition: opacity 0.3s;
-        }
-        
-        .tooltip-text::after {
-          content: "";
-          position: absolute;
-          top: 100%;
-          left: 50%;
-          margin-left: -5px;
-          border-width: 5px;
-          border-style: solid;
-          border-color: rgba(0, 0, 0, 0.8) transparent transparent transparent;
-        }
-        
-        .tooltip-container:hover .tooltip-text {
-          visibility: visible;
-          opacity: 1;
-        }
-        
-        .tooltip-warning {
-          border-left: 4px solid #ff9800;
-        }
-        
-        .tooltip-warning i {
-          color: #ff9800;
-          margin-right: 5px;
-        }
-        
-        .hidden {
-          display: none;
-        }
-
-        
-                /* Badge number styling with animations */
-        .workflow-btn {
+        /* NOTIFICATION SYSTEM CSS - Updated to match gallery view */
+        .notification-container {
             position: relative;
-            overflow: visible;
+            margin-right: 1rem;
         }
         
-        .number-badge {
-            position: absolute;
-            top: -8px;
-            left: -8px;
-            width: 22px;
-            height: 22px;
-            background: linear-gradient(135deg, #ef4444, #dc2626);
-            color: white;
-            border-radius: 50%;
-            font-size: 11px;
-            font-weight: 600;
+        .notification-btn {
+            background: none;
+            border: none;
+            color: var(--text-color, #1f2937);
+            font-size: 1.25rem;
+            cursor: pointer;
+            position: relative;
             display: flex;
             align-items: center;
+            padding: 8px;
+            border-radius: 50%;
+            transition: all 0.25s ease;
+        }
+        
+        .notification-btn:hover {
+            background-color: rgba(59, 130, 246, 0.08);
+            color: #3b82f6;
+        }
+        
+        .notification-badge {
+            position: absolute;
+            top: -6px;
+            right: -6px;
+            background-color: #ef4444;
+            color: white;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            font-size: 0.75rem;
+            display: flex;
             justify-content: center;
-            border: 2px solid white;
-            box-shadow: 0 2px 8px rgba(239, 68, 68, 0.3);
-            z-index: 10;
-            animation: badgePulse 2s ease-in-out infinite;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            align-items: center;
+            font-weight: 600;
+            box-shadow: 0 2px 5px rgba(239, 68, 68, 0.4);
+            min-width: 20px;
         }
         
-        /* Primary button badge (different color) */
-        .action-btn.primary .number-badge {
-            background: linear-gradient(135deg, #f59e0b, #d97706);
-            box-shadow: 0 2px 8px rgba(245, 158, 11, 0.3);
+        .notification-dropdown {
+            position: absolute;
+            top: 100%;
+            right: -120px;
+            width: 360px;
+            background-color: white;
+            border-radius: 16px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+            display: none;
+            z-index: 100;
+            max-height: 420px;
+            overflow-y: auto;
+            border: 1px solid rgba(59, 130, 246, 0.15);
+            animation: fadeInDown 0.3s ease forwards;
         }
         
-        /* Pulse animation for badges */
-        @keyframes badgePulse {
-            0%, 100% { 
-                transform: scale(1);
-                box-shadow: 0 2px 8px rgba(239, 68, 68, 0.3);
+        .notification-dropdown.show {
+            display: block;
+        }
+        
+        .notification-header {
+            padding: 1.25rem;
+            border-bottom: 1px solid #e5e7eb;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .notification-header h3 {
+            margin: 0;
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #111827;
+        }
+        
+        .mark-all-read {
+            background: none;
+            border: none;
+            color: #3b82f6;
+            font-size: 0.9rem;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.25s ease;
+            padding: 4px 8px;
+            border-radius: 6px;
+        }
+        
+        .mark-all-read:hover {
+            background-color: rgba(59, 130, 246, 0.1);
+        }
+        
+        .notification-list {
+            padding: 0.5rem 0;
+        }
+        
+        .notification-item {
+            padding: 1rem 1.25rem;
+            border-bottom: 1px solid #e5e7eb;
+            transition: all 0.25s ease;
+            position: relative;
+            cursor: pointer;
+        }
+        
+        .notification-item:last-child {
+            border-bottom: none;
+        }
+        
+        .notification-item:hover {
+            background-color: rgba(59, 130, 246, 0.05);
+        }
+        
+        .notification-item.unread {
+            background-color: rgba(59, 130, 246, 0.08);
+        }
+        
+        .notification-item.unread:before {
+            content: "";
+            display: block;
+            width: 8px;
+            height: 8px;
+            background-color: #3b82f6;
+            border-radius: 50%;
+            position: absolute;
+            left: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+        
+        .notification-content {
+            margin-left: 24px;
+        }
+        
+        .notification-title {
+            font-weight: 600;
+            color: #111827;
+            margin-bottom: 0.4rem;
+            line-height: 1.4;
+        }
+        
+        .notification-time {
+            font-size: 0.8rem;
+            color: #6b7280;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        
+        .empty-notification {
+            padding: 2rem 1.5rem;
+            text-align: center;
+            color: #6b7280;
+            font-size: 1rem;
+        }
+        
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
             }
-            50% { 
-                transform: scale(1.05);
-                box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4);
+            to {
+                opacity: 1;
+                transform: translateY(0);
             }
         }
         
-        /* Hover effects */
-        .workflow-btn:hover .number-badge {
-            transform: scale(1.1) rotate(5deg);
-            box-shadow: 0 4px 16px rgba(239, 68, 68, 0.5);
-            animation: none; /* Stop pulse on hover */
-        }
-        
-        .action-btn.primary:hover .number-badge {
-            box-shadow: 0 4px 16px rgba(245, 158, 11, 0.5);
-        }
-        
-        /* Button hover enhancement */
-        .workflow-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
-        }
-        
-        /* Subtle bounce when button is clicked */
-        .workflow-btn:active {
-            transform: translateY(0px) scale(0.98);
-            transition: all 0.1s ease;
-        }
-        
-        .workflow-btn:active .number-badge {
-            transform: scale(0.95);
-            transition: all 0.1s ease;
-        }
-        
-        /* Stagger animation delays for initial load */
-        .workflow-btn:nth-child(1) .number-badge {
-            animation-delay: 0.2s;
-        }
-        
-        .workflow-btn:nth-child(2) .number-badge {
-            animation-delay: 0.4s;
-        }
-        
-        .workflow-btn:nth-child(3) .number-badge {
-            animation-delay: 0.6s;
-        }
-        
-        /* Mobile responsiveness */
+        /* Mobile responsive */
         @media (max-width: 768px) {
-            .number-badge {
-                width: 20px;
-                height: 20px;
-                font-size: 10px;
-                top: -6px;
-                left: -6px;
+            .notification-dropdown {
+                width: 300px;
+                right: -140px;
             }
         }
+   
+
     </style>
 </head>
 <body>
