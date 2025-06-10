@@ -1,1 +1,1268 @@
 
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SnapSelect - Photographer Dashboard</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* CSS Variables */
+        :root {
+            --primary: #3b82f6;
+            --primary-rgb: 59, 130, 246;
+            --primary-dark: #2563eb;
+            --accent: #f59e0b;
+            --success: #10b981;
+            --success-rgb: 16, 185, 129;
+            --warning: #f59e0b;
+            --warning-rgb: 245, 158, 11;
+            --error: #ef4444;
+            --error-rgb: 239, 68, 68;
+            --info: #3b82f6;
+            --info-rgb: 59, 130, 246;
+            --white: #ffffff;
+            --background-color: #f8fafc;
+            --card-background: #ffffff;
+            --text-color: #1f2937;
+            --text-muted: #6b7280;
+            --heading-color: #111827;
+            --border-color: #e5e7eb;
+            --input-background: #ffffff;
+            --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.08);
+            --shadow-md: 0 5px 15px rgba(0, 0, 0, 0.1);
+            --shadow-lg: 0 10px 25px rgba(0, 0, 0, 0.15);
+            --radius-sm: 6px;
+            --radius-md: 10px;
+            --radius-lg: 16px;
+            --radius-full: 9999px;
+            --transition-default: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* Base Styles */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: var(--background-color);
+            color: var(--text-color);
+            line-height: 1.6;
+        }
+
+        .container {
+            width: 90%;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 15px;
+        }
+
+        /* Header Styles */
+        header {
+            background-color: var(--white);
+            box-shadow: var(--shadow-sm);
+            position: fixed;
+            width: 100%;
+            z-index: 1000;
+            padding: 15px 0;
+        }
+
+        nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            text-decoration: none;
+            padding: 10px 0;
+            transition: transform 0.3s ease;
+        }
+
+        .logo:hover {
+            transform: translateY(-1px);
+        }
+
+        .logo-image {
+            height: 70px;
+            width: 70px;
+            object-fit: cover;
+            margin-right: 18px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+            border: 3px solid rgba(255, 255, 255, 0.9);
+            transition: all 0.3s ease;
+        }
+
+        .logo-text {
+            font-size: 30px;
+            font-weight: 800;
+            letter-spacing: -0.8px;
+            line-height: 1;
+            margin: 0;
+            color: var(--primary);
+            transition: color 0.3s ease;
+        }
+
+        .nav-links {
+            display: flex;
+            list-style: none;
+            align-items: center;
+        }
+
+        .nav-links li {
+            margin: 0 15px;
+        }
+
+        .nav-links a {
+            text-decoration: none;
+            color: var(--text-color);
+            font-weight: 500;
+            transition: color 0.3s;
+            font-size: 16px;
+        }
+
+        .nav-links a:hover {
+            color: var(--primary);
+        }
+
+        /* Right Navigation */
+        .right-nav {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        /* Notification System */
+        .notification-container {
+            position: relative;
+        }
+
+        .notification-btn {
+            background: none;
+            border: none;
+            color: var(--text-color);
+            font-size: 1.25rem;
+            cursor: pointer;
+            position: relative;
+            display: flex;
+            align-items: center;
+            padding: 8px;
+            border-radius: var(--radius-full);
+            transition: var(--transition-default);
+        }
+
+        .notification-btn:hover {
+            background-color: rgba(var(--primary-rgb), 0.08);
+            color: var(--primary);
+        }
+
+        .notification-badge {
+            position: absolute;
+            top: -6px;
+            right: -6px;
+            background-color: var(--error);
+            color: white;
+            border-radius: var(--radius-full);
+            width: 20px;
+            height: 20px;
+            font-size: 0.75rem;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-weight: 600;
+            box-shadow: 0 2px 5px rgba(var(--error-rgb), 0.4);
+            min-width: 20px;
+        }
+
+        .notification-dropdown {
+            position: absolute;
+            top: 100%;
+            right: -120px;
+            width: 360px;
+            background-color: var(--card-background);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-lg);
+            display: none;
+            z-index: 100;
+            max-height: 420px;
+            overflow-y: auto;
+            border: 1px solid rgba(var(--primary-rgb), 0.15);
+            animation: fadeInDown 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
+        .notification-dropdown.show {
+            display: block;
+        }
+
+        .notification-header {
+            padding: 1.25rem;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .notification-header h3 {
+            margin: 0;
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+
+        .mark-all-read {
+            background: none;
+            border: none;
+            color: var(--primary);
+            font-size: 0.9rem;
+            cursor: pointer;
+            font-weight: 500;
+            transition: var(--transition-default);
+            padding: 4px 8px;
+            border-radius: var(--radius-sm);
+        }
+
+        .mark-all-read:hover {
+            background-color: rgba(var(--primary-rgb), 0.1);
+        }
+
+        .notification-list {
+            padding: 0.5rem 0;
+        }
+
+        .notification-item {
+            padding: 1rem 1.25rem;
+            border-bottom: 1px solid var(--border-color);
+            transition: var(--transition-default);
+            position: relative;
+            cursor: pointer;
+        }
+
+        .notification-item:last-child {
+            border-bottom: none;
+        }
+
+        .notification-item:hover {
+            background-color: rgba(var(--primary-rgb), 0.05);
+        }
+
+        .notification-item.unread {
+            background-color: rgba(var(--primary-rgb), 0.08);
+        }
+
+        .notification-item.unread:before {
+            content: "";
+            display: block;
+            width: 8px;
+            height: 8px;
+            background-color: var(--primary);
+            border-radius: 50%;
+            position: absolute;
+            left: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+
+        .notification-content {
+            margin-left: 24px;
+        }
+
+        .notification-title {
+            font-weight: 600;
+            color: var(--heading-color);
+            margin-bottom: 0.4rem;
+            line-height: 1.4;
+        }
+
+        .notification-time {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .empty-notification {
+            padding: 2rem 1.5rem;
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 1rem;
+        }
+
+        /* User Menu */
+        .auth-user {
+            display: flex;
+            align-items: center;
+        }
+
+        .user-menu {
+            position: relative;
+        }
+
+        .user-menu-btn {
+            display: flex;
+            align-items: center;
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 4px 8px 4px 4px;
+            border-radius: var(--radius-full);
+            transition: var(--transition-default);
+        }
+
+        .user-menu-btn:hover {
+            background-color: rgba(var(--primary-rgb), 0.08);
+        }
+
+        .avatar-placeholder {
+            width: 36px;
+            height: 36px;
+            border-radius: var(--radius-full);
+            background-color: var(--primary);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .user-name {
+            margin: 0 8px;
+            font-weight: 500;
+        }
+
+        .user-dropdown {
+            position: absolute;
+            top: 100%;
+            right: 0;
+            background-color: var(--card-background);
+            border-radius: var(--radius-md);
+            box-shadow: var(--shadow-lg);
+            min-width: 180px;
+            display: none;
+            z-index: 100;
+            border: 1px solid var(--border-color);
+        }
+
+        .user-dropdown.show {
+            display: block;
+        }
+
+        .user-dropdown a {
+            display: block;
+            padding: 0.75rem 1rem;
+            color: var(--text-color);
+            text-decoration: none;
+            transition: var(--transition-default);
+        }
+
+        .user-dropdown a:hover,
+        .user-dropdown a.active {
+            background-color: rgba(var(--primary-rgb), 0.1);
+            color: var(--primary);
+        }
+
+        /* Toast Notifications */
+        #toastContainer {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 9999;
+        }
+
+        .toast {
+            background: var(--white);
+            border-radius: var(--radius-md);
+            padding: 1rem;
+            margin-bottom: 1rem;
+            box-shadow: var(--shadow-lg);
+            border-left: 4px solid var(--primary);
+            min-width: 300px;
+            max-width: 400px;
+            animation: slideIn 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            position: relative;
+        }
+
+        .toast.success {
+            border-left-color: var(--success);
+            background-color: #f0fdf4;
+        }
+
+        .toast.warning {
+            border-left-color: var(--warning);
+            background-color: #fffbeb;
+        }
+
+        .toast.error {
+            border-left-color: var(--error);
+            background-color: #fef2f2;
+        }
+
+        .toast.info {
+            border-left-color: var(--info);
+            background-color: #eff6ff;
+        }
+
+        .toast-icon {
+            font-size: 1.25rem;
+            flex-shrink: 0;
+        }
+
+        .toast.success .toast-icon {
+            color: var(--success);
+        }
+
+        .toast.warning .toast-icon {
+            color: var(--warning);
+        }
+
+        .toast.error .toast-icon {
+            color: var(--error);
+        }
+
+        .toast.info .toast-icon {
+            color: var(--info);
+        }
+
+        .toast-content {
+            flex: 1;
+        }
+
+        .toast-title {
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+            color: var(--heading-color);
+        }
+
+        .toast-message {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+
+        .toast-close {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            font-size: 1.1rem;
+            padding: 4px;
+            border-radius: var(--radius-sm);
+            transition: var(--transition-default);
+        }
+
+        .toast-close:hover {
+            background-color: rgba(0, 0, 0, 0.1);
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Dashboard Main */
+        .dashboard-main {
+            padding: 120px 0 2.5rem 0;
+            min-height: calc(100vh - 120px - 60px);
+        }
+
+        .dashboard-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2.5rem;
+            flex-wrap: wrap;
+            gap: 1.5rem;
+        }
+
+        .dashboard-title h1 {
+            margin: 0;
+            font-size: 2.25rem;
+            color: var(--heading-color);
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            line-height: 1.2;
+        }
+
+        .dashboard-title p {
+            margin: 0.5rem 0 0;
+            color: var(--text-muted);
+            font-size: 1.1rem;
+        }
+
+        .dashboard-stats {
+            display: flex;
+            gap: 1.25rem;
+            flex-wrap: wrap;
+        }
+
+        .stat-card {
+            background-color: var(--card-background);
+            border-radius: var(--radius-md);
+            padding: 1.5rem;
+            display: flex;
+            align-items: center;
+            min-width: 200px;
+            box-shadow: var(--shadow-sm);
+            transition: var(--transition-default);
+        }
+
+        .stat-card:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .stat-icon {
+            width: 52px;
+            height: 52px;
+            background-color: rgba(var(--primary-rgb), 0.1);
+            border-radius: var(--radius-md);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-right: 1.25rem;
+        }
+
+        .stat-icon i {
+            color: var(--primary);
+            font-size: 1.5rem;
+        }
+
+        .stat-value {
+            font-size: 1.75rem;
+            font-weight: 700;
+            color: var(--heading-color);
+        }
+
+        .stat-label {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+        }
+
+        /* Quick Actions */
+        .quick-actions {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 2.5rem;
+            flex-wrap: wrap;
+        }
+
+        .action-btn {
+            padding: 0.75rem 1.5rem;
+            border-radius: var(--radius-md);
+            border: 1px solid var(--border-color);
+            background-color: var(--card-background);
+            color: var(--text-color);
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            transition: var(--transition-default);
+            text-decoration: none;
+            position: relative;
+        }
+
+        .action-btn:hover {
+            border-color: var(--primary);
+            background-color: rgba(var(--primary-rgb), 0.05);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
+        }
+
+        /* Badge for workflow buttons */
+        .workflow-btn {
+            position: relative;
+            overflow: visible;
+        }
+
+        .number-badge {
+            position: absolute;
+            top: -8px;
+            left: -8px;
+            width: 22px;
+            height: 22px;
+            background: linear-gradient(135deg, var(--error), #dc2626);
+            color: white;
+            border-radius: 50%;
+            font-size: 11px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 2px solid white;
+            box-shadow: 0 2px 8px rgba(239, 68, 68, 0.3);
+            z-index: 10;
+            animation: badgePulse 2s ease-in-out infinite;
+        }
+
+        @keyframes badgePulse {
+            0%, 100% {
+                transform: scale(1);
+            }
+            50% {
+                transform: scale(1.05);
+            }
+        }
+
+        /* Content Sections */
+        .content-section {
+            background-color: var(--card-background);
+            border-radius: var(--radius-lg);
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: var(--shadow-sm);
+            border: 1px solid var(--border-color);
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .section-header h2 {
+            margin: 0;
+            font-size: 1.5rem;
+            color: var(--heading-color);
+            font-weight: 600;
+        }
+
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border-radius: var(--radius-md);
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition-default);
+            border: none;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn.primary {
+            background-color: var(--primary);
+            color: white;
+        }
+
+        .btn.primary:hover {
+            background-color: var(--primary-dark);
+            transform: translateY(-2px);
+        }
+
+        .btn.secondary {
+            background-color: transparent;
+            color: var(--text-color);
+            border: 1px solid var(--border-color);
+        }
+
+        .btn.secondary:hover {
+            border-color: var(--primary);
+            background-color: rgba(var(--primary-rgb), 0.05);
+        }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 4rem 1.5rem;
+        }
+
+        .empty-state i {
+            font-size: 4rem;
+            color: var(--text-muted);
+            margin-bottom: 1.5rem;
+            opacity: 0.6;
+        }
+
+        .empty-state h3 {
+            margin: 0 0 0.75rem;
+            color: var(--heading-color);
+            font-size: 1.5rem;
+        }
+
+        .empty-state p {
+            color: var(--text-muted);
+            margin-bottom: 2rem;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .logo-image {
+                height: 60px;
+                width: 60px;
+                margin-right: 15px;
+            }
+
+            .logo-text {
+                font-size: 26px;
+                letter-spacing: -0.6px;
+            }
+
+            .nav-links {
+                display: none;
+            }
+
+            .dashboard-header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .dashboard-stats {
+                width: 100%;
+                justify-content: space-between;
+            }
+
+            .stat-card {
+                min-width: 150px;
+                flex: 1;
+            }
+
+            .quick-actions {
+                flex-direction: column;
+            }
+
+            .action-btn {
+                justify-content: center;
+            }
+
+            .notification-dropdown {
+                width: 300px;
+                right: -140px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .logo-image {
+                height: 50px;
+                width: 50px;
+                margin-right: 12px;
+            }
+
+            .logo-text {
+                font-size: 22px;
+                letter-spacing: -0.4px;
+            }
+
+            .dashboard-title h1 {
+                font-size: 2rem;
+            }
+
+            .notification-dropdown {
+                width: 280px;
+                right: -120px;
+            }
+
+            .toast {
+                min-width: 280px;
+                max-width: 320px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Toast Container for Notifications -->
+    <div id="toastContainer"></div>
+
+    <header>
+        <div class="container">
+            <nav>
+                <a href="#" class="logo">
+                    <img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNzAiIGhlaWdodD0iNzAiIHZpZXdCb3g9IjAgMCA3MCA3MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjcwIiBoZWlnaHQ9IjcwIiByeD0iMTIiIGZpbGw9IiMzYjgyZjYiLz4KPHN2ZyB4PSIxNSIgeT0iMTUiIHdpZHRoPSI0MCIgaGVpZ2h0PSI0MCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJ3aGl0ZSI+CjxwYXRoIGQ9Ik05IDJhMSAxIDAgMCAwLTEgMXY0SDZhNCAxIDAgMCAwLTQgNHY4YTQgNCAwIDAgMCA0IDRoMTJhNCA0IDAgMCAwIDQtNHYtOGE0IDQgMCAwIDAtNC00aC0yVjNhMSAxIDAgMCAwLTEtMUg5em0xIDJ2NGg0VjR6bS0yIDZhMSAxIDAgMCAwLTEgMSAxIDEgMCAwIDAgMSAxaDhhMSAxIDAgMCAwIDEtMSAxIDEgMCAwIDAtMS0xSDh6bTAgNGExIDEgMCAwIDAtMSAxIDEgMSAwIDAgMCAxIDFoNGExIDEgMCAwIDAgMS0xIDEgMSAwIDAgMC0xLTFIOHoiLz4KPC9zdmc+Cjwvc3ZnPgo=" alt="SnapSelect" class="logo-image">
+                    <div class="logo-text">SnapSelect</div>
+                </a>
+                <ul class="nav-links">
+                    <li><a href="#features">Features</a></li>
+                    <li><a href="#how-it-works">How It Works</a></li>
+                    <li><a href="#pricing">Pricing</a></li>
+                </ul>
+                <div class="right-nav">
+                    <!-- Notification System -->
+                    <div class="notification-container">
+                        <button id="notificationBtn" class="notification-btn">
+                            <i class="fas fa-bell"></i>
+                            <span id="notificationCount" class="notification-badge">3</span>
+                        </button>
+                        
+                        <div id="notificationDropdown" class="notification-dropdown">
+                            <div class="notification-header">
+                                <h3>Notifications</h3>
+                                <button id="markAllReadBtn" class="mark-all-read">Mark all as read</button>
+                            </div>
+                            <div id="notificationList" class="notification-list">
+                                <div class="notification-item unread">
+                                    <div class="notification-content">
+                                        <div class="notification-title">Client Deleted</div>
+                                        <div class="notification-time">
+                                            <i class="fas fa-clock"></i>
+                                            tester has been permanently removed
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="notification-item unread">
+                                    <div class="notification-content">
+                                        <div class="notification-title">Access Revoked</div>
+                                        <div class="notification-time">
+                                            <i class="fas fa-clock"></i>
+                                            Gallery sharing has been revoked successfully
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="notification-item">
+                                    <div class="notification-content">
+                                        <div class="notification-title">Payment Received</div>
+                                        <div class="notification-time">
+                                            <i class="fas fa-clock"></i>
+                                            New plan purchased for client
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- User Menu -->
+                    <div class="auth-user">
+                        <div class="user-menu">
+                            <button class="user-menu-btn" id="userMenuBtn">
+                                <div class="avatar-placeholder">M</div>
+                                <span class="user-name">meera@gmail.com</span>
+                                <i class="fas fa-chevron-down"></i>
+                            </button>
+                            <div class="user-dropdown" id="userDropdown">
+                                <a href="#" class="active">Dashboard</a>
+                                <a href="#">Clients</a>
+                                <a href="#">Analytics</a>
+                                <a href="#">Account Settings</a>
+                                <a href="#" id="logoutBtn">Logout</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </nav>
+        </div>
+    </header>
+
+    <main class="dashboard-main">
+        <div class="container">
+            <!-- Dashboard Header -->
+            <section class="dashboard-header">
+                <div class="dashboard-title">
+                    <h1>Photographer Dashboard</h1>
+                    <p>Manage your client plans and galleries</p>
+                </div>
+                <div class="dashboard-stats">
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <i class="fas fa-images"></i>
+                        </div>
+                        <div class="stat-info">
+                            <div class="stat-value">12</div>
+                            <div class="stat-label">Active Galleries</div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <i class="fas fa-users"></i>
+                        </div>
+                        <div class="stat-info">
+                            <div class="stat-value">8</div>
+                            <div class="stat-label">Active Clients</div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Quick Actions -->
+            <section class="quick-actions">
+                <button class="action-btn workflow-btn">
+                    <div class="number-badge">1</div>
+                    <i class="fas fa-user-plus"></i> New Client
+                </button>
+                <button class="action-btn workflow-btn">
+                    <div class="number-badge">2</div>
+                    <i class="fas fa-plus"></i> Purchase Plan
+                </button>
+                <button class="action-btn workflow-btn">
+                    <div class="number-badge">3</div>
+                    <i class="fas fa-images"></i> New Gallery
+                </button>
+                <button class="action-btn">
+                    <i class="fas fa-chart-bar"></i> Analytics
+                </button>
+                <button class="action-btn" id="testNotificationBtn">
+                    <i class="fas fa-bell"></i> Test Notification
+                </button>
+            </section>
+
+            <!-- Client Plans Section -->
+            <section class="content-section">
+                <div class="section-header">
+                    <h2>Client Plans</h2>
+                    <button class="btn secondary">
+                        <i class="fas fa-sync-alt"></i> Refresh
+                    </button>
+                </div>
+                <div class="empty-state">
+                    <i class="fas fa-ticket-alt"></i>
+                    <h3>No plans found</h3>
+                    <p>Purchase a plan for a client to get started</p>
+                    <button class="btn primary">Purchase Plan</button>
+                </div>
+            </section>
+
+            <!-- Client Management Section -->
+            <section class="content-section">
+                <div class="section-header">
+                    <h2>Your Clients</h2>
+                    <button class="btn secondary">View All</button>
+                </div>
+                <div class="empty-state">
+                    <i class="fas fa-users"></i>
+                    <h3>No clients yet</h3>
+                    <p>Add your first client to get started</p>
+                    <button class="btn primary">Add Client</button>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <script>
+        // Notification System
+        class NotificationSystem {
+            constructor() {
+                this.toastContainer = document.getElementById('toastContainer');
+                this.notificationBtn = document.getElementById('notificationBtn');
+                this.notificationDropdown = document.getElementById('notificationDropdown');
+                this.notificationCount = document.getElementById('notificationCount');
+                this.markAllReadBtn = document.getElementById('markAllReadBtn');
+                
+                this.init();
+            }
+
+            init() {
+                // Toggle notification dropdown
+                this.notificationBtn?.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    this.toggleNotificationDropdown();
+                });
+
+                // Mark all as read
+                this.markAllReadBtn?.addEventListener('click', () => {
+                    this.markAllAsRead();
+                });
+
+                // Close dropdown when clicking outside
+                document.addEventListener('click', (e) => {
+                    if (!this.notificationDropdown?.contains(e.target) && 
+                        !this.notificationBtn?.contains(e.target)) {
+                        this.closeNotificationDropdown();
+                    }
+                });
+
+                // Test notification button
+                document.getElementById('testNotificationBtn')?.addEventListener('click', () => {
+                    this.showTestNotifications();
+                });
+            }
+
+            toggleNotificationDropdown() {
+                if (this.notificationDropdown) {
+                    this.notificationDropdown.classList.toggle('show');
+                }
+            }
+
+            closeNotificationDropdown() {
+                if (this.notificationDropdown) {
+                    this.notificationDropdown.classList.remove('show');
+                }
+            }
+
+            markAllAsRead() {
+                const unreadItems = document.querySelectorAll('.notification-item.unread');
+                unreadItems.forEach(item => {
+                    item.classList.remove('unread');
+                });
+                this.updateNotificationCount();
+                this.showNotification('success', 'Success', 'All notifications marked as read');
+            }
+
+            updateNotificationCount() {
+                const unreadCount = document.querySelectorAll('.notification-item.unread').length;
+                if (this.notificationCount) {
+                    this.notificationCount.textContent = unreadCount;
+                    this.notificationCount.style.display = unreadCount > 0 ? 'flex' : 'none';
+                }
+            }
+
+            showNotification(type, title, message, duration = 5000) {
+                if (!this.toastContainer) return;
+
+                const toast = document.createElement('div');
+                toast.className = `toast ${type}`;
+                
+                const iconMap = {
+                    success: 'fas fa-check-circle',
+                    error: 'fas fa-times-circle',
+                    warning: 'fas fa-exclamation-triangle',
+                    info: 'fas fa-info-circle',
+                    payment: 'fas fa-credit-card',
+                    plan: 'fas fa-calendar-alt'
+                };
+
+                toast.innerHTML = `
+                    <div class="toast-icon">
+                        <i class="${iconMap[type] || iconMap.info}"></i>
+                    </div>
+                    <div class="toast-content">
+                        <div class="toast-title">${title}</div>
+                        <div class="toast-message">${message}</div>
+                    </div>
+                    <button class="toast-close">
+                        <i class="fas fa-times"></i>
+                    </button>
+                `;
+
+                // Add close functionality
+                const closeBtn = toast.querySelector('.toast-close');
+                closeBtn.addEventListener('click', () => {
+                    this.removeToast(toast);
+                });
+
+                // Add to container
+                this.toastContainer.appendChild(toast);
+
+                // Auto remove after duration
+                setTimeout(() => {
+                    this.removeToast(toast);
+                }, duration);
+
+                return toast;
+            }
+
+            removeToast(toast) {
+                if (toast && toast.parentNode) {
+                    toast.style.transform = 'translateX(100%)';
+                    toast.style.opacity = '0';
+                    setTimeout(() => {
+                        if (toast.parentNode) {
+                            toast.parentNode.removeChild(toast);
+                        }
+                    }, 300);
+                }
+            }
+
+            showTestNotifications() {
+                const notifications = [
+                    { type: 'success', title: 'Success', message: 'Client plan purchased successfully!' },
+                    { type: 'warning', title: 'Warning', message: 'Plan expires in 3 days' },
+                    { type: 'error', title: 'Error', message: 'Failed to upload photo' },
+                    { type: 'info', title: 'Info', message: 'New gallery shared with client' },
+                    { type: 'payment', title: 'Payment', message: 'Payment of ₹399 received' }
+                ];
+
+                notifications.forEach((notif, index) => {
+                    setTimeout(() => {
+                        this.showNotification(notif.type, notif.title, notif.message);
+                    }, index * 500);
+                });
+            }
+
+            addNotificationToList(title, message, isUnread = true) {
+                const notificationList = document.getElementById('notificationList');
+                if (!notificationList) return;
+
+                const item = document.createElement('div');
+                item.className = `notification-item ${isUnread ? 'unread' : ''}`;
+                
+                const now = new Date();
+                const timeString = now.toLocaleTimeString('en-US', { 
+                    hour: '2-digit', 
+                    minute: '2-digit' 
+                });
+
+                item.innerHTML = `
+                    <div class="notification-content">
+                        <div class="notification-title">${title}</div>
+                        <div class="notification-time">
+                            <i class="fas fa-clock"></i>
+                            ${message} - ${timeString}
+                        </div>
+                    </div>
+                `;
+
+                // Insert at the beginning
+                notificationList.insertBefore(item, notificationList.firstChild);
+                
+                // Update count
+                this.updateNotificationCount();
+
+                return item;
+            }
+        }
+
+        // User Menu System
+        class UserMenuSystem {
+            constructor() {
+                this.userMenuBtn = document.getElementById('userMenuBtn');
+                this.userDropdown = document.getElementById('userDropdown');
+                this.init();
+            }
+
+            init() {
+                // Toggle user dropdown
+                this.userMenuBtn?.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    this.toggleUserDropdown();
+                });
+
+                // Close dropdown when clicking outside
+                document.addEventListener('click', (e) => {
+                    if (!this.userDropdown?.contains(e.target) && 
+                        !this.userMenuBtn?.contains(e.target)) {
+                        this.closeUserDropdown();
+                    }
+                });
+
+                // Handle logout
+                document.getElementById('logoutBtn')?.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    this.handleLogout();
+                });
+            }
+
+            toggleUserDropdown() {
+                if (this.userDropdown) {
+                    this.userDropdown.classList.toggle('show');
+                }
+            }
+
+            closeUserDropdown() {
+                if (this.userDropdown) {
+                    this.userDropdown.classList.remove('show');
+                }
+            }
+
+            handleLogout() {
+                if (confirm('Are you sure you want to logout?')) {
+                    // Simulate logout process
+                    notificationSystem.showNotification('info', 'Logging out', 'See you soon!');
+                    setTimeout(() => {
+                        window.location.href = '/login';
+                    }, 1500);
+                }
+            }
+        }
+
+        // Dashboard Actions
+        class DashboardActions {
+            constructor() {
+                this.init();
+            }
+
+            init() {
+                // Quick action buttons
+                const quickActions = document.querySelectorAll('.quick-actions .action-btn');
+                quickActions.forEach((btn, index) => {
+                    if (!btn.id) { // Skip buttons with specific IDs
+                        btn.addEventListener('click', () => {
+                            this.handleQuickAction(index);
+                        });
+                    }
+                });
+
+                // Empty state buttons
+                document.querySelectorAll('.empty-state .btn').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        this.handleEmptyStateAction(e.target);
+                    });
+                });
+            }
+
+            handleQuickAction(index) {
+                const actions = [
+                    { title: 'Create Client', message: 'Opening client creation form...' },
+                    { title: 'Purchase Plan', message: 'Opening plan selection...' },
+                    { title: 'Create Gallery', message: 'Opening gallery creation...' },
+                    { title: 'Analytics', message: 'Loading analytics dashboard...' }
+                ];
+
+                if (actions[index]) {
+                    notificationSystem.showNotification(
+                        'info', 
+                        actions[index].title, 
+                        actions[index].message
+                    );
+                    
+                    // Add to notification list
+                    notificationSystem.addNotificationToList(
+                        actions[index].title,
+                        actions[index].message.replace('...', '')
+                    );
+                }
+            }
+
+            handleEmptyStateAction(button) {
+                const buttonText = button.textContent.trim();
+                notificationSystem.showNotification(
+                    'info',
+                    'Action Triggered',
+                    `${buttonText} functionality would open here`
+                );
+            }
+        }
+
+        // Initialize systems when DOM is loaded
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize notification system
+            window.notificationSystem = new NotificationSystem();
+            
+            // Initialize user menu
+            window.userMenuSystem = new UserMenuSystem();
+            
+            // Initialize dashboard actions
+            window.dashboardActions = new DashboardActions();
+
+            // Update initial notification count
+            notificationSystem.updateNotificationCount();
+
+            // Show welcome notification
+            setTimeout(() => {
+                notificationSystem.showNotification(
+                    'success',
+                    'Welcome Back!',
+                    'Your dashboard is ready to use'
+                );
+            }, 1000);
+        });
+
+        // Export for external use
+        window.NotificationSystem = NotificationSystem;
+    </script>
+</body>
+</html>
