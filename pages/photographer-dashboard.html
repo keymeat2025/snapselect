@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -6,607 +5,135 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SnapSelect - Photographer Dashboard</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="../assets/css/variables.css">
+    <link rel="stylesheet" href="../assets/css/main.css">
+    <link rel="stylesheet" href="../assets/css/dashboard.css">
+    <link rel="stylesheet" href="../assets/css/responsive.css">
+    <link rel="stylesheet" href="../assets/css/user-menu.css">
+    <link rel="stylesheet" href="../assets/css/animations.css">
+    <link rel="stylesheet" href="../assets/css/features.css">
+    <link rel="stylesheet" href="../assets/css/payment.css">
+    <link rel="stylesheet" href="../assets/css/gallery-sharing.css">
+    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <style>
-        /* CSS Variables */
-        :root {
-            --primary: #3b82f6;
-            --primary-rgb: 59, 130, 246;
-            --primary-dark: #2563eb;
-            --accent: #f59e0b;
-            --success: #10b981;
-            --success-rgb: 16, 185, 129;
-            --warning: #f59e0b;
-            --warning-rgb: 245, 158, 11;
-            --error: #ef4444;
-            --error-rgb: 239, 68, 68;
-            --info: #3b82f6;
-            --info-rgb: 59, 130, 246;
-            --white: #ffffff;
-            --background-color: #f8fafc;
-            --card-background: #ffffff;
-            --text-color: #1f2937;
-            --text-muted: #6b7280;
-            --heading-color: #111827;
-            --border-color: #e5e7eb;
-            --input-background: #ffffff;
-            --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.08);
-            --shadow-md: 0 5px 15px rgba(0, 0, 0, 0.1);
-            --shadow-lg: 0 10px 25px rgba(0, 0, 0, 0.15);
-            --radius-sm: 6px;
-            --radius-md: 10px;
-            --radius-lg: 16px;
-            --radius-full: 9999px;
-            --transition-default: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-        }
 
-        /* Base Styles */
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        }
+   
 
-        body {
-            background-color: var(--background-color);
-            color: var(--text-color);
-            line-height: 1.6;
-        }
-
-        .container {
-            width: 90%;
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 0 15px;
-        }
-
-        /* Header Styles */
-        header {
-            background-color: var(--white);
-            box-shadow: var(--shadow-sm);
-            position: fixed;
-            width: 100%;
-            z-index: 1000;
-            padding: 15px 0;
-        }
-
-        nav {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .logo {
-            display: flex;
-            align-items: center;
-            text-decoration: none;
-            padding: 10px 0;
-            transition: transform 0.3s ease;
-        }
-
-        .logo:hover {
-            transform: translateY(-1px);
-        }
-
-        .logo-image {
-            height: 70px;
-            width: 70px;
-            object-fit: cover;
-            margin-right: 18px;
-            border-radius: 12px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-            border: 3px solid rgba(255, 255, 255, 0.9);
-            transition: all 0.3s ease;
-        }
-
-        .logo-text {
-            font-size: 30px;
-            font-weight: 800;
-            letter-spacing: -0.8px;
-            line-height: 1;
-            margin: 0;
-            color: var(--primary);
-            transition: color 0.3s ease;
-        }
-
-        .nav-links {
-            display: flex;
-            list-style: none;
-            align-items: center;
-        }
-
-        .nav-links li {
-            margin: 0 15px;
-        }
-
-        .nav-links a {
-            text-decoration: none;
-            color: var(--text-color);
-            font-weight: 500;
-            transition: color 0.3s;
-            font-size: 16px;
-        }
-
-        .nav-links a:hover {
-            color: var(--primary);
-        }
-
-        /* Right Navigation */
-        .right-nav {
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-        }
-
-        /* Notification System */
-        .notification-container {
-            position: relative;
-        }
-
-        .notification-btn {
-            background: none;
-            border: none;
-            color: var(--text-color);
-            font-size: 1.25rem;
-            cursor: pointer;
-            position: relative;
-            display: flex;
-            align-items: center;
-            padding: 8px;
-            border-radius: var(--radius-full);
-            transition: var(--transition-default);
-        }
-
-        .notification-btn:hover {
-            background-color: rgba(var(--primary-rgb), 0.08);
-            color: var(--primary);
-        }
-
-        .notification-badge {
-            position: absolute;
-            top: -6px;
-            right: -6px;
-            background-color: var(--error);
-            color: white;
-            border-radius: var(--radius-full);
-            width: 20px;
-            height: 20px;
-            font-size: 0.75rem;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            font-weight: 600;
-            box-shadow: 0 2px 5px rgba(var(--error-rgb), 0.4);
-            min-width: 20px;
-        }
-
-        .notification-dropdown {
-            position: absolute;
-            top: 100%;
-            right: -120px;
-            width: 360px;
-            background-color: var(--card-background);
-            border-radius: var(--radius-lg);
-            box-shadow: var(--shadow-lg);
-            display: none;
-            z-index: 100;
-            max-height: 420px;
-            overflow-y: auto;
-            border: 1px solid rgba(var(--primary-rgb), 0.15);
-            animation: fadeInDown 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-        }
-
-        .notification-dropdown.show {
-            display: block;
-        }
-
-        .notification-header {
-            padding: 1.25rem;
-            border-bottom: 1px solid var(--border-color);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .notification-header h3 {
-            margin: 0;
-            font-size: 1.1rem;
-            font-weight: 600;
-        }
-
-        .mark-all-read {
-            background: none;
-            border: none;
-            color: var(--primary);
-            font-size: 0.9rem;
-            cursor: pointer;
-            font-weight: 500;
-            transition: var(--transition-default);
-            padding: 4px 8px;
-            border-radius: var(--radius-sm);
-        }
-
-        .mark-all-read:hover {
-            background-color: rgba(var(--primary-rgb), 0.1);
-        }
-
-        .notification-list {
-            padding: 0.5rem 0;
-        }
-
-        .notification-item {
-            padding: 1rem 1.25rem;
-            border-bottom: 1px solid var(--border-color);
-            transition: var(--transition-default);
-            position: relative;
-            cursor: pointer;
-        }
-
-        .notification-item:last-child {
-            border-bottom: none;
-        }
-
-        .notification-item:hover {
-            background-color: rgba(var(--primary-rgb), 0.05);
-        }
-
-        .notification-item.unread {
-            background-color: rgba(var(--primary-rgb), 0.08);
-        }
-
-        .notification-item.unread:before {
-            content: "";
-            display: block;
-            width: 8px;
-            height: 8px;
-            background-color: var(--primary);
-            border-radius: 50%;
-            position: absolute;
-            left: 15px;
-            top: 50%;
-            transform: translateY(-50%);
-        }
-
-        .notification-content {
-            margin-left: 24px;
-        }
-
-        .notification-title {
-            font-weight: 600;
-            color: var(--heading-color);
-            margin-bottom: 0.4rem;
-            line-height: 1.4;
-        }
-
-        .notification-time {
-            font-size: 0.8rem;
-            color: var(--text-muted);
-            display: flex;
-            align-items: center;
-            gap: 4px;
-        }
-
-        .empty-notification {
-            padding: 2rem 1.5rem;
-            text-align: center;
-            color: var(--text-muted);
-            font-size: 1rem;
-        }
-
-        /* User Menu */
-        .auth-user {
-            display: flex;
-            align-items: center;
-        }
-
-        .user-menu {
-            position: relative;
-        }
-
-        .user-menu-btn {
-            display: flex;
-            align-items: center;
-            background: none;
-            border: none;
-            cursor: pointer;
-            padding: 4px 8px 4px 4px;
-            border-radius: var(--radius-full);
-            transition: var(--transition-default);
-        }
-
-        .user-menu-btn:hover {
-            background-color: rgba(var(--primary-rgb), 0.08);
-        }
-
-        .avatar-placeholder {
-            width: 36px;
-            height: 36px;
-            border-radius: var(--radius-full);
-            background-color: var(--primary);
-            color: white;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 600;
-            font-size: 14px;
-        }
-
-        .user-name {
-            margin: 0 8px;
-            font-weight: 500;
-        }
-
-        .user-dropdown {
-            position: absolute;
-            top: 100%;
-            right: 0;
-            background-color: var(--card-background);
-            border-radius: var(--radius-md);
-            box-shadow: var(--shadow-lg);
-            min-width: 180px;
-            display: none;
-            z-index: 100;
-            border: 1px solid var(--border-color);
-        }
-
-        .user-dropdown.show {
-            display: block;
-        }
-
-        .user-dropdown a {
-            display: block;
-            padding: 0.75rem 1rem;
-            color: var(--text-color);
-            text-decoration: none;
-            transition: var(--transition-default);
-        }
-
-        .user-dropdown a:hover,
-        .user-dropdown a.active {
-            background-color: rgba(var(--primary-rgb), 0.1);
-            color: var(--primary);
-        }
-
-        /* Toast Notifications */
+        /* Ensure toast container has proper positioning */
         #toastContainer {
             position: fixed;
             top: 20px;
             right: 20px;
             z-index: 9999;
         }
-
+        
+        /* ADD THIS NEW CSS BLOCK HERE: */
+        /* Fix toast notification backgrounds */
         .toast {
-            background: var(--white);
-            border-radius: var(--radius-md);
-            padding: 1rem;
-            margin-bottom: 1rem;
-            box-shadow: var(--shadow-lg);
-            border-left: 4px solid var(--primary);
-            min-width: 300px;
-            max-width: 400px;
-            animation: slideIn 0.3s ease;
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-            position: relative;
+            background: #ffffff !important;
+            border-radius: 8px !important;
+            padding: 1rem !important;
+            margin-bottom: 1rem !important;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15) !important;
+            border-left: 4px solid var(--primary) !important;
+            min-width: 300px !important;
+            animation: slideIn 0.3s ease !important;
+            display: flex !important;
+            align-items: center !important;
+            gap: 0.75rem !important;
+            opacity: 1 !important;
+            visibility: visible !important;
         }
-
-        .toast.success {
-            border-left-color: var(--success);
-            background-color: #f0fdf4;
+        
+        .toast.success { 
+            border-left-color: #10b981 !important; 
+            background: #ffffff !important;
         }
-
-        .toast.warning {
-            border-left-color: var(--warning);
-            background-color: #fffbeb;
+        .toast.warning { 
+            border-left-color: #f59e0b !important; 
+            background: #ffffff !important;
         }
-
-        .toast.error {
-            border-left-color: var(--error);
-            background-color: #fef2f2;
+        .toast.error { 
+            border-left-color: #dc2626 !important; 
+            background: #ffffff !important;
         }
-
-        .toast.info {
-            border-left-color: var(--info);
-            background-color: #eff6ff;
+        .toast.info { 
+            border-left-color: #3b82f6 !important; 
+            background: #ffffff !important;
         }
-
-        .toast-icon {
-            font-size: 1.25rem;
-            flex-shrink: 0;
-        }
-
-        .toast.success .toast-icon {
-            color: var(--success);
-        }
-
-        .toast.warning .toast-icon {
-            color: var(--warning);
-        }
-
-        .toast.error .toast-icon {
-            color: var(--error);
-        }
-
-        .toast.info .toast-icon {
-            color: var(--info);
-        }
-
-        .toast-content {
-            flex: 1;
-        }
-
-        .toast-title {
-            font-weight: 600;
-            margin-bottom: 0.25rem;
-            color: var(--heading-color);
-        }
-
-        .toast-message {
-            color: var(--text-muted);
-            font-size: 0.9rem;
-        }
-
-        .toast-close {
-            background: none;
-            border: none;
-            color: var(--text-muted);
-            cursor: pointer;
-            font-size: 1.1rem;
-            padding: 4px;
-            border-radius: var(--radius-sm);
-            transition: var(--transition-default);
-        }
-
-        .toast-close:hover {
-            background-color: rgba(0, 0, 0, 0.1);
-        }
-
+        
         @keyframes slideIn {
-            from {
-                transform: translateX(100%);
-                opacity: 0;
-            }
-            to {
-                transform: translateX(0);
-                opacity: 1;
-            }
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
         }
 
-        @keyframes fadeInDown {
-            from {
-                opacity: 0;
-                transform: translateY(-10px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
+        /* Tooltip styling for revoke button */
+        .tooltip-container {
+          position: relative;
+          display: inline-block;
+        }
+        
+        .tooltip-text {
+          visibility: hidden;
+          width: 300px;
+          background-color: rgba(0, 0, 0, 0.8);
+          color: #fff;
+          text-align: center;
+          border-radius: 6px;
+          padding: 10px;
+          position: absolute;
+          z-index: 1000;
+          bottom: 125%;
+          left: 50%;
+          margin-left: -150px;
+          opacity: 0;
+          transition: opacity 0.3s;
+        }
+        
+        .tooltip-text::after {
+          content: "";
+          position: absolute;
+          top: 100%;
+          left: 50%;
+          margin-left: -5px;
+          border-width: 5px;
+          border-style: solid;
+          border-color: rgba(0, 0, 0, 0.8) transparent transparent transparent;
+        }
+        
+        .tooltip-container:hover .tooltip-text {
+          visibility: visible;
+          opacity: 1;
+        }
+        
+        .tooltip-warning {
+          border-left: 4px solid #ff9800;
+        }
+        
+        .tooltip-warning i {
+          color: #ff9800;
+          margin-right: 5px;
+        }
+        
+        .hidden {
+          display: none;
         }
 
-        /* Dashboard Main */
-        .dashboard-main {
-            padding: 120px 0 2.5rem 0;
-            min-height: calc(100vh - 120px - 60px);
-        }
-
-        .dashboard-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 2.5rem;
-            flex-wrap: wrap;
-            gap: 1.5rem;
-        }
-
-        .dashboard-title h1 {
-            margin: 0;
-            font-size: 2.25rem;
-            color: var(--heading-color);
-            font-weight: 700;
-            letter-spacing: -0.02em;
-            line-height: 1.2;
-        }
-
-        .dashboard-title p {
-            margin: 0.5rem 0 0;
-            color: var(--text-muted);
-            font-size: 1.1rem;
-        }
-
-        .dashboard-stats {
-            display: flex;
-            gap: 1.25rem;
-            flex-wrap: wrap;
-        }
-
-        .stat-card {
-            background-color: var(--card-background);
-            border-radius: var(--radius-md);
-            padding: 1.5rem;
-            display: flex;
-            align-items: center;
-            min-width: 200px;
-            box-shadow: var(--shadow-sm);
-            transition: var(--transition-default);
-        }
-
-        .stat-card:hover {
-            transform: translateY(-4px);
-            box-shadow: var(--shadow-md);
-        }
-
-        .stat-icon {
-            width: 52px;
-            height: 52px;
-            background-color: rgba(var(--primary-rgb), 0.1);
-            border-radius: var(--radius-md);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            margin-right: 1.25rem;
-        }
-
-        .stat-icon i {
-            color: var(--primary);
-            font-size: 1.5rem;
-        }
-
-        .stat-value {
-            font-size: 1.75rem;
-            font-weight: 700;
-            color: var(--heading-color);
-        }
-
-        .stat-label {
-            font-size: 0.9rem;
-            color: var(--text-muted);
-        }
-
-        /* Quick Actions */
-        .quick-actions {
-            display: flex;
-            gap: 1rem;
-            margin-bottom: 2.5rem;
-            flex-wrap: wrap;
-        }
-
-        .action-btn {
-            padding: 0.75rem 1.5rem;
-            border-radius: var(--radius-md);
-            border: 1px solid var(--border-color);
-            background-color: var(--card-background);
-            color: var(--text-color);
-            font-weight: 600;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-            transition: var(--transition-default);
-            text-decoration: none;
-            position: relative;
-        }
-
-        .action-btn:hover {
-            border-color: var(--primary);
-            background-color: rgba(var(--primary-rgb), 0.05);
-            transform: translateY(-2px);
-            box-shadow: var(--shadow-md);
-        }
-
-        /* Badge for workflow buttons */
+        
+                /* Badge number styling with animations */
         .workflow-btn {
             position: relative;
             overflow: visible;
         }
-
+        
         .number-badge {
             position: absolute;
             top: -8px;
             left: -8px;
             width: 22px;
             height: 22px;
-            background: linear-gradient(135deg, var(--error), #dc2626);
+            background: linear-gradient(135deg, #ef4444, #dc2626);
             color: white;
             border-radius: 50%;
             font-size: 11px;
@@ -618,195 +145,109 @@
             box-shadow: 0 2px 8px rgba(239, 68, 68, 0.3);
             z-index: 10;
             animation: badgePulse 2s ease-in-out infinite;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
-
+        
+        /* Primary button badge (different color) */
+        .action-btn.primary .number-badge {
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+            box-shadow: 0 2px 8px rgba(245, 158, 11, 0.3);
+        }
+        
+        /* Pulse animation for badges */
         @keyframes badgePulse {
-            0%, 100% {
+            0%, 100% { 
                 transform: scale(1);
+                box-shadow: 0 2px 8px rgba(239, 68, 68, 0.3);
             }
-            50% {
+            50% { 
                 transform: scale(1.05);
+                box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4);
             }
         }
-
-        /* Content Sections */
-        .content-section {
-            background-color: var(--card-background);
-            border-radius: var(--radius-lg);
-            padding: 2rem;
-            margin-bottom: 2rem;
-            box-shadow: var(--shadow-sm);
-            border: 1px solid var(--border-color);
+        
+        /* Hover effects */
+        .workflow-btn:hover .number-badge {
+            transform: scale(1.1) rotate(5deg);
+            box-shadow: 0 4px 16px rgba(239, 68, 68, 0.5);
+            animation: none; /* Stop pulse on hover */
         }
-
-        .section-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 1.5rem;
+        
+        .action-btn.primary:hover .number-badge {
+            box-shadow: 0 4px 16px rgba(245, 158, 11, 0.5);
         }
-
-        .section-header h2 {
-            margin: 0;
-            font-size: 1.5rem;
-            color: var(--heading-color);
-            font-weight: 600;
-        }
-
-        .btn {
-            padding: 0.75rem 1.5rem;
-            border-radius: var(--radius-md);
-            font-weight: 600;
-            cursor: pointer;
-            transition: var(--transition-default);
-            border: none;
-            text-decoration: none;
-            display: inline-flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-
-        .btn.primary {
-            background-color: var(--primary);
-            color: white;
-        }
-
-        .btn.primary:hover {
-            background-color: var(--primary-dark);
+        
+        /* Button hover enhancement */
+        .workflow-btn:hover {
             transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
         }
-
-        .btn.secondary {
-            background-color: transparent;
-            color: var(--text-color);
-            border: 1px solid var(--border-color);
+        
+        /* Subtle bounce when button is clicked */
+        .workflow-btn:active {
+            transform: translateY(0px) scale(0.98);
+            transition: all 0.1s ease;
         }
-
-        .btn.secondary:hover {
-            border-color: var(--primary);
-            background-color: rgba(var(--primary-rgb), 0.05);
+        
+        .workflow-btn:active .number-badge {
+            transform: scale(0.95);
+            transition: all 0.1s ease;
         }
-
-        /* Empty State */
-        .empty-state {
-            text-align: center;
-            padding: 4rem 1.5rem;
+        
+        /* Stagger animation delays for initial load */
+        .workflow-btn:nth-child(1) .number-badge {
+            animation-delay: 0.2s;
         }
-
-        .empty-state i {
-            font-size: 4rem;
-            color: var(--text-muted);
-            margin-bottom: 1.5rem;
-            opacity: 0.6;
+        
+        .workflow-btn:nth-child(2) .number-badge {
+            animation-delay: 0.4s;
         }
-
-        .empty-state h3 {
-            margin: 0 0 0.75rem;
-            color: var(--heading-color);
-            font-size: 1.5rem;
+        
+        .workflow-btn:nth-child(3) .number-badge {
+            animation-delay: 0.6s;
         }
-
-        .empty-state p {
-            color: var(--text-muted);
-            margin-bottom: 2rem;
-        }
-
-        /* Responsive Design */
+        
+        /* Mobile responsiveness */
         @media (max-width: 768px) {
-            .logo-image {
-                height: 60px;
-                width: 60px;
-                margin-right: 15px;
-            }
-
-            .logo-text {
-                font-size: 26px;
-                letter-spacing: -0.6px;
-            }
-
-            .nav-links {
-                display: none;
-            }
-
-            .dashboard-header {
-                flex-direction: column;
-                align-items: flex-start;
-            }
-
-            .dashboard-stats {
-                width: 100%;
-                justify-content: space-between;
-            }
-
-            .stat-card {
-                min-width: 150px;
-                flex: 1;
-            }
-
-            .quick-actions {
-                flex-direction: column;
-            }
-
-            .action-btn {
-                justify-content: center;
-            }
-
-            .notification-dropdown {
-                width: 300px;
-                right: -140px;
-            }
-        }
-
-        @media (max-width: 480px) {
-            .logo-image {
-                height: 50px;
-                width: 50px;
-                margin-right: 12px;
-            }
-
-            .logo-text {
-                font-size: 22px;
-                letter-spacing: -0.4px;
-            }
-
-            .dashboard-title h1 {
-                font-size: 2rem;
-            }
-
-            .notification-dropdown {
-                width: 280px;
-                right: -120px;
-            }
-
-            .toast {
-                min-width: 280px;
-                max-width: 320px;
+            .number-badge {
+                width: 20px;
+                height: 20px;
+                font-size: 10px;
+                top: -6px;
+                left: -6px;
             }
         }
     </style>
 </head>
 <body>
     <!-- Toast Container for Notifications -->
-    <div id="toastContainer"></div>
+    <div id="toastContainer" class="toast-container"></div>
+
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="loading-overlay">
+        <div class="loading-spinner"></div>
+        <div class="loading-text">Loading...</div>
+    </div>
 
     <header>
         <div class="container">
             <nav>
-                <a href="#" class="logo">
-                    <img src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNzAiIGhlaWdodD0iNzAiIHZpZXdCb3g9IjAgMCA3MCA3MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjcwIiBoZWlnaHQ9IjcwIiByeD0iMTIiIGZpbGw9IiMzYjgyZjYiLz4KPHN2ZyB4PSIxNSIgeT0iMTUiIHdpZHRoPSI0MCIgaGVpZ2h0PSI0MCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJ3aGl0ZSI+CjxwYXRoIGQ9Ik05IDJhMSAxIDAgMCAwLTEgMXY0SDZhNCAxIDAgMCAwLTQgNHY4YTQgNCAwIDAgMCA0IDRoMTJhNCA0IDAgMCAwIDQtNHYtOGE0IDQgMCAwIDAtNC00aC0yVjNhMSAxIDAgMCAwLTEtMUg5em0xIDJ2NGg0VjR6bS0yIDZhMSAxIDAgMCAwLTEgMSAxIDEgMCAwIDAgMSAxaDhhMSAxIDAgMCAwIDEtMSAxIDEgMCAwIDAtMS0xSDh6bTAgNGExIDEgMCAwIDAtMSAxIDEgMSAwIDAgMCAxIDFoNGExIDEgMCAwIDAgMS0xIDEgMSAwIDAgMC0xLTFIOHoiLz4KPC9zdmc+Cjwvc3ZnPgo=" alt="SnapSelect" class="logo-image">
+                <a href="../index.html" class="logo">
+                    <img src="../assets/images/snapselect-logo.jpeg" alt="SnapSelect" class="logo-image">
                     <div class="logo-text">SnapSelect</div>
                 </a>
                 <ul class="nav-links">
-                    <li><a href="#features">Features</a></li>
-                    <li><a href="#how-it-works">How It Works</a></li>
-                    <li><a href="#pricing">Pricing</a></li>
+                    <li><a href="../index.html#features">Features</a></li>
+                    <li><a href="../index.html#how-it-works">How It Works</a></li>
+                    <li><a href="../index.html#pricing">Pricing</a></li>
                 </ul>
                 <div class="right-nav">
-                    <!-- Notification System -->
+
+                      <!-- ADD NOTIFICATION HERE, BEFORE auth-user -->
                     <div class="notification-container">
                         <button id="notificationBtn" class="notification-btn">
                             <i class="fas fa-bell"></i>
-                            <span id="notificationCount" class="notification-badge">3</span>
+                            <span id="notificationCount" class="notification-badge">0</span>
                         </button>
                         
                         <div id="notificationDropdown" class="notification-dropdown">
@@ -815,454 +256,898 @@
                                 <button id="markAllReadBtn" class="mark-all-read">Mark all as read</button>
                             </div>
                             <div id="notificationList" class="notification-list">
-                                <div class="notification-item unread">
-                                    <div class="notification-content">
-                                        <div class="notification-title">Client Deleted</div>
-                                        <div class="notification-time">
-                                            <i class="fas fa-clock"></i>
-                                            tester has been permanently removed
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="notification-item unread">
-                                    <div class="notification-content">
-                                        <div class="notification-title">Access Revoked</div>
-                                        <div class="notification-time">
-                                            <i class="fas fa-clock"></i>
-                                            Gallery sharing has been revoked successfully
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="notification-item">
-                                    <div class="notification-content">
-                                        <div class="notification-title">Payment Received</div>
-                                        <div class="notification-time">
-                                            <i class="fas fa-clock"></i>
-                                            New plan purchased for client
-                                        </div>
-                                    </div>
-                                </div>
+                                <!-- Notifications will be loaded here -->
                             </div>
                         </div>
                     </div>
-
-                    <!-- User Menu -->
-                    <div class="auth-user">
+                    <div class="auth-user" id="userNav">
                         <div class="user-menu">
                             <button class="user-menu-btn" id="userMenuBtn">
-                                <div class="avatar-placeholder">M</div>
-                                <span class="user-name">meera@gmail.com</span>
+                                <div class="avatar-placeholder">U</div>
+                                <span class="user-name" id="userName">User</span>
                                 <i class="fas fa-chevron-down"></i>
                             </button>
                             <div class="user-dropdown" id="userDropdown">
-                                <a href="#" class="active">Dashboard</a>
-                                <a href="#">Clients</a>
-                                <a href="#">Analytics</a>
-                                <a href="#">Account Settings</a>
+                                <a href="photographer-dashboard.html" class="active">Dashboard</a>
+                                <a href="client-management.html">Clients</a>
+                                <a href="analytics.html">Analytics</a>
+                                <a href="account-settings.html">Account Settings</a>
                                 <a href="#" id="logoutBtn">Logout</a>
                             </div>
                         </div>
                     </div>
                 </div>
+                <div class="hamburger">
+                    <i class="fas fa-bars"></i>
+                </div>
+              
+          
             </nav>
         </div>
     </header>
 
     <main class="dashboard-main">
         <div class="container">
-            <!-- Dashboard Header -->
+            <!-- Dashboard Overview -->
             <section class="dashboard-header">
                 <div class="dashboard-title">
                     <h1>Photographer Dashboard</h1>
                     <p>Manage your client plans and galleries</p>
                 </div>
                 <div class="dashboard-stats">
-                    <div class="stat-card">
+                    <div class="stat-card animate-in">
                         <div class="stat-icon">
                             <i class="fas fa-images"></i>
                         </div>
                         <div class="stat-info">
-                            <div class="stat-value">12</div>
-                            <div class="stat-label">Active Galleries</div>
+                            <span class="stat-value" id="activeGalleriesCount">0</span>
+                            <span class="stat-label">Active Galleries</span>
                         </div>
                     </div>
-                    <div class="stat-card">
+                    <div class="stat-card animate-in" style="animation-delay: 0.1s;">
                         <div class="stat-icon">
                             <i class="fas fa-users"></i>
                         </div>
                         <div class="stat-info">
-                            <div class="stat-value">8</div>
-                            <div class="stat-label">Active Clients</div>
+                            <span class="stat-value" id="activeClientsCount">0</span>
+                            <span class="stat-label">Active Clients</span>
                         </div>
                     </div>
                 </div>
             </section>
 
-            <!-- Quick Actions -->
-            <section class="quick-actions">
-                <button class="action-btn workflow-btn">
+            <!-- Quick Actions Bar -->
+       
+         <!-- Quick Actions Bar -->
+            <section class="quick-actions animate-in" style="animation-delay: 0.3s;">
+                <button id="createClientBtn" class="action-btn workflow-btn">
                     <div class="number-badge">1</div>
                     <i class="fas fa-user-plus"></i> New Client
                 </button>
-                <button class="action-btn workflow-btn">
+                <button id="upgradePlanBtn" class="action-btn workflow-btn">
                     <div class="number-badge">2</div>
                     <i class="fas fa-plus"></i> Purchase Plan
                 </button>
-                <button class="action-btn workflow-btn">
+                <button id="createGalleryBtn" class="action-btn workflow-btn">
                     <div class="number-badge">3</div>
                     <i class="fas fa-images"></i> New Gallery
                 </button>
-                <button class="action-btn">
+                <button id="viewAnalyticsBtn" class="action-btn">
                     <i class="fas fa-chart-bar"></i> Analytics
                 </button>
-                <button class="action-btn" id="testNotificationBtn">
-                    <i class="fas fa-bell"></i> Test Notification
+                <button id="helpBtn" class="action-btn help">
+                    <i class="fas fa-question-circle"></i> Help
                 </button>
             </section>
 
-            <!-- Client Plans Section -->
-            <section class="content-section">
+            <!-- Active Plans Section -->
+            <section class="active-plans-section animate-in" style="animation-delay: 0.4s;">
                 <div class="section-header">
-                    <h2>Client Plans</h2>
-                    <button class="btn secondary">
-                        <i class="fas fa-sync-alt"></i> Refresh
-                    </button>
+                    <div class="header-main">
+                        <h2>Client Plans</h2>
+                        <div class="header-actions">
+                            <button id="fixCountsBtn" class="action-btn" title="Fix Photo Counts + Share details among your galleries..">
+                                <i class="fas fa-wrench"></i>
+                            </button>
+                            <button id="refreshPlansBtn" class="refresh-btn">
+                                <i class="fas fa-sync-alt"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="tabs">
+                        <div class="tab active" data-filter="all">All <span class="plan-count">0</span></div>
+                        <div class="tab" data-filter="active">Active <span class="plan-count">0</span></div>
+                        <div class="tab" data-filter="expiring">Expiring Soon <span class="plan-count">0</span></div>
+                        <div class="tab" data-filter="expired">Expired <span class="plan-count">0</span></div>
+                    </div>
                 </div>
-                <div class="empty-state">
-                    <i class="fas fa-ticket-alt"></i>
-                    <h3>No plans found</h3>
-                    <p>Purchase a plan for a client to get started</p>
-                    <button class="btn primary">Purchase Plan</button>
+                
+                <div class="plans-toolbar">
+                    <div class="search-plans">
+                        <i class="fas fa-search"></i>
+                        <input type="text" id="searchPlansInput" placeholder="Search plans by client or type...">
+                    </div>
+                    <div class="sort-dropdown">
+                        <button id="sortPlansBtn" class="sort-btn">
+                            <span>Sort: Recent</span>
+                            <i class="fas fa-chevron-down"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <div id="plansContainer" class="plans-container">
+                    <!-- Plans will be loaded dynamically -->
+                    <div class="empty-state">
+                        <i class="fas fa-ticket-alt empty-icon"></i>
+                        <h3>No plans found</h3>
+                        <p>Purchase a plan for a client to get started</p>
+                        <button class="btn" id="emptyStateUpgradeBtn">Purchase Plan</button>
+                    </div>
+                </div>
+            </section>
+      
+            <!-- Client Management Section -->
+            <section class="clients-section animate-in" style="animation-delay: 0.5s;">
+                <div class="section-header">
+                    <h2>Your Clients</h2>
+                    <button id="viewAllClientsBtn" class="view-all-btn">View All</button>
+                </div>
+                <div id="clientList" class="client-grid">
+                    <!-- Clients will be loaded dynamically -->
+                    <div class="empty-state">
+                        <i class="fas fa-users empty-icon"></i>
+                        <h3>No clients yet</h3>
+                        <p>Add your first client to get started</p>
+                        <button class="btn" id="emptyStateCreateClientBtn">Add Client</button>
+                    </div>
                 </div>
             </section>
 
-            <!-- Client Management Section -->
-            <section class="content-section">
-                <div class="section-header">
-                    <h2>Your Clients</h2>
-                    <button class="btn secondary">View All</button>
+            <!-- Plan Upgrade Modal -->
+            <div id="upgradePlanModal" class="modal">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h2>Purchase Client Plan</h2>
+                        <button class="close-modal">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        <!-- Client Selection -->
+                        <div class="client-selection">
+                            <h3>Select Client</h3>
+                            <select id="clientSelect" class="client-select">
+                                <option value="">Select a client</option>
+                                <option value="new">+ Create New Client</option>
+                                <!-- Existing clients will be loaded dynamically -->
+                            </select>
+                        </div>
+
+                        <!-- New Client Form (Hidden initially) -->
+                        <div id="newClientForm" class="new-client-form" style="display: none;">
+                            <h3>New Client Details</h3>
+                            <div class="form-group">
+                                <label for="newClientName">Client Name *</label>
+                                <input type="text" id="newClientName" placeholder="Enter client name" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="newClientEmail">Client Email</label>
+                                <input type="email" id="newClientEmail" placeholder="Enter client email (optional)">
+                            </div>
+                        </div>
+
+                        <div class="plan-comparison">
+                            <div class="plan-tabs">
+                                <button class="plan-tab" data-plan="lite">Lite</button>
+                                <button class="plan-tab" data-plan="mini">Mini</button>
+                                <button class="plan-tab" data-plan="basic">Basic</button>
+                                <button class="plan-tab" data-plan="pro">Pro</button>
+                                <button class="plan-tab" data-plan="premium">Premium</button>
+                                <button class="plan-tab" data-plan="ultimate">Ultimate</button>
+                            </div>
+                            
+                            <div id="planDetailsSection" class="plan-details-section">
+                                <div class="plan-column selected">
+                                    <h3>Selected Plan</h3>
+                                    <div class="plan-name" id="selectedPlanName">Basic</div>
+                                    <div class="plan-price" id="selectedPlanPrice">₹399/client</div>
+                                    <div class="plan-validity" id="validityInfo">Valid for 30 days</div>
+                                    <ul class="plan-features" id="planFeaturesList">
+                                        <li>15 GB Storage</li>
+                                        <li>1 Gallery</li>
+                                        <li>500 Photos per gallery</li>
+                                        <li>30-day client selection window</li>
+                                        <li>Advanced uploads</li>
+                                        <li>Password protection</li>
+                                    </ul>
+                                </div>
+                            </div>
+                            
+                            <div class="payment-section">
+                                <div class="payment-progress alert-info" style="display: none;"></div>
+                                <div class="payment-success alert-success" style="display: none;"></div>
+                                <div class="payment-error alert-danger" style="display: none;"></div>
+                                
+                                <h3>Complete Your Purchase</h3>
+                                <p class="payment-info">This plan will be associated with the selected client and valid for the duration specified above.</p>
+                                
+                                <form id="paymentForm">
+                                    <div class="payment-options">
+                                        <div class="payment-option">
+                                            <div class="payment-logo-icon">
+                                                <i class="fas fa-credit-card"></i>
+                                            </div>
+                                            <div class="payment-description">
+                                                <p>Secure payment via Razorpay</p>
+                                                <div class="payment-methods">
+                                                    <i class="fas fa-credit-card"></i>
+                                                    <i class="fas fa-university"></i>
+                                                    <i class="fab fa-cc-visa"></i>
+                                                    <i class="fab fa-cc-mastercard"></i>
+                                                    <i class="fab fa-google-pay"></i>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="form-actions">
+                                        <button type="button" class="btn secondary" id="cancelUpgradeBtn">Cancel</button>
+                                        <button type="submit" class="btn primary" id="confirmUpgradeBtn">Purchase Plan</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-                <div class="empty-state">
-                    <i class="fas fa-users"></i>
-                    <h3>No clients yet</h3>
-                    <p>Add your first client to get started</p>
-                    <button class="btn primary">Add Client</button>
+            </div>
+
+            <!-- Create Client Modal -->
+            <div id="createClientModal" class="modal">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h2>Create New Client</h2>
+                        <button class="close-modal">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        <form id="createClientForm">
+                            <div class="form-group">
+                                <label for="clientName">Client Name *</label>
+                                <input type="text" id="clientName" placeholder="Enter client name" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="clientEmail">Client Email</label>
+                                <input type="email" id="clientEmail" placeholder="Enter client email (optional)">
+                            </div>
+                            <div class="form-group">
+                                <label for="clientPhone">Client Phone</label>
+                                <input type="tel" id="clientPhone" placeholder="Enter client phone (optional)">
+                            </div>
+                            <div class="form-group">
+                                <label for="clientNotes">Notes</label>
+                                <textarea id="clientNotes" placeholder="Any additional notes about this client"></textarea>
+                            </div>
+                            <div class="form-actions">
+                                <button type="button" class="btn secondary" id="cancelClientBtn">Cancel</button>
+                                <button type="submit" class="btn primary" id="saveClientBtn">Save Client</button>
+                            </div>
+                        </form>
+                    </div>
                 </div>
-            </section>
+            </div>
+
+            <!-- Create Gallery Modal - Updated with active clients only -->
+            <div id="createGalleryModal" class="modal">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h2>Create New Gallery</h2>
+                        <button class="close-modal">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        <form id="createGalleryForm">
+                            <div class="form-group">
+                                <label for="galleryName">Gallery Name *</label>
+                                <input type="text" id="galleryName" placeholder="Enter gallery name" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="galleryClient">Client *</label>
+                                <select id="galleryClient" required>
+                                    <option value="">Select a client</option>
+                                    <!-- Only clients with active plans will be loaded dynamically -->
+                                </select>
+                                <p class="form-help">Only clients with active plans can have galleries created.</p>
+                            </div>
+                            <div class="form-group">
+                                <label for="galleryDescription">Description</label>
+                                <textarea id="galleryDescription" placeholder="Describe this gallery (optional)"></textarea>
+                            </div>
+                            <div class="form-actions">
+                                <button type="button" class="btn secondary" id="cancelGalleryBtn">Cancel</button>
+                                <button type="submit" class="btn primary" id="saveGalleryBtn">Create Gallery</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Gallery Share Modal -->
+            <div id="shareGalleryModal" class="modal">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <h2>Share Gallery</h2>
+                  <button class="close-modal">&times;</button>
+                </div>
+                <div class="modal-body">
+                  <form id="shareSettingsForm">
+                    <!-- Share Link Section (shown after sharing) -->
+                    <div id="shareLinkSection" class="share-link-section hidden">
+                      <h3>Share Link</h3>
+                      <div class="share-link-container">
+                        <input type="text" id="shareUrlDisplay" readonly class="share-url-input">
+                      </div>
+                      <div class="share-instructions">
+                        Share this link with your client to give them access to the gallery.
+                      </div>
+                    </div>
+                    
+                    <!-- Share Settings Section -->
+                    <div class="share-settings-section">
+                      <h3>Sharing Settings</h3>
+                      
+                      <!-- Password Protection -->
+                      <div class="form-group">
+                        <div class="toggle-container">
+                          <label class="toggle-label">Password Protection</label>
+                          <label class="switch">
+                            <input type="checkbox" id="passwordProtection">
+                            <span class="slider round"></span>
+                          </label>
+                        </div>
+                        <div id="passwordSection" class="hidden">
+                          <input type="password" id="password" placeholder="Enter password" class="form-control">
+                          <p class="form-hint">Clients will need to enter this password to access the gallery.</p>
+                        </div>
+                      </div>
+                      
+                      <!-- Expiry Date -->
+                      <div class="form-group">
+                        <label for="expiryDate">Link Expiry Date (Optional)</label>
+                        <input type="date" id="expiryDate" class="form-control">
+                        <p class="form-hint">The gallery link will expire on this date. Leave blank for no expiration.</p>
+                      </div>
+                      
+                      <!-- Photo Selection Limit -->
+                      <div class="form-group">
+                        <label for="maxSelections">Maximum Photo Selections</label>
+                        <input type="number" id="maxSelections" min="0" class="form-control">
+                        <p class="form-hint">Set the maximum number of photos the client can select. Enter 0 for unlimited selections.</p>
+                      </div>
+                      
+                      <!-- Prevent Download -->
+                      <div class="form-group">
+                        <div class="toggle-container">
+                          <label class="toggle-label">Prevent Download</label>
+                          <label class="switch">
+                            <input type="checkbox" id="preventDownload">
+                            <span class="slider round"></span>
+                          </label>
+                        </div>
+                        <p class="form-hint">Limit the ability for clients to download photos directly.</p>
+                      </div>
+                      
+                      <!-- Watermark -->
+                      <div class="form-group">
+                        <div class="toggle-container">
+                          <label class="toggle-label">Enable Watermark</label>
+                          <label class="switch">
+                            <input type="checkbox" id="watermarkEnabled">
+                            <span class="slider round"></span>
+                          </label>
+                        </div>
+                        <p class="form-hint">Apply your watermark to all shared photos.</p>
+                      </div>
+                    </div>
+                  </form>
+                </div>
+                <div class="modal-footer">
+                  <div class="modal-footer-left">
+                    <!-- Revoke button with tooltip -->
+                    <div class="tooltip-container">
+                      <button type="button" id="revokeAccessBtn" class="btn danger-btn hidden revoke-2">Revoke (3)</button>
+                      <div class="tooltip-text tooltip-warning">
+                        <i class="fas fa-exclamation-triangle"></i> Warning: You have a limited number of revocation attempts. Use them wisely.
+                      </div>
+                    </div>
+                  </div>
+                  <div class="modal-footer-right">
+                    <button type="button" class="btn outline-btn close-modal">Cancel</button>
+                    <button type="submit" form="shareSettingsForm" id="shareGallerySubmitBtn" class="btn primary-btn">Share Gallery</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+<!-- Help Modal -->
+            <div id="helpModal" class="modal">
+                <div class="modal-content help-content">
+                    <div class="modal-header">
+                        <h2>Dashboard Help</h2>
+                        <button class="close-modal">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="help-tabs">
+                            <button class="help-tab active" data-tab="galleries">Galleries</button>
+                            <button class="help-tab" data-tab="uploads">Uploading</button>
+                            <button class="help-tab" data-tab="sharing">Client Sharing</button>
+                            <button class="help-tab" data-tab="selections">Selections</button>
+                        </div>
+                        <div class="help-content">
+                            <div class="help-panel active" id="galleries-help">
+                                <h3>Managing Your Galleries</h3>
+                                <p>Galleries are collections of photos you share with clients for selection. Each gallery can have its own settings and sharing options.</p>
+                                <div class="help-steps">
+                                    <div class="help-step">
+                                        <div class="step-number">1</div>
+                                        <div class="step-content">
+                                            <h4>Create a Gallery</h4>
+                                            <p>Click the "New Gallery" button to create a new client gallery.</p>
+                                        </div>
+                                    </div>
+                                    <div class="help-step">
+                                        <div class="step-number">2</div>
+                                        <div class="step-content">
+                                            <h4>Upload Photos</h4>
+                                            <p>Add photos to your gallery using the upload feature.</p>
+                                        </div>
+                                    </div>
+                                    <div class="help-step">
+                                        <div class="step-number">3</div>
+                                        <div class="step-content">
+                                            <h4>Share with Clients</h4>
+                                            <p>Generate a sharing link to send to your clients.</p>
+                                        </div>
+                                    </div>
+                                    <div class="help-step">
+                                        <div class="step-number">4</div>
+                                        <div class="step-content">
+                                            <h4>Monitor Selections</h4>
+                                            <p>Track which photos your client has selected.</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="help-panel" id="uploads-help" style="display: none;">
+                                <h3>Uploading Photos</h3>
+                                <p>You can upload photos to your galleries in several convenient ways.</p>
+                                <div class="help-card">
+                                    <h4><i class="fas fa-cloud-upload-alt"></i> Drag and Drop</h4>
+                                    <p>Simply drag files from your computer and drop them onto the upload zone.</p>
+                                </div>
+                                <div class="help-card">
+                                    <h4><i class="fas fa-folder-open"></i> Browse Files</h4>
+                                    <p>Click the "Browse Files" button to select photos from your device.</p>
+                                </div>
+                                <div class="help-note">
+                                    <p><strong>Note:</strong> Supported formats include JPG, PNG, and HEIF. Maximum file size depends on your current plan.</p>
+                                </div>
+                            </div>
+
+                            <div class="help-panel" id="sharing-help" style="display: none;">
+                                <h3>Sharing with Clients</h3>
+                                <p>Make it easy for clients to view and select their favorite photos.</p>
+                                <div class="help-card">
+                                    <h4><i class="fas fa-link"></i> Sharing Links</h4>
+                                    <p>Each gallery has a unique sharing link you can send to clients.</p>
+                                </div>
+                                <div class="help-card">
+                                    <h4><i class="fas fa-shield-alt"></i> Password Protection</h4>
+                                    <p>Add an optional password to control access to the gallery.</p>
+                                </div>
+                                <div class="help-card">
+                                    <h4><i class="fas fa-clock"></i> Expiration Dates</h4>
+                                    <p>Set a deadline for client selections to keep your workflow moving.</p>
+                                </div>
+                            </div>
+
+                            <div class="help-panel" id="selections-help" style="display: none;">
+                                <h3>Managing Selections</h3>
+                                <p>Once clients have made their selections, you can easily download and process them.</p>
+                                <div class="help-card">
+                                    <h4><i class="fas fa-bell"></i> Selection Notifications</h4>
+                                    <p>Receive notifications when clients make or complete their selections.</p>
+                                </div>
+                                <div class="help-card">
+                                    <h4><i class="fas fa-download"></i> Downloading Selected Photos</h4>
+                                    <p>Download all selected photos in a single batch for convenient editing.</p>
+                                </div>
+                                <div class="help-card">
+                                    <h4><i class="fas fa-chart-bar"></i> Selection Statistics</h4>
+                                    <p>View statistics about which photos are most popular with your clients.</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="help-contact">
+                            <p>Need more help? <a href="#" id="contactSupportBtn">Contact Support</a></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+
+
+            
         </div>
     </main>
 
+    <footer class="dashboard-footer">
+        <div class="container">
+            <div class="footer-bottom">
+                <p class="copyright">&copy; 2025 SnapSelect. All rights reserved.</p>
+                <div class="footer-links">
+                    <a href="#">Privacy Policy</a>
+                    <a href="#">Terms of Service</a>
+                    <a href="#" id="footerHelpLink">Help Center</a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Scripts -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-functions-compat.js"></script>
+    <script src="../assets/js/firebase-config.js"></script>
+    <script src="../assets/js/firebase-auth.js"></script>
+    <script src="../assets/js/firebase-db.js"></script>
+    <script src="../assets/js/header-auth.js"></script>
+    <!-- Load notification system before subscription manager -->
+    <script src="../assets/js/notification-system.js"></script>
+    <script src="../assets/js/subscription-manager.js"></script>
+    <script src="../assets/js/gallery-share-modal.js"></script>
+
     <script>
-        // Notification System
-        class NotificationSystem {
-            constructor() {
-                this.toastContainer = document.getElementById('toastContainer');
-                this.notificationBtn = document.getElementById('notificationBtn');
-                this.notificationDropdown = document.getElementById('notificationDropdown');
-                this.notificationCount = document.getElementById('notificationCount');
-                this.markAllReadBtn = document.getElementById('markAllReadBtn');
-                
-                this.init();
-            }
-
-            init() {
-                // Toggle notification dropdown
-                this.notificationBtn?.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    this.toggleNotificationDropdown();
-                });
-
-                // Mark all as read
-                this.markAllReadBtn?.addEventListener('click', () => {
-                    this.markAllAsRead();
-                });
-
-                // Close dropdown when clicking outside
-                document.addEventListener('click', (e) => {
-                    if (!this.notificationDropdown?.contains(e.target) && 
-                        !this.notificationBtn?.contains(e.target)) {
-                        this.closeNotificationDropdown();
-                    }
-                });
-
-                // Test notification button
-                document.getElementById('testNotificationBtn')?.addEventListener('click', () => {
-                    this.showTestNotifications();
-                });
-            }
-
-            toggleNotificationDropdown() {
-                if (this.notificationDropdown) {
-                    this.notificationDropdown.classList.toggle('show');
-                }
-            }
-
-            closeNotificationDropdown() {
-                if (this.notificationDropdown) {
-                    this.notificationDropdown.classList.remove('show');
-                }
-            }
-
-            markAllAsRead() {
-                const unreadItems = document.querySelectorAll('.notification-item.unread');
-                unreadItems.forEach(item => {
-                    item.classList.remove('unread');
-                });
-                this.updateNotificationCount();
-                this.showNotification('success', 'Success', 'All notifications marked as read');
-            }
-
-            updateNotificationCount() {
-                const unreadCount = document.querySelectorAll('.notification-item.unread').length;
-                if (this.notificationCount) {
-                    this.notificationCount.textContent = unreadCount;
-                    this.notificationCount.style.display = unreadCount > 0 ? 'flex' : 'none';
-                }
-            }
-
-            showNotification(type, title, message, duration = 5000) {
-                if (!this.toastContainer) return;
-
-                const toast = document.createElement('div');
-                toast.className = `toast ${type}`;
-                
-                const iconMap = {
-                    success: 'fas fa-check-circle',
-                    error: 'fas fa-times-circle',
-                    warning: 'fas fa-exclamation-triangle',
-                    info: 'fas fa-info-circle',
-                    payment: 'fas fa-credit-card',
-                    plan: 'fas fa-calendar-alt'
-                };
-
-                toast.innerHTML = `
-                    <div class="toast-icon">
-                        <i class="${iconMap[type] || iconMap.info}"></i>
-                    </div>
-                    <div class="toast-content">
-                        <div class="toast-title">${title}</div>
-                        <div class="toast-message">${message}</div>
-                    </div>
-                    <button class="toast-close">
-                        <i class="fas fa-times"></i>
-                    </button>
-                `;
-
-                // Add close functionality
-                const closeBtn = toast.querySelector('.toast-close');
-                closeBtn.addEventListener('click', () => {
-                    this.removeToast(toast);
-                });
-
-                // Add to container
-                this.toastContainer.appendChild(toast);
-
-                // Auto remove after duration
-                setTimeout(() => {
-                    this.removeToast(toast);
-                }, duration);
-
-                return toast;
-            }
-
-            removeToast(toast) {
-                if (toast && toast.parentNode) {
-                    toast.style.transform = 'translateX(100%)';
-                    toast.style.opacity = '0';
-                    setTimeout(() => {
-                        if (toast.parentNode) {
-                            toast.parentNode.removeChild(toast);
-                        }
-                    }, 300);
-                }
-            }
-
-            showTestNotifications() {
-                const notifications = [
-                    { type: 'success', title: 'Success', message: 'Client plan purchased successfully!' },
-                    { type: 'warning', title: 'Warning', message: 'Plan expires in 3 days' },
-                    { type: 'error', title: 'Error', message: 'Failed to upload photo' },
-                    { type: 'info', title: 'Info', message: 'New gallery shared with client' },
-                    { type: 'payment', title: 'Payment', message: 'Payment of ₹399 received' }
-                ];
-
-                notifications.forEach((notif, index) => {
-                    setTimeout(() => {
-                        this.showNotification(notif.type, notif.title, notif.message);
-                    }, index * 500);
-                });
-            }
-
-            addNotificationToList(title, message, isUnread = true) {
-                const notificationList = document.getElementById('notificationList');
-                if (!notificationList) return;
-
-                const item = document.createElement('div');
-                item.className = `notification-item ${isUnread ? 'unread' : ''}`;
-                
-                const now = new Date();
-                const timeString = now.toLocaleTimeString('en-US', { 
-                    hour: '2-digit', 
-                    minute: '2-digit' 
-                });
-
-                item.innerHTML = `
-                    <div class="notification-content">
-                        <div class="notification-title">${title}</div>
-                        <div class="notification-time">
-                            <i class="fas fa-clock"></i>
-                            ${message} - ${timeString}
-                        </div>
-                    </div>
-                `;
-
-                // Insert at the beginning
-                notificationList.insertBefore(item, notificationList.firstChild);
-                
-                // Update count
-                this.updateNotificationCount();
-
-                return item;
-            }
-        }
-
-        // User Menu System
-        class UserMenuSystem {
-            constructor() {
-                this.userMenuBtn = document.getElementById('userMenuBtn');
-                this.userDropdown = document.getElementById('userDropdown');
-                this.init();
-            }
-
-            init() {
-                // Toggle user dropdown
-                this.userMenuBtn?.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    this.toggleUserDropdown();
-                });
-
-                // Close dropdown when clicking outside
-                document.addEventListener('click', (e) => {
-                    if (!this.userDropdown?.contains(e.target) && 
-                        !this.userMenuBtn?.contains(e.target)) {
-                        this.closeUserDropdown();
-                    }
-                });
-
-                // Handle logout
-                document.getElementById('logoutBtn')?.addEventListener('click', (e) => {
-                    e.preventDefault();
-                    this.handleLogout();
-                });
-            }
-
-            toggleUserDropdown() {
-                if (this.userDropdown) {
-                    this.userDropdown.classList.toggle('show');
-                }
-            }
-
-            closeUserDropdown() {
-                if (this.userDropdown) {
-                    this.userDropdown.classList.remove('show');
-                }
-            }
-
-            handleLogout() {
-                if (confirm('Are you sure you want to logout?')) {
-                    // Simulate logout process
-                    notificationSystem.showNotification('info', 'Logging out', 'See you soon!');
-                    setTimeout(() => {
-                        window.location.href = '/login';
-                    }, 1500);
-                }
-            }
-        }
-
-        // Dashboard Actions
-        class DashboardActions {
-            constructor() {
-                this.init();
-            }
-
-            init() {
-                // Quick action buttons
-                const quickActions = document.querySelectorAll('.quick-actions .action-btn');
-                quickActions.forEach((btn, index) => {
-                    if (!btn.id) { // Skip buttons with specific IDs
-                        btn.addEventListener('click', () => {
-                            this.handleQuickAction(index);
-                        });
-                    }
-                });
-
-                // Empty state buttons
-                document.querySelectorAll('.empty-state .btn').forEach(btn => {
-                    btn.addEventListener('click', (e) => {
-                        this.handleEmptyStateAction(e.target);
-                    });
-                });
-            }
-
-            handleQuickAction(index) {
-                const actions = [
-                    { title: 'Create Client', message: 'Opening client creation form...' },
-                    { title: 'Purchase Plan', message: 'Opening plan selection...' },
-                    { title: 'Create Gallery', message: 'Opening gallery creation...' },
-                    { title: 'Analytics', message: 'Loading analytics dashboard...' }
-                ];
-
-                if (actions[index]) {
-                    notificationSystem.showNotification(
-                        'info', 
-                        actions[index].title, 
-                        actions[index].message
-                    );
-                    
-                    // Add to notification list
-                    notificationSystem.addNotificationToList(
-                        actions[index].title,
-                        actions[index].message.replace('...', '')
-                    );
-                }
-            }
-
-            handleEmptyStateAction(button) {
-                const buttonText = button.textContent.trim();
-                notificationSystem.showNotification(
-                    'info',
-                    'Action Triggered',
-                    `${buttonText} functionality would open here`
-                );
-            }
-        }
-
-        // Initialize systems when DOM is loaded
         document.addEventListener('DOMContentLoaded', function() {
-            // Initialize notification system
-            window.notificationSystem = new NotificationSystem();
+            // Debug notification elements
+            console.log('Toast container exists:', !!document.getElementById('toastContainer'));
+            console.log('Notification button exists:', !!document.getElementById('notificationBtn'));
+            console.log('Notification dropdown exists:', !!document.getElementById('notificationDropdown'));
             
-            // Initialize user menu
-            window.userMenuSystem = new UserMenuSystem();
+            // Initialize Firebase region
+            if (firebase && firebase.functions) {
+                firebase.app().functions("asia-south1");
+            }
             
-            // Initialize dashboard actions
-            window.dashboardActions = new DashboardActions();
+            // Show/hide new client form in upgrade modal
+            const clientSelect = document.getElementById('clientSelect');
+            const newClientForm = document.getElementById('newClientForm');
+            
+            if (clientSelect && newClientForm) {
+                clientSelect.addEventListener('change', function() {
+                    if (this.value === 'new') {
+                        newClientForm.style.display = 'block';
+                    } else {
+                        newClientForm.style.display = 'none';
+                    }
+                });
+            }
+            
+            // Modal close buttons
+            document.querySelectorAll('.close-modal').forEach(button => {
+                button.addEventListener('click', function() {
+                    const modal = this.closest('.modal');
+                    if (modal) {
+                        modal.style.display = 'none';
+                    }
+                });
+            });
+            
+            // Click outside modal to close
+            window.addEventListener('click', function(event) {
+                if (event.target.classList.contains('modal')) {
+                    event.target.style.display = 'none';
+                }
+            });
+            
+            // Empty state buttons
+            const emptyStateUpgradeBtn = document.getElementById('emptyStateUpgradeBtn');
+            if (emptyStateUpgradeBtn) {
+                emptyStateUpgradeBtn.addEventListener('click', function() {
+                    const upgradePlanModal = document.getElementById('upgradePlanModal');
+                    if (upgradePlanModal) {
+                        upgradePlanModal.style.display = 'block';
+                    }
+                });
+            }
+            
+            const emptyStateCreateClientBtn = document.getElementById('emptyStateCreateClientBtn');
+            if (emptyStateCreateClientBtn) {
+                emptyStateCreateClientBtn.addEventListener('click', function() {
+                    const createClientModal = document.getElementById('createClientModal');
+                    if (createClientModal) {
+                        createClientModal.style.display = 'block';
+                    }
+                });
+            }
+            
+            const emptyStateCreateGalleryBtn = document.getElementById('emptyStateCreateGalleryBtn');
+            if (emptyStateCreateGalleryBtn) {
+                emptyStateCreateGalleryBtn.addEventListener('click', function() {
+                    // Use the new function from subscription manager
+                    if (window.subscriptionManager && window.subscriptionManager.showCreateGalleryModal) {
+                        window.subscriptionManager.showCreateGalleryModal();
+                    } else {
+                        // Fallback if function not available
+                        const createGalleryModal = document.getElementById('createGalleryModal');
+                        if (createGalleryModal) {
+                            createGalleryModal.style.display = 'block';
+                        }
+                    }
+                });
+            }
+            
+            // Create client form submission
+            const createClientForm = document.getElementById('createClientForm');
+              if (createClientForm) {
+                createClientForm.addEventListener('submit', async function(e) {
+                  e.preventDefault();
+                  
+                  const clientName = document.getElementById('clientName').value.trim();
+                  const clientEmail = document.getElementById('clientEmail').value.trim();
+                  const clientPhone = document.getElementById('clientPhone').value.trim();
+                  const clientNotes = document.getElementById('clientNotes').value.trim();
+                  
+                  if (!clientName) {
+                    if (window.NotificationSystem) {
+                      window.NotificationSystem.showNotification('error', 'Error', 'Client name is required');
+                    } else {
+                      showErrorMessage('Client name is required');
+                    }
+                    return;
+                  }
+                  
+                  try {
+                    // Show loading
+                    const loadingOverlay = document.getElementById('loadingOverlay');
+                    if (loadingOverlay) {
+                      loadingOverlay.querySelector('.loading-text').textContent = 'Validating client...';
+                      loadingOverlay.style.display = 'flex';
+                    }
+                    
+                    // Validate the client name first using our new validation function
+                    if (window.subscriptionManager && window.subscriptionManager.validateNewClientName) {
+                      const validationResult = await window.subscriptionManager.validateNewClientName(clientName);
+                      if (!validationResult.isValid) {
+                        // Show error and stop form submission
+                        if (window.NotificationSystem) {
+                          window.NotificationSystem.showNotification('error', 'Error', validationResult.message);
+                        } else {
+                          showErrorMessage(validationResult.message);
+                        }
+                        
+                        // Hide loading overlay
+                        if (loadingOverlay) {
+                          loadingOverlay.style.display = 'none';
+                        }
+                        
+                        return; // Stop execution here
+                      }
+                    }
+                    
+                    // Update loading text now that validation is complete
+                    if (loadingOverlay) {
+                      loadingOverlay.querySelector('.loading-text').textContent = 'Creating client...';
+                    }
+                    
+                    // Create client (existing code path)
+                    if (window.subscriptionManager && window.subscriptionManager.createClient) {
+                      const clientId = await window.subscriptionManager.createClient(
+                        clientName,
+                        clientEmail,
+                        { phone: clientPhone, notes: clientNotes }
+                      );
+                      
+                      if (clientId) {
+                        // Close modal
+                        const createClientModal = document.getElementById('createClientModal');
+                        if (createClientModal) {
+                          createClientModal.style.display = 'none';
+                        }
+                     
+                        
+                        // Refresh client data
+                        if (window.subscriptionManager.refreshSubscription) {
+                          window.subscriptionManager.refreshSubscription();
+                        }
+                      }
+                    } else {
+                      throw new Error('Client management functionality is not available');
+                    }
+                  } catch (error) {
+                    console.error('Error creating client:', error);
+                    
+                    // Use notification system for errors too
+                    if (window.NotificationSystem) {
+                      window.NotificationSystem.showNotification('error', 'Error', `Error creating client: ${error.message}`);
+                    } else {
+                      showErrorMessage(`Error creating client: ${error.message}`);
+                    }
+                  } finally {
+                    // Hide loading
+                    const loadingOverlay = document.getElementById('loadingOverlay');
+                    if (loadingOverlay) {
+                      loadingOverlay.style.display = 'none';
+                    }
+                  }
+                });
+              }
+            
+            // Gallery creation button
+            const createGalleryBtn = document.getElementById('createGalleryBtn');
+            if (createGalleryBtn) {
+                createGalleryBtn.addEventListener('click', function() {
+                    // Use the new function from subscription manager
+                    if (window.subscriptionManager && window.subscriptionManager.showCreateGalleryModal) {
+                        window.subscriptionManager.showCreateGalleryModal();
+                    } else {
+                        // Fallback if function not available
+                        const createGalleryModal = document.getElementById('createGalleryModal');
+                        if (createGalleryModal) {
+                            createGalleryModal.style.display = 'block';
+                        }
+                    }
+                });
+            }
+            
+            // Reset form on modal close
+            document.querySelectorAll('.modal .close-modal, .modal .btn.secondary').forEach(button => {
+                button.addEventListener('click', function() {
+                    const modal = this.closest('.modal');
+                    if (modal) {
+                        const form = modal.querySelector('form');
+                        if (form) {
+                            form.reset();
+                        }
+                        
+                        // Hide new client form if in upgrade modal
+                        if (modal.id === 'upgradePlanModal') {
+                            const newClientForm = document.getElementById('newClientForm');
+                            if (newClientForm) {
+                                newClientForm.style.display = 'none';
+                            }
+                        }
+                    }
+                });
+            });
 
-            // Update initial notification count
-            notificationSystem.updateNotificationCount();
-
-            // Show welcome notification
-            setTimeout(() => {
-                notificationSystem.showNotification(
-                    'success',
-                    'Welcome Back!',
-                    'Your dashboard is ready to use'
-                );
-            }, 1000);
+            // Add this to your existing event listeners
+            const fixCountsBtn = document.getElementById('fixCountsBtn');
+            if (fixCountsBtn) {
+                fixCountsBtn.addEventListener('click', function() {
+                    if (window.subscriptionManager && typeof window.subscriptionManager.fixAllPhotoCountDiscrepancies === 'function') {
+                        window.subscriptionManager.fixAllPhotoCountDiscrepancies();
+                    } else {
+                        // Fallback if function not available
+                        showErrorMessage('Count fix functionality is not available');
+                    }
+                });
+            }
+            
+            // Refresh buttons
+            const refreshPlansBtn = document.getElementById('refreshPlansBtn');
+            if (refreshPlansBtn) {
+                refreshPlansBtn.addEventListener('click', function() {
+                    this.classList.add('rotating');
+                    
+                    // Check if subscription manager exists before calling
+                    if (window.subscriptionManager && window.subscriptionManager.refreshSubscription) {
+                        window.subscriptionManager.refreshSubscription();
+                        
+                        // Use notification system to show refresh confirmation
+                        if (window.NotificationSystem) {
+                            window.NotificationSystem.showNotification(
+                                'success',
+                                'Success',
+                                'Data refreshed successfully'
+                            );
+                        }
+                    }
+                    
+                    // Remove rotating class after animation completes
+                    setTimeout(() => {
+                        this.classList.remove('rotating');
+                    }, 1000);
+                });
+            }
         });
 
-        // Export for external use
-        window.NotificationSystem = NotificationSystem;
+        // Add the renew-plan-btn class to all "Renew Plan" buttons
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initial run
+            addClassToRenewButtons();
+            
+            // Set up observer for dynamically added buttons
+            const observer = new MutationObserver(function() {
+                addClassToRenewButtons();
+            });
+            
+            // Observe the entire document for changes
+            observer.observe(document.body, { 
+                childList: true, 
+                subtree: true 
+            });
+            
+            function addClassToRenewButtons() {
+                document.querySelectorAll('button').forEach(button => {
+                    if (button.textContent.trim() === 'Renew Plan' && !button.classList.contains('renew-plan-btn')) {
+                        button.classList.add('renew-plan-btn');
+                    }
+                });
+            }
+        });
     </script>
+    <script>
+    // Help Modal functionality
+        const helpBtn = document.getElementById('helpBtn');
+        const helpModal = document.getElementById('helpModal');
+        const footerHelpLink = document.getElementById('footerHelpLink');
+        const contactSupportBtn = document.getElementById('contactSupportBtn');
+
+        // Open help modal
+        if (helpBtn) {
+            helpBtn.addEventListener('click', function() {
+                if (helpModal) {
+                    helpModal.style.display = 'block';
+                }
+            });
+        }
+
+        // Footer help link
+        if (footerHelpLink) {
+            footerHelpLink.addEventListener('click', function(e) {
+                e.preventDefault();
+                if (helpModal) {
+                    helpModal.style.display = 'block';
+                }
+            });
+        }
+
+        // Help tab switching
+        document.querySelectorAll('.help-tab').forEach(tab => {
+            tab.addEventListener('click', function() {
+                const targetTab = this.getAttribute('data-tab');
+                
+                // Remove active class from all tabs and panels
+                document.querySelectorAll('.help-tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.help-panel').forEach(p => {
+                    p.classList.remove('active');
+                    p.style.display = 'none';
+                });
+                
+                // Add active class to clicked tab
+                this.classList.add('active');
+                
+                // Show corresponding panel
+                const targetPanel = document.getElementById(targetTab + '-help');
+                if (targetPanel) {
+                    targetPanel.classList.add('active');
+                    targetPanel.style.display = 'block';
+                }
+            });
+        });
+
+        // Contact support button
+        if (contactSupportBtn) {
+            contactSupportBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                // You can customize this action
+                if (window.NotificationSystem) {
+                    window.NotificationSystem.showNotification('info', 'Contact Support', 'Please email support@snapselect.com for assistance');
+                } else {
+                    alert('Please email support@snapselect.com for assistance');
+                }
+            });
+        }
+    </script>
+    <!-- Add the new download system script -->
+    <script src="../assets/js/gallery-download-system.js"></script>
 </body>
 </html>
