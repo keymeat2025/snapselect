@@ -397,20 +397,37 @@ class NotificationSystem {
       });
   }
   
-  // Add event listeners
+  // Add event listeners - FIXED VERSION
   addEventListeners() {
     // Toggle notification dropdown
     if (this.notificationBtn && this.notificationDropdown) {
       this.notificationBtn.addEventListener('click', (e) => {
+        e.preventDefault();
         e.stopPropagation();
-        const isVisible = this.notificationDropdown.style.display === 'block';
-        this.notificationDropdown.style.display = isVisible ? 'none' : 'block';
+        
+        console.log('Notification button clicked');
+        
+        // Close user dropdown if open
+        const userDropdown = document.getElementById('userDropdown');
+        if (userDropdown && userDropdown.classList.contains('active')) {
+          userDropdown.classList.remove('active');
+        }
+        
+        // Toggle notification dropdown using CSS classes instead of style.display
+        if (this.notificationDropdown.classList.contains('active')) {
+          this.notificationDropdown.classList.remove('active');
+          console.log('Dropdown closed');
+        } else {
+          this.notificationDropdown.classList.add('active');
+          console.log('Dropdown opened');
+        }
       });
     }
     
     // Mark all as read button
     if (this.markAllReadBtn) {
       this.markAllReadBtn.addEventListener('click', (e) => {
+        e.preventDefault();
         e.stopPropagation();
         this.markAllAsRead();
       });
@@ -421,7 +438,7 @@ class NotificationSystem {
       if (this.notificationDropdown && 
           !this.notificationBtn.contains(e.target) && 
           !this.notificationDropdown.contains(e.target)) {
-        this.notificationDropdown.style.display = 'none';
+        this.notificationDropdown.classList.remove('active');
       }
     });
   }
