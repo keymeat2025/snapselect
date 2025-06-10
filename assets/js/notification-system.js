@@ -1,6 +1,6 @@
 /**
- * notification-system.js - Manages notifications for the SnapSelect application
- * Firebase-based implementation to ensure consistency across browsers and devices
+ * Enhanced notification-system.js - Combines Firebase backend with improved UI
+ * Maintains all existing functionality while adding better visual design
  */
 
 // Notification types
@@ -14,7 +14,7 @@ const NOTIFICATION_TYPES = {
   CLIENT: 'client'
 };
 
-// Initialize the notification system
+// Enhanced NotificationSystem class
 class NotificationSystem {
   constructor() {
     this.notifications = [];
@@ -44,11 +44,15 @@ class NotificationSystem {
     this.addEventListeners = this.addEventListeners.bind(this);
     this.handleAuthStateChanged = this.handleAuthStateChanged.bind(this);
     this.showToast = this.showToast.bind(this);
+    this.createToastContainer = this.createToastContainer.bind(this);
   }
   
   // Initialize the notification system
   init() {
     if (this.initialized) return;
+    
+    // Create toast container if it doesn't exist
+    this.createToastContainer();
     
     // Get DOM elements
     this.notificationBtn = document.getElementById('notificationBtn');
@@ -60,8 +64,7 @@ class NotificationSystem {
     
     if (!this.notificationBtn || !this.notificationCount || !this.notificationDropdown || 
         !this.notificationList || !this.markAllReadBtn) {
-      console.error('Notification DOM elements not found');
-      return;
+      console.warn('Some notification DOM elements not found - limited functionality available');
     }
     
     // Set up Firebase auth listener
@@ -74,8 +77,24 @@ class NotificationSystem {
     // Add event listeners
     this.addEventListeners();
     
-    console.log('NotificationSystem initialized');
+    console.log('Enhanced NotificationSystem initialized');
     this.initialized = true;
+  }
+  
+  // Create toast container if it doesn't exist
+  createToastContainer() {
+    if (!document.getElementById('toastContainer')) {
+      const container = document.createElement('div');
+      container.id = 'toastContainer';
+      container.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 9999;
+        pointer-events: none;
+      `;
+      document.body.appendChild(container);
+    }
   }
   
   // Handle auth state changes
@@ -207,37 +226,131 @@ class NotificationSystem {
     }
   }
   
-  // Show toast notification
-  showToast(type, title, message) {
-    if (!this.toastContainer) return;
+  // Enhanced toast notification with better styling
+  showToast(type, title, message, duration = 5000) {
+    if (!this.toastContainer) this.createToastContainer();
     
     const toast = document.createElement('div');
-    toast.className = `toast toast-${type}`;
-    toast.innerHTML = `
-      <i class="${this.getIconForType(type)}"></i>
-      <div class="toast-content">
-        <div class="toast-title">${title}</div>
-        <div class="toast-message">${message}</div>
-      </div>
+    toast.className = 'toast-notification';
+    
+    // Enhanced styling
+    toast.style.cssText = `
+      background: white;
+      border-radius: 10px;
+      padding: 16px;
+      margin-bottom: 12px;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+      border-left: 4px solid ${this.getColorForType(type)};
+      min-width: 300px;
+      max-width: 400px;
+      animation: slideInFromRight 0.3s ease;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      position: relative;
+      pointer-events: auto;
+      transform: translateX(100%);
+      opacity: 0;
     `;
     
+    // Add CSS animation keyframes if not already added
+    if (!document.getElementById('toast-animations')) {
+      const style = document.createElement('style');
+      style.id = 'toast-animations';
+      style.textContent = `
+        @keyframes slideInFromRight {
+          from { transform: translateX(100%); opacity: 0; }
+          to { transform: translateX(0); opacity: 1; }
+        }
+        @keyframes slideOutToRight {
+          from { transform: translateX(0); opacity: 1; }
+          to { transform: translateX(100%); opacity: 0; }
+        }
+      `;
+      document.head.appendChild(style);
+    }
+    
+    const iconHtml = `<div style="font-size: 20px; color: ${this.getColorForType(type)}; flex-shrink: 0;">
+      <i class="${this.getIconForType(type)}"></i>
+    </div>`;
+    
+    const contentHtml = `<div style="flex: 1;">
+      <div style="font-weight: 600; margin-bottom: 4px; color: #1f2937;">${title}</div>
+      <div style="color: #6b7280; font-size: 14px; line-height: 1.4;">${message}</div>
+    </div>`;
+    
+    const closeHtml = `<button style="
+      background: none;
+      border: none;
+      color: #9ca3af;
+      cursor: pointer;
+      font-size: 16px;
+      padding: 4px;
+      border-radius: 4px;
+      transition: all 0.2s;
+      flex-shrink: 0;
+    " onmouseover="this.style.background='rgba(0,0,0,0.1)'" onmouseout="this.style.background='none'">
+      <i class="fas fa-times"></i>
+    </button>`;
+    
+    toast.innerHTML = iconHtml + contentHtml + closeHtml;
+    
+    // Add close functionality
+    const closeBtn = toast.querySelector('button');
+    closeBtn.addEventListener('click', () => {
+      this.removeToast(toast);
+    });
+    
+    // Add to container and animate in
     this.toastContainer.appendChild(toast);
     
-    // Remove toast after 5 seconds
+    // Trigger animation
     setTimeout(() => {
-      toast.classList.add('hide');
+      toast.style.transform = 'translateX(0)';
+      toast.style.opacity = '1';
+    }, 10);
+    
+    // Auto remove after duration
+    setTimeout(() => {
+      this.removeToast(toast);
+    }, duration);
+    
+    return toast;
+  }
+  
+  // Remove toast with animation
+  removeToast(toast) {
+    if (toast && toast.parentNode) {
+      toast.style.animation = 'slideOutToRight 0.3s ease forwards';
       setTimeout(() => {
-        toast.remove();
+        if (toast.parentNode) {
+          toast.parentNode.removeChild(toast);
+        }
       }, 300);
-    }, 5000);
+    }
+  }
+  
+  // Get color for notification type
+  getColorForType(type) {
+    switch (type) {
+      case NOTIFICATION_TYPES.SUCCESS: return '#10b981';
+      case NOTIFICATION_TYPES.ERROR: return '#ef4444';
+      case NOTIFICATION_TYPES.WARNING: return '#f59e0b';
+      case NOTIFICATION_TYPES.INFO: return '#3b82f6';
+      case NOTIFICATION_TYPES.PAYMENT: return '#8b5cf6';
+      case NOTIFICATION_TYPES.PLAN: return '#06b6d4';
+      case NOTIFICATION_TYPES.CLIENT: return '#f97316';
+      default: return '#6b7280';
+    }
   }
   
   // Show notification and save to Firebase
   showNotification(type, title, message) {
+    // Always show toast first for immediate feedback
+    this.showToast(type, title, message);
+    
     if (!this.currentUser || !this.notificationsRef) {
-      console.error('User not authenticated or notifications not initialized');
-      // Still show toast even if Firebase is not available
-      this.showToast(type, title, message);
+      console.warn('User not authenticated or notifications not initialized - only showing toast');
       return;
     }
     
@@ -255,17 +368,13 @@ class NotificationSystem {
     this.notificationsRef.add(notification)
       .then(docRef => {
         console.log('Notification added with ID:', docRef.id);
-        // Show toast notification
-        this.showToast(type, title, message);
       })
       .catch(error => {
         console.error('Error adding notification:', error);
-        // Still show toast even if Firebase save fails
-        this.showToast(type, title, message);
       });
   }
   
-  // Create notification from event
+  // Create notification from event (keep existing functionality)
   createNotificationFromEvent(event) {
     if (!event || !event.type) return;
     
@@ -305,6 +414,18 @@ class NotificationSystem {
         type = NOTIFICATION_TYPES.WARNING;
         break;
         
+      case 'client_deleted':
+        title = 'Client Deleted';
+        message = `Client "${event.clientName}" has been permanently removed.`;
+        type = NOTIFICATION_TYPES.WARNING;
+        break;
+        
+      case 'access_revoked':
+        title = 'Access Revoked';
+        message = `Gallery sharing has been revoked successfully.`;
+        type = NOTIFICATION_TYPES.INFO;
+        break;
+        
       default:
         // Handle generic notifications
         title = event.title || 'Notification';
@@ -316,7 +437,7 @@ class NotificationSystem {
     this.showNotification(type, title, message);
   }
   
-  // Render notifications in dropdown
+  // Enhanced notification rendering
   renderNotifications() {
     if (!this.notificationList) return;
     
@@ -327,32 +448,81 @@ class NotificationSystem {
       // Show empty state
       const emptyState = document.createElement('div');
       emptyState.className = 'empty-notification';
+      emptyState.style.cssText = `
+        padding: 32px 24px;
+        text-align: center;
+        color: #6b7280;
+        font-size: 16px;
+      `;
       emptyState.innerHTML = 'No notifications yet.';
       this.notificationList.appendChild(emptyState);
       return;
     }
     
-    // Create notification items
+    // Create notification items with enhanced styling
     this.notifications.forEach(notification => {
       const notificationItem = document.createElement('div');
       notificationItem.className = 'notification-item';
+      notificationItem.style.cssText = `
+        padding: 16px 20px;
+        border-bottom: 1px solid #e5e7eb;
+        transition: all 0.25s ease;
+        position: relative;
+        cursor: pointer;
+        ${!notification.read ? 'background-color: rgba(59, 130, 246, 0.08);' : ''}
+      `;
+      
+      // Add unread indicator
       if (!notification.read) {
         notificationItem.classList.add('unread');
+        const indicator = document.createElement('div');
+        indicator.style.cssText = `
+          position: absolute;
+          left: 15px;
+          top: 50%;
+          transform: translateY(-50%);
+          width: 8px;
+          height: 8px;
+          background-color: #3b82f6;
+          border-radius: 50%;
+        `;
+        notificationItem.appendChild(indicator);
       }
       
       // Format timestamp
       const formattedTime = this.formatTimestamp(notification.timestamp);
       
-      notificationItem.innerHTML = `
-        <div class="notification-icon">
-          <i class="${this.getIconForType(notification.type)}"></i>
-        </div>
-        <div class="notification-content">
-          <div class="notification-title">${notification.title}</div>
-          <div class="notification-message">${notification.message}</div>
-          <div class="notification-time">${formattedTime}</div>
+      notificationItem.innerHTML += `
+        <div style="margin-left: ${!notification.read ? '24px' : '0'};">
+          <div style="display: flex; align-items: flex-start; gap: 12px;">
+            <div style="font-size: 16px; color: ${this.getColorForType(notification.type)}; margin-top: 2px; flex-shrink: 0;">
+              <i class="${this.getIconForType(notification.type)}"></i>
+            </div>
+            <div style="flex: 1;">
+              <div style="font-weight: 600; color: #111827; margin-bottom: 4px; line-height: 1.4;">
+                ${notification.title}
+              </div>
+              <div style="color: #4b5563; font-size: 14px; line-height: 1.4; margin-bottom: 6px;">
+                ${notification.message}
+              </div>
+              <div style="color: #9ca3af; font-size: 12px; display: flex; align-items: center; gap: 4px;">
+                <i class="fas fa-clock" style="font-size: 11px;"></i>
+                ${formattedTime}
+              </div>
+            </div>
+          </div>
         </div>
       `;
+      
+      // Add hover effect
+      notificationItem.addEventListener('mouseenter', () => {
+        notificationItem.style.backgroundColor = 'rgba(59, 130, 246, 0.05)';
+      });
+      
+      notificationItem.addEventListener('mouseleave', () => {
+        notificationItem.style.backgroundColor = !notification.read ? 
+          'rgba(59, 130, 246, 0.08)' : 'transparent';
+      });
       
       // Add click event to mark as read
       notificationItem.addEventListener('click', () => {
@@ -391,20 +561,30 @@ class NotificationSystem {
     batch.commit()
       .then(() => {
         console.log('All notifications marked as read');
+        this.showToast('success', 'Success', 'All notifications marked as read');
       })
       .catch(error => {
         console.error('Error marking all notifications as read:', error);
+        this.showToast('error', 'Error', 'Failed to mark notifications as read');
       });
   }
   
-  // Add event listeners
+  // Enhanced event listeners
   addEventListeners() {
-    // Toggle notification dropdown
+    // Toggle notification dropdown with enhanced behavior
     if (this.notificationBtn && this.notificationDropdown) {
       this.notificationBtn.addEventListener('click', (e) => {
         e.stopPropagation();
-        const isVisible = this.notificationDropdown.style.display === 'block';
-        this.notificationDropdown.style.display = isVisible ? 'none' : 'block';
+        const isVisible = this.notificationDropdown.classList.contains('show') || 
+                         this.notificationDropdown.style.display === 'block';
+        
+        if (isVisible) {
+          this.notificationDropdown.classList.remove('show');
+          this.notificationDropdown.style.display = 'none';
+        } else {
+          this.notificationDropdown.classList.add('show');
+          this.notificationDropdown.style.display = 'block';
+        }
       });
     }
     
@@ -419,14 +599,16 @@ class NotificationSystem {
     // Close dropdown when clicking outside
     document.addEventListener('click', (e) => {
       if (this.notificationDropdown && 
+          this.notificationBtn &&
           !this.notificationBtn.contains(e.target) && 
           !this.notificationDropdown.contains(e.target)) {
+        this.notificationDropdown.classList.remove('show');
         this.notificationDropdown.style.display = 'none';
       }
     });
   }
   
-  // Get icon class for notification type
+  // Get icon class for notification type (keep existing)
   getIconForType(type) {
     switch (type) {
       case NOTIFICATION_TYPES.SUCCESS:
@@ -448,7 +630,7 @@ class NotificationSystem {
     }
   }
   
-  // Format timestamp to relative time
+  // Format timestamp to relative time (keep existing)
   formatTimestamp(timestamp) {
     if (!timestamp) return 'Just now';
     
