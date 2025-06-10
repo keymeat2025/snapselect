@@ -1004,6 +1004,7 @@
                 <ul class="nav-links">
                     <li><a href="photographer-dashboard.html">Dashboard</a></li>
                     <li><a href="analytics.html">Analytics</a></li>
+                    <li><a href="#" onclick="showComingSoonAlert()" style="color: var(--text-muted); cursor: default;">Analytics (Coming Soon)</a></li>
                 </ul>
                 <div class="right-nav">
                     <div class="auth-user" id="userNav">
@@ -1016,7 +1017,7 @@
                             <div class="user-dropdown" id="userDropdown">
                                 <a href="photographer-dashboard.html">Dashboard</a>
                                 <a href="client-management.html" class="active">Clients</a>
-                                <a href="analytics.html">Analytics</a>
+                                <a href="#" onclick="showComingSoonAlert()" style="color: var(--text-muted); cursor: default;">Analytics (Coming Soon)</a>                         
                                 <a href="account-settings.html">Account Settings</a>
                                 <a href="#" id="logoutBtn">Logout</a>
                             </div>
@@ -1650,7 +1651,12 @@
                 }
             });
         }
-        
+
+   
+        function showComingSoonAlert() {
+            alert('Analytics feature is coming up in the next release! Stay tuned for powerful insights into your photo galleries and client engagement.');
+        }
+
         // Fix for dropdown after external scripts load
         function setupDropdownFix() {
             console.log('🔧 Setting up dropdown fix...');
