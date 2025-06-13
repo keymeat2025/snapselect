@@ -1254,11 +1254,7 @@
             const uploadArea = document.getElementById('uploadArea');
             const photoFileInput = document.getElementById('photoFileInput');
             
-            if (uploadArea && photoFileInput) {
-                uploadArea.addEventListener('click', function() {
-                    photoFileInput.click();
-                });
-                
+           
                 // File input change handler
                 photoFileInput.addEventListener('change', function(e) {
                     if (window.galleryView && window.galleryView.handleFileSelect) {
