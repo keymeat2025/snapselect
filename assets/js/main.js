@@ -3,11 +3,60 @@
  * Controls mobile menu toggle and other interactive elements
  */
 
+// Global variables for hero slides (MUST be outside DOMContentLoaded for HTML onclick to work)
+let heroCurrentSlide = 0;
+const heroTotalSlides = 3;
+
+// Global functions for hero slides (MUST be global for HTML onclick attributes)
+function heroUpdateSlidePosition() {
+    const wrapper = document.getElementById('heroSlidesWrapper');
+    const dots = document.querySelectorAll('.hero-nav-dot');
+    
+    if (wrapper) {
+        wrapper.style.transform = `translateX(-${heroCurrentSlide * 33.333}%)`;
+        console.log(`🎯 Moved to slide ${heroCurrentSlide + 1}`);
+    }
+    
+    // Update dots
+    dots.forEach((dot, index) => {
+        dot.classList.toggle('active', index === heroCurrentSlide);
+    });
+}
+
+function heroSlideMoveNext() {
+    heroCurrentSlide = (heroCurrentSlide + 1) % heroTotalSlides;
+    heroUpdateSlidePosition();
+    console.log('➡️ Next slide');
+}
+
+function heroSlideMovePrev() {
+    heroCurrentSlide = (heroCurrentSlide - 1 + heroTotalSlides) % heroTotalSlides;
+    heroUpdateSlidePosition();
+    console.log('⬅️ Previous slide');
+}
+
+function heroSlideMoveTo(slideIndex) {
+    heroCurrentSlide = slideIndex;
+    heroUpdateSlidePosition();
+    console.log(`🎯 Jumped to slide ${slideIndex + 1}`);
+}
+
+// Test function to verify slides work
+function testSlides() {
+    console.log('🧪 Testing slide functions...');
+    setTimeout(() => heroSlideMoveNext(), 1000);
+    setTimeout(() => heroSlideMovePrev(), 2000);
+    setTimeout(() => heroSlideMoveTo(0), 3000);
+}
+
 document.addEventListener('DOMContentLoaded', function() {
+    console.log('🚀 SnapSelect JavaScript loaded');
+    
     // Mobile menu toggle
     const hamburger = document.querySelector('.hamburger');
     const navLinks = document.querySelector('.nav-links');
-    // Add to main.js
+    
+    // Performance Manager
     const PerformanceManager = {
       initLazyLoading() {
         const images = document.querySelectorAll('img[data-src]');
@@ -47,6 +96,7 @@ document.addEventListener('DOMContentLoaded', function() {
         return item.data;
       }
     };
+    
     if (hamburger && navLinks) {
         hamburger.addEventListener('click', function() {
             navLinks.classList.toggle('active');
@@ -83,83 +133,95 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-
-    // SnapSelect Hero Slides Functionality
-    let heroCurrentSlide = 0;
-    const heroTotalSlides = 3;
-    
-    function heroUpdateSlidePosition() {
-        const wrapper = document.getElementById('heroSlidesWrapper');
-        const dots = document.querySelectorAll('.hero-nav-dot');
+    // Initialize hero slides functionality (NO nested DOMContentLoaded!)
+    function initHeroSlides() {
+        console.log('🎬 Initializing hero slides...');
         
-        if (wrapper) {
-            wrapper.style.transform = `translateX(-${heroCurrentSlide * 33.333}%)`;
+        const container = document.getElementById('heroIntegratedSlides');
+        if (!container) {
+            console.log('❌ Hero slides container not found');
+            return;
         }
         
-        // Update dots
-        dots.forEach((dot, index) => {
-            dot.classList.toggle('active', index === heroCurrentSlide);
-        });
-    }
-    
-    function heroSlideMoveNext() {
-        heroCurrentSlide = (heroCurrentSlide + 1) % heroTotalSlides;
-        heroUpdateSlidePosition();
-    }
-    
-    function heroSlideMovePrev() {
-        heroCurrentSlide = (heroCurrentSlide - 1 + heroTotalSlides) % heroTotalSlides;
-        heroUpdateSlidePosition();
-    }
-    
-    function heroSlideMoveTo(slideIndex) {
-        heroCurrentSlide = slideIndex;
-        heroUpdateSlidePosition();
-    }
-    
-    // Initialize hero slides when DOM is loaded
-    document.addEventListener('DOMContentLoaded', function() {
+        console.log('✅ Hero slides container found');
+        
         // Auto-advance functionality
         let heroAutoSlide = setInterval(() => {
             heroSlideMoveNext();
         }, 5000);
         
+        console.log('⏰ Auto-advance started (5 seconds)');
+        
         // Pause on hover
-        const container = document.getElementById('heroIntegratedSlides');
-        if (container) {
-            container.addEventListener('mouseenter', () => {
-                clearInterval(heroAutoSlide);
-            });
-            
-            container.addEventListener('mouseleave', () => {
-                clearInterval(heroAutoSlide);
-                heroAutoSlide = setInterval(() => {
-                    heroSlideMoveNext();
-                }, 5000);
-            });
-        }
+        container.addEventListener('mouseenter', () => {
+            clearInterval(heroAutoSlide);
+            console.log('⏸️ Auto-slide paused (hover)');
+        });
+        
+        container.addEventListener('mouseleave', () => {
+            clearInterval(heroAutoSlide);
+            heroAutoSlide = setInterval(() => {
+                heroSlideMoveNext();
+            }, 5000);
+            console.log('▶️ Auto-slide resumed');
+        });
         
         // Touch/swipe support for mobile
         let startX = 0;
         let endX = 0;
         
-        if (container) {
-            container.addEventListener('touchstart', (e) => {
-                startX = e.touches[0].clientX;
-            });
+        container.addEventListener('touchstart', (e) => {
+            startX = e.touches[0].clientX;
+        });
+        
+        container.addEventListener('touchend', (e) => {
+            endX = e.changedTouches[0].clientX;
+            const diff = startX - endX;
             
-            container.addEventListener('touchend', (e) => {
-                endX = e.changedTouches[0].clientX;
-                const diff = startX - endX;
-                
-                if (Math.abs(diff) > 50) { // Minimum swipe distance
-                    if (diff > 0) {
-                        heroSlideMoveNext(); // Swipe left
-                    } else {
-                        heroSlideMovePrev(); // Swipe right
-                    }
+            if (Math.abs(diff) > 50) { // Minimum swipe distance
+                if (diff > 0) {
+                    heroSlideMoveNext(); // Swipe left
+                    console.log('👈 Swiped left - next slide');
+                } else {
+                    heroSlideMovePrev(); // Swipe right
+                    console.log('👉 Swiped right - previous slide');
                 }
-            });
+            }
+        });
+        
+        // Keyboard navigation
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowLeft') {
+                heroSlideMovePrev();
+            } else if (e.key === 'ArrowRight') {
+                heroSlideMoveNext();
+            }
+        });
+        
+        console.log('🎮 Hero slides fully initialized with controls');
+    }
+    
+    // Initialize slides
+    initHeroSlides();
+    
+    // Verify functions are accessible
+    setTimeout(() => {
+        console.log('🔍 Verifying slide functions...');
+        console.log('heroSlideMoveNext available:', typeof window.heroSlideMoveNext !== 'undefined');
+        console.log('heroSlideMovePrev available:', typeof window.heroSlideMovePrev !== 'undefined');
+        console.log('heroSlideMoveTo available:', typeof window.heroSlideMoveTo !== 'undefined');
+        
+        // Test if we can access the functions
+        if (typeof heroSlideMoveNext === 'function') {
+            console.log('✅ Slide functions are working');
+        } else {
+            console.log('❌ Slide functions not accessible');
         }
-    });
+    }, 1000);
 });
+
+// Make functions available globally (for console testing)
+window.heroSlideMoveNext = heroSlideMoveNext;
+window.heroSlideMovePrev = heroSlideMovePrev;
+window.heroSlideMoveTo = heroSlideMoveTo;
+window.testSlides = testSlides;
