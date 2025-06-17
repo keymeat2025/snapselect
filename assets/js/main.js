@@ -82,4 +82,84 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     });
+
+
+    // SnapSelect Hero Slides Functionality
+    let heroCurrentSlide = 0;
+    const heroTotalSlides = 3;
+    
+    function heroUpdateSlidePosition() {
+        const wrapper = document.getElementById('heroSlidesWrapper');
+        const dots = document.querySelectorAll('.hero-nav-dot');
+        
+        if (wrapper) {
+            wrapper.style.transform = `translateX(-${heroCurrentSlide * 33.333}%)`;
+        }
+        
+        // Update dots
+        dots.forEach((dot, index) => {
+            dot.classList.toggle('active', index === heroCurrentSlide);
+        });
+    }
+    
+    function heroSlideMoveNext() {
+        heroCurrentSlide = (heroCurrentSlide + 1) % heroTotalSlides;
+        heroUpdateSlidePosition();
+    }
+    
+    function heroSlideMovePrev() {
+        heroCurrentSlide = (heroCurrentSlide - 1 + heroTotalSlides) % heroTotalSlides;
+        heroUpdateSlidePosition();
+    }
+    
+    function heroSlideMoveTo(slideIndex) {
+        heroCurrentSlide = slideIndex;
+        heroUpdateSlidePosition();
+    }
+    
+    // Initialize hero slides when DOM is loaded
+    document.addEventListener('DOMContentLoaded', function() {
+        // Auto-advance functionality
+        let heroAutoSlide = setInterval(() => {
+            heroSlideMoveNext();
+        }, 5000);
+        
+        // Pause on hover
+        const container = document.getElementById('heroIntegratedSlides');
+        if (container) {
+            container.addEventListener('mouseenter', () => {
+                clearInterval(heroAutoSlide);
+            });
+            
+            container.addEventListener('mouseleave', () => {
+                clearInterval(heroAutoSlide);
+                heroAutoSlide = setInterval(() => {
+                    heroSlideMoveNext();
+                }, 5000);
+            });
+        }
+        
+        // Touch/swipe support for mobile
+        let startX = 0;
+        let endX = 0;
+        
+        if (container) {
+            container.addEventListener('touchstart', (e) => {
+                startX = e.touches[0].clientX;
+            });
+            
+            container.addEventListener('touchend', (e) => {
+                endX = e.changedTouches[0].clientX;
+                const diff = startX - endX;
+                
+                if (Math.abs(diff) > 50) { // Minimum swipe distance
+                    if (diff > 0) {
+                        heroSlideMoveNext(); // Swipe left
+                    } else {
+                        heroSlideMovePrev(); // Swipe right
+                    }
+                }
+            });
+        }
+    });
 });
