@@ -64,6 +64,9 @@
     </header>
 
     <!-- Hero Section -->
+
+
+
     <section class="hero">
         <div class="container">
             <div class="hero-content">
@@ -73,7 +76,77 @@
                     <a href="pages/photographer_registration.html" class="btn">Get Started</a>
                 </div>
                 <div class="hero-image">
-                    <img src="assets/images/hero-image.jpg" alt="Photographer and client reviewing photos">
+                    <!-- Replace the static image with slide container -->
+                    <div class="hero-integrated-slides" id="heroIntegratedSlides">
+                        <div class="hero-slides-wrapper" id="heroSlidesWrapper">
+                            <!-- Slide 1: Client Selection (Purple) -->
+                            <div class="hero-slide">
+                                <div class="hero-slide-content">
+                                    <div class="hero-slide-icon">👥</div>
+                                    <h2>Client Photo Selection</h2>
+                                    <p>Let clients easily browse and select their favorite photos from your professional gallery.</p>
+                                    <div class="hero-slide-features">
+                                        <div class="hero-slide-feature">
+                                            <span>⚡</span>
+                                            <span>Quick Selection</span>
+                                        </div>
+                                        <div class="hero-slide-feature">
+                                            <span>📱</span>
+                                            <span>Mobile Ready</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Slide 2: Streamlined Workflow (Pink) -->
+                            <div class="hero-slide">
+                                <div class="hero-slide-content">
+                                    <div class="hero-slide-icon">🚀</div>
+                                    <h2>Streamlined Workflow</h2>
+                                    <p>Eliminate endless email chains and focus your editing time on the photos that matter most.</p>
+                                    <div class="hero-slide-features">
+                                        <div class="hero-slide-feature">
+                                            <span>📧</span>
+                                            <span>No Email Chaos</span>
+                                        </div>
+                                        <div class="hero-slide-feature">
+                                            <span>⏱️</span>
+                                            <span>Time Efficient</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Slide 3: Perfect Albums (Blue) -->
+                            <div class="hero-slide">
+                                <div class="hero-slide-content">
+                                    <div class="hero-slide-icon">📸</div>
+                                    <h2>Perfect Albums</h2>
+                                    <p>Deliver exactly what your clients want with precision editing focused on their selected favorites.</p>
+                                    <div class="hero-slide-features">
+                                        <div class="hero-slide-feature">
+                                            <span>🎯</span>
+                                            <span>Targeted Editing</span>
+                                        </div>
+                                        <div class="hero-slide-feature">
+                                            <span>✨</span>
+                                            <span>Happy Clients</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Navigation -->
+                        <button class="hero-nav-arrow hero-nav-prev" onclick="heroSlideMovePrev()">‹</button>
+                        <button class="hero-nav-arrow hero-nav-next" onclick="heroSlideMoveNext()">›</button>
+                        
+                        <div class="hero-nav-dots">
+                            <div class="hero-nav-dot active" onclick="heroSlideMoveTo(0)"></div>
+                            <div class="hero-nav-dot" onclick="heroSlideMoveTo(1)"></div>
+                            <div class="hero-nav-dot" onclick="heroSlideMoveTo(2)"></div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
