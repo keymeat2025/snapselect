@@ -2062,7 +2062,158 @@ tr:last-child .renew-plan-btn:hover::after {
     margin-top: 3px !important;
     opacity: 0.9 !important;
   }
-  
+/* Enhanced Mobile Responsive CSS - Add these improvements */
+
+/* Better mobile dialog sizing */
+    .delete-confirmation-dialog {
+            margin: 0.5rem;
+            padding: 1.25rem;
+            width: calc(100% - 1rem);
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        
+        .delete-confirmation-title {
+            font-size: 1.1rem;
+        }
+        
+        .delete-confirmation-message {
+            font-size: 0.95rem;
+            margin-bottom: 1.5rem;
+        }
+        
+        .delete-warning-text {
+            font-size: 0.85rem;
+            padding: 10px 12px;
+        }
+    }
+    
+    /* Touch-friendly button sizing on mobile */
+    @media (max-width: 768px) {
+        .delete-plan-btn {
+            min-height: 44px; /* iOS recommended touch target */
+            padding: 12px 16px !important;
+            font-size: 14px !important;
+        }
+        
+        .delete-cancel-btn,
+        .delete-confirm-btn {
+            min-height: 48px;
+            padding: 14px 20px;
+            font-size: 16px; /* Prevent zoom on iOS */
+        }
+        
+        /* Disable tooltips on mobile (use tap instead) */
+        .delete-plan-btn:hover::after,
+        .delete-plan-btn:hover::before {
+            display: none;
+        }
+        
+        /* Add tap feedback for mobile */
+        .delete-plan-btn:active {
+            transform: scale(0.98);
+            background-color: rgba(239, 68, 68, 0.1) !important;
+        }
+    }
+    
+    /* Very small screens (< 360px) */
+    @media (max-width: 360px) {
+        .delete-confirmation-dialog {
+            margin: 0.25rem;
+            padding: 1rem;
+            width: calc(100% - 0.5rem);
+        }
+        
+        .delete-confirmation-header {
+            flex-direction: column;
+            text-align: center;
+            gap: 8px;
+        }
+        
+        .delete-warning-icon {
+            font-size: 2rem;
+        }
+        
+        .delete-confirmation-actions {
+            gap: 8px;
+        }
+    }
+    
+    /* Landscape mobile orientation */
+    @media (max-width: 768px) and (orientation: landscape) {
+        .delete-confirmation-dialog {
+            max-height: 85vh;
+            overflow-y: auto;
+            margin: 1rem auto;
+        }
+    }
+    
+    /* High DPI / Retina displays */
+    @media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+        .delete-plan-btn {
+            border-width: 0.5px; /* Thinner borders on high DPI */
+        }
+    }
+    
+    /* Tablet-specific adjustments */
+    @media (min-width: 769px) and (max-width: 1024px) {
+        .delete-confirmation-dialog {
+            max-width: 500px;
+            padding: 2.5rem;
+        }
+        
+        .delete-plan-btn:hover::after {
+            width: 300px; /* Larger tooltip on tablets */
+        }
+    }
+    
+    /* Dark mode support (if you implement it) */
+    @media (prefers-color-scheme: dark) {
+        .delete-confirmation-overlay {
+            background: rgba(0, 0, 0, 0.7);
+        }
+        
+        .delete-plan-btn:hover::after {
+            background-color: rgba(255, 255, 255, 0.95);
+            color: #1f2937;
+        }
+    }
+    
+    /* Reduced motion support */
+    @media (prefers-reduced-motion: reduce) {
+        .delete-confirmation-dialog,
+        .delete-confirmation-overlay,
+        .delete-plan-btn {
+            animation: none !important;
+            transition: none !important;
+        }
+        
+        .delete-plan-btn:hover,
+        .delete-plan-btn:active {
+            transform: none !important;
+        }
+    }
+    
+    /* Focus states for keyboard navigation */
+    .delete-plan-btn:focus-visible {
+        outline: 2px solid var(--primary-color);
+        outline-offset: 2px;
+    }
+    
+    .delete-cancel-btn:focus-visible,
+    .delete-confirm-btn:focus-visible {
+        outline: 2px solid currentColor;
+        outline-offset: 2px;
+    }
+    
+    /* Print styles (hide delete buttons when printing) */
+    @media print {
+        .delete-plan-btn,
+        .delete-confirmation-overlay {
+            display: none !important;
+        }
+    }
+    
   
 }
 
