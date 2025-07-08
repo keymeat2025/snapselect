@@ -1,4 +1,4 @@
-/* Dashboard Main Styles - Revamped UI */
+/* Dashboard Main Styles - Revamped UI with Toggle Switches */
 /* This file contains enhanced styles for the photographer dashboard */
 
 /* Root Variable Additions - Add these to your variables.css */
@@ -184,6 +184,7 @@ header .logo {
     font-size: 1.1rem;
     line-height: 1.4;
 }
+
 .dashboard-stats {
     display: flex;
     gap: 1.25rem;
@@ -1241,169 +1242,6 @@ input:focus {
     }
 }
 
-/* Responsive Adjustments */
-@media (max-width: 992px) {
-    .gallery-grid {
-        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-    }
-    
-    .dashboard-title h1 {
-        font-size: 2rem;
-    }
-}
-
-@media (max-width: 768px) {
-    .dashboard-header {
-        flex-direction: column;
-        align-items: flex-start;
-    }
-    
-    .dashboard-stats {
-        width: 100%;
-        justify-content: space-between;
-    }
-    
-    .stat-card {
-        min-width: 150px;
-        flex: 1;
-    }
-    
-    .action-btn.help {
-        margin-left: 0;
-        margin-top: 0.5rem;
-    }
-    
-    .section-header {
-        flex-direction: column;
-        align-items: flex-start;
-    }
-    
-    .view-controls {
-        width: 100%;
-    }
-    
-    .search-container {
-        width: 100%;
-    }
-    
-    .form-row {
-        flex-direction: column;
-        gap: 1.5rem;
-    }
-    
-    .notification-dropdown {
-        width: 300px;
-        right: -140px;
-    }
-    
-    .gallery-grid {
-        grid-template-columns: 1fr;
-    }
-}
-
-
-/* Mobile responsive adjustments */
-@media (max-width: 768px) {
-    .dashboard-main {
-        padding-top: 130px;
-        padding-bottom: 2.5rem;
-        min-height: calc(100vh - 130px - 60px);
-    }
-}
-
-@media (max-width: 480px) {
-    .dashboard-main {
-        padding-top: 120px;
-        padding-bottom: 2.5rem;
-        min-height: calc(100vh - 120px - 60px);
-    }
-}
-
-
-/* Mobile adjustments - Match home page responsive */
-@media (max-width: 768px) {
-    header .logo-image {
-        height: 60px !important;
-        width: 60px !important;
-        margin-right: 15px !important;
-    }
-    
-    header .logo-text {
-        font-size: 26px !important;
-        letter-spacing: -0.6px !important;
-    }
-}
-
-@media (max-width: 480px) {
-    header .logo-image {
-        height: 50px !important;
-        width: 50px !important;
-        margin-right: 12px !important;
-    }
-    
-    header .logo-text {
-        font-size: 22px !important;
-        letter-spacing: -0.4px !important;
-    }
-}
-
-@media (max-width: 576px) {
-    .dashboard-main {
-        padding: 1.5rem 0;
-    }
-    
-    .dashboard-stats {
-        flex-direction: column;
-    }
-    
-    .stat-card {
-        width: 100%;
-    }
-    
-    .quick-actions {
-        flex-direction: column;
-        width: 100%;
-    }
-    
-    .action-btn {
-        width: 100%;
-        justify-content: center;
-    }
-    
-    .galleries-section {
-        padding: 1.25rem;
-    }
-    
-    .notification-dropdown {
-        width: 280px;
-        right: -120px;
-    }
-    
-    .modal-content {
-        margin: 0;
-    }
-    
-    .modal-header, .modal-body {
-        padding: 1.25rem;
-    }
-    
-    .help-tabs {
-        overflow-x: auto;
-        padding-bottom: 1rem;
-    }
-    
-    .footer-bottom {
-        flex-direction: column;
-        text-align: center;
-    }
-    
-    .footer-links {
-        justify-content: center;
-        width: 100%;
-    }
-}
-
-
 /* Plans Section Styles - Tabbed UI */
 .plans-section {
     background-color: var(--card-background);
@@ -1587,8 +1425,6 @@ input:focus {
 .renew-plan-btn:hover {
     transform: translateY(-2px);
     box-shadow: var(--shadow-md);
-    /*background-color: var(--primary-dark);  */
-    /*color: white; */
 }
 
 /* Tooltip for Renew Plan buttons */
@@ -1605,75 +1441,37 @@ input:focus {
     text-align: center;
     border-radius: 8px;
     padding: 10px 12px;
-    z-index: 1000; /* Higher z-index to ensure it's on top */
-    bottom: calc(100% + 15px); /* More space above the button */
+    z-index: 1000;
+    bottom: calc(100% + 15px);
     left: 50%;
     transform: translateX(-50%);
     font-size: 13px;
     font-weight: normal;
     line-height: 1.5;
     box-shadow: 0 2px 8px rgba(0,0,0,0.2);
-    white-space: normal; /* Ensure text wraps */
-    pointer-events: none; /* Allow clicks to pass through */
+    white-space: normal;
+    pointer-events: none;
 }
 
 .renew-plan-btn:hover::before {
     content: "";
     position: absolute;
-    top: -15px; /* Adjusted to match the increased space */
+    top: -15px;
     left: 50%;
     transform: translateX(-50%);
     border-width: 8px;
     border-style: solid;
     border-color: rgba(0, 0, 0, 0.85) transparent transparent transparent;
-    pointer-events: none; /* Allow clicks to pass through */
+    pointer-events: none;
 }
 
-/* For the specific table layout you have, adjust positioning */
 .renew-plan-btn {
-    overflow: visible; /* Ensure tooltip is not clipped */
+    overflow: visible;
 }
 
-/* For the last row in the table where tooltip might get cut off at bottom */
 tr:last-child .renew-plan-btn:hover::after {
     bottom: calc(100% + 15px);
     top: auto;
-}
-
-/* For mobile responsiveness */
-@media (max-width: 768px) {
-    .renew-plan-btn:hover::after {
-        width: 220px;
-        right: -15px; /* Adjust position to be more centered */
-        left: auto;
-        bottom: auto;
-        top: calc(100% + 15px);
-        transform: none;
-    }
-    
-    .renew-plan-btn:hover::before {
-        top: auto;
-        bottom: -15px;
-        left: auto;
-        right: 20px;
-        border-color: transparent transparent rgba(0, 0, 0, 0.85) transparent;
-    }
-}
-
-
-/* Responsive Adjustments */
-@media (max-width: 768px) {
-    .search-plans {
-        width: 100%;
-    }
-    
-    .plans-toolbar {
-        flex-direction: column;
-    }
-    
-    .tabs {
-        padding-bottom: 0.5rem;
-    }
 }
 
 .plan-actions {
@@ -1682,59 +1480,6 @@ tr:last-child .renew-plan-btn:hover::after {
     justify-content: center;
     margin-top: 1.25rem;
     margin-bottom: 1rem;
-}
-
-/* Tooltip for Renew Plan buttons */
-.renew-plan-btn {
-  position: relative;
-}
-
-.renew-plan-btn:hover::after {
-  content: "To maintain your current features and client access, we recommend renewing with the same plan.";
-  position: absolute;
-  width: 250px;
-  background-color: rgba(0, 0, 0, 0.8);
-  color: white;
-  text-align: center;
-  border-radius: var(--radius-sm);
-  padding: 8px 10px;
-  z-index: 100;
-  bottom: calc(100% + 10px);
-  left: 50%;
-  transform: translateX(-50%);
-  font-size: 13px;
-  font-weight: normal;
-  line-height: 1.4;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
-}
-
-.renew-plan-btn:hover::before {
-  content: "";
-  position: absolute;
-  top: -10px;
-  left: 50%;
-  transform: translateX(-50%);
-  border-width: 5px;
-  border-style: solid;
-  border-color: rgba(0, 0, 0, 0.8) transparent transparent transparent;
-}
-
-/* For mobile responsiveness */
-@media (max-width: 768px) {
-  .renew-plan-btn:hover::after {
-    width: 200px;
-    bottom: auto;
-    top: calc(100% + 10px);
-    left: auto;
-    right: 0;
-    transform: none;
-  }
-  
-  .renew-plan-btn:hover::before {
-    top: auto;
-    bottom: -10px;
-    border-color: transparent transparent rgba(0, 0, 0, 0.8) transparent;
-  }
 }
 
 .extend-plan-btn, .view-gallery-btn {
@@ -1754,184 +1499,132 @@ tr:last-child .renew-plan-btn:hover::after {
     transform: translateY(-2px);
     box-shadow: var(--shadow-md);
 }
+
 /* Table-based Plans Layout */
 .plans-table {
-  width: 100%;
-  border-collapse: separate;
-  border-spacing: 0;
-  margin-top: 1.5rem;
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    margin-top: 1.5rem;
 }
 
 .plans-table th {
-  text-align: left;
-  padding: 1.25rem 1rem;
-  font-weight: 600;
-  color: var(--heading-color);
-  border-bottom: 1px solid var(--border-color);
-  background-color: var(--background-color);
+    text-align: left;
+    padding: 1.25rem 1rem;
+    font-weight: 600;
+    color: var(--heading-color);
+    border-bottom: 1px solid var(--border-color);
+    background-color: var(--background-color);
 }
 
 .plans-table td {
-  padding: 1.25rem 1rem;
-  border-bottom: 1px solid var(--border-color);
-  vertical-align: middle;
+    padding: 1.25rem 1rem;
+    border-bottom: 1px solid var(--border-color);
+    vertical-align: middle;
 }
 
 .plans-table tr:hover {
-  background-color: rgba(var(--primary-rgb), 0.05);
+    background-color: rgba(var(--primary-rgb), 0.05);
 }
 
 .plans-table tr:last-child td {
-  border-bottom: none;
+    border-bottom: none;
 }
 
 /* Status styles for rows */
 .plans-table tr.is-expired {
-  background-color: rgba(var(--gray-rgb), 0.05);
+    background-color: rgba(var(--gray-rgb), 0.05);
 }
 
 .plans-table tr.is-expiring {
-  background-color: rgba(var(--warning-rgb), 0.05);
+    background-color: rgba(var(--warning-rgb), 0.05);
 }
 
 /* Specific cell styling */
 .plan-type {
-  font-weight: 600;
-  color: var(--heading-color);
+    font-weight: 600;
+    color: var(--heading-color);
 }
 
 .plan-client {
-  font-weight: 500;
+    font-weight: 500;
 }
 
 .plan-dates div {
-  margin-bottom: 0.5rem;
+    margin-bottom: 0.5rem;
 }
 
 .plan-dates div:last-child {
-  margin-bottom: 0;
+    margin-bottom: 0;
 }
 
 .plan-status-cell {
-  min-width: 140px;
+    min-width: 140px;
 }
 
 .plan-actions-cell {
-  text-align: center;
-  white-space: nowrap;
+    text-align: center;
+    white-space: nowrap;
+    overflow: visible !important;
 }
 
 .plan-actions-cell .btn {
-  display: inline-block;
-  margin-bottom: 0.5rem;
-  padding: 0.6rem 1rem;
-  width: auto;
+    display: inline-block;
+    margin-bottom: 0.5rem;
+    padding: 0.6rem 1rem;
+    width: auto;
 }
 
 .plan-actions-cell .btn:last-child {
-  margin-bottom: 0;
+    margin-bottom: 0;
 }
 
 /* Keep existing status badges */
 .plan-status {
-  display: inline-block;
-  padding: 0.35rem 0.75rem;
-  border-radius: var(--radius-full);
-  font-size: 0.8rem;
-  font-weight: 600;
-  margin-bottom: 0.5rem;
+    display: inline-block;
+    padding: 0.35rem 0.75rem;
+    border-radius: var(--radius-full);
+    font-size: 0.8rem;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
 }
 
 /* Ensure buttons display with no cutting off */
 .view-gallery-btn, .extend-plan-btn, .renew-plan-btn {
-  display: block;
-  width: 100%;
-  margin-bottom: 0.5rem;
-  text-align: center;
-}
-
-/* Responsive adjustments for table */
-@media (max-width: 992px) {
-  .plans-table {
-    white-space: normal;
-  }
-}
-
-@media (max-width: 768px) {
-  /* Convert table to cards on mobile */
-  .plans-table, .plans-table tbody, .plans-table tr, .plans-table td, .plans-table th {
     display: block;
     width: 100%;
-  }
-  
-  .plans-table th {
-    display: none;
-  }
-  
-  .plans-table tr {
-    margin-bottom: 1.5rem;
-    border: 1px solid var(--border-color);
-    border-radius: var(--radius-md);
-    overflow: hidden;
-  }
-  
-  .plans-table td {
-    position: relative;
-    padding: 0.75rem 1rem;
-    padding-left: 40%;
-    text-align: right;
-    min-height: 24px;
-  }
-  
-  .plans-table td:before {
-    content: attr(data-label);
-    position: absolute;
-    left: 1rem;
-    width: 35%;
-    padding-right: 1rem;
-    text-align: left;
-    font-weight: 600;
-    color: var(--heading-color);
-  }
-  
-  .plan-actions-cell {
-    text-align: center;
-    padding: 1rem;
-  }
-  
-  .plan-actions-cell .btn {
-    width: 100%;
     margin-bottom: 0.5rem;
-  }
+    text-align: center;
+}
 
-    /* Gallery Sharing Styles */
-  .plan-photos-sharing {
+/* Gallery Sharing Styles */
+.plan-photos-sharing {
     min-width: 180px;
-  }
-  
-  .share-toggle-btn {
+}
+
+.share-toggle-btn {
     transition: all 0.25s ease;
     font-weight: 500;
     min-width: 50px;
     text-align: center;
-  }
-  
-  .share-toggle-btn:hover {
+}
+
+.share-toggle-btn:hover {
     transform: translateY(-1px);
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-  }
-  
-  /* Enhanced sharing URL display */
-  .plan-photos-sharing span[onclick] {
+}
+
+/* Enhanced sharing URL display */
+.plan-photos-sharing span[onclick] {
     position: relative;
     max-width: 200px;
     display: inline-block;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-  }
-  
-  .plan-photos-sharing span[onclick]:hover::after {
+}
+
+.plan-photos-sharing span[onclick]:hover::after {
     content: attr(title);
     position: absolute;
     background-color: rgba(0, 0, 0, 0.9);
@@ -1946,265 +1639,534 @@ tr:last-child .renew-plan-btn:hover::after {
     margin-bottom: 5px;
     max-width: 300px;
     word-break: break-all;
-  }
-  .plan-client-ratings {
-    min-width: 120px;
-    font-size: 12px;
-  }
-  
-  .ratings-loading {
-    color: #999;
-    font-style: italic;
-  }
-  
-  .ratings-summary {
-    display: flex;
-    gap: 8px;
-    flex-wrap: wrap;
-  }
-  
-  .rating-item {
-    display: flex;
-    align-items: center;
-    gap: 2px;
-    font-size: 11px;
-  }
-  
-  .no-ratings {
-    color: #999;
-    font-style: italic;
-  }
+}
 
-
-
-  .plan-client-ratings {
+.plan-client-ratings {
     min-width: 120px;
     font-size: 12px;
     padding: 8px;
-  }
-  
-  .ratings-loading,
-  .no-ratings {
+}
+
+.ratings-loading,
+.no-ratings {
     color: #999;
     font-style: italic;
     font-size: 11px;
-  }
-  
-  .ratings-error {
+}
+
+.ratings-error {
     color: #e74c3c;
     font-size: 11px;
-  }
-  
-  .ratings-summary {
+}
+
+.ratings-summary {
     display: flex;
     gap: 6px;
     flex-wrap: wrap;
     font-size: 11px;
-  }
-  
-  .ratings-summary > span {
-    white-space: nowrap;
-  }
+}
 
-  
-  /* Simple Fix: Force Buttons to Stack Vertically */
-  .plan-actions-cell {
+.ratings-summary > span {
+    white-space: nowrap;
+}
+
+/* Simple Fix: Force Buttons to Stack Vertically */
+.plan-actions-cell {
     white-space: normal !important;
     vertical-align: top !important;
     padding: 12px !important;
     min-width: 180px !important;
-  }
-  
-  .plan-actions-cell .btn {
+}
+
+.plan-actions-cell .btn {
     display: block !important;
     width: 100% !important;
     margin: 0 0 8px 0 !important;
     padding: 10px 12px !important;
     font-size: 13px !important;
-  }
-  
-  .plan-actions-cell .btn:last-child {
+}
+
+.plan-actions-cell .btn:last-child {
     margin-bottom: 0 !important;
-  }
-  
-  /* Download Button Colors */
-  .download-gallery-btn {
+}
+
+/* Download Button Colors */
+.download-gallery-btn {
     background: #007bff !important;
     color: white !important;
     border: 1px solid #007bff !important;
-  }
-  
-  .download-gallery-btn:hover:not(:disabled) {
+}
+
+.download-gallery-btn:hover:not(:disabled) {
     background: #ff6b35 !important;
     border-color: #ff6b35 !important;
-  }
-  
-  .download-gallery-btn.no-submissions {
+}
+
+.download-gallery-btn.no-submissions {
     background: #6c757d !important;
     border-color: #6c757d !important;
     cursor: not-allowed !important;
-  }
-  
-  .download-gallery-btn.free-download {
+}
+
+.download-gallery-btn.free-download {
     background: #28a745 !important;
     border-color: #28a745 !important;
-  }
-  
-  .download-gallery-btn.paid-download {
+}
+
+.download-gallery-btn.paid-download {
     background: #ffc107 !important;
     border-color: #ffc107 !important;
     color: #212529 !important;
-  }
-  
-  .btn-subtitle {
+}
+
+.btn-subtitle {
     display: block !important;
     font-size: 10px !important;
     margin-top: 3px !important;
     opacity: 0.9 !important;
-  }
+}
 
-    /* Step 1: Simple Toggle Switch CSS - Add this to your dashboard.css */
 /* =================================================================
-   TOGGLE SWITCH STYLES - Add this to your dashboard.css file
+   TOGGLE SWITCH STYLES - ENHANCED WITH HIGH SPECIFICITY
    ================================================================= */
 
-/* Step 1: Simple Toggle Switch CSS - Add this to your dashboard.css */
+/* Use higher specificity and !important for critical styles */
+.dashboard-main .gallery-autodeletion-toggle {
+    display: inline-flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    margin-left: 10px !important;
+    gap: 4px !important;
+    position: relative !important;
+    width: 70px !important;
+    z-index: 10 !important;
+}
 
-  /* Toggle container */
-  .gallery-autodeletion-toggle {
-    display: inline-flex;
-    flex-direction: column;
-    align-items: center;
-    margin-left: 10px;
-    gap: 4px;
-    position: relative;
-    width: 70px;
-  }
-  
-  /* Toggle switch */
-  .autodeletion-switch {
-    width: 50px;
-    height: 26px;
-    background-color: #ccc;
-    border-radius: 13px;
-    position: relative;
-    cursor: pointer;
-    transition: background-color 0.3s ease;
-  }
-  
-  /* Toggle circle with number */
-  .autodeletion-circle {
-    width: 22px;
-    height: 22px;
-    background-color: white;
-    border-radius: 50%;
-    position: absolute;
-    top: 2px;
-    left: 2px;
-    transition: transform 0.3s ease;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 10px;
-    font-weight: bold;
-    color: #666;
-  }
-  
-  /* Toggle label */
-  .autodeletion-label {
-    font-size: 10px;
-    color: #666;
-    font-weight: 500;
-    text-align: center;
-    white-space: nowrap;
-    line-height: 1;
-  }
-  
-  /* ON state */
-  .autodeletion-switch.on {
-    background-color: #4285f4;
-  }
-  
-  .autodeletion-switch.on .autodeletion-circle {
-    transform: translateX(24px);
-    color: #4285f4;
-  }
-  
-  .autodeletion-switch.on + .autodeletion-label {
-    color: #4285f4;
-  }
-  
-  /* Simple tooltip */
-  .autodeletion-tooltip {
-    position: absolute;
-    bottom: 100%;
-    left: 50%;
-    transform: translateX(-50%);
-    background-color: #333;
-    color: white;
-    padding: 8px 12px;
-    border-radius: 6px;
-    font-size: 11px;
-    opacity: 0;
-    visibility: hidden;
-    transition: opacity 0.3s ease;
-    z-index: 1000;
-    margin-bottom: 5px;
-    min-width: 200px;
-    white-space: normal;
-    text-align: center;
-  }
-  
-  .gallery-autodeletion-toggle:hover .autodeletion-tooltip {
-    opacity: 1;
-    visibility: visible;
-  }
-  
-  /* Tooltip arrow */
-  .autodeletion-tooltip::after {
-    content: '';
-    position: absolute;
-    top: 100%;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 0;
-    height: 0;
-    border-left: 6px solid transparent;
-    border-right: 6px solid transparent;
-    border-top: 6px solid #333;
-  }
-  
-  /* Responsive adjustments */
-  @media (max-width: 768px) {
-    .gallery-autodeletion-toggle {
-      width: 60px;
-      margin-left: 8px;
+.dashboard-main .autodeletion-switch {
+    width: 50px !important;
+    height: 26px !important;
+    background-color: #ccc !important;
+    border-radius: 13px !important;
+    position: relative !important;
+    cursor: pointer !important;
+    transition: background-color 0.3s ease !important;
+    border: none !important;
+    outline: none !important;
+}
+
+.dashboard-main .autodeletion-circle {
+    width: 22px !important;
+    height: 22px !important;
+    background-color: white !important;
+    border-radius: 50% !important;
+    position: absolute !important;
+    top: 2px !important;
+    left: 2px !important;
+    transition: transform 0.3s ease !important;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2) !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    font-size: 10px !important;
+    font-weight: bold !important;
+    color: #666 !important;
+    border: none !important;
+    outline: none !important;
+}
+
+.dashboard-main .autodeletion-label {
+    font-size: 10px !important;
+    color: #666 !important;
+    font-weight: 500 !important;
+    text-align: center !important;
+    white-space: nowrap !important;
+    line-height: 1 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+/* ON state with higher specificity */
+.dashboard-main .autodeletion-switch.on {
+    background-color: #4285f4 !important;
+}
+
+.dashboard-main .autodeletion-switch.on .autodeletion-circle {
+    transform: translateX(24px) !important;
+    color: #4285f4 !important;
+}
+
+.dashboard-main .autodeletion-switch.on + .autodeletion-label {
+    color: #4285f4 !important;
+}
+
+/* Tooltip with higher specificity */
+.dashboard-main .autodeletion-tooltip {
+    position: absolute !important;
+    bottom: 100% !important;
+    left: 50% !important;
+    transform: translateX(-50%) !important;
+    background-color: #333 !important;
+    color: white !important;
+    padding: 8px 12px !important;
+    border-radius: 6px !important;
+    font-size: 11px !important;
+    opacity: 0 !important;
+    visibility: hidden !important;
+    transition: opacity 0.3s ease !important;
+    z-index: 1000 !important;
+    margin-bottom: 5px !important;
+    min-width: 200px !important;
+    white-space: normal !important;
+    text-align: center !important;
+    pointer-events: none !important;
+}
+
+.dashboard-main .gallery-autodeletion-toggle:hover .autodeletion-tooltip {
+    opacity: 1 !important;
+    visibility: visible !important;
+}
+
+/* Tooltip arrow */
+.dashboard-main .autodeletion-tooltip::after {
+    content: '' !important;
+    position: absolute !important;
+    top: 100% !important;
+    left: 50% !important;
+    transform: translateX(-50%) !important;
+    width: 0 !important;
+    height: 0 !important;
+    border-left: 6px solid transparent !important;
+    border-right: 6px solid transparent !important;
+    border-top: 6px solid #333 !important;
+}
+
+/* Reset any conflicting styles */
+.dashboard-main .gallery-autodeletion-toggle * {
+    box-sizing: border-box !important;
+}
+
+/* Ensure parent container doesn't interfere */
+.plan-actions-cell {
+    overflow: visible !important;
+}
+
+.plan-actions-cell > div {
+    overflow: visible !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    flex-wrap: wrap !important;
+}
+
+/* LAST RESORT - Ultra high specificity */
+body .dashboard-main .plans-table .plan-actions-cell .gallery-autodeletion-toggle {
+    display: inline-flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    margin-left: 10px !important;
+    gap: 4px !important;
+    position: relative !important;
+    width: 70px !important;
+}
+
+body .dashboard-main .plans-table .plan-actions-cell .autodeletion-switch {
+    width: 50px !important;
+    height: 26px !important;
+    background-color: #ccc !important;
+    border-radius: 13px !important;
+    position: relative !important;
+    cursor: pointer !important;
+    transition: background-color 0.3s ease !important;
+}
+
+body .dashboard-main .plans-table .plan-actions-cell .autodeletion-circle {
+    width: 22px !important;
+    height: 22px !important;
+    background-color: white !important;
+    border-radius: 50% !important;
+    position: absolute !important;
+    top: 2px !important;
+    left: 2px !important;
+    transition: transform 0.3s ease !important;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2) !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    font-size: 10px !important;
+    font-weight: bold !important;
+    color: #666 !important;
+}
+
+/* Responsive Adjustments */
+@media (max-width: 992px) {
+    .gallery-grid {
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
     }
     
-    .autodeletion-switch {
-      width: 44px;
-      height: 22px;
+    .dashboard-title h1 {
+        font-size: 2rem;
+    }
+}
+
+@media (max-width: 768px) {
+    .dashboard-header {
+        flex-direction: column;
+        align-items: flex-start;
     }
     
-    .autodeletion-circle {
-      width: 18px;
-      height: 18px;
-      font-size: 9px;
+    .dashboard-stats {
+        width: 100%;
+        justify-content: space-between;
     }
     
-    .autodeletion-switch.on .autodeletion-circle {
-      transform: translateX(22px);
+    .stat-card {
+        min-width: 150px;
+        flex: 1;
     }
     
-    .autodeletion-label {
-      font-size: 9px;
+    .action-btn.help {
+        margin-left: 0;
+        margin-top: 0.5rem;
     }
     
-    .autodeletion-tooltip {
-      min-width: 180px;
-      font-size: 10px;
+    .section-header {
+        flex-direction: column;
+        align-items: flex-start;
     }
-  } 
-  
+    
+    .view-controls {
+        width: 100%;
+    }
+    
+    .search-container {
+        width: 100%;
+    }
+    
+    .form-row {
+        flex-direction: column;
+        gap: 1.5rem;
+    }
+    
+    .notification-dropdown {
+        width: 300px;
+        right: -140px;
+    }
+    
+    .gallery-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .search-plans {
+        width: 100%;
+    }
+    
+    .plans-toolbar {
+        flex-direction: column;
+    }
+    
+    .tabs {
+        padding-bottom: 0.5rem;
+    }
+    
+    .renew-plan-btn:hover::after {
+        width: 220px;
+        right: -15px;
+        left: auto;
+        bottom: auto;
+        top: calc(100% + 15px);
+        transform: none;
+    }
+    
+    .renew-plan-btn:hover::before {
+        top: auto;
+        bottom: -15px;
+        left: auto;
+        right: 20px;
+        border-color: transparent transparent rgba(0, 0, 0, 0.85) transparent;
+    }
+    
+    /* Convert table to cards on mobile */
+    .plans-table, .plans-table tbody, .plans-table tr, .plans-table td, .plans-table th {
+        display: block;
+        width: 100%;
+    }
+    
+    .plans-table th {
+        display: none;
+    }
+    
+    .plans-table tr {
+        margin-bottom: 1.5rem;
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-md);
+        overflow: hidden;
+    }
+    
+    .plans-table td {
+        position: relative;
+        padding: 0.75rem 1rem;
+        padding-left: 40%;
+        text-align: right;
+        min-height: 24px;
+    }
+    
+    .plans-table td:before {
+        content: attr(data-label);
+        position: absolute;
+        left: 1rem;
+        width: 35%;
+        padding-right: 1rem;
+        text-align: left;
+        font-weight: 600;
+        color: var(--heading-color);
+    }
+    
+    .plan-actions-cell {
+        text-align: center;
+        padding: 1rem;
+    }
+    
+    .plan-actions-cell .btn {
+        width: 100%;
+        margin-bottom: 0.5rem;
+    }
+    
+    /* Toggle responsive adjustments */
+    .dashboard-main .gallery-autodeletion-toggle {
+        width: 60px !important;
+        margin-left: 8px !important;
+    }
+    
+    .dashboard-main .autodeletion-switch {
+        width: 44px !important;
+        height: 22px !important;
+    }
+    
+    .dashboard-main .autodeletion-circle {
+        width: 18px !important;
+        height: 18px !important;
+        font-size: 9px !important;
+    }
+    
+    .dashboard-main .autodeletion-switch.on .autodeletion-circle {
+        transform: translateX(22px) !important;
+    }
+    
+    .dashboard-main .autodeletion-label {
+        font-size: 9px !important;
+    }
+    
+    .dashboard-main .autodeletion-tooltip {
+        min-width: 180px !important;
+        font-size: 10px !important;
+    }
+}
+
+/* Mobile responsive adjustments */
+@media (max-width: 480px) {
+    .dashboard-main {
+        padding-top: 120px;
+        padding-bottom: 2.5rem;
+        min-height: calc(100vh - 120px - 60px);
+    }
+    
+    header .logo-image {
+        height: 50px !important;
+        width: 50px !important;
+        margin-right: 12px !important;
+    }
+    
+    header .logo-text {
+        font-size: 22px !important;
+        letter-spacing: -0.4px !important;
+    }
+}
+
+@media (max-width: 576px) {
+    .dashboard-main {
+        padding: 1.5rem 0;
+    }
+    
+    .dashboard-stats {
+        flex-direction: column;
+    }
+    
+    .stat-card {
+        width: 100%;
+    }
+    
+    .quick-actions {
+        flex-direction: column;
+        width: 100%;
+    }
+    
+    .action-btn {
+        width: 100%;
+        justify-content: center;
+    }
+    
+    .galleries-section {
+        padding: 1.25rem;
+    }
+    
+    .notification-dropdown {
+        width: 280px;
+        right: -120px;
+    }
+    
+    .modal-content {
+        margin: 0;
+    }
+    
+    .modal-header, .modal-body {
+        padding: 1.25rem;
+    }
+    
+    .help-tabs {
+        overflow-x: auto;
+        padding-bottom: 1rem;
+    }
+    
+    .footer-bottom {
+        flex-direction: column;
+        text-align: center;
+    }
+    
+    .footer-links {
+        justify-content: center;
+        width: 100%;
+    }
+}
+
+/* Additional Mobile Logo Adjustments */
+@media (max-width: 768px) {
+    header .logo-image {
+        height: 60px !important;
+        width: 60px !important;
+        margin-right: 15px !important;
+    }
+    
+    header .logo-text {
+        font-size: 26px !important;
+        letter-spacing: -0.6px !important;
+    }
+}
+
+/* Critical Override for Toggle Switches - Ensure they always work */
+.dashboard-main .autodeletion-switch,
+.dashboard-main .autodeletion-circle,
+.dashboard-main .autodeletion-label {
+    font-family: inherit !important;
+    line-height: inherit !important;
+    text-decoration: none !important;
+    text-transform: none !important;
+    letter-spacing: normal !important;
+    word-spacing: normal !important;
+    white-space: nowrap !important;
+}
+
+/* Final safety net for toggle functionality */
+.gallery-autodeletion-toggle {
+    visibility: visible !important;
+    opacity: 1 !important;
 }
