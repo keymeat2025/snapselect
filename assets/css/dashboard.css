@@ -2062,6 +2062,109 @@ tr:last-child .renew-plan-btn:hover::after {
     margin-top: 3px !important;
     opacity: 0.9 !important;
   }
+
+    /* Step 1: Simple Toggle Switch CSS - Add this to your dashboard.css */
+
+  /* Toggle container */
+  .gallery-autodeletion-toggle {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    margin-left: 10px;
+    gap: 4px;
+    position: relative;
+  }
   
+  /* Toggle switch */
+  .autodeletion-switch {
+    width: 50px;
+    height: 26px;
+    background-color: #ccc;
+    border-radius: 13px;
+    position: relative;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+  }
+  
+  /* Toggle circle with number */
+  .autodeletion-circle {
+    width: 22px;
+    height: 22px;
+    background-color: white;
+    border-radius: 50%;
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    transition: transform 0.3s ease;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    font-weight: bold;
+    color: #666;
+  }
+  
+  /* Toggle label */
+  .autodeletion-label {
+    font-size: 12px;
+    color: #666;
+    font-weight: 500;
+    text-align: center;
+    white-space: nowrap;
+  }
+  
+  /* ON state */
+  .autodeletion-switch.on {
+    background-color: #4285f4;
+  }
+  
+  .autodeletion-switch.on .autodeletion-circle {
+    transform: translateX(24px);
+    color: #4285f4;
+  }
+  
+  .autodeletion-switch.on + .autodeletion-label {
+    color: #4285f4;
+  }
+  
+  /* Simple tooltip */
+  .autodeletion-tooltip {
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: #333;
+    color: white;
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 13px;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s ease;
+    z-index: 1000;
+    margin-bottom: 5px;
+    min-width: 220px;
+    white-space: normal;
+  }
+  
+  .gallery-autodeletion-toggle:hover .autodeletion-tooltip {
+    opacity: 1;
+    visibility: visible;
+  }
+  
+  /* Tooltip arrow */
+  .autodeletion-tooltip::after {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 0;
+    height: 0;
+    border-left: 6px solid transparent;
+    border-right: 6px solid transparent;
+    border-top: 6px solid #333;
+  }
   
 }
