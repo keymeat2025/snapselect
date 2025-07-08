@@ -2064,8 +2064,9 @@ tr:last-child .renew-plan-btn:hover::after {
   }
 
     /* Step 1: Simple Toggle Switch CSS - Add this to your dashboard.css */
+/* OPTIMIZED TOGGLE STYLING - Add this to your dashboard.css */
 
-  /* Toggle container */
+  /* Make toggle container more compact */
   .gallery-autodeletion-toggle {
     display: inline-flex;
     flex-direction: column;
@@ -2073,9 +2074,11 @@ tr:last-child .renew-plan-btn:hover::after {
     margin-left: 10px;
     gap: 4px;
     position: relative;
+    width: 70px; /* Fixed width to prevent expansion */
+    flex-shrink: 0; /* Prevent shrinking */
   }
   
-  /* Toggle switch */
+  /* Toggle switch - make it smaller and more elegant */
   .autodeletion-switch {
     width: 50px;
     height: 26px;
@@ -2084,6 +2087,7 @@ tr:last-child .renew-plan-btn:hover::after {
     position: relative;
     cursor: pointer;
     transition: background-color 0.3s ease;
+    flex-shrink: 0;
   }
   
   /* Toggle circle with number */
@@ -2105,13 +2109,14 @@ tr:last-child .renew-plan-btn:hover::after {
     color: #666;
   }
   
-  /* Toggle label */
+  /* Toggle label - make it smaller */
   .autodeletion-label {
-    font-size: 12px;
+    font-size: 10px;
     color: #666;
     font-weight: 500;
     text-align: center;
     white-space: nowrap;
+    line-height: 1;
   }
   
   /* ON state */
@@ -2128,7 +2133,7 @@ tr:last-child .renew-plan-btn:hover::after {
     color: #4285f4;
   }
   
-  /* Simple tooltip */
+  /* Tooltip - make it more compact */
   .autodeletion-tooltip {
     position: absolute;
     bottom: 100%;
@@ -2138,14 +2143,16 @@ tr:last-child .renew-plan-btn:hover::after {
     color: white;
     padding: 8px 12px;
     border-radius: 6px;
-    font-size: 13px;
+    font-size: 11px;
     opacity: 0;
     visibility: hidden;
     transition: opacity 0.3s ease;
     z-index: 1000;
     margin-bottom: 5px;
-    min-width: 220px;
+    min-width: 200px;
+    max-width: 250px;
     white-space: normal;
+    text-align: center;
   }
   
   .gallery-autodeletion-toggle:hover .autodeletion-tooltip {
@@ -2166,5 +2173,52 @@ tr:last-child .renew-plan-btn:hover::after {
     border-right: 6px solid transparent;
     border-top: 6px solid #333;
   }
+  
+  /* Make the button container flex to accommodate toggle */
+  .plan-actions-cell > div {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  
+  /* Ensure buttons don't get too compressed */
+  .plan-actions-cell .btn {
+    flex-shrink: 0;
+    min-width: 120px;
+  }
+  
+  /* Mobile responsive */
+  @media (max-width: 768px) {
+    .gallery-autodeletion-toggle {
+      width: 60px;
+      margin-left: 8px;
+    }
+    
+    .autodeletion-switch {
+      width: 44px;
+      height: 22px;
+    }
+    
+    .autodeletion-circle {
+      width: 18px;
+      height: 18px;
+      font-size: 9px;
+    }
+    
+    .autodeletion-switch.on .autodeletion-circle {
+      transform: translateX(22px);
+    }
+    
+    .autodeletion-label {
+      font-size: 9px;
+    }
+    
+    .autodeletion-tooltip {
+      min-width: 180px;
+      font-size: 10px;
+    }
+  }
+    
   
 }
