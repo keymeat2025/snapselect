@@ -8,6 +8,96 @@ let searchTerm = '';
 let currentSortOption = 'recent';
 
 
+// ADD THESE FUNCTIONS to subscription-manager.js (after the global variables)
+
+// Function to get retention period
+function getRetentionPeriod(planType) {
+  return {
+    'lite': 7,
+    'mini': 7,
+    'basic': 14,
+    'pro': 14,
+    'premium': 21,
+    'ultimate': 21
+  }[planType] || 14;
+}
+
+// Function to create toggle switch HTML
+function createToggleSwitchHTML(plan) {
+  const retentionDays = getRetentionPeriod(plan.planType);
+  
+  return `
+    <div class="gallery-autodeletion-toggle" data-plan-id="${plan.id}" data-client-id="${plan.clientId}">
+      <div class="autodeletion-switch" data-plan-type="${plan.planType}">
+        <div class="autodeletion-circle">${retentionDays}</div>
+      </div>
+      <span class="autodeletion-label">Gallery_AutoDelete</span>
+      <div class="autodeletion-tooltip">
+        <div style="text-align: center;">
+          <div style="font-weight: 600; margin-bottom: 2px;">✅ Gallery Auto-Delete Disabled</div>
+          <div style="font-size: 12px; opacity: 0.9;">Your gallery will be automatically deleted when plan expires.</div>
+          <div style="font-size: 12px; color: #2196F3; margin-top: 2px;">🔒 Your photos are safe and protected till active plan only!</div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+// Function to add event listeners for toggle switches
+function addToggleSwitchListeners() {
+  document.querySelectorAll('.autodeletion-switch').forEach(toggleSwitch => {
+    // Skip if already has listener
+    if (toggleSwitch.hasAttribute('data-listener-added')) {
+      return;
+    }
+    
+    toggleSwitch.setAttribute('data-listener-added', 'true');
+    
+    let isOn = false;
+    const circle = toggleSwitch.querySelector('.autodeletion-circle');
+    const container = toggleSwitch.closest('.gallery-autodeletion-toggle');
+    const label = container.querySelector('.autodeletion-label');
+    const tooltip = container.querySelector('.autodeletion-tooltip');
+    const planType = toggleSwitch.getAttribute('data-plan-type');
+    const retentionDays = getRetentionPeriod(planType);
+    
+    toggleSwitch.addEventListener('click', function() {
+      isOn = !isOn;
+      console.log('Toggle clicked:', isOn);
+      
+      if (isOn) {
+        // Turn ON
+        toggleSwitch.classList.add('on');
+        circle.textContent = retentionDays;
+        label.style.color = '#4285f4';
+        
+        // Update tooltip for ON state
+        tooltip.innerHTML = `
+          <div style="text-align: center;">
+            <div style="font-weight: 600; margin-bottom: 2px;">⚠️ Gallery Auto-Delete Active</div>
+            <div style="font-size: 12px; opacity: 0.9;">Gallery will be deleted in ${retentionDays} days after plan expiry.</div>
+            <div style="font-size: 12px; color: #4CAF50; margin-top: 2px;">💡 Renew your plan to keep your photos safe!</div>
+          </div>
+        `;
+      } else {
+        // Turn OFF
+        toggleSwitch.classList.remove('on');
+        circle.textContent = retentionDays;
+        label.style.color = '#666';
+        
+        // Update tooltip for OFF state
+        tooltip.innerHTML = `
+          <div style="text-align: center;">
+            <div style="font-weight: 600; margin-bottom: 2px;">✅ Gallery Auto-Delete Disabled</div>
+            <div style="font-size: 12px; opacity: 0.9;">Your gallery will be automatically deleted when plan expires.</div>
+            <div style="font-size: 12px; color: #2196F3; margin-top: 2px;">🔒 Your photos are safe and protected till active plan only!</div>
+          </div>
+        `;
+      }
+    });
+  });
+}
+
 // Plan status constants
 const PLAN_STATUS = {
   CREATED: 'created', PENDING: 'pending', ACTIVE: 'active', FAILED: 'failed',
@@ -2394,16 +2484,19 @@ function updatePlansDisplay(plans) {
       <td class="plan-client-ratings">
         <div class="ratings-loading">Loading ratings...</div>
       </td>
-      
+
       <td class="plan-actions-cell">
-    
         <button class="btn view-gallery-btn" data-client-id="${plan.clientId}">View Gallery</button>
         ${getDownloadButtonHTML(plan)}
-        ${plan.status === PLAN_STATUS.EXPIRED ?
-          `<button class="btn renew-plan-btn" data-plan-id="${plan.id}" data-client-id="${plan.clientId}">Renew Plan</button>` :
-          `<button class="btn extend-plan-btn" data-plan-id="${plan.id}" data-client-id="${plan.clientId}">Extend Plan</button>`
-        }
+        <div style="display: flex; align-items: center; margin-top: 8px;">
+          ${plan.status === PLAN_STATUS.EXPIRED ?
+            `<button class="btn renew-plan-btn" data-plan-id="${plan.id}" data-client-id="${plan.clientId}">Renew Plan</button>` :
+            `<button class="btn extend-plan-btn" data-plan-id="${plan.id}" data-client-id="${plan.clientId}">Extend Plan</button>`
+          }
+          ${createToggleSwitchHTML(plan)}
+        </div>
       </td>
+     
     `;
     
     tableBody.appendChild(planRow);
@@ -2472,6 +2565,12 @@ function updatePlansDisplay(plans) {
       }
     });
   });
+ // ADD THIS CODE right before the closing brace of updatePlansDisplay function
+  
+  // Add toggle switch listeners
+  setTimeout(() => {
+    addToggleSwitchListeners();
+  }, 100);
 }
 
 
