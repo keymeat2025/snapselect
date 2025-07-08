@@ -2064,9 +2064,13 @@ tr:last-child .renew-plan-btn:hover::after {
   }
 
     /* Step 1: Simple Toggle Switch CSS - Add this to your dashboard.css */
-/* OPTIMIZED TOGGLE STYLING - Add this to your dashboard.css */
+/* =================================================================
+   TOGGLE SWITCH STYLES - Add this to your dashboard.css file
+   ================================================================= */
 
-  /* Make toggle container more compact */
+/* Step 1: Simple Toggle Switch CSS - Add this to your dashboard.css */
+
+  /* Toggle container */
   .gallery-autodeletion-toggle {
     display: inline-flex;
     flex-direction: column;
@@ -2074,11 +2078,10 @@ tr:last-child .renew-plan-btn:hover::after {
     margin-left: 10px;
     gap: 4px;
     position: relative;
-    width: 70px; /* Fixed width to prevent expansion */
-    flex-shrink: 0; /* Prevent shrinking */
+    width: 70px;
   }
   
-  /* Toggle switch - make it smaller and more elegant */
+  /* Toggle switch */
   .autodeletion-switch {
     width: 50px;
     height: 26px;
@@ -2087,7 +2090,6 @@ tr:last-child .renew-plan-btn:hover::after {
     position: relative;
     cursor: pointer;
     transition: background-color 0.3s ease;
-    flex-shrink: 0;
   }
   
   /* Toggle circle with number */
@@ -2109,7 +2111,7 @@ tr:last-child .renew-plan-btn:hover::after {
     color: #666;
   }
   
-  /* Toggle label - make it smaller */
+  /* Toggle label */
   .autodeletion-label {
     font-size: 10px;
     color: #666;
@@ -2133,7 +2135,7 @@ tr:last-child .renew-plan-btn:hover::after {
     color: #4285f4;
   }
   
-  /* Tooltip - make it more compact */
+  /* Simple tooltip */
   .autodeletion-tooltip {
     position: absolute;
     bottom: 100%;
@@ -2150,7 +2152,6 @@ tr:last-child .renew-plan-btn:hover::after {
     z-index: 1000;
     margin-bottom: 5px;
     min-width: 200px;
-    max-width: 250px;
     white-space: normal;
     text-align: center;
   }
@@ -2174,21 +2175,7 @@ tr:last-child .renew-plan-btn:hover::after {
     border-top: 6px solid #333;
   }
   
-  /* Make the button container flex to accommodate toggle */
-  .plan-actions-cell > div {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    flex-wrap: wrap;
-  }
-  
-  /* Ensure buttons don't get too compressed */
-  .plan-actions-cell .btn {
-    flex-shrink: 0;
-    min-width: 120px;
-  }
-  
-  /* Mobile responsive */
+  /* Responsive adjustments */
   @media (max-width: 768px) {
     .gallery-autodeletion-toggle {
       width: 60px;
@@ -2218,7 +2205,6 @@ tr:last-child .renew-plan-btn:hover::after {
       min-width: 180px;
       font-size: 10px;
     }
-  }
-    
+  } 
   
 }
