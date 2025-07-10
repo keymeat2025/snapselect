@@ -1799,6 +1799,26 @@ tr:last-child .renew-plan-btn:hover::after {
     color: #4285f4 !important;
 }
 
+/* Add these styles to your existing CSS */
+.dashboard-main .autodeletion-switch.locked {
+    opacity: 0.6 !important;
+    cursor: not-allowed !important;
+    background-color: #e0e0e0 !important;
+}
+
+.dashboard-main .autodeletion-switch.locked .autodeletion-circle {
+    background-color: #f5f5f5 !important;
+    color: #999 !important;
+}
+
+.dashboard-main .autodeletion-switch.locked:hover {
+    transform: none !important;
+}
+
+.dashboard-main .autodeletion-switch.locked + .autodeletion-label {
+    color: #999 !important;
+}
+
 /* Tooltip with higher specificity */
 .dashboard-main .autodeletion-tooltip {
     position: absolute !important;
@@ -2151,6 +2171,8 @@ body .dashboard-main .plans-table .plan-actions-cell .autodeletion-circle {
         letter-spacing: -0.6px !important;
     }
 }
+
+
 
 /* Critical Override for Toggle Switches - Ensure they always work */
 .dashboard-main .autodeletion-switch,
