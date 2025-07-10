@@ -610,6 +610,13 @@ async function loadActivePlans() {
     updateStorageUsage();
     filterAndDisplayPlans();
   }
+
+ // Load auto-deletion states after plans are loaded
+  setTimeout(() => {
+    loadExistingToggleStates();
+  }, 200);
+
+ 
 }
 
 /**
@@ -3204,6 +3211,275 @@ async function updateAllRatingsDisplay() {
     }
   }
 }
+
+
+
+
+// PHASE 1: IMMEDIATE IMPLEMENTATION
+// Add these functions to your subscription-manager.js file
+
+// 1. Add the core toggle update function
+async function updateAutoDeletionSetting(planId, enabled) {
+  try {
+    showLoadingOverlay('Updating auto-deletion setting...');
+    
+    const db = firebase.firestore();
+    const plan = allPlans.find(p => p.id === planId);
+    
+    if (!plan) {
+      throw new Error('Plan not found');
+    }
+    
+    const retentionDays = getRetentionPeriod(plan.planType);
+    
+    // Prepare update data
+    const updateData = {
+      autoDeletionEnabled: enabled,
+      retentionPeriodDays: retentionDays,
+      lastModified: firebase.firestore.FieldValue.serverTimestamp()
+    };
+    
+    if (enabled) {
+      // Calculate deletion date (plan expiry + retention period)
+      const expiryDate = plan.planEndDate.toDate();
+      const deletionDate = new Date(expiryDate.getTime() + (retentionDays * 24 * 60 * 60 * 1000));
+      
+      updateData.scheduledDeletionDate = firebase.firestore.Timestamp.fromDate(deletionDate);
+      updateData.deletionStatus = 'scheduled';
+      
+      console.log(`Scheduling deletion for ${deletionDate.toLocaleDateString()}`);
+    } else {
+      // Remove deletion schedule
+      updateData.scheduledDeletionDate = firebase.firestore.FieldValue.delete();
+      updateData.deletionStatus = 'cancelled';
+      
+      console.log('Cancelling auto-deletion');
+    }
+    
+    // Update Firestore
+    await db.collection('client-plans').doc(planId).update(updateData);
+    
+    // Update local plan object
+    plan.autoDeletionEnabled = enabled;
+    plan.retentionPeriodDays = retentionDays;
+    plan.deletionStatus = enabled ? 'scheduled' : 'cancelled';
+    
+    hideLoadingOverlay();
+    
+    console.log(`Auto-deletion ${enabled ? 'enabled' : 'disabled'} for plan ${planId}`);
+    return true;
+    
+  } catch (error) {
+    hideLoadingOverlay();
+    console.error('Error updating auto-deletion setting:', error);
+    
+    // Show user-friendly error
+    if (window.NotificationSystem) {
+      window.NotificationSystem.showNotification('error', 'Update Failed', 
+        'Could not update auto-deletion setting. Please try again.');
+    }
+    
+    throw error;
+  }
+}
+
+// 2. Enhanced toggle listeners with backend integration
+function addToggleSwitchListeners() {
+  console.log("🔧 Adding enhanced toggle switch listeners...");
+  
+  const toggleSwitches = document.querySelectorAll('.autodeletion-switch');
+  console.log(`Found ${toggleSwitches.length} toggle switches`);
+  
+  toggleSwitches.forEach((toggleSwitch, index) => {
+    // Skip if already has listener
+    if (toggleSwitch.hasAttribute('data-listener-added')) {
+      console.log(`Toggle ${index + 1} already has listener, skipping`);
+      return;
+    }
+    
+    console.log(`Adding listener to toggle ${index + 1}`);
+    toggleSwitch.setAttribute('data-listener-added', 'true');
+    
+    // Get plan data and initial state
+    const container = toggleSwitch.closest('.gallery-autodeletion-toggle');
+    const planId = container.getAttribute('data-plan-id');
+    const plan = allPlans.find(p => p.id === planId);
+    
+    // Initialize from database or default to false
+    let isOn = plan?.autoDeletionEnabled || false;
+    
+    // Set initial visual state
+    if (isOn) {
+      toggleSwitch.classList.add('on');
+      const label = container.querySelector('.autodeletion-label');
+      if (label) label.style.color = '#4285f4';
+    }
+    
+    const circle = toggleSwitch.querySelector('.autodeletion-circle');
+    const label = container.querySelector('.autodeletion-label');
+    const tooltip = container.querySelector('.autodeletion-tooltip');
+    const planType = toggleSwitch.getAttribute('data-plan-type');
+    const retentionDays = getRetentionPeriod(planType);
+    
+    toggleSwitch.addEventListener('click', async function() {
+      // Prevent double-clicks
+      if (this.dataset.updating === 'true') return;
+      this.dataset.updating = 'true';
+      
+      // Show loading state
+      this.style.opacity = '0.7';
+      this.style.pointerEvents = 'none';
+      
+      try {
+        const newState = !isOn;
+        console.log(`Toggle clicked: ${isOn} → ${newState}`);
+        
+        // Update backend first
+        await updateAutoDeletionSetting(planId, newState);
+        
+        // Update UI on success
+        isOn = newState;
+        
+        if (isOn) {
+          // Turn ON
+          toggleSwitch.classList.add('on');
+          circle.textContent = retentionDays;
+          label.style.color = '#4285f4';
+          
+          // Update tooltip for ON state
+          tooltip.innerHTML = `
+            <div style="text-align: center;">
+              <div style="font-weight: 600; margin-bottom: 2px;">⚠️ Gallery Auto-Delete Active</div>
+              <div style="font-size: 12px; opacity: 0.9;">Gallery will be deleted in ${retentionDays} days after plan expiry.</div>
+              <div style="font-size: 12px; color: #4CAF50; margin-top: 2px;">💡 Renew your plan to keep your photos safe!</div>
+            </div>
+          `;
+          
+          // Show success notification
+          if (window.NotificationSystem) {
+            window.NotificationSystem.showNotification('info', 'Auto-Delete Enabled', 
+              `Gallery will be automatically deleted ${retentionDays} days after plan expiry.`);
+          }
+        } else {
+          // Turn OFF
+          toggleSwitch.classList.remove('on');
+          circle.textContent = retentionDays;
+          label.style.color = '#666';
+          
+          // Update tooltip for OFF state
+          tooltip.innerHTML = `
+            <div style="text-align: center;">
+              <div style="font-weight: 600; margin-bottom: 2px;">✅ Gallery Auto-Delete Disabled</div>
+              <div style="font-size: 12px; opacity: 0.9;">Your gallery will be automatically deleted when plan expires.</div>
+              <div style="font-size: 12px; color: #2196F3; margin-top: 2px;">🔒 Your photos are safe and protected till active plan only!</div>
+            </div>
+          `;
+          
+          // Show success notification
+          if (window.NotificationSystem) {
+            window.NotificationSystem.showNotification('success', 'Auto-Delete Disabled', 
+              'Gallery auto-deletion has been cancelled.');
+          }
+        }
+        
+        console.log(`Toggle updated successfully: ${isOn ? 'ON' : 'OFF'}`);
+        
+      } catch (error) {
+        console.error('Error updating toggle:', error);
+        
+        // Show error notification
+        if (window.NotificationSystem) {
+          window.NotificationSystem.showNotification('error', 'Update Failed', 
+            'Could not update auto-deletion setting. Please try again.');
+        }
+      } finally {
+        // Restore interaction
+        this.style.opacity = '1';
+        this.style.pointerEvents = 'auto';
+        this.dataset.updating = 'false';
+      }
+    });
+  });
+}
+
+// 3. Function to load existing toggle states from database
+function loadExistingToggleStates() {
+  console.log("📥 Loading existing toggle states...");
+  
+  allPlans.forEach(plan => {
+    if (plan.autoDeletionEnabled === true) {
+      const toggleSwitch = document.querySelector(`[data-plan-id="${plan.id}"] .autodeletion-switch`);
+      if (toggleSwitch) {
+        console.log(`Setting toggle ON for plan ${plan.id}`);
+        toggleSwitch.classList.add('on');
+        
+        const container = toggleSwitch.closest('.gallery-autodeletion-toggle');
+        const label = container.querySelector('.autodeletion-label');
+        if (label) label.style.color = '#4285f4';
+      }
+    }
+  });
+}
+
+// 4. Update your loadActivePlans function to include auto-deletion data
+// Find this function and add this code after loading plans:
+
+// ADD THIS TO THE END OF YOUR loadActivePlans() FUNCTION:
+/*
+    // Load auto-deletion states after plans are loaded
+    setTimeout(() => {
+      loadExistingToggleStates();
+    }, 200);
+*/
+
+// 5. Make functions globally available for debugging
+window.autoDeletionSystem = {
+  updateAutoDeletionSetting,
+  loadExistingToggleStates,
+  testToggle: function(planId, enabled) {
+    return updateAutoDeletionSetting(planId, enabled);
+  }
+};
+
+console.log("✅ Auto-deletion system Phase 1 loaded");
+console.log("🧪 Test with: window.autoDeletionSystem.testToggle('planId', true)");
+
+// 6. TESTING FUNCTION - Use this to test the integration
+async function testAutoDeletionIntegration() {
+  console.log("🧪 Testing auto-deletion integration...");
+  
+  try {
+    // Check if we have plans
+    if (allPlans.length === 0) {
+      console.log("❌ No plans loaded. Load plans first.");
+      return false;
+    }
+    
+    const testPlan = allPlans[0];
+    console.log(`Testing with plan: ${testPlan.id}`);
+    
+    // Test enabling auto-deletion
+    console.log("Testing enable...");
+    await updateAutoDeletionSetting(testPlan.id, true);
+    console.log("✅ Enable test passed");
+    
+    // Wait a moment, then test disabling
+    setTimeout(async () => {
+      console.log("Testing disable...");
+      await updateAutoDeletionSetting(testPlan.id, false);
+      console.log("✅ Disable test passed");
+      console.log("🎉 Auto-deletion integration test completed successfully!");
+    }, 2000);
+    
+    return true;
+  } catch (error) {
+    console.error("❌ Test failed:", error);
+    return false;
+  }
+}
+
+// Make test function globally available
+window.testAutoDeletionIntegration = testAutoDeletionIntegration;
 
 // Make function globally available
 window.copyFullShareUrl = copyFullShareUrl;
