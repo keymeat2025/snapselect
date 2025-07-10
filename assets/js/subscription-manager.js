@@ -45,6 +45,8 @@ function createToggleSwitchHTML(plan) {
 
 // Function to add event listeners for toggle switches
 function addToggleSwitchListeners() {
+// STEP 2: Replace your existing addToggleSwitchListeners() function with this
+function addToggleSwitchListeners() {
   document.querySelectorAll('.autodeletion-switch').forEach(toggleSwitch => {
     // Skip if already has listener
     if (toggleSwitch.hasAttribute('data-listener-added')) {
@@ -59,17 +61,18 @@ function addToggleSwitchListeners() {
     
     if (!plan) return;
     
-    // 👈 YOUR BUSINESS LOGIC: Initialize based on plan status
+    // ✅ FIXED: Proper initialization based on plan status
     let isOn = false;
     let isLocked = false;
     
     if (plan.status === PLAN_STATUS.EXPIRED) {
       isOn = true; // Auto-enable when expired
-      isLocked = true; // Lock in ON state
+      isLocked = true; // Lock in ON state (can't turn off without renewal)
       toggleSwitch.classList.add('locked');
     } else if (plan.status === PLAN_STATUS.ACTIVE || plan.status === PLAN_STATUS.EXPIRING_SOON) {
       isOn = false; // Always OFF for active plans
-      isLocked = false;
+      isLocked = true; // ✅ FIXED: Lock to prevent switching ON
+      toggleSwitch.classList.add('locked');
     }
     
     const circle = toggleSwitch.querySelector('.autodeletion-circle');
@@ -84,41 +87,180 @@ function addToggleSwitchListeners() {
       label.style.color = '#4285f4';
     }
     
+    // ✅ Update tooltip based on plan status
+    updateTooltipContent(tooltip, plan.status, retentionDays, isOn);
+    
     toggleSwitch.addEventListener('click', async function() {
-      // 👈 YOUR BUSINESS LOGIC: Block toggle OFF for expired plans
+      console.log(`Toggle clicked for plan ${planId}, status: ${plan.status}, isOn: ${isOn}`);
+      
+      // ✅ FIXED: Block ALL toggle attempts for active/expiring plans
+      if (plan.status === PLAN_STATUS.ACTIVE || plan.status === PLAN_STATUS.EXPIRING_SOON) {
+        if (isOn) {
+          // Edge case: If somehow ON, show message about waiting
+          showActivePlanCannotDisableMessage(plan);
+        } else {
+          // Normal case: Show message that active plans can't enable auto-deletion
+          showActivePlanCannotEnableMessage(plan);
+        }
+        return; // ✅ Block all toggles for active plans
+      }
+      
+      // ✅ FIXED: For expired plans, only allow renewal (not turning OFF)
       if (plan.status === PLAN_STATUS.EXPIRED && isOn) {
+        // Expired plan trying to turn OFF - show renewal message
         showRenewalRequiredMessage(plan);
         return; // Block the toggle
       }
       
-      // Allow normal toggle for active plans
-      if (plan.status === PLAN_STATUS.ACTIVE || plan.status === PLAN_STATUS.EXPIRING_SOON) {
-        isOn = !isOn;
+      // This should rarely happen now (expired plans should already be ON)
+      if (plan.status === PLAN_STATUS.EXPIRED && !isOn) {
+        console.log('Expired plan attempting to turn ON - allowing');
+        isOn = true;
         
-        // Update backend
         try {
           await updateAutoDeletionSetting(planId, isOn);
           
           // Update UI on success
-          if (isOn) {
-            toggleSwitch.classList.add('on');
-            label.style.color = '#4285f4';
-            // ... tooltip update ...
-          } else {
-            toggleSwitch.classList.remove('on');
-            label.style.color = '#666';
-            // ... tooltip update ...
-          }
+          toggleSwitch.classList.add('on');
+          label.style.color = '#4285f4';
+          updateTooltipContent(tooltip, plan.status, retentionDays, isOn);
+          
         } catch (error) {
           console.error('Error updating toggle:', error);
           showErrorMessage('Failed to update auto-deletion setting');
+          isOn = false; // Revert on error
         }
       }
     });
   });
 }
- 
 
+// STEP 3: Add these helper functions to your code
+function updateTooltipContent(tooltip, planStatus, retentionDays, isOn) {
+  if (!tooltip) return;
+  
+  let content = '';
+  
+  if (planStatus === PLAN_STATUS.ACTIVE || planStatus === PLAN_STATUS.EXPIRING_SOON) {
+    content = `
+      <div style="text-align: center;">
+        <div style="font-weight: 600; margin-bottom: 2px;">🔒 Auto-Delete Locked (Plan Active)</div>
+        <div style="font-size: 12px; opacity: 0.9;">Auto-deletion is disabled while plan is active.</div>
+        <div style="font-size: 12px; color: #4CAF50; margin-top: 2px;">✅ Your photos are safe and protected!</div>
+      </div>
+    `;
+  } else if (planStatus === PLAN_STATUS.EXPIRED) {
+    if (isOn) {
+      content = `
+        <div style="text-align: center;">
+          <div style="font-weight: 600; margin-bottom: 2px;">⚠️ Auto-Delete Enabled (Plan Expired)</div>
+          <div style="font-size: 12px; opacity: 0.9;">Gallery will be deleted in ${retentionDays} days after expiry.</div>
+          <div style="font-size: 12px; color: #FF5722; margin-top: 2px;">🔄 Renew plan to disable auto-deletion!</div>
+        </div>
+      `;
+    } else {
+      content = `
+        <div style="text-align: center;">
+          <div style="font-weight: 600; margin-bottom: 2px;">❌ Auto-Delete Disabled</div>
+          <div style="font-size: 12px; opacity: 0.9;">Gallery will not be automatically deleted.</div>
+          <div style="font-size: 12px; color: #2196F3; margin-top: 2px;">🔒 Manual deletion required.</div>
+        </div>
+      `;
+    }
+  }
+  
+  tooltip.innerHTML = content;
+}
+
+function showActivePlanCannotEnableMessage(plan) {
+  const client = userClients.find(c => c.id === plan.clientId);
+  const clientName = client?.name || 'this client';
+  
+  if (window.NotificationSystem) {
+    window.NotificationSystem.showNotification('info', 
+      'Plan is Active', 
+      `Auto-deletion is disabled while ${clientName}'s plan is active. Your photos are safe and protected!`
+    );
+  } else {
+    showInfoMessage(`Auto-deletion is disabled while ${clientName}'s plan is active. Your photos are safe!`);
+  }
+}
+
+function showActivePlanCannotDisableMessage(plan) {
+  const client = userClients.find(c => c.id === plan.clientId);
+  const clientName = client?.name || 'this client';
+  
+  if (window.NotificationSystem) {
+    window.NotificationSystem.showNotification('info', 
+      'Plan is Active', 
+      `Auto-deletion is already disabled for ${clientName}'s active plan. No action needed.`
+    );
+  } else {
+    showInfoMessage(`Auto-deletion is already disabled for ${clientName}'s active plan.`);
+  }
+}
+
+// STEP 4: Update your handlePlanRenewal function (if it exists) to disable auto-deletion
+async function handlePlanRenewal(planId) {
+  try {
+    console.log(`Handling renewal for plan ${planId}`);
+    
+    // Auto-disable deletion when plan is renewed
+    await updateAutoDeletionSetting(planId, false);
+    
+    showSuccessMessage('Plan renewed! Auto-deletion disabled.');
+    
+    // Update toggle UI to show OFF and locked state
+    const toggleSwitch = document.querySelector(`[data-plan-id="${planId}"] .autodeletion-switch`);
+    if (toggleSwitch) {
+      toggleSwitch.classList.remove('on');
+      toggleSwitch.classList.add('locked');
+      
+      const container = toggleSwitch.closest('.gallery-autodeletion-toggle');
+      const label = container.querySelector('.autodeletion-label');
+      if (label) label.style.color = '#999';
+    }
+    
+  } catch (error) {
+    console.error('Error handling renewal:', error);
+  }
+}
+ 
+// STEP 5: Add this test function
+function testToggleFunctionality() {
+  console.log('🧪 Testing toggle functionality...');
+  
+  // Test 1: Check if toggles are created
+  const toggles = document.querySelectorAll('.autodeletion-switch');
+  console.log(`Found ${toggles.length} toggle switches`);
+  
+  // Test 2: Check if active plans are locked
+  const activePlans = allPlans.filter(p => p.status === 'active');
+  activePlans.forEach(plan => {
+    const toggle = document.querySelector(`[data-plan-id="${plan.id}"] .autodeletion-switch`);
+    if (toggle) {
+      const isLocked = toggle.classList.contains('locked');
+      console.log(`Active plan ${plan.id} toggle locked: ${isLocked}`);
+    }
+  });
+  
+  // Test 3: Check if expired plans are ON
+  const expiredPlans = allPlans.filter(p => p.status === 'expired');
+  expiredPlans.forEach(plan => {
+    const toggle = document.querySelector(`[data-plan-id="${plan.id}"] .autodeletion-switch`);
+    if (toggle) {
+      const isOn = toggle.classList.contains('on');
+      console.log(`Expired plan ${plan.id} toggle ON: ${isOn}`);
+    }
+  });
+  
+  console.log('✅ Test completed. Check console for results.');
+}
+
+// Make test function available globally
+window.testToggleFunctionality = testToggleFunctionality;
+
+ 
 // Plan status constants
 const PLAN_STATUS = {
   CREATED: 'created', PENDING: 'pending', ACTIVE: 'active', FAILED: 'failed',
