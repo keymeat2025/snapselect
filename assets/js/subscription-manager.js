@@ -53,50 +53,71 @@ function addToggleSwitchListeners() {
     
     toggleSwitch.setAttribute('data-listener-added', 'true');
     
-    let isOn = false;
-    const circle = toggleSwitch.querySelector('.autodeletion-circle');
     const container = toggleSwitch.closest('.gallery-autodeletion-toggle');
+    const planId = container.getAttribute('data-plan-id');
+    const plan = allPlans.find(p => p.id === planId);
+    
+    if (!plan) return;
+    
+    // 👈 YOUR BUSINESS LOGIC: Initialize based on plan status
+    let isOn = false;
+    let isLocked = false;
+    
+    if (plan.status === PLAN_STATUS.EXPIRED) {
+      isOn = true; // Auto-enable when expired
+      isLocked = true; // Lock in ON state
+      toggleSwitch.classList.add('locked');
+    } else if (plan.status === PLAN_STATUS.ACTIVE || plan.status === PLAN_STATUS.EXPIRING_SOON) {
+      isOn = false; // Always OFF for active plans
+      isLocked = false;
+    }
+    
+    const circle = toggleSwitch.querySelector('.autodeletion-circle');
     const label = container.querySelector('.autodeletion-label');
     const tooltip = container.querySelector('.autodeletion-tooltip');
     const planType = toggleSwitch.getAttribute('data-plan-type');
     const retentionDays = getRetentionPeriod(planType);
     
-    toggleSwitch.addEventListener('click', function() {
-      isOn = !isOn;
-      console.log('Toggle clicked:', isOn);
+    // Set initial visual state
+    if (isOn) {
+      toggleSwitch.classList.add('on');
+      label.style.color = '#4285f4';
+    }
+    
+    toggleSwitch.addEventListener('click', async function() {
+      // 👈 YOUR BUSINESS LOGIC: Block toggle OFF for expired plans
+      if (plan.status === PLAN_STATUS.EXPIRED && isOn) {
+        showRenewalRequiredMessage(plan);
+        return; // Block the toggle
+      }
       
-      if (isOn) {
-        // Turn ON
-        toggleSwitch.classList.add('on');
-        circle.textContent = retentionDays;
-        label.style.color = '#4285f4';
+      // Allow normal toggle for active plans
+      if (plan.status === PLAN_STATUS.ACTIVE || plan.status === PLAN_STATUS.EXPIRING_SOON) {
+        isOn = !isOn;
         
-        // Update tooltip for ON state
-        tooltip.innerHTML = `
-          <div style="text-align: center;">
-            <div style="font-weight: 600; margin-bottom: 2px;">⚠️ Gallery Auto-Delete Active</div>
-            <div style="font-size: 12px; opacity: 0.9;">Gallery will be deleted in ${retentionDays} days after plan expiry.</div>
-            <div style="font-size: 12px; color: #4CAF50; margin-top: 2px;">💡 Renew your plan to keep your photos safe!</div>
-          </div>
-        `;
-      } else {
-        // Turn OFF
-        toggleSwitch.classList.remove('on');
-        circle.textContent = retentionDays;
-        label.style.color = '#666';
-        
-        // Update tooltip for OFF state
-        tooltip.innerHTML = `
-          <div style="text-align: center;">
-            <div style="font-weight: 600; margin-bottom: 2px;">✅ Gallery Auto-Delete Disabled</div>
-            <div style="font-size: 12px; opacity: 0.9;">Your gallery will be automatically deleted when plan expires.</div>
-            <div style="font-size: 12px; color: #2196F3; margin-top: 2px;">🔒 Your photos are safe and protected till active plan only!</div>
-          </div>
-        `;
+        // Update backend
+        try {
+          await updateAutoDeletionSetting(planId, isOn);
+          
+          // Update UI on success
+          if (isOn) {
+            toggleSwitch.classList.add('on');
+            label.style.color = '#4285f4';
+            // ... tooltip update ...
+          } else {
+            toggleSwitch.classList.remove('on');
+            label.style.color = '#666';
+            // ... tooltip update ...
+          }
+        } catch (error) {
+          console.error('Error updating toggle:', error);
+          showErrorMessage('Failed to update auto-deletion setting');
+        }
       }
     });
   });
 }
+ 
 
 // Plan status constants
 const PLAN_STATUS = {
@@ -263,6 +284,7 @@ async function initSubscriptionManager() {
     });
     
     setupEventListeners();
+    initPlanStatusMonitoring();
   } catch (error) {
     console.error('Error initializing subscription manager:', error);
     hideLoadingOverlay(); // Make sure loading overlay is hidden even if there's an error
@@ -1052,7 +1074,23 @@ async function verifyPayment(orderId, paymentId, signature) {
           clientName: document.getElementById('clientSelect')?.options[document.getElementById('clientSelect')?.selectedIndex]?.text || 'your client'
         });
       }
-      
+
+          // Handle plan renewal/purchase - disable auto-deletion
+      // Handle plan renewal/purchase - disable auto-deletion
+      if (responseData.planId) {
+        // We have the actual plan ID
+        await handlePlanRenewal(responseData.planId);
+      } else if (responseData.clientId) {
+        // We need to find the plan ID from client ID
+        const clientPlan = allPlans.find(p => p.clientId === responseData.clientId);
+        if (clientPlan) {
+          await handlePlanRenewal(clientPlan.id);
+        } else {
+          console.log('Plan renewal: New plan created, no auto-deletion to disable');
+        }
+      }
+
+     
       setTimeout(() => {
         hideUpgradeModal();
         loadClientData();
@@ -3283,124 +3321,7 @@ async function updateAutoDeletionSetting(planId, enabled) {
   }
 }
 
-// 2. Enhanced toggle listeners with backend integration
-function addToggleSwitchListeners() {
-  console.log("🔧 Adding enhanced toggle switch listeners...");
-  
-  const toggleSwitches = document.querySelectorAll('.autodeletion-switch');
-  console.log(`Found ${toggleSwitches.length} toggle switches`);
-  
-  toggleSwitches.forEach((toggleSwitch, index) => {
-    // Skip if already has listener
-    if (toggleSwitch.hasAttribute('data-listener-added')) {
-      console.log(`Toggle ${index + 1} already has listener, skipping`);
-      return;
-    }
-    
-    console.log(`Adding listener to toggle ${index + 1}`);
-    toggleSwitch.setAttribute('data-listener-added', 'true');
-    
-    // Get plan data and initial state
-    const container = toggleSwitch.closest('.gallery-autodeletion-toggle');
-    const planId = container.getAttribute('data-plan-id');
-    const plan = allPlans.find(p => p.id === planId);
-    
-    // Initialize from database or default to false
-    let isOn = plan?.autoDeletionEnabled || false;
-    
-    // Set initial visual state
-    if (isOn) {
-      toggleSwitch.classList.add('on');
-      const label = container.querySelector('.autodeletion-label');
-      if (label) label.style.color = '#4285f4';
-    }
-    
-    const circle = toggleSwitch.querySelector('.autodeletion-circle');
-    const label = container.querySelector('.autodeletion-label');
-    const tooltip = container.querySelector('.autodeletion-tooltip');
-    const planType = toggleSwitch.getAttribute('data-plan-type');
-    const retentionDays = getRetentionPeriod(planType);
-    
-    toggleSwitch.addEventListener('click', async function() {
-      // Prevent double-clicks
-      if (this.dataset.updating === 'true') return;
-      this.dataset.updating = 'true';
-      
-      // Show loading state
-      this.style.opacity = '0.7';
-      this.style.pointerEvents = 'none';
-      
-      try {
-        const newState = !isOn;
-        console.log(`Toggle clicked: ${isOn} → ${newState}`);
-        
-        // Update backend first
-        await updateAutoDeletionSetting(planId, newState);
-        
-        // Update UI on success
-        isOn = newState;
-        
-        if (isOn) {
-          // Turn ON
-          toggleSwitch.classList.add('on');
-          circle.textContent = retentionDays;
-          label.style.color = '#4285f4';
-          
-          // Update tooltip for ON state
-          tooltip.innerHTML = `
-            <div style="text-align: center;">
-              <div style="font-weight: 600; margin-bottom: 2px;">⚠️ Gallery Auto-Delete Active</div>
-              <div style="font-size: 12px; opacity: 0.9;">Gallery will be deleted in ${retentionDays} days after plan expiry.</div>
-              <div style="font-size: 12px; color: #4CAF50; margin-top: 2px;">💡 Renew your plan to keep your photos safe!</div>
-            </div>
-          `;
-          
-          // Show success notification
-          if (window.NotificationSystem) {
-            window.NotificationSystem.showNotification('info', 'Auto-Delete Enabled', 
-              `Gallery will be automatically deleted ${retentionDays} days after plan expiry.`);
-          }
-        } else {
-          // Turn OFF
-          toggleSwitch.classList.remove('on');
-          circle.textContent = retentionDays;
-          label.style.color = '#666';
-          
-          // Update tooltip for OFF state
-          tooltip.innerHTML = `
-            <div style="text-align: center;">
-              <div style="font-weight: 600; margin-bottom: 2px;">✅ Gallery Auto-Delete Disabled</div>
-              <div style="font-size: 12px; opacity: 0.9;">Your gallery will be automatically deleted when plan expires.</div>
-              <div style="font-size: 12px; color: #2196F3; margin-top: 2px;">🔒 Your photos are safe and protected till active plan only!</div>
-            </div>
-          `;
-          
-          // Show success notification
-          if (window.NotificationSystem) {
-            window.NotificationSystem.showNotification('success', 'Auto-Delete Disabled', 
-              'Gallery auto-deletion has been cancelled.');
-          }
-        }
-        
-        console.log(`Toggle updated successfully: ${isOn ? 'ON' : 'OFF'}`);
-        
-      } catch (error) {
-        console.error('Error updating toggle:', error);
-        
-        // Show error notification
-        if (window.NotificationSystem) {
-          window.NotificationSystem.showNotification('error', 'Update Failed', 
-            'Could not update auto-deletion setting. Please try again.');
-        }
-      } finally {
-        // Restore interaction
-        this.style.opacity = '1';
-        this.style.pointerEvents = 'auto';
-        this.dataset.updating = 'false';
-      }
-    });
-  });
-}
+
 
 // 3. Function to load existing toggle states from database
 function loadExistingToggleStates() {
@@ -3420,6 +3341,77 @@ function loadExistingToggleStates() {
     }
   });
 }
+
+// Add this to subscription-manager.js
+function initPlanStatusMonitoring() {
+  // Monitor for plan status changes
+  setInterval(checkPlanStatusChanges, 60000); // Check every minute
+}
+
+async function checkPlanStatusChanges() {
+  if (!currentUser) return;
+  
+  const now = new Date();
+  let statusChanges = false;
+  
+  allPlans.forEach(async plan => {
+    const expiryDate = plan.planEndDate?.toDate();
+    const wasActive = plan.status === PLAN_STATUS.ACTIVE;
+    const isNowExpired = expiryDate && now > expiryDate;
+    
+    if (wasActive && isNowExpired) {
+      // Plan just expired - auto-enable deletion
+      await handlePlanExpiration(plan.id);
+      statusChanges = true;
+    }
+  });
+  
+  if (statusChanges) {
+    await loadActivePlans(); // Refresh data
+  }
+}
+
+
+
+// Add this function
+async function handlePlanRenewal(planId) {
+  try {
+    // Auto-disable deletion when plan is renewed
+    await updateAutoDeletionSetting(planId, false);
+    
+    showSuccessMessage('Plan renewed! Auto-deletion disabled.');
+    
+    // Update toggle UI
+    const toggleSwitch = document.querySelector(`[data-plan-id="${planId}"] .autodeletion-switch`);
+    if (toggleSwitch) {
+      toggleSwitch.classList.remove('on', 'locked');
+    }
+    
+  } catch (error) {
+    console.error('Error handling renewal:', error);
+  }
+}
+
+function showRenewalRequiredMessage(plan) {
+  const client = userClients.find(c => c.id === plan.clientId);
+  const clientName = client?.name || 'this client';
+  
+  // Show modal or notification
+  if (window.NotificationSystem) {
+    window.NotificationSystem.showNotification('warning', 
+      'Renewal Required', 
+      `Please renew ${clientName}'s plan to disable auto-deletion.`
+    );
+  }
+  
+  // Optionally redirect to renewal
+  setTimeout(() => {
+    if (confirm(`Renew ${clientName}'s plan now?`)) {
+      showUpgradeModal(plan.clientId);
+    }
+  }, 1000);
+}
+
 
 // 4. Update your loadActivePlans function to include auto-deletion data
 // Find this function and add this code after loading plans:
@@ -3475,6 +3467,27 @@ async function testAutoDeletionIntegration() {
   } catch (error) {
     console.error("❌ Test failed:", error);
     return false;
+  }
+}
+
+
+// ADD THESE FUNCTIONS - They're referenced but not defined:
+
+async function handlePlanExpiration(planId) {
+  try {
+    // Auto-enable deletion when plan expires
+    await updateAutoDeletionSetting(planId, true);
+    
+    showInfoMessage('Plan expired! Auto-deletion enabled.');
+    
+    // Update toggle UI to locked ON state
+    const toggleSwitch = document.querySelector(`[data-plan-id="${planId}"] .autodeletion-switch`);
+    if (toggleSwitch) {
+      toggleSwitch.classList.add('on', 'locked');
+    }
+    
+  } catch (error) {
+    console.error('Error handling expiration:', error);
   }
 }
 
