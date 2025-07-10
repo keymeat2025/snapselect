@@ -43,8 +43,7 @@ function createToggleSwitchHTML(plan) {
   `;
 }
 
-// Function to add event listeners for toggle switches
-function addToggleSwitchListeners() {
+
 // STEP 2: Replace your existing addToggleSwitchListeners() function with this
 function addToggleSwitchListeners() {
   document.querySelectorAll('.autodeletion-switch').forEach(toggleSwitch => {
