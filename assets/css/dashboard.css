@@ -1819,6 +1819,15 @@ tr:last-child .renew-plan-btn:hover::after {
     color: #999 !important;
 }
 
+.autodeletion-switch.locked {
+  cursor: not-allowed !important;
+  opacity: 0.8;
+}
+
+.autodeletion-switch.locked:hover {
+  transform: none !important;
+}
+
 /* Tooltip with higher specificity */
 .dashboard-main .autodeletion-tooltip {
     position: absolute !important;
