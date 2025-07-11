@@ -1787,16 +1787,16 @@ tr:last-child .renew-plan-btn:hover::after {
 
 /* ON state with higher specificity */
 .dashboard-main .autodeletion-switch.on {
-    background-color: #4285f4 !important;
+    background-color: #e74c3c !important;
 }
 
 .dashboard-main .autodeletion-switch.on .autodeletion-circle {
     transform: translateX(24px) !important;
-    color: #4285f4 !important;
+    color: #e74c3c !important;
 }
 
 .dashboard-main .autodeletion-switch.on + .autodeletion-label {
-    color: #4285f4 !important;
+    color: #e74c3c !important;
 }
 
 /* Add these styles to your existing CSS */
