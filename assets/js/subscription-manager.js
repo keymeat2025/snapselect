@@ -248,7 +248,7 @@ async function initSubscriptionManager() {
     });
     
     setupEventListeners();
-    //initPlanStatusMonitoring();
+
   } catch (error) {
     console.error('Error initializing subscription manager:', error);
     hideLoadingOverlay(); // Make sure loading overlay is hidden even if there's an error
