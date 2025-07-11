@@ -1,4 +1,5 @@
- /**
+
+/**
  * subscription-manager.js - Manages client-based plan purchases for photographers
  */
 // Global variables for filtered plans
