@@ -3288,7 +3288,7 @@ function showRenewalRequiredMessage(plan) {
 window.autoDeletionSystem = {
  
     return updateAutoDeletionSetting(planId, enabled);
-  }
+  
 };
 
 console.log("✅ Auto-deletion system Phase 1 loaded");
