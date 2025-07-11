@@ -1,4 +1,3 @@
-
 /* Dashboard Main Styles - Revamped UI with Toggle Switches */
 /* This file contains enhanced styles for the photographer dashboard */
 
@@ -1827,47 +1826,6 @@ tr:last-child .renew-plan-btn:hover::after {
 
 .autodeletion-switch.locked:hover {
   transform: none !important;
-}
-
-
-.gallery-autodeletion-status {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 12px;
-}
-
-.autodeletion-indicator {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
-  border: 2px solid;
-}
-
-.autodeletion-indicator.enabled {
-  background-color: #ffebee;
-  border-color: #f44336;
-  color: #f44336;
-}
-
-.autodeletion-indicator.disabled {
-  background-color: #e8f5e8;
-  border-color: #4CAF50;
-  color: #4CAF50;
-}
-
-.autodeletion-circle {
-  font-size: 10px;
-  font-weight: bold;
-}
-
-.autodeletion-info {
-  font-size: 11px;
-  opacity: 0.8;
-  margin-top: 2px;
 }
 
 /* Tooltip with higher specificity */
