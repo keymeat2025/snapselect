@@ -1084,6 +1084,11 @@ async function verifyPayment(orderId, paymentId, signature) {
         });
       }
 
+      // 👈 ADD THIS NEW LINE - Setup auto-deletion for new plans
+      if (responseData.planId && responseData.planType) {
+        await ensureNewPlanHasAutoDeletionFields(responseData.planId, responseData.planType);
+      }
+     
           // Handle plan renewal/purchase - disable auto-deletion
       // Handle plan renewal/purchase - disable auto-deletion
       if (responseData.planId) {
@@ -1114,6 +1119,59 @@ async function verifyPayment(orderId, paymentId, signature) {
     console.error('Payment verification error:', error);
     showPaymentError(`Payment verification failed: ${error.message}`);
     setTimeout(resetPaymentButtons, 3000);
+  }
+}
+
+
+// ADD THIS FUNCTION TO YOUR subscription-manager.js FILE
+// Place it after your other auto-deletion functions
+
+/**
+ * Ensure new plan has auto-deletion fields
+ * Call this after successful payment to add missing fields to new plans
+ */
+async function ensureNewPlanHasAutoDeletionFields(planId, planType) {
+  try {
+    if (!planId || !planType) {
+      console.log('Missing planId or planType, skipping auto-deletion setup');
+      return;
+    }
+
+    console.log(`🔧 Setting up auto-deletion fields for new plan: ${planId}`);
+    
+    const db = firebase.firestore();
+    
+    // Check if the new plan already has auto-deletion fields
+    const planDoc = await db.collection('client-plans').doc(planId).get();
+    
+    if (!planDoc.exists) {
+      console.error(`Plan ${planId} not found`);
+      return;
+    }
+    
+    const planData = planDoc.data();
+    
+    // If missing auto-deletion fields, add them
+    if (planData.autoDeletionEnabled === undefined) {
+      const retentionDays = getRetentionPeriod(planType);
+      
+      const updateData = {
+        autoDeletionEnabled: false,  // New active plans should not auto-delete
+        retentionPeriodDays: retentionDays,
+        deletionStatus: 'cancelled',
+        lastModified: firebase.firestore.FieldValue.serverTimestamp()
+        // Note: No scheduledDeletionDate since plan is active
+      };
+      
+      await db.collection('client-plans').doc(planId).update(updateData);
+      console.log(`✅ Added auto-deletion fields to new plan ${planId}:`, updateData);
+    } else {
+      console.log(`✅ Plan ${planId} already has auto-deletion fields`);
+    }
+    
+  } catch (error) {
+    console.error('Error ensuring auto-deletion fields:', error);
+    // Don't throw error - this shouldn't break payment flow
   }
 }
 
