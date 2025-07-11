@@ -3284,15 +3284,7 @@ function showRenewalRequiredMessage(plan) {
     }, 200);
 */
 
-// 5. Make functions globally available for debugging
-window.autoDeletionSystem = {
- 
-    return updateAutoDeletionSetting(planId, enabled);
-  
-};
 
-console.log("✅ Auto-deletion system Phase 1 loaded");
-console.log("🧪 Test with: window.autoDeletionSystem.testToggle('planId', true)");
 
 // 6. TESTING FUNCTION - Use this to test the integration
 async function testAutoDeletionIntegration() {
