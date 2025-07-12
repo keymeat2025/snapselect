@@ -2182,6 +2182,35 @@ body .dashboard-main .plans-table .plan-actions-cell .autodeletion-circle {
 }
 
 
+/* Add these styles to your main CSS file */
+.archival-pending {
+  font-size: 12px;
+  color: #ff9800;
+  margin-top: 4px;
+  font-weight: 500;
+}
+
+.archival-status {
+  font-size: 12px;
+  color: #2196F3;
+  margin-top: 4px;
+  font-weight: 500;
+}
+
+.restoration-status {
+  font-size: 12px;
+  color: #4CAF50;
+  margin-top: 4px;
+  font-weight: 500;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0% { opacity: 1; }
+  50% { opacity: 0.5; }
+  100% { opacity: 1; }
+}
+
 
 /* Critical Override for Toggle Switches - Ensure they always work */
 .dashboard-main .autodeletion-switch,
