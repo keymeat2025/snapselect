@@ -2412,12 +2412,17 @@ function filterAndDisplayPlans() {
 // Sort plans based on selected option
 function sortPlans(plans, sortOption) {
   if (sortOption === 'recent') {
+
     // Sort by start date (newest first)
     return plans.sort((a, b) => {
-      const dateA = a.planStartDate ? a.planStartDate.toDate().getTime() : 0;
-      const dateB = b.planStartDate ? b.planStartDate.toDate().getTime() : 0;
+      const dateA = a.planStartDate ? 
+        (a.planStartDate.toDate ? a.planStartDate.toDate().getTime() : new Date(a.planStartDate).getTime()) : 0;
+      const dateB = b.planStartDate ? 
+        (b.planStartDate.toDate ? b.planStartDate.toDate().getTime() : new Date(b.planStartDate).getTime()) : 0;
       return dateB - dateA; // Descending (newest first)
     });
+
+     
   } else if (sortOption === 'expiring') {
     // Sort by days left before expiration (soonest first)
     return plans.sort((a, b) => {
