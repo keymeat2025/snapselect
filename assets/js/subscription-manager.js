@@ -294,6 +294,7 @@ async function initSubscriptionManager() {
     
     setupEventListeners();
     initPlanStatusMonitoring();
+    startRestorationPolling();
   } catch (error) {
     console.error('Error initializing subscription manager:', error);
     hideLoadingOverlay(); // Make sure loading overlay is hidden even if there's an error
@@ -2575,6 +2576,7 @@ function updatePlansDisplay(plans) {
       </td>
       <td class="plan-status-cell">
         <span class="plan-status ${plan.status}">${formatPlanStatus(plan.status)}</span>
+        ${getArchivalStatusHTML(plan)}
         ${plan.status === PLAN_STATUS.EXPIRING_SOON ? 
           `<div class="expiry-warning"><i class="fas fa-exclamation-triangle"></i> Expires in ${plan.daysLeftBeforeExpiration} days</div>` : ''}
         ${plan.status === PLAN_STATUS.EXPIRED ? 
@@ -3596,6 +3598,56 @@ async function handlePlanExpiration(planId) {
   } catch (error) {
     console.error('Error handling expiration:', error);
   }
+}
+
+// ADD this new function at the end of subscription-manager.js
+function getArchivalStatusHTML(plan) {
+  const archivalStatus = plan.archivalStatus || 'active'; // Default to 'active' if missing
+  
+  if (archivalStatus === 'pending') {
+    const archivalDate = plan.scheduledArchivalDate?.toDate()?.toLocaleDateString() || 'Soon';
+    return `<div class="archival-pending">📦 Archival scheduled: ${archivalDate}</div>`;
+  } else if (archivalStatus === 'archived') {
+    return `<div class="archival-status">📦 Archived (restorable)</div>`;
+  } else if (archivalStatus === 'restoring') {
+    return `<div class="restoration-status">🔄 Restoring gallery...</div>`;
+  }
+  return ''; // For 'active' or undefined status
+}
+
+
+// Add this function at the very end of subscription-manager.js
+function startRestorationPolling() {
+  setInterval(async () => {
+    // Check if any plans are currently restoring
+    const restoringPlans = allPlans.filter(p => p.archivalStatus === 'restoring');
+    
+    if (restoringPlans.length > 0) {
+      console.log(`Checking status for ${restoringPlans.length} restoring galleries`);
+      
+      // Refresh the data to get latest status
+      await loadActivePlans();
+      
+      // Update the display
+      filterAndDisplayPlans();
+      
+      // Show notification if any restoration completed
+      restoringPlans.forEach(plan => {
+        const updatedPlan = allPlans.find(p => p.id === plan.id);
+        if (updatedPlan && updatedPlan.archivalStatus === 'active') {
+          const client = userClients.find(c => c.id === plan.clientId);
+          const clientName = client?.name || 'your client';
+          
+          if (window.NotificationSystem) {
+            window.NotificationSystem.showNotification('success', 
+              'Gallery Restored', 
+              `${clientName}'s gallery has been restored and is now active!`
+            );
+          }
+        }
+      });
+    }
+  }, 30 * 60 * 1000); // Check every 30 minutes
 }
 
 // Make test function globally available
