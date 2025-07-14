@@ -1052,6 +1052,8 @@ async function processPayment(planType) {
     setTimeout(resetPaymentButtons, 3000);
   }
 }
+
+
 async function verifyPayment(orderId, paymentId, signature) {
   try {
     showPaymentProgress('Verifying payment...');
@@ -1092,19 +1094,30 @@ async function verifyPayment(orderId, paymentId, signature) {
      
           // Handle plan renewal/purchase - disable auto-deletion
       // Handle plan renewal/purchase - disable auto-deletion
-      if (responseData.planId) {
-        // We have the actual plan ID
-        await handlePlanRenewal(responseData.planId);
-      } else if (responseData.clientId) {
-        // We need to find the plan ID from client ID
-        const clientPlan = allPlans.find(p => p.clientId === responseData.clientId);
-        if (clientPlan) {
-          await handlePlanRenewal(clientPlan.id);
-        } else {
-          console.log('Plan renewal: New plan created, no auto-deletion to disable');
-        }
-      }
 
+     // BULLETPROOF: Handle plan renewal without blocking payment success
+      if (responseData.planId) {
+        setTimeout(() => {
+          handlePlanRenewal(responseData.planId).catch(error => {
+            console.error('Non-blocking: Plan renewal failed:', error);
+          });
+        }, 500);
+      } else if (responseData.clientId) {
+        setTimeout(() => {
+          try {
+            const clientPlan = allPlans.find(p => p.clientId === responseData.clientId);
+            if (clientPlan) {
+              handlePlanRenewal(clientPlan.id).catch(error => {
+                console.error('Non-blocking: Client plan renewal failed:', error);
+              });
+            } else {
+              console.log('Client plan not found for renewal, but payment succeeded');
+            }
+          } catch (error) {
+            console.error('Non-blocking: Error finding client plan:', error);
+          }
+        }, 1000);
+      }
      
       setTimeout(() => {
         hideUpgradeModal();
@@ -3367,11 +3380,26 @@ function updateToggleForPlanStatusChange(planId, newStatus) {
 
 
 // REPLACE your existing updateAutoDeletionSetting function with this version:
+
+
+
 async function updateAutoDeletionSetting(planId, enabled) {
   try {
+    // BULLETPROOF: Basic validation only
+    if (!planId) {
+      console.error('updateAutoDeletionSetting: planId is required');
+      return false;
+    }
+    
     const plan = allPlans.find(p => p.id === planId);
     if (!plan) {
-      throw new Error('Plan not found');
+      console.log(`Plan ${planId} not found in allPlans array, skipping auto-deletion update`);
+      return false;
+    }
+    
+    if (!plan.planType) {
+      console.log(`Plan ${planId} missing planType, skipping auto-deletion update`);
+      return false;
     }
     
     // 👈 SECURITY CHECK: Prevent manual enabling for active plans
@@ -3488,21 +3516,56 @@ async function checkPlanStatusChanges() {
 
 
 // Add this function
+
 async function handlePlanRenewal(planId) {
   try {
-    // Auto-disable deletion when plan is renewed
-    await updateAutoDeletionSetting(planId, false);
+    console.log(`🔄 Handling plan renewal for: ${planId}`);
     
-    showSuccessMessage('Plan renewed! Auto-deletion disabled.');
+    if (!planId || planId === 'undefined' || planId === 'null') {
+      console.log('handlePlanRenewal: Invalid planId, skipping renewal handling');
+      return;
+    }
     
-    // Update toggle UI
-    const toggleSwitch = document.querySelector(`[data-plan-id="${planId}"] .autodeletion-switch`);
-    if (toggleSwitch) {
-      toggleSwitch.classList.remove('on', 'locked');
+    if (!allPlans || allPlans.length === 0) {
+      console.log('handlePlanRenewal: No plans loaded, skipping renewal handling');
+      return;
+    }
+    
+    const plan = allPlans.find(p => p.id === planId);
+    if (!plan) {
+      console.log(`handlePlanRenewal: Plan ${planId} not found, skipping renewal handling`);
+      return;
+    }
+    
+    // Only disable auto-deletion if it was previously enabled
+    if (plan.autoDeletionEnabled === true) {
+      console.log(`Disabling auto-deletion for renewed plan: ${planId}`);
+      
+      try {
+        await updateAutoDeletionSetting(planId, false);
+        
+        showSuccessMessage('Plan renewed! Auto-deletion disabled.');
+        
+        // Update toggle UI
+        const toggleSwitch = document.querySelector(`[data-plan-id="${planId}"] .autodeletion-switch`);
+        if (toggleSwitch) {
+          toggleSwitch.classList.remove('on', 'locked');
+          
+          const container = toggleSwitch.closest('.gallery-autodeletion-toggle');
+          const label = container?.querySelector('.autodeletion-label');
+          if (label) label.style.color = '#666';
+        }
+      } catch (disableError) {
+        console.error('Error disabling auto-deletion during renewal:', disableError);
+        // Don't throw - renewal should continue
+      }
+    } else {
+      console.log(`Plan ${planId} renewal: Auto-deletion was not enabled, no action needed`);
     }
     
   } catch (error) {
     console.error('Error handling renewal:', error);
+    // Don't throw error - this shouldn't break the payment flow
   }
 }
 
