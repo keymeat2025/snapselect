@@ -1770,13 +1770,45 @@ function updateGalleryClientDropdown() {
 /**
  * Event handler to open the Create Gallery modal
  */
+
+/**
+ * Event handler to open the Create Gallery modal with better validation
+ */
 function showCreateGalleryModal() {
+  // Check if user has any clients first
+  if (!userClients || userClients.length === 0) {
+    showErrorMessage('You need to create clients before you can create galleries. Please add a client first.');
+    return;
+  }
+  
+  // Check if any clients have active plans
+  const clientsWithPlans = userClients.filter(client => 
+    client.planActive || activePlans.some(plan => 
+      plan.clientId === client.id && 
+      (plan.status === PLAN_STATUS.ACTIVE || plan.status === PLAN_STATUS.EXPIRING_SOON)
+    )
+  );
+  
+  if (clientsWithPlans.length === 0) {
+    showErrorMessage('You need clients with active plans to create galleries. Please purchase a plan for your clients first.');
+    return;
+  }
+  
   // Get the modal element
   const createGalleryModal = document.getElementById('createGalleryModal');
-  if (!createGalleryModal) return;
+  if (!createGalleryModal) {
+    showErrorMessage('Gallery creation form not found. Please refresh the page.');
+    return;
+  }
   
   // First update the client dropdown with active clients
   updateGalleryClientDropdown();
+  
+  // Reset form
+  const createGalleryForm = document.getElementById('createGalleryForm');
+  if (createGalleryForm) {
+    createGalleryForm.reset();
+  }
   
   // Then show the modal
   createGalleryModal.style.display = 'block';
@@ -1785,6 +1817,7 @@ function showCreateGalleryModal() {
 /**
  * Handle gallery form submission
  */
+
 function handleGalleryFormSubmit(e) {
   e.preventDefault();
   
@@ -1805,22 +1838,23 @@ function handleGalleryFormSubmit(e) {
   // Show loading overlay
   showLoadingOverlay('Creating gallery...');
   
-  // Get client info
+  // Get client info for success message
   const client = userClients.find(c => c.id === clientId);
+  const clientName = client?.name || 'your client';
   
-  // Create new gallery
+  // Create new gallery with enhanced error handling
   createGallery(galleryName, clientId, galleryDescription)
     .then(galleryId => {
       if (galleryId) {
         // Show success message
-        showSuccessMessage(`Gallery "${galleryName}" created successfully`);
+        showSuccessMessage(`Gallery "${galleryName}" created successfully for ${clientName}`);
         
         // Add notification for gallery creation
         if (window.NotificationSystem) {
           window.NotificationSystem.createNotificationFromEvent({
             type: 'gallery_created',
             galleryName: galleryName,
-            clientName: client?.name || 'your client'
+            clientName: clientName
           });
         }
         
@@ -1829,7 +1863,8 @@ function handleGalleryFormSubmit(e) {
         if (createGalleryModal) createGalleryModal.style.display = 'none';
         
         // Reset the form
-        document.getElementById('createGalleryForm').reset();
+        const createGalleryForm = document.getElementById('createGalleryForm');
+        if (createGalleryForm) createGalleryForm.reset();
         
         // Refresh data
         refreshAllData();
@@ -1837,7 +1872,11 @@ function handleGalleryFormSubmit(e) {
     })
     .catch(error => {
       console.error('Error creating gallery:', error);
-      showErrorMessage(`Error creating gallery: ${error.message}`);
+      
+      // Show specific error message from backend validation
+      showErrorMessage(error.message || 'Error creating gallery. Please try again.');
+      
+      // Don't close modal on error so user can fix the issue
     })
     .finally(() => {
       hideLoadingOverlay();
@@ -1847,79 +1886,70 @@ function handleGalleryFormSubmit(e) {
 /**
  * Create a new gallery for a client
  */
+
+/**
+ * Create a new gallery for a client with backend validation
+ */
 async function createGallery(name, clientId, description = '') {
   try {
-    if (!currentUser) return null;
+    if (!currentUser) {
+      throw new Error('You must be logged in to create a gallery');
+    }
     
-    // Validate client has active plan
+    // Basic input validation
+    if (!name || !name.trim()) {
+      throw new Error('Gallery name is required');
+    }
+    
+    if (!clientId) {
+      throw new Error('Client selection is required');
+    }
+    
+    // Validate client exists in our local data
     const client = userClients.find(c => c.id === clientId);
     if (!client) {
-      throw new Error('Client not found');
+      throw new Error('Selected client not found');
     }
     
-    // Find active plan for this client
-    const plan = activePlans.find(p => 
-      p.clientId === clientId && 
-      (p.status === PLAN_STATUS.ACTIVE || p.status === PLAN_STATUS.EXPIRING_SOON)
-    );
+    // 🚀 NEW: Use backend validation instead of direct Firestore write
+    console.log('Creating gallery via backend validation...');
     
-    if (!plan) {
-      // Fallback to client's planActive flag
-      if (client.planActive) {
-        // Create a dummy plan object using client's planType
-        const dummyPlan = {
-          id: `dummy_${Date.now()}`,
-          clientId: clientId,
-          planType: client.planType || 'basic',
-          status: PLAN_STATUS.ACTIVE
-        };
-        
-        // Use the dummy plan
-        console.log('No active plan found in activePlans, using client.planActive fallback');
-        
-        const db = firebase.firestore();
-        const galleryRef = await db.collection('galleries').add({
-          name,
-          description,
-          clientId,
-          photographerId: currentUser.uid,
-          planId: dummyPlan.id,
-          planType: dummyPlan.planType,
-          createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-          photosCount: 0,
-          status: 'active'
-        });
-        
-        return galleryRef.id;
-      } else {
-        throw new Error('No active plan found for this client');
-      }
+    const functions = firebase.app().functions('asia-south1');
+    const createGalleryFunc = functions.httpsCallable('createGallery');
+    
+    const result = await createGalleryFunc({
+      name: name.trim(),
+      clientId: clientId,
+      description: description.trim()
+    });
+    
+    if (result.data && result.data.success) {
+      console.log('Gallery created successfully:', result.data);
+      return result.data.galleryId;
+    } else {
+      throw new Error('Backend validation failed');
     }
     
-    const db = firebase.firestore();
-    const galleryRef = await db.collection('galleries').add({
-      name,
-      description,
-      clientId,
-      photographerId: currentUser.uid,
-      planId: plan.id,
-      planType: plan.planType,
-      createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-      photosCount: 0,
-      status: 'active'
-    });
-    
-    // Update plan to reference the gallery
-    await db.collection('client-plans').doc(plan.id).update({
-      galleryId: galleryRef.id,
-      galleryCreated: true,
-      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-    });
-    
-    return galleryRef.id;
   } catch (error) {
     console.error('Error creating gallery:', error);
-    throw error;
+    
+    // Handle specific backend validation errors
+    if (error.code === 'resource-exhausted') {
+      throw new Error('Gallery limit reached for this plan. Please upgrade to create more galleries.');
+    } else if (error.code === 'failed-precondition') {
+      throw new Error('No active plan found for this client. Please purchase a plan first.');
+    } else if (error.code === 'permission-denied') {
+      throw new Error('You do not have permission to create galleries for this client.');
+    } else if (error.code === 'unauthenticated') {
+      throw new Error('Please log in again to create galleries.');
+    } else if (error.code === 'invalid-argument') {
+      throw new Error('Invalid gallery information provided.');
+    } else if (error.code === 'not-found') {
+      throw new Error('Client not found. Please refresh and try again.');
+    }
+    
+    // For any other errors, return the original message or a generic one
+    throw new Error(error.message || 'Failed to create gallery. Please try again.');
   }
 }
 
