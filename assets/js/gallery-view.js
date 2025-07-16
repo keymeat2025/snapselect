@@ -1121,6 +1121,8 @@ function handleFileSelect(event) {
 }
 
 // Enhanced startPhotoUpload with queue processing
+
+// Enhanced startPhotoUpload with backend validation
 async function startPhotoUpload() {
   try {
     if (!window.filesToUpload || window.filesToUpload.length === 0) {
@@ -1139,14 +1141,48 @@ async function startPhotoUpload() {
       return;
     }
     
+    // 🚀 NEW: Backend validation check BEFORE starting upload
+    try {
+      showLoadingOverlay('Validating upload permissions...');
+      
+      const functions = firebase.app().functions('asia-south1');
+      const validateFunc = functions.httpsCallable('validatePhotoUpload');
+      
+      const totalSize = window.filesToUpload.reduce((sum, file) => sum + file.size, 0);
+      
+      const validationResult = await validateFunc({
+        galleryId: galleryId,
+        fileCount: window.filesToUpload.length,
+        totalSize: totalSize
+      });
+      
+      console.log('Upload validation passed:', validationResult.data);
+      hideLoadingOverlay();
+      
+    } catch (validationError) {
+      hideLoadingOverlay();
+      console.error('Upload validation failed:', validationError);
+      
+      // Handle specific validation errors
+      if (validationError.code === 'resource-exhausted') {
+        showErrorMessage('Upload blocked: ' + validationError.message);
+      } else if (validationError.code === 'permission-denied') {
+        showErrorMessage('Permission denied: ' + validationError.message);
+      } else if (validationError.code === 'failed-precondition') {
+        showErrorMessage('Upload not allowed: ' + validationError.message);
+      } else {
+        showErrorMessage('Validation failed: ' + (validationError.message || 'Unknown error'));
+      }
+      return; // Stop upload
+    }
+    
     // Clear existing queue
     uploadQueue = [];
     currentUploadIndex = 0;
     isUploading = true;
     uploadPaused = false;
     
-    // Add files to upload queue - we don't need to apply plan limits again
-    // since we already filtered them in handleFiles
+    // Add files to upload queue - we already filtered them in handleFiles
     uploadQueue = window.filesToUpload;
     
     // Show progress container
@@ -1188,9 +1224,13 @@ async function startPhotoUpload() {
   }
 }
 
+ 
+
 /**
  * Process upload queue with pause/resume support and improved progress tracking
  */
+
+// Enhanced processUploadQueue with better error handling
 async function processUploadQueue() {
   if (!isUploading || uploadPaused) return;
   
@@ -1338,17 +1378,28 @@ async function processUploadQueue() {
 }
 
 // Upload completion handler
+
+// Enhanced uploadComplete with better notifications
 function uploadComplete() {
   const uploadedFiles = uploadQueue.length;
+  const successfulUploads = uploadQueue.filter((_, index) => {
+    const fileItem = document.querySelector(`.upload-file-item[data-index="${index}"]`);
+    return fileItem && fileItem.classList.contains('complete');
+  }).length;
   
   // Show success message
-  showSuccessMessage(`Successfully uploaded ${uploadedFiles} photos`);
+  if (successfulUploads === uploadedFiles) {
+    showSuccessMessage(`Successfully uploaded all ${uploadedFiles} photos`);
+  } else {
+    showWarningMessage(`Uploaded ${successfulUploads} of ${uploadedFiles} photos. Some uploads failed.`);
+  }
   
   // Add notification
   if (window.NotificationSystem) {
     window.NotificationSystem.createNotificationFromEvent({
-      type: 'upload_complete',
-      count: uploadedFiles,
+      type: successfulUploads === uploadedFiles ? 'upload_complete' : 'upload_partial',
+      count: successfulUploads,
+      total: uploadedFiles,
       galleryName: galleryData.name || 'gallery'
     });
   }
