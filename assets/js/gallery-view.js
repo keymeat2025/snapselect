@@ -22,6 +22,16 @@ let isUploading = false;
 let uploadPaused = false;
 let currentUploadIndex = 0;
 
+// MVP Upload Enhancement Variables
+let activeUploadTasks = new Map(); // Store active Firebase upload tasks
+let uploadStateManager = null; // Upload state persistence manager
+let progressUpdateThrottler = null; // Progress update throttler
+let concurrentUploadLimit = 5; // Number of concurrent uploads
+let uploadRetryAttempts = new Map(); // Track retry attempts per file
+let uploadSessionId = null; // Unique session ID for this upload batch
+
+
+
 // New file selection variables
 window.allSelectedFiles = []; // All files selected for upload (includes rejected ones)
 window.filesToUpload = []; // Files that passed validation
@@ -31,6 +41,11 @@ window.rejectedFiles = []; // Files that were rejected with reasons
 const THUMBNAIL_SIZE = 'md'; // Thumbnail size to use (options: sm, md, lg)
 const PHOTOS_PER_PAGE = 30; // Number of photos to load per page
 const DEFAULT_PLAN = 'basic'; // Default plan if no plan is found
+
+// Upload state persistence keys
+const UPLOAD_STATE_KEY = 'snapselect_upload_state';
+const UPLOAD_QUEUE_KEY = 'snapselect_upload_queue';
+const UPLOAD_PROGRESS_KEY = 'snapselect_upload_progress';
 
 // Plan limits based on subscription
 const PLAN_LIMITS = {
@@ -57,6 +72,64 @@ function hideLoadingOverlay() {
   const loadingOverlay = document.getElementById('loadingOverlay');
   if (loadingOverlay) loadingOverlay.style.display = 'none';
 }
+
+// MVP Upload State Manager
+class UploadStateManager {
+  constructor() {
+    this.sessionId = Date.now().toString();
+    this.state = this.loadState();
+  }
+
+  saveState() {
+    try {
+      const stateData = {
+        sessionId: this.sessionId,
+        galleryId: galleryId,
+        uploadQueue: uploadQueue.map(file => ({
+          name: file.name,
+          size: file.size,
+          type: file.type,
+          lastModified: file.lastModified
+        })),
+        currentIndex: currentUploadIndex,
+        isUploading: isUploading,
+        isPaused: uploadPaused,
+        timestamp: Date.now()
+      };
+      
+      localStorage.setItem(UPLOAD_STATE_KEY, JSON.stringify(stateData));
+    } catch (error) {
+      console.error('Failed to save upload state:', error);
+    }
+  }
+
+  loadState() {
+    try {
+      const saved = localStorage.getItem(UPLOAD_STATE_KEY);
+      if (saved) {
+        const state = JSON.parse(saved);
+        // Only restore if it's recent (within 1 hour) and same gallery
+        if (Date.now() - state.timestamp < 3600000 && state.galleryId === galleryId) {
+          return state;
+        }
+      }
+    } catch (error) {
+      console.error('Failed to load upload state:', error);
+    }
+    return null;
+  }
+
+  clearState() {
+    localStorage.removeItem(UPLOAD_STATE_KEY);
+    localStorage.removeItem(UPLOAD_QUEUE_KEY);
+    localStorage.removeItem(UPLOAD_PROGRESS_KEY);
+  }
+
+  hasResumableUpload() {
+    return this.state && this.state.uploadQueue && this.state.uploadQueue.length > 0;
+  }
+}
+
 
 // Initialize gallery view
 function initGalleryView() {
@@ -836,31 +909,113 @@ function cancelUpload(showMessage = true) {
 }
 
 // Toggle pause/resume for uploads
+
+// Enhanced Pause/Resume with Real Upload Task Control
 function togglePauseUpload() {
   const pauseUploadBtn = document.getElementById('pauseUploadBtn');
   
   if (uploadPaused) {
     // Resume upload
     uploadPaused = false;
+    
+    // Resume all active upload tasks
+    activeUploadTasks.forEach((uploadTask, fileIndex) => {
+      try {
+        uploadTask.resume();
+        updateFileStatus(fileIndex, 'Uploading');
+      } catch (error) {
+        console.error(`Failed to resume upload for file ${fileIndex}:`, error);
+      }
+    });
+    
     if (pauseUploadBtn) {
       pauseUploadBtn.innerHTML = '<i class="fas fa-pause"></i> Pause Upload';
     }
-    showInfoMessage('Upload resumed');
-    processUploadQueue(); // Resume processing
+    
+    // Show notification
+    if (window.NotificationSystem) {
+      window.NotificationSystem.showNotification('info', 'Upload Resumed', 'Upload process has been resumed');
+    }
+    
+    // Continue processing queue
+    processUploadQueue();
+    
   } else {
     // Pause upload
     uploadPaused = true;
+    
+    // Pause all active upload tasks
+    activeUploadTasks.forEach((uploadTask, fileIndex) => {
+      try {
+        uploadTask.pause();
+        updateFileStatus(fileIndex, 'Paused');
+      } catch (error) {
+        console.error(`Failed to pause upload for file ${fileIndex}:`, error);
+      }
+    });
+    
     if (pauseUploadBtn) {
       pauseUploadBtn.innerHTML = '<i class="fas fa-play"></i> Resume Upload';
     }
-    showInfoMessage('Upload paused');
+    
+    // Show notification
+    if (window.NotificationSystem) {
+      window.NotificationSystem.showNotification('info', 'Upload Paused', 'Upload process has been paused');
+    }
   }
   
-  // Update status for the current file
-  if (uploadQueue.length > 0 && currentUploadIndex < uploadQueue.length) {
-    const status = uploadPaused ? 'Paused' : 'Uploading';
-    updateFileStatus(currentUploadIndex, status);
+  // Save state
+  if (uploadStateManager) {
+    uploadStateManager.saveState();
   }
+}
+
+
+// Initialize Upload Session with Resume Capability
+function initializeUploadSession() {
+  uploadSessionId = Date.now().toString();
+  uploadStateManager = new UploadStateManager();
+  
+  // Check for resumable uploads
+  if (uploadStateManager.hasResumableUpload()) {
+    const resumeConfirm = confirm('Found incomplete upload from previous session. Would you like to resume?');
+    if (resumeConfirm) {
+      resumeUploadSession();
+      return true;
+    } else {
+      uploadStateManager.clearState();
+    }
+  }
+  
+  return false;
+}
+
+function resumeUploadSession() {
+  const state = uploadStateManager.state;
+  if (!state || !state.uploadQueue) return;
+  
+  // Show notification
+  if (window.NotificationSystem) {
+    window.NotificationSystem.showNotification('info', 'Resuming Upload', 
+      `Resuming upload of ${state.uploadQueue.length} files from previous session`);
+  }
+  
+  // Restore upload state
+  currentUploadIndex = state.currentIndex || 0;
+  uploadPaused = state.isPaused || false;
+  
+  // Update UI to show resumed state
+  const uploadStatusText = document.getElementById('uploadStatusText');
+  if (uploadStatusText) {
+    uploadStatusText.innerHTML = `
+      <div class="upload-resumed">
+        🔄 Resuming upload session: ${state.uploadQueue.length} files
+      </div>
+    `;
+  }
+  
+  // Show upload step 2
+  showUploadStatus();
 }
 
 // Function to apply plan limits to uploads but preserves the files for display
@@ -1123,6 +1278,8 @@ function handleFileSelect(event) {
 // Enhanced startPhotoUpload with queue processing
 
 // Enhanced startPhotoUpload with backend validation
+
+// Enhanced Upload Start with Session Management
 async function startPhotoUpload() {
   try {
     if (!window.filesToUpload || window.filesToUpload.length === 0) {
@@ -1130,85 +1287,47 @@ async function startPhotoUpload() {
       return;
     }
     
-    if (!galleryId || !currentUser) {
-      showErrorMessage('Gallery information missing');
-      return;
+    // Initialize upload session
+    const resumed = initializeUploadSession();
+    if (!resumed) {
+      // Starting fresh upload
+      uploadQueue = [...window.filesToUpload];
+      currentUploadIndex = 0;
     }
     
-    // Prevent starting if already uploading
-    if (isUploading) {
-      showWarningMessage('Upload already in progress');
-      return;
-    }
+    isUploading = true;
+    uploadPaused = false;
+    activeUploadTasks.clear();
+    uploadRetryAttempts.clear();
     
-    // 🚀 NEW: Backend validation check BEFORE starting upload
+    // Backend validation (existing code)
     try {
       showLoadingOverlay('Validating upload permissions...');
       
       const functions = firebase.app().functions('asia-south1');
       const validateFunc = functions.httpsCallable('validatePhotoUpload');
       
-      const totalSize = window.filesToUpload.reduce((sum, file) => sum + file.size, 0);
+      const totalSize = uploadQueue.reduce((sum, file) => sum + file.size, 0);
       
-      const validationResult = await validateFunc({
+      await validateFunc({
         galleryId: galleryId,
-        fileCount: window.filesToUpload.length,
+        fileCount: uploadQueue.length,
         totalSize: totalSize
       });
       
-      console.log('Upload validation passed:', validationResult.data);
       hideLoadingOverlay();
       
     } catch (validationError) {
       hideLoadingOverlay();
       console.error('Upload validation failed:', validationError);
-      
-      // Handle specific validation errors
-      if (validationError.code === 'resource-exhausted') {
-        showErrorMessage('Upload blocked: ' + validationError.message);
-      } else if (validationError.code === 'permission-denied') {
-        showErrorMessage('Permission denied: ' + validationError.message);
-      } else if (validationError.code === 'failed-precondition') {
-        showErrorMessage('Upload not allowed: ' + validationError.message);
-      } else {
-        showErrorMessage('Validation failed: ' + (validationError.message || 'Unknown error'));
-      }
-      return; // Stop upload
+      showErrorMessage('Upload validation failed: ' + validationError.message);
+      return;
     }
     
-    // Clear existing queue
-    uploadQueue = [];
-    currentUploadIndex = 0;
-    isUploading = true;
-    uploadPaused = false;
+    // Show enhanced progress UI
+    showEnhancedUploadUI();
     
-    // Add files to upload queue - we already filtered them in handleFiles
-    uploadQueue = window.filesToUpload;
-    
-    // Show progress container
-    const uploadProgressContainer = document.getElementById('uploadProgressContainer');
-    if (uploadProgressContainer) uploadProgressContainer.style.display = 'block';
-    
-    // Disable upload buttons
-    const startUploadBtn = document.getElementById('startUploadBtn');
-    const cancelUploadBtn = document.getElementById('cancelUploadBtn');
-    const pauseUploadBtn = document.getElementById('pauseUploadBtn');
-    const backToSelectBtn = document.getElementById('backToSelectBtn');
-    
-    if (startUploadBtn) startUploadBtn.disabled = true;
-    if (cancelUploadBtn) cancelUploadBtn.disabled = false;
-    if (pauseUploadBtn) {
-      pauseUploadBtn.disabled = false;
-      pauseUploadBtn.style.display = 'inline-block';
-    }
-    if (backToSelectBtn) backToSelectBtn.style.display = 'none';
-    
-    // Set initial statuses
-    for (let i = 0; i < uploadQueue.length; i++) {
-      updateFileStatus(i, 'Waiting');
-    }
-    
-    // Start processing queue
+    // Start concurrent upload processing
     processUploadQueue();
     
   } catch (error) {
@@ -1216,11 +1335,9 @@ async function startPhotoUpload() {
     showErrorMessage(`Upload failed: ${error.message}`);
     isUploading = false;
     
-    // Re-enable buttons
-    const startUploadBtn = document.getElementById('startUploadBtn');
-    const cancelUploadBtn = document.getElementById('cancelUploadBtn');
-    if (startUploadBtn) startUploadBtn.disabled = false;
-    if (cancelUploadBtn) cancelUploadBtn.disabled = false;
+    if (uploadStateManager) {
+      uploadStateManager.clearState();
+    }
   }
 }
 
@@ -1231,155 +1348,129 @@ async function startPhotoUpload() {
  */
 
 // Enhanced processUploadQueue with better error handling
+
+// Enhanced Concurrent Upload Processing
 async function processUploadQueue() {
-  if (!isUploading || uploadPaused) return;
-  
-  if (currentUploadIndex >= uploadQueue.length) {
-    // Upload complete
-    isUploading = false;
-    uploadComplete();
+  if (!isUploading || uploadPaused || currentUploadIndex >= uploadQueue.length) {
+    if (currentUploadIndex >= uploadQueue.length) {
+      uploadComplete();
+    }
     return;
   }
+
+  // Get files for concurrent upload
+  const availableSlots = Math.min(concurrentUploadLimit, uploadQueue.length - currentUploadIndex);
+  const concurrentPromises = [];
   
-  const file = uploadQueue[currentUploadIndex];
+  for (let i = 0; i < availableSlots; i++) {
+    const fileIndex = currentUploadIndex + i;
+    if (fileIndex < uploadQueue.length) {
+      concurrentPromises.push(processIndividualUpload(fileIndex));
+    }
+  }
+  
+  // Process concurrent uploads
   try {
-    // Update file status to "Uploading"
-    updateFileStatus(currentUploadIndex, 'Uploading');
+    await Promise.allSettled(concurrentPromises);
     
-    // Create a unique file name
-    const safeOriginalName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
-    const timestamp = Date.now();
-    const random = Math.floor(Math.random() * 10000);
-    const fileName = `${timestamp}_${random}_${safeOriginalName}`;
+    // Move to next batch
+    currentUploadIndex += availableSlots;
     
-    // Initialize storage
-    const storage = firebase.storage();
-    const storageRef = storage.ref();
-    const fileRef = storageRef.child(`galleries/${galleryId}/photos/${fileName}`);
-    
-    // Upload with metadata
-    const uploadTask = fileRef.put(file, {
-      contentType: file.type,
-      customMetadata: {
-        'uploadedBy': currentUser.uid,
-        'uploaderEmail': currentUser.email,
-        'galleryId': galleryId,
-        'galleryName': galleryData.name || 'Untitled Gallery',
-        'originalName': file.name,
-        'clientId': clientId || '',
-        'clientName': galleryData.clientName || ''
-      }
-    });
-    
-    // Set up progress tracking and state management
-    uploadTask.on('state_changed', 
-      // Progress handler
-      (snapshot) => {
-        if (!isUploading) return; // Check if upload was cancelled
-        
-        const progress = (snapshot.bytesTransferred / snapshot.totalBytes);
-        updateFileProgress(currentUploadIndex, progress);
-        updateTotalProgress();
-      },
-      // Error handler
-      (error) => {
-        console.error('Upload error:', error);
-        updateFileStatus(currentUploadIndex, 'Failed');
-        
-        // Continue with next file
-        currentUploadIndex++;
-        processUploadQueue();
-      },
-      // Completion handler
-      async () => {
-        try {
-          // Get download URL
-          const downloadURL = await uploadTask.snapshot.ref.getDownloadURL();
-          
-          // Create thumbnails
-          const thumbnails = {
-            sm: downloadURL,
-            md: downloadURL,
-            lg: downloadURL
-          };
-          
-          // Add searchable info
-          const searchableInfo = {
-            galleryName: galleryData.name || 'Untitled Gallery',
-            clientName: galleryData.clientName || 'Unknown Client',
-            photoName: file.name,
-            photoNameLower: file.name.toLowerCase(),
-            searchLabel: `Photo: ${file.name} in ${galleryData.name}`,
-            photographerEmail: currentUser.email
-          };
-          
-          // Add to Firestore
-          const db = firebase.firestore();
-          const photoDoc = db.collection('photos').doc();
-          
-          await photoDoc.set({
-            galleryId: galleryId,
-            photographerId: currentUser.uid,
-            name: file.name,
-            fileName: fileName,
-            storageRef: fileRef.fullPath,
-            url: downloadURL,
-            thumbnails: thumbnails,
-            size: file.size,
-            type: file.type,
-            width: 0,
-            height: 0,
-            status: 'active',
-            createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-            ...searchableInfo
-          });
-          
-          // Update file status to "Complete"
-          updateFileStatus(currentUploadIndex, 'Complete');
-          
-          // Update gallery count
-          await db.collection('galleries').doc(galleryId).update({
-            photosCount: firebase.firestore.FieldValue.increment(1),
-            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-          });
-          
-          // Update plan storage usage if needed
-          if (galleryData.planId) {
-            await db.collection('client-plans').doc(galleryData.planId).update({
-              storageUsed: firebase.firestore.FieldValue.increment(file.size / (1024 * 1024)), // Convert to MB
-              photosUploaded: firebase.firestore.FieldValue.increment(1),
-              updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-            });
-          }
-          
-          // Move to next file
-          currentUploadIndex++;
-          processUploadQueue();
-          
-        } catch (error) {
-          console.error('Error processing uploaded file:', error);
-          updateFileStatus(currentUploadIndex, 'Failed');
-          
-          // Continue with next file
-          currentUploadIndex++;
-          processUploadQueue();
-        }
-      }
-    );
-    
+    // Continue with next batch if not paused
+    if (!uploadPaused && currentUploadIndex < uploadQueue.length) {
+      setTimeout(() => processUploadQueue(), 100); // Brief pause between batches
+    }
   } catch (error) {
-    console.error('Error uploading file:', error);
-    updateFileStatus(currentUploadIndex, 'Failed');
-    
-    // Continue with next file
-    currentUploadIndex++;
-    processUploadQueue();
+    console.error('Batch upload error:', error);
+    // Continue with next batch even if some uploads failed
+    currentUploadIndex += availableSlots;
+    if (!uploadPaused && currentUploadIndex < uploadQueue.length) {
+      setTimeout(() => processUploadQueue(), 1000); // Longer pause after errors
+    }
+  }
+}
+
+// Process individual upload with retry logic
+async function processIndividualUpload(fileIndex) {
+  const file = uploadQueue[fileIndex];
+  const maxRetries = 3;
+  let retryCount = uploadRetryAttempts.get(fileIndex) || 0;
+  
+  while (retryCount < maxRetries) {
+    try {
+      updateFileStatus(fileIndex, 'Uploading');
+      
+      // Create unique filename
+      const safeOriginalName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+      const timestamp = Date.now();
+      const random = Math.floor(Math.random() * 10000);
+      const fileName = `${timestamp}_${random}_${safeOriginalName}`;
+      
+      // Initialize storage
+      const storage = firebase.storage();
+      const storageRef = storage.ref();
+      const fileRef = storageRef.child(`galleries/${galleryId}/photos/${fileName}`);
+      
+      // Create upload task
+      const uploadTask = fileRef.put(file, {
+        contentType: file.type,
+        customMetadata: {
+          'uploadedBy': currentUser.uid,
+          'uploaderEmail': currentUser.email,
+          'galleryId': galleryId,
+          'originalName': file.name,
+          'sessionId': uploadSessionId
+        }
+      });
+      
+      // Store upload task for pause/resume
+      activeUploadTasks.set(fileIndex, uploadTask);
+      
+      // Set up progress tracking
+      uploadTask.on('state_changed', 
+        (snapshot) => {
+          if (!isUploading) return;
+          const progress = (snapshot.bytesTransferred / snapshot.totalBytes);
+          updateFileProgress(fileIndex, progress);
+          updateTotalProgress();
+        }
+      );
+      
+      // Wait for upload completion
+      await uploadTask;
+      
+      // Get download URL and save to Firestore
+      const downloadURL = await uploadTask.snapshot.ref.getDownloadURL();
+      await savePhotoToFirestore(fileIndex, file, fileName, downloadURL);
+      
+      updateFileStatus(fileIndex, 'Complete');
+      activeUploadTasks.delete(fileIndex);
+      uploadRetryAttempts.delete(fileIndex);
+      
+      return; // Success, exit retry loop
+      
+    } catch (error) {
+      console.error(`Upload error for file ${fileIndex}:`, error);
+      retryCount++;
+      uploadRetryAttempts.set(fileIndex, retryCount);
+      
+      if (retryCount < maxRetries) {
+        updateFileStatus(fileIndex, `Retrying (${retryCount}/${maxRetries})`);
+        await new Promise(resolve => setTimeout(resolve, 1000 * retryCount)); // Exponential backoff
+      } else {
+        updateFileStatus(fileIndex, 'Failed');
+        activeUploadTasks.delete(fileIndex);
+        break; // Max retries reached
+      }
+    }
   }
 }
 
 // Upload completion handler
 
 // Enhanced uploadComplete with better notifications
+
+// Enhanced Upload Complete with State Cleanup
 function uploadComplete() {
   const uploadedFiles = uploadQueue.length;
   const successfulUploads = uploadQueue.filter((_, index) => {
@@ -1387,31 +1478,46 @@ function uploadComplete() {
     return fileItem && fileItem.classList.contains('complete');
   }).length;
   
-  // Show success message
+  const failedUploads = uploadedFiles - successfulUploads;
+  
+  // Clean up state
+  activeUploadTasks.clear();
+  uploadRetryAttempts.clear();
+  if (uploadStateManager) {
+    uploadStateManager.clearState();
+  }
+  
+  // Show completion notification
   if (successfulUploads === uploadedFiles) {
-    showSuccessMessage(`Successfully uploaded all ${uploadedFiles} photos`);
+    if (window.NotificationSystem) {
+      window.NotificationSystem.showNotification('success', 'Upload Complete', 
+        `Successfully uploaded all ${uploadedFiles} photos`);
+    }
   } else {
-    showWarningMessage(`Uploaded ${successfulUploads} of ${uploadedFiles} photos. Some uploads failed.`);
+    if (window.NotificationSystem) {
+      window.NotificationSystem.showNotification('warning', 'Upload Completed with Errors', 
+        `Uploaded ${successfulUploads} of ${uploadedFiles} photos. ${failedUploads} failed.`);
+    }
   }
   
-  // Add notification
-  if (window.NotificationSystem) {
-    window.NotificationSystem.createNotificationFromEvent({
-      type: successfulUploads === uploadedFiles ? 'upload_complete' : 'upload_partial',
-      count: successfulUploads,
-      total: uploadedFiles,
-      galleryName: galleryData.name || 'gallery'
-    });
-  }
-  
-  // Reset buttons
+  // Reset UI
   const startUploadBtn = document.getElementById('startUploadBtn');
-  const cancelUploadBtn = document.getElementById('cancelUploadBtn');
   const pauseUploadBtn = document.getElementById('pauseUploadBtn');
+  const cancelUploadBtn = document.getElementById('cancelUploadBtn');
   
   if (startUploadBtn) startUploadBtn.disabled = false;
-  if (cancelUploadBtn) cancelUploadBtn.disabled = true;
   if (pauseUploadBtn) pauseUploadBtn.style.display = 'none';
+  if (cancelUploadBtn) cancelUploadBtn.disabled = true;
+  
+  // Update batch status
+  const batchStatus = document.getElementById('uploadBatchStatus');
+  if (batchStatus) {
+    batchStatus.className = 'upload-batch-status complete';
+    batchStatus.innerHTML = `
+      <div class="upload-queue-status" id="uploadQueueStatus"></div>
+      <div>✅ Upload Complete: ${successfulUploads}/${uploadedFiles} files uploaded successfully</div>
+    `;
+  }
   
   // Reload gallery after delay
   setTimeout(() => {
@@ -1420,7 +1526,7 @@ function uploadComplete() {
     allPhotosLoaded = false;
     loadGalleryPhotos(true);
     hideUploadPhotosModal();
-  }, 1500);
+  }, 2000);
 }
 
 // Network monitoring
@@ -1691,27 +1797,76 @@ function updateFileProgress(index, progress) {
   }
 }
 // Update total progress in the UI
+
+// Enhanced Progress Update with Debouncing
 function updateTotalProgress() {
-  const progressBars = document.querySelectorAll('.upload-progress-bar');
-  const totalProgressBar = document.getElementById('totalProgressBar');
-  
-  if (!totalProgressBar || progressBars.length === 0) return;
-  
-  let totalProgress = 0;
-  
-  progressBars.forEach(bar => {
-    const value = parseInt(bar.getAttribute('aria-valuenow') || '0', 10);
-    totalProgress += value;
-  });
-  
-  const averageProgress = Math.round(totalProgress / progressBars.length);
-  totalProgressBar.style.width = `${averageProgress}%`;
-  totalProgressBar.setAttribute('aria-valuenow', averageProgress);
-  
-  const progressText = document.getElementById('totalProgressText');
-  if (progressText) {
-    progressText.textContent = `${averageProgress}% Complete`;
+  // Clear existing throttler
+  if (progressUpdateThrottler) {
+    clearTimeout(progressUpdateThrottler);
   }
+
+  // Throttle progress updates to prevent UI freezing
+  progressUpdateThrottler = setTimeout(() => {
+    const progressBars = document.querySelectorAll('.upload-progress-bar');
+    const totalProgressBar = document.getElementById('totalProgressBar');
+    
+    if (!totalProgressBar || progressBars.length === 0) return;
+    
+    let totalProgress = 0;
+    let completedUploads = 0;
+    
+    progressBars.forEach(bar => {
+      const value = parseInt(bar.getAttribute('aria-valuenow') || '0', 10);
+      totalProgress += value;
+      if (value === 100) completedUploads++;
+    });
+    
+    const averageProgress = Math.round(totalProgress / progressBars.length);
+    
+    // Smooth progress bar animation
+    totalProgressBar.style.width = `${averageProgress}%`;
+    totalProgressBar.setAttribute('aria-valuenow', averageProgress);
+    
+    // Update progress text
+    const progressText = document.getElementById('totalProgressText');
+    if (progressText) {
+      progressText.textContent = `${averageProgress}% Complete (${completedUploads}/${progressBars.length})`;
+    }
+    
+    // Update batch status
+    updateBatchStatus(completedUploads, progressBars.length, averageProgress);
+    
+    // Save progress state
+    if (uploadStateManager) {
+      uploadStateManager.saveState();
+    }
+  }, 100); // Update at most every 100ms
+}
+
+// New function to update batch status
+function updateBatchStatus(completed, total, progress) {
+  const batchStatus = document.getElementById('uploadBatchStatus');
+  if (!batchStatus) return;
+  
+  let statusClass = 'uploading';
+  let statusText = `Uploading ${completed}/${total} files...`;
+  
+  if (uploadPaused) {
+    statusClass = 'paused';
+    statusText = `Paused - ${completed}/${total} files completed`;
+  } else if (completed === total) {
+    statusClass = 'complete';
+    statusText = `All ${total} files uploaded successfully!`;
+  }
+  
+  batchStatus.className = `upload-batch-status ${statusClass}`;
+  batchStatus.innerHTML = `
+    <div class="upload-queue-status" id="uploadQueueStatus"></div>
+    <div>${statusText}</div>
+  `;
+  
+  // Update queue visualization
+  updateQueueVisualization();
 }
 
 // Enhanced showSuccessMessage with NotificationSystem integration
@@ -2560,6 +2715,135 @@ async function checkIfGalleryIsShared() {
   }
 }
 
+// Enhanced Upload UI Functions
+function showEnhancedUploadUI() {
+  const uploadProgressContainer = document.getElementById('uploadProgressContainer');
+  if (!uploadProgressContainer) return;
+  
+  // Add batch status indicator
+  const batchStatusHtml = `
+    <div id="uploadBatchStatus" class="upload-batch-status uploading">
+      <div class="upload-queue-status" id="uploadQueueStatus"></div>
+      <div>Preparing to upload ${uploadQueue.length} files...</div>
+    </div>
+  `;
+  
+  uploadProgressContainer.insertAdjacentHTML('afterbegin', batchStatusHtml);
+  uploadProgressContainer.style.display = 'block';
+  
+  // Initialize queue visualization
+  updateQueueVisualization();
+  
+  // Update buttons
+  const startUploadBtn = document.getElementById('startUploadBtn');
+  const pauseUploadBtn = document.getElementById('pauseUploadBtn');
+  const cancelUploadBtn = document.getElementById('cancelUploadBtn');
+  
+  if (startUploadBtn) startUploadBtn.disabled = true;
+  if (pauseUploadBtn) {
+    pauseUploadBtn.disabled = false;
+    pauseUploadBtn.style.display = 'inline-block';
+  }
+  if (cancelUploadBtn) cancelUploadBtn.disabled = false;
+}
+
+function updateQueueVisualization() {
+  const queueStatus = document.getElementById('uploadQueueStatus');
+  if (!queueStatus) return;
+  
+  queueStatus.innerHTML = '';
+  
+  uploadQueue.forEach((file, index) => {
+    const queueItem = document.createElement('div');
+    queueItem.className = 'upload-queue-item';
+    
+    if (index < currentUploadIndex) {
+      queueItem.classList.add('complete');
+    } else if (activeUploadTasks.has(index)) {
+      queueItem.classList.add('uploading');
+    } else if (uploadRetryAttempts.has(index)) {
+      queueItem.classList.add('failed');
+    } else if (uploadPaused) {
+      queueItem.classList.add('paused');
+    } else {
+      queueItem.classList.add('waiting');
+    }
+    
+    queueStatus.appendChild(queueItem);
+  });
+}
+
+// Enhanced file status update with retry indicators
+function updateFileStatus(index, status) {
+  const fileItem = document.querySelector(`.upload-file-item[data-index="${index}"]`);
+  if (!fileItem) return;
+  
+  // Update status text
+  const statusElement = fileItem.querySelector('.upload-file-status');
+  if (statusElement) {
+    statusElement.textContent = status;
+    statusElement.className = `upload-file-status status-${status.toLowerCase().replace(/[^a-z]/g, '')}`;
+  }
+  
+  // Update file item class
+  fileItem.className = `upload-file-item ${status.toLowerCase().replace(/[^a-z]/g, '')}`;
+  
+  // Add retry indicator if needed
+  const retryCount = uploadRetryAttempts.get(index);
+  if (retryCount && retryCount > 0) {
+    let retryIndicator = fileItem.querySelector('.upload-retry-indicator');
+    if (!retryIndicator) {
+      retryIndicator = document.createElement('div');
+      retryIndicator.className = 'upload-retry-indicator';
+      fileItem.appendChild(retryIndicator);
+    }
+    retryIndicator.textContent = retryCount;
+  }
+  
+  // Update queue visualization
+  updateQueueVisualization();
+}
+
+// Save photo to Firestore (extracted from processIndividualUpload)
+async function savePhotoToFirestore(fileIndex, file, fileName, downloadURL) {
+  const thumbnails = { sm: downloadURL, md: downloadURL, lg: downloadURL };
+  
+  const searchableInfo = {
+    galleryName: galleryData.name || 'Untitled Gallery',
+    clientName: galleryData.clientName || 'Unknown Client',
+    photoName: file.name,
+    photoNameLower: file.name.toLowerCase(),
+    searchLabel: `Photo: ${file.name} in ${galleryData.name}`,
+    photographerEmail: currentUser.email
+  };
+  
+  const db = firebase.firestore();
+  const photoDoc = db.collection('photos').doc();
+  
+  await photoDoc.set({
+    galleryId: galleryId,
+    photographerId: currentUser.uid,
+    name: file.name,
+    fileName: fileName,
+    storageRef: `galleries/${galleryId}/photos/${fileName}`,
+    url: downloadURL,
+    thumbnails: thumbnails,
+    size: file.size,
+    type: file.type,
+    width: 0,
+    height: 0,
+    status: 'active',
+    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+    sessionId: uploadSessionId,
+    ...searchableInfo
+  });
+  
+  // Update gallery count
+  await db.collection('galleries').doc(galleryId).update({
+    photosCount: firebase.firestore.FieldValue.increment(1),
+    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+  });
+}
 
 // Export gallery view functions to window object for debugging and external access
 window.galleryView = {
