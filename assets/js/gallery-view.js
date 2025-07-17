@@ -224,6 +224,62 @@ function setupEventListeners() {
   });
 }
 
+// Initialize gallery view
+function initGalleryView() {
+  try {
+    // Show loading overlay
+    showLoadingOverlay('Loading gallery...');
+    
+    // Get URL parameters
+    const urlParams = new URLSearchParams(window.location.search);
+    galleryId = urlParams.get('id');
+    clientId = urlParams.get('client');
+    
+    if (!galleryId) {
+      showErrorMessage('No gallery specified');
+      hideLoadingOverlay();
+      return;
+    }
+    
+    // Set up event listeners
+    setupEventListeners();
+    
+    // Check authentication state
+    firebase.auth().onAuthStateChanged(async user => {
+      if (user) {
+        currentUser = user;
+        
+        try {
+          // Initialize additional components if needed
+          if (window.SecurityManager && typeof window.SecurityManager.init === 'function') {
+            window.SecurityManager.init();
+          }
+          
+          // Load gallery data
+          await loadGalleryData();
+          
+          // Update user info in header
+          updateUserInfo();
+          
+          // Hide loading overlay
+          hideLoadingOverlay();
+        } catch (error) {
+          console.error('Error initializing gallery view:', error);
+          showErrorMessage('Failed to load gallery. Please try again.');
+          hideLoadingOverlay();
+        }
+      } else {
+        // Not logged in, redirect to login page
+        window.location.href = '/login.html?redirect=' + encodeURIComponent(window.location.href);
+      }
+    });
+  } catch (error) {
+    console.error('Error initializing gallery view:', error);
+    hideLoadingOverlay();
+  }
+}
+
+
 // Handle drag over event
 function handleDragOver(e) {
   e.preventDefault();
@@ -1647,6 +1703,8 @@ function showUploadStatus() {
 /**
  * Update file status in the UI with improved styling
  */
+
+// Enhanced file status update with retry indicators
 function updateFileStatus(index, status) {
   const fileItem = document.querySelector(`.upload-file-item[data-index="${index}"]`);
   if (!fileItem) return;
@@ -1655,66 +1713,26 @@ function updateFileStatus(index, status) {
   const statusElement = fileItem.querySelector('.upload-file-status');
   if (statusElement) {
     statusElement.textContent = status;
-    
-    // Clear existing status classes
-    statusElement.classList.remove('status-waiting', 'status-uploading', 'status-complete', 'status-failed', 'status-rejected', 'status-paused');
-    
-    // Add appropriate status class
-    statusElement.classList.add(`status-${status.toLowerCase()}`);
+    statusElement.className = `upload-file-status status-${status.toLowerCase().replace(/[^a-z]/g, '')}`;
   }
   
-  // Update the file item container class
-  fileItem.classList.remove('waiting', 'uploading', 'complete', 'failed', 'rejected', 'paused');
-  fileItem.classList.add(status.toLowerCase());
+  // Update file item class
+  fileItem.className = `upload-file-item ${status.toLowerCase().replace(/[^a-z]/g, '')}`;
   
-  // Add status icon if needed
-  const statusIcon = fileItem.querySelector('.status-icon');
-  if (!statusIcon) {
-    const metaElement = fileItem.querySelector('.upload-file-meta');
-    if (metaElement && status !== 'Waiting') {
-      const iconElement = document.createElement('span');
-      iconElement.className = 'status-icon';
-      
-      // Choose icon based on status
-      let iconHTML = '';
-      switch(status.toLowerCase()) {
-        case 'uploading':
-          iconHTML = '<i class="fas fa-spinner fa-spin"></i>';
-          break;
-        case 'complete':
-          iconHTML = '<i class="fas fa-check-circle"></i>';
-          break;
-        case 'failed':
-          iconHTML = '<i class="fas fa-times-circle"></i>';
-          break;
-        case 'paused':
-          iconHTML = '<i class="fas fa-pause-circle"></i>';
-          break;
-      }
-      
-      iconElement.innerHTML = iconHTML;
-      metaElement.appendChild(iconElement);
+  // Add retry indicator if needed
+  const retryCount = uploadRetryAttempts.get(index);
+  if (retryCount && retryCount > 0) {
+    let retryIndicator = fileItem.querySelector('.upload-retry-indicator');
+    if (!retryIndicator) {
+      retryIndicator = document.createElement('div');
+      retryIndicator.className = 'upload-retry-indicator';
+      fileItem.appendChild(retryIndicator);
     }
-  } else if (statusIcon) {
-    // Update existing icon if status changed
-    switch(status.toLowerCase()) {
-      case 'uploading':
-        statusIcon.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-        break;
-      case 'complete':
-        statusIcon.innerHTML = '<i class="fas fa-check-circle"></i>';
-        break;
-      case 'failed':
-        statusIcon.innerHTML = '<i class="fas fa-times-circle"></i>';
-        break;
-      case 'paused':
-        statusIcon.innerHTML = '<i class="fas fa-pause-circle"></i>';
-        break;
-      case 'waiting':
-        statusIcon.innerHTML = '';
-        break;
-    }
+    retryIndicator.textContent = retryCount;
   }
+  
+  // Update queue visualization
+  updateQueueVisualization();
 }
 
 /**
@@ -2793,6 +2811,65 @@ async function savePhotoToFirestore(fileIndex, file, fileName, downloadURL) {
   });
 }
 
+
+
+// Enhanced Upload UI Functions
+function showEnhancedUploadUI() {
+  const uploadProgressContainer = document.getElementById('uploadProgressContainer');
+  if (!uploadProgressContainer) return;
+  
+  // Add batch status indicator
+  const batchStatusHtml = `
+    <div id="uploadBatchStatus" class="upload-batch-status uploading">
+      <div class="upload-queue-status" id="uploadQueueStatus"></div>
+      <div>Preparing to upload ${uploadQueue.length} files...</div>
+    </div>
+  `;
+  
+  uploadProgressContainer.insertAdjacentHTML('afterbegin', batchStatusHtml);
+  uploadProgressContainer.style.display = 'block';
+  
+  // Initialize queue visualization
+  updateQueueVisualization();
+  
+  // Update buttons
+  const startUploadBtn = document.getElementById('startUploadBtn');
+  const pauseUploadBtn = document.getElementById('pauseUploadBtn');
+  const cancelUploadBtn = document.getElementById('cancelUploadBtn');
+  
+  if (startUploadBtn) startUploadBtn.disabled = true;
+  if (pauseUploadBtn) {
+    pauseUploadBtn.disabled = false;
+    pauseUploadBtn.style.display = 'inline-block';
+  }
+  if (cancelUploadBtn) cancelUploadBtn.disabled = false;
+}
+
+function updateQueueVisualization() {
+  const queueStatus = document.getElementById('uploadQueueStatus');
+  if (!queueStatus) return;
+  
+  queueStatus.innerHTML = '';
+  
+  uploadQueue.forEach((file, index) => {
+    const queueItem = document.createElement('div');
+    queueItem.className = 'upload-queue-item';
+    
+    if (index < currentUploadIndex) {
+      queueItem.classList.add('complete');
+    } else if (activeUploadTasks.has(index)) {
+      queueItem.classList.add('uploading');
+    } else if (uploadRetryAttempts.has(index)) {
+      queueItem.classList.add('failed');
+    } else if (uploadPaused) {
+      queueItem.classList.add('paused');
+    } else {
+      queueItem.classList.add('waiting');
+    }
+    
+    queueStatus.appendChild(queueItem);
+  });
+}
 
 // Export gallery view functions to window object for debugging and external access
 window.galleryView = {
