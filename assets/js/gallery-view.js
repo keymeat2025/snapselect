@@ -1294,7 +1294,10 @@ async function startPhotoUpload() {
       uploadQueue = [...window.filesToUpload];
       currentUploadIndex = 0;
     }
-    
+
+
+    showUploadSizeWarning(uploadQueue.length);
+   
     isUploading = true;
     uploadPaused = false;
     activeUploadTasks.clear();
@@ -1350,6 +1353,8 @@ async function startPhotoUpload() {
 // Enhanced processUploadQueue with better error handling
 
 // Enhanced Concurrent Upload Processing
+
+// Enhanced Concurrent Upload Processing with Better UI Management
 async function processUploadQueue() {
   if (!isUploading || uploadPaused || currentUploadIndex >= uploadQueue.length) {
     if (currentUploadIndex >= uploadQueue.length) {
@@ -1358,8 +1363,18 @@ async function processUploadQueue() {
     return;
   }
 
+  // Reduce concurrent limit for large batches to prevent UI hanging
+  const fileCount = uploadQueue.length;
+  let dynamicConcurrentLimit = concurrentUploadLimit;
+  
+  if (fileCount > 50) {
+    dynamicConcurrentLimit = 3; // Reduced for large batches
+  } else if (fileCount > 20) {
+    dynamicConcurrentLimit = 4;
+  }
+
   // Get files for concurrent upload
-  const availableSlots = Math.min(concurrentUploadLimit, uploadQueue.length - currentUploadIndex);
+  const availableSlots = Math.min(dynamicConcurrentLimit, uploadQueue.length - currentUploadIndex);
   const concurrentPromises = [];
   
   for (let i = 0; i < availableSlots; i++) {
@@ -1376,9 +1391,10 @@ async function processUploadQueue() {
     // Move to next batch
     currentUploadIndex += availableSlots;
     
-    // Continue with next batch if not paused
+    // Continue with next batch if not paused - with longer delays for large batches
     if (!uploadPaused && currentUploadIndex < uploadQueue.length) {
-      setTimeout(() => processUploadQueue(), 100); // Brief pause between batches
+      const delay = fileCount > 50 ? 500 : 100; // Longer delay for large batches
+      setTimeout(() => processUploadQueue(), delay);
     }
   } catch (error) {
     console.error('Batch upload error:', error);
@@ -1471,12 +1487,32 @@ async function processIndividualUpload(fileIndex) {
 // Enhanced uploadComplete with better notifications
 
 // Enhanced Upload Complete with State Cleanup
+
+// Add warning for large file uploads
+function showUploadSizeWarning(fileCount) {
+  if (fileCount > 100) {
+    const warningMsg = `You're uploading ${fileCount} files. For best performance, consider uploading in smaller batches of 50-100 files.`;
+    if (window.NotificationSystem) {
+      window.NotificationSystem.showNotification('warning', 'Large Upload Warning', warningMsg);
+    } else {
+      alert(warningMsg);
+    }
+  }
+}
+
+
+// Enhanced Upload Complete with Clean UI
 function uploadComplete() {
   const uploadedFiles = uploadQueue.length;
-  const successfulUploads = uploadQueue.filter((_, index) => {
-    const fileItem = document.querySelector(`.upload-file-item[data-index="${index}"]`);
-    return fileItem && fileItem.classList.contains('complete');
-  }).length;
+  let successfulUploads = 0;
+  
+  // Count successful uploads properly
+  for (let i = 0; i < uploadedFiles; i++) {
+    const fileItem = document.querySelector(`.upload-file-item[data-index="${i}"]`);
+    if (fileItem && fileItem.classList.contains('complete')) {
+      successfulUploads++;
+    }
+  }
   
   const failedUploads = uploadedFiles - successfulUploads;
   
@@ -1487,7 +1523,11 @@ function uploadComplete() {
     uploadStateManager.clearState();
   }
   
-  // Show completion notification
+  // Clear any existing completion messages
+  const existingMessages = document.querySelectorAll('.upload-completion-message');
+  existingMessages.forEach(msg => msg.remove());
+  
+  // Show ONE completion notification
   if (successfulUploads === uploadedFiles) {
     if (window.NotificationSystem) {
       window.NotificationSystem.showNotification('success', 'Upload Complete', 
@@ -1509,7 +1549,7 @@ function uploadComplete() {
   if (pauseUploadBtn) pauseUploadBtn.style.display = 'none';
   if (cancelUploadBtn) cancelUploadBtn.disabled = true;
   
-  // Update batch status
+  // Update batch status - ONCE
   const batchStatus = document.getElementById('uploadBatchStatus');
   if (batchStatus) {
     batchStatus.className = 'upload-batch-status complete';
@@ -1700,6 +1740,8 @@ function showUploadStatus() {
 /**
  * Update file status in the UI with improved styling
  */
+
+// Enhanced file status update with better UI management
 function updateFileStatus(index, status) {
   const fileItem = document.querySelector(`.upload-file-item[data-index="${index}"]`);
   if (!fileItem) return;
@@ -1713,60 +1755,33 @@ function updateFileStatus(index, status) {
     statusElement.classList.remove('status-waiting', 'status-uploading', 'status-complete', 'status-failed', 'status-rejected', 'status-paused');
     
     // Add appropriate status class
-    statusElement.classList.add(`status-${status.toLowerCase()}`);
+    const statusClass = status.toLowerCase().replace(/[^a-z]/g, '');
+    statusElement.classList.add(`status-${statusClass}`);
   }
   
   // Update the file item container class
   fileItem.classList.remove('waiting', 'uploading', 'complete', 'failed', 'rejected', 'paused');
-  fileItem.classList.add(status.toLowerCase());
+  const containerClass = status.toLowerCase().replace(/[^a-z]/g, '');
+  fileItem.classList.add(containerClass);
   
-  // Add status icon if needed
-  const statusIcon = fileItem.querySelector('.status-icon');
-  if (!statusIcon) {
-    const metaElement = fileItem.querySelector('.upload-file-meta');
-    if (metaElement && status !== 'Waiting') {
-      const iconElement = document.createElement('span');
-      iconElement.className = 'status-icon';
-      
-      // Choose icon based on status
-      let iconHTML = '';
-      switch(status.toLowerCase()) {
-        case 'uploading':
-          iconHTML = '<i class="fas fa-spinner fa-spin"></i>';
-          break;
-        case 'complete':
-          iconHTML = '<i class="fas fa-check-circle"></i>';
-          break;
-        case 'failed':
-          iconHTML = '<i class="fas fa-times-circle"></i>';
-          break;
-        case 'paused':
-          iconHTML = '<i class="fas fa-pause-circle"></i>';
-          break;
-      }
-      
-      iconElement.innerHTML = iconHTML;
-      metaElement.appendChild(iconElement);
+  // Add retry indicator if needed
+  const retryCount = uploadRetryAttempts.get(index);
+  if (retryCount && retryCount > 0) {
+    let retryIndicator = fileItem.querySelector('.upload-retry-indicator');
+    if (!retryIndicator) {
+      retryIndicator = document.createElement('div');
+      retryIndicator.className = 'upload-retry-indicator';
+      fileItem.appendChild(retryIndicator);
     }
-  } else if (statusIcon) {
-    // Update existing icon if status changed
-    switch(status.toLowerCase()) {
-      case 'uploading':
-        statusIcon.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-        break;
-      case 'complete':
-        statusIcon.innerHTML = '<i class="fas fa-check-circle"></i>';
-        break;
-      case 'failed':
-        statusIcon.innerHTML = '<i class="fas fa-times-circle"></i>';
-        break;
-      case 'paused':
-        statusIcon.innerHTML = '<i class="fas fa-pause-circle"></i>';
-        break;
-      case 'waiting':
-        statusIcon.innerHTML = '';
-        break;
-    }
+    retryIndicator.textContent = retryCount;
+  }
+  
+  // Update queue visualization - DEBOUNCED
+  if (!updateFileStatus.debounceTimer) {
+    updateFileStatus.debounceTimer = setTimeout(() => {
+      updateQueueVisualization();
+      updateFileStatus.debounceTimer = null;
+    }, 200);
   }
 }
 
@@ -1799,13 +1814,17 @@ function updateFileProgress(index, progress) {
 // Update total progress in the UI
 
 // Enhanced Progress Update with Debouncing
+
+// Enhanced Progress Update with Aggressive Debouncing
 function updateTotalProgress() {
   // Clear existing throttler
   if (progressUpdateThrottler) {
     clearTimeout(progressUpdateThrottler);
   }
 
-  // Throttle progress updates to prevent UI freezing
+  // More aggressive throttling for large uploads
+  const delay = uploadQueue.length > 50 ? 500 : 200; // Longer delay for large batches
+
   progressUpdateThrottler = setTimeout(() => {
     const progressBars = document.querySelectorAll('.upload-progress-bar');
     const totalProgressBar = document.getElementById('totalProgressBar');
@@ -1833,14 +1852,19 @@ function updateTotalProgress() {
       progressText.textContent = `${averageProgress}% Complete (${completedUploads}/${progressBars.length})`;
     }
     
-    // Update batch status
-    updateBatchStatus(completedUploads, progressBars.length, averageProgress);
+    // Update batch status - also debounced
+    if (!updateTotalProgress.batchUpdateTimer) {
+      updateTotalProgress.batchUpdateTimer = setTimeout(() => {
+        updateBatchStatus(completedUploads, progressBars.length, averageProgress);
+        updateTotalProgress.batchUpdateTimer = null;
+      }, 300);
+    }
     
-    // Save progress state
-    if (uploadStateManager) {
+    // Save progress state - less frequently
+    if (uploadStateManager && Math.random() < 0.1) { // Only 10% of the time
       uploadStateManager.saveState();
     }
-  }, 100); // Update at most every 100ms
+  }, delay);
 }
 
 // New function to update batch status
