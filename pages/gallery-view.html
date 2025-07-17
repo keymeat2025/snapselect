@@ -967,7 +967,22 @@
           <div class="upload-step active">1. Select Files</div>
           <div class="upload-step">2. Upload</div>
         </div>
-        
+
+        <!-- Total progress tracking -->
+        <div id="uploadProgressContainer" class="upload-progress-container" style="display: none;">
+          <div class="upload-total-progress">
+            <div class="upload-progress-header">
+              <span>Total Progress</span>
+              <span id="totalProgressText">0% Complete</span>
+            </div>
+            <div class="upload-total-progress-bar-container">
+              <div class="upload-total-progress-bar" id="totalProgressBar"></div>
+            </div>
+          </div>
+        </div>
+
+
+          
         <div class="modal-body">
           <!-- Step 1: Select Files -->
           <div id="uploadStep1">
@@ -991,18 +1006,7 @@
             <!-- Rejection summary -->
             <div id="rejectionSummary" class="rejection-summary" style="display: none;"></div>
             
-            <!-- Total progress tracking -->
-            <div id="uploadProgressContainer" class="upload-progress-container" style="display: none;">
-              <div class="upload-total-progress">
-                <div class="upload-progress-header">
-                  <span>Total Progress</span>
-                  <span id="totalProgressText">0% Complete</span>
-                </div>
-                <div class="upload-total-progress-bar-container">
-                  <div class="upload-total-progress-bar" id="totalProgressBar"></div>
-                </div>
-              </div>
-            </div>
+        
           </div>
         </div>
         
