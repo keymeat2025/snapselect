@@ -26,10 +26,9 @@ let currentUploadIndex = 0;
 let activeUploadTasks = new Map(); // Store active Firebase upload tasks
 let uploadStateManager = null; // Upload state persistence manager
 let progressUpdateThrottler = null; // Progress update throttler
-let concurrentUploadLimit = 2; // Number of concurrent uploads
+let concurrentUploadLimit = 5; // Number of concurrent uploads
 let uploadRetryAttempts = new Map(); // Track retry attempts per file
 let uploadSessionId = null; // Unique session ID for this upload batch
-let uploadCompleteTriggered = false;
 
 
 
@@ -855,8 +854,6 @@ function showUploadPhotosModal() {
   
   // Show modal
   uploadPhotosModal.style.display = 'block';
-
-  resetUploadState();
 }
 
 // Hide upload photos modal
@@ -871,10 +868,7 @@ function hideUploadPhotosModal() {
   
   // Cancel any ongoing uploads
   cancelUpload(false); // Silent cancel
-
-   // ADD THIS LINE - Reset upload state completely
-  resetUploadState();
- 
+  
   // Hide modal
   uploadPhotosModal.style.display = 'none';
 }
@@ -1508,31 +1502,19 @@ function showUploadSizeWarning(fileCount) {
 
 
 // Enhanced Upload Complete with Clean UI
-
 function uploadComplete() {
-  // Prevent duplicate completion calls
-  if (uploadCompleteTriggered) {
-    console.log('uploadComplete already called, skipping');
-    return;
-  }
-  uploadCompleteTriggered = true;
-  
-  console.log('Upload completion starting...');
-  
-  // Count actual results
+  const uploadedFiles = uploadQueue.length;
   let successfulUploads = 0;
-  let failedUploads = 0;
   
-  for (let i = 0; i < uploadQueue.length; i++) {
+  // Count successful uploads properly
+  for (let i = 0; i < uploadedFiles; i++) {
     const fileItem = document.querySelector(`.upload-file-item[data-index="${i}"]`);
     if (fileItem && fileItem.classList.contains('complete')) {
       successfulUploads++;
-    } else {
-      failedUploads++;
     }
   }
   
-  console.log(`Upload results: ${successfulUploads} successful, ${failedUploads} failed`);
+  const failedUploads = uploadedFiles - successfulUploads;
   
   // Clean up state
   activeUploadTasks.clear();
@@ -1541,24 +1523,24 @@ function uploadComplete() {
     uploadStateManager.clearState();
   }
   
+  // Clear any existing completion messages
+  const existingMessages = document.querySelectorAll('.upload-completion-message');
+  existingMessages.forEach(msg => msg.remove());
+  
   // Show ONE completion notification
-  if (successfulUploads === uploadQueue.length) {
+  if (successfulUploads === uploadedFiles) {
     if (window.NotificationSystem) {
       window.NotificationSystem.showNotification('success', 'Upload Complete', 
-        `Successfully uploaded all ${uploadQueue.length} photos`);
+        `Successfully uploaded all ${uploadedFiles} photos`);
     }
   } else {
     if (window.NotificationSystem) {
       window.NotificationSystem.showNotification('warning', 'Upload Completed with Errors', 
-        `Uploaded ${successfulUploads} of ${uploadQueue.length} photos. ${failedUploads} failed.`);
+        `Uploaded ${successfulUploads} of ${uploadedFiles} photos. ${failedUploads} failed.`);
     }
   }
   
-  // Reset upload state
-  isUploading = false;
-  uploadPaused = false;
-  
-  // Update UI buttons
+  // Reset UI
   const startUploadBtn = document.getElementById('startUploadBtn');
   const pauseUploadBtn = document.getElementById('pauseUploadBtn');
   const cancelUploadBtn = document.getElementById('cancelUploadBtn');
@@ -1572,11 +1554,12 @@ function uploadComplete() {
   if (batchStatus) {
     batchStatus.className = 'upload-batch-status complete';
     batchStatus.innerHTML = `
-      <div>✅ Upload Complete: ${successfulUploads}/${uploadQueue.length} files uploaded successfully</div>
+      <div class="upload-queue-status" id="uploadQueueStatus"></div>
+      <div>✅ Upload Complete: ${successfulUploads}/${uploadedFiles} files uploaded successfully</div>
     `;
   }
   
-  // Reload gallery and close modal after delay
+  // Reload gallery after delay
   setTimeout(() => {
     photosList = [];
     lastVisiblePhoto = null;
@@ -1832,71 +1815,56 @@ function updateFileProgress(index, progress) {
 
 // Enhanced Progress Update with Debouncing
 
-
-// STEP 2: Replace your existing updateTotalProgress() function with this
+// Enhanced Progress Update with Aggressive Debouncing
 function updateTotalProgress() {
   // Clear existing throttler
   if (progressUpdateThrottler) {
     clearTimeout(progressUpdateThrottler);
   }
 
-  // Throttle updates to prevent UI overload
+  // More aggressive throttling for large uploads
+  const delay = uploadQueue.length > 50 ? 500 : 200; // Longer delay for large batches
+
   progressUpdateThrottler = setTimeout(() => {
-    
-    // Count actual file statuses instead of relying on progress bars
-    let completed = 0;
-    let failed = 0;
-    let uploading = 0;
-    
-    for (let i = 0; i < uploadQueue.length; i++) {
-      const fileItem = document.querySelector(`.upload-file-item[data-index="${i}"]`);
-      if (fileItem) {
-        if (fileItem.classList.contains('complete')) {
-          completed++;
-        } else if (fileItem.classList.contains('failed')) {
-          failed++;
-        } else if (fileItem.classList.contains('uploading')) {
-          uploading++;
-        }
-      }
-    }
-    
-    const totalFiles = uploadQueue.length;
-    const processedFiles = completed + failed;
-    const progress = totalFiles > 0 ? Math.round((processedFiles / totalFiles) * 100) : 0;
-    
-    // Update progress bar
+    const progressBars = document.querySelectorAll('.upload-progress-bar');
     const totalProgressBar = document.getElementById('totalProgressBar');
-    if (totalProgressBar) {
-      totalProgressBar.style.width = `${progress}%`;
-      totalProgressBar.setAttribute('aria-valuenow', progress);
-    }
+    
+    if (!totalProgressBar || progressBars.length === 0) return;
+    
+    let totalProgress = 0;
+    let completedUploads = 0;
+    
+    progressBars.forEach(bar => {
+      const value = parseInt(bar.getAttribute('aria-valuenow') || '0', 10);
+      totalProgress += value;
+      if (value === 100) completedUploads++;
+    });
+    
+    const averageProgress = Math.round(totalProgress / progressBars.length);
+    
+    // Smooth progress bar animation
+    totalProgressBar.style.width = `${averageProgress}%`;
+    totalProgressBar.setAttribute('aria-valuenow', averageProgress);
     
     // Update progress text
     const progressText = document.getElementById('totalProgressText');
     if (progressText) {
-      progressText.textContent = `${progress}% Complete (${processedFiles}/${totalFiles})`;
+      progressText.textContent = `${averageProgress}% Complete (${completedUploads}/${progressBars.length})`;
     }
     
-    // Update batch status
-    const batchStatus = document.getElementById('uploadBatchStatus');
-    if (batchStatus && isUploading) {
-      let statusText = `Uploading ${processedFiles}/${totalFiles} files...`;
-      if (uploadPaused) {
-        statusText = `Paused - ${processedFiles}/${totalFiles} files completed`;
-      }
-      
-      batchStatus.className = `upload-batch-status ${uploadPaused ? 'paused' : 'uploading'}`;
-      batchStatus.innerHTML = `<div>${statusText}</div>`;
+    // Update batch status - also debounced
+    if (!updateTotalProgress.batchUpdateTimer) {
+      updateTotalProgress.batchUpdateTimer = setTimeout(() => {
+        updateBatchStatus(completedUploads, progressBars.length, averageProgress);
+        updateTotalProgress.batchUpdateTimer = null;
+      }, 300);
     }
     
-    // Check for completion - only if all files are processed and we haven't triggered completion yet
-    if (processedFiles === totalFiles && totalFiles > 0 && isUploading && !uploadCompleteTriggered) {
-      console.log('All files processed, triggering completion');
-      uploadComplete();
+    // Save progress state - less frequently
+    if (uploadStateManager && Math.random() < 0.1) { // Only 10% of the time
+      uploadStateManager.saveState();
     }
-    
-  }, 300); // 300ms throttle
+  }, delay);
 }
 
 // New function to update batch status
@@ -2899,57 +2867,6 @@ async function savePhotoToFirestore(fileIndex, file, fileName, downloadURL) {
     photosCount: firebase.firestore.FieldValue.increment(1),
     updatedAt: firebase.firestore.FieldValue.serverTimestamp()
   });
-}
-
-
-// STEP 4: Add this new function to your file
-function resetUploadState() {
-  console.log('Resetting upload state...');
-  
-  // Reset all state variables
-  uploadQueue = [];
-  currentUploadIndex = 0;
-  isUploading = false;
-  uploadPaused = false;
-  uploadCompleteTriggered = false; // Reset the completion flag
-  
-  // Clear maps
-  activeUploadTasks.clear();
-  uploadRetryAttempts.clear();
-  
-  // Clear file arrays
-  window.allSelectedFiles = [];
-  window.filesToUpload = [];
-  window.rejectedFiles = [];
-  
-  // Clear UI
-  const uploadProgressContainer = document.getElementById('uploadProgressContainer');
-  if (uploadProgressContainer) {
-    uploadProgressContainer.style.display = 'none';
-  }
-  
-  const uploadPreview = document.getElementById('uploadPreview');
-  if (uploadPreview) {
-    uploadPreview.innerHTML = '';
-  }
-  
-  // Reset progress bar
-  const totalProgressBar = document.getElementById('totalProgressBar');
-  if (totalProgressBar) {
-    totalProgressBar.style.width = '0%';
-    totalProgressBar.setAttribute('aria-valuenow', 0);
-  }
-  
-  // Reset buttons
-  const startUploadBtn = document.getElementById('startUploadBtn');
-  const pauseUploadBtn = document.getElementById('pauseUploadBtn');
-  const cancelUploadBtn = document.getElementById('cancelUploadBtn');
-  
-  if (startUploadBtn) startUploadBtn.disabled = false;
-  if (pauseUploadBtn) pauseUploadBtn.style.display = 'none';
-  if (cancelUploadBtn) cancelUploadBtn.disabled = true;
-  
-  console.log('Upload state reset complete');
 }
 
 // Export gallery view functions to window object for debugging and external access
