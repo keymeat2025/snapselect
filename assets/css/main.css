@@ -1022,4 +1022,198 @@ footer {
         width: 8px !important;
         height: 8px !important;
     }
+
+    /* MVP Upload Enhancement Styles */
+    .upload-enhanced {
+      position: relative;
+    }
+    
+    /* Concurrent upload status indicators */
+    .upload-batch-status {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 15px;
+      padding: 10px 15px;
+      background: #f8f9fa;
+      border-radius: 8px;
+      border-left: 4px solid #28a745;
+    }
+    
+    .upload-batch-status.uploading {
+      border-left-color: #007bff;
+    }
+    
+    .upload-batch-status.paused {
+      border-left-color: #ffc107;
+    }
+    
+    .upload-batch-status.error {
+      border-left-color: #dc3545;
+    }
+    
+    /* Debounced progress animations */
+    .upload-progress-smooth {
+      transition: width 0.3s ease-in-out;
+    }
+    
+    .upload-progress-bar {
+      transition: width 0.2s ease-in-out;
+      border-radius: 4px;
+    }
+    
+    /* Persistent upload state indicators */
+    .upload-resumed {
+      background: linear-gradient(90deg, #e3f2fd, #bbdefb);
+      border: 1px solid #2196f3;
+    }
+    
+    .upload-resumed::before {
+      content: "🔄";
+      margin-right: 8px;
+    }
+    
+    /* Retry indicators */
+    .upload-retry-indicator {
+      position: absolute;
+      top: 5px;
+      right: 5px;
+      background: #ff9800;
+      color: white;
+      border-radius: 50%;
+      width: 20px;
+      height: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      font-weight: bold;
+    }
+    
+    /* Concurrent upload queue visualization */
+    .upload-queue-status {
+      display: flex;
+      gap: 5px;
+      margin-bottom: 10px;
+      flex-wrap: wrap;
+    }
+    
+    .upload-queue-item {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #dee2e6;
+      transition: all 0.2s;
+    }
+    
+    .upload-queue-item.waiting {
+      background: #6c757d;
+    }
+    
+    .upload-queue-item.uploading {
+      background: #007bff;
+      animation: pulse 1s infinite;
+    }
+    
+    .upload-queue-item.complete {
+      background: #28a745;
+    }
+    
+    .upload-queue-item.failed {
+      background: #dc3545;
+    }
+    
+    .upload-queue-item.paused {
+      background: #ffc107;
+    }
+    
+    /* Pulse animation for active uploads */
+    @keyframes pulse {
+      0% { transform: scale(1); opacity: 1; }
+      50% { transform: scale(1.2); opacity: 0.7; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+    
+    /* Enhanced upload file item styling */
+    .upload-file-item {
+      position: relative;
+      padding: 12px;
+      border: 1px solid #dee2e6;
+      border-radius: 8px;
+      margin-bottom: 8px;
+      background: white;
+      transition: all 0.2s;
+    }
+    
+    .upload-file-item.uploading {
+      border-color: #007bff;
+      background: #f8f9ff;
+    }
+    
+    .upload-file-item.complete {
+      border-color: #28a745;
+      background: #f8fff8;
+    }
+    
+    .upload-file-item.failed {
+      border-color: #dc3545;
+      background: #fff8f8;
+    }
+    
+    .upload-file-item.paused {
+      border-color: #ffc107;
+      background: #fffdf8;
+    }
+    
+    /* Upload status text styling */
+    .upload-status-text {
+      font-weight: 600;
+      margin-bottom: 15px;
+      padding: 10px;
+      border-radius: 6px;
+      background: #e9ecef;
+    }
+    
+    .upload-status-text.active {
+      background: #d4edda;
+      color: #155724;
+    }
+    
+    /* Total progress bar container */
+    .upload-total-progress {
+      margin-bottom: 20px;
+    }
+    
+    .upload-total-progress-bar-container {
+      height: 12px;
+      background: #e9ecef;
+      border-radius: 6px;
+      overflow: hidden;
+      margin-bottom: 8px;
+    }
+    
+    .upload-total-progress-bar {
+      height: 100%;
+      background: linear-gradient(90deg, #007bff, #28a745);
+      transition: width 0.3s ease-in-out;
+      border-radius: 6px;
+    }
+    
+    /* Mobile responsive upload styles */
+    @media (max-width: 768px) {
+      .upload-batch-status {
+        flex-direction: column;
+        gap: 8px;
+        padding: 8px 12px;
+      }
+      
+      .upload-queue-status {
+        justify-content: center;
+      }
+      
+      .upload-file-item {
+        padding: 8px;
+      }
+    }
+    
 }
