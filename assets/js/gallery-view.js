@@ -1363,36 +1363,54 @@ function handleFileSelect(event) {
 
 // Enhanced Upload Start with Session Management
 
-
 async function startPhotoUpload() {
   try {
-    // Validate that we have valid files to upload
+    console.log('🚀 Starting upload with validation check...');
+    
+    // ✅ Check if we have valid files to upload
     if (!window.filesToUpload || window.filesToUpload.length === 0) {
       showErrorMessage('No valid files selected for upload');
-      console.log('Upload cancelled: No valid files found');
-      console.log('Rejected files:', window.rejectedFiles?.length || 0);
+      console.log('❌ No valid files found');
+      console.log('📊 Files status:', {
+        selected: window.allSelectedFiles?.length || 0,
+        valid: window.filesToUpload?.length || 0,
+        rejected: window.rejectedFiles?.length || 0
+      });
+      return;
+    }
+
+    // 🔧 CRITICAL FIX: Use ONLY validated files (this excludes duplicates)
+    uploadQueue = [...window.filesToUpload];
+    
+    console.log('✅ Upload queue created:', {
+      queueLength: uploadQueue.length,
+      validFiles: window.filesToUpload.length,
+      rejectedFiles: window.rejectedFiles?.length || 0
+    });
+    
+    // 🔍 Log what files are being uploaded vs rejected
+    console.log('📝 Files TO UPLOAD:');
+    uploadQueue.forEach((file, i) => console.log(`  ${i + 1}. ${file.name}`));
+    
+    if (window.rejectedFiles?.length > 0) {
+      console.log('🚫 Files REJECTED (will NOT upload):');
+      window.rejectedFiles.forEach((rejected, i) => {
+        console.log(`  ${i + 1}. ${rejected.file.name} - ${rejected.reason}`);
+      });
+    }
+    
+    // ✅ Verify no rejected files are in upload queue
+    const rejectedNames = new Set((window.rejectedFiles || []).map(r => r.file.name));
+    const duplicatesInQueue = uploadQueue.filter(file => rejectedNames.has(file.name));
+    
+    if (duplicatesInQueue.length > 0) {
+      console.error('❌ CRITICAL ERROR: Rejected files found in upload queue!');
+      duplicatesInQueue.forEach(file => console.error(`  - ${file.name}`));
+      showErrorMessage('Upload queue contains rejected files. Please refresh and try again.');
       return;
     }
     
-    // CRITICAL FIX: Only upload files that passed ALL validations
-    uploadQueue = [...window.filesToUpload]; // This excludes duplicates and other rejected files
-    
-    // Additional safety check - remove any files that are in the rejected list
-    if (window.rejectedFiles && window.rejectedFiles.length > 0) {
-      const rejectedFileNames = new Set(window.rejectedFiles.map(r => r.file.name));
-      const originalQueueLength = uploadQueue.length;
-      uploadQueue = uploadQueue.filter(file => !rejectedFileNames.has(file.name));
-      
-      if (uploadQueue.length !== originalQueueLength) {
-        console.warn(`Filtered out ${originalQueueLength - uploadQueue.length} rejected files from upload queue`);
-      }
-    }
-    
-    // Final validation
-    if (uploadQueue.length === 0) {
-      showErrorMessage('No files to upload after filtering rejected files');
-      return;
-    }
+    console.log('✅ Queue validation passed - no rejected files in upload queue');
     
     // Reset upload state
     currentUploadIndex = 0;
@@ -1401,20 +1419,7 @@ async function startPhotoUpload() {
     activeUploadTasks.clear();
     uploadRetryAttempts.clear();
     
-    console.log(`✅ Starting validated upload:`);
-    console.log(`   - Valid files to upload: ${uploadQueue.length}`);
-    console.log(`   - Rejected files (will NOT upload): ${window.rejectedFiles?.length || 0}`);
-    console.log(`   - Total files selected: ${window.allSelectedFiles?.length || 0}`);
-    
-    // Show detailed file breakdown in console for debugging
-    if (window.rejectedFiles && window.rejectedFiles.length > 0) {
-      console.log('🚫 Rejected files:');
-      window.rejectedFiles.forEach((rejected, index) => {
-        console.log(`   ${index + 1}. ${rejected.file.name} - ${rejected.reason}`);
-      });
-    }
-    
-    // Backend validation (keep existing validation)
+    // Backend validation (existing code)
     try {
       showLoadingOverlay('Validating upload permissions...');
       
@@ -1438,7 +1443,7 @@ async function startPhotoUpload() {
       return;
     }
     
-    // Show progress UI (keep existing UI)
+    // Show progress UI
     const uploadProgressContainer = document.getElementById('uploadProgressContainer');
     if (uploadProgressContainer) {
       uploadProgressContainer.style.display = 'block';
@@ -1453,7 +1458,9 @@ async function startPhotoUpload() {
     if (pauseUploadBtn) pauseUploadBtn.style.display = 'inline-block';
     if (cancelUploadBtn) cancelUploadBtn.disabled = false;
     
-    // Start the upload process - now with only valid files
+    console.log(`🚀 Starting upload process with ${uploadQueue.length} validated files...`);
+    
+    // Start the upload process
     await processUploadQueue();
     
   } catch (error) {
