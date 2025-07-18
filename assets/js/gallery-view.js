@@ -1363,22 +1363,56 @@ function handleFileSelect(event) {
 
 // Enhanced Upload Start with Session Management
 
+
 async function startPhotoUpload() {
   try {
+    // Validate that we have valid files to upload
     if (!window.filesToUpload || window.filesToUpload.length === 0) {
-      showErrorMessage('No files selected for upload');
+      showErrorMessage('No valid files selected for upload');
+      console.log('Upload cancelled: No valid files found');
+      console.log('Rejected files:', window.rejectedFiles?.length || 0);
       return;
     }
     
-    // Reset upload state to ensure clean start
-    uploadQueue = [...window.filesToUpload];
+    // CRITICAL FIX: Only upload files that passed ALL validations
+    uploadQueue = [...window.filesToUpload]; // This excludes duplicates and other rejected files
+    
+    // Additional safety check - remove any files that are in the rejected list
+    if (window.rejectedFiles && window.rejectedFiles.length > 0) {
+      const rejectedFileNames = new Set(window.rejectedFiles.map(r => r.file.name));
+      const originalQueueLength = uploadQueue.length;
+      uploadQueue = uploadQueue.filter(file => !rejectedFileNames.has(file.name));
+      
+      if (uploadQueue.length !== originalQueueLength) {
+        console.warn(`Filtered out ${originalQueueLength - uploadQueue.length} rejected files from upload queue`);
+      }
+    }
+    
+    // Final validation
+    if (uploadQueue.length === 0) {
+      showErrorMessage('No files to upload after filtering rejected files');
+      return;
+    }
+    
+    // Reset upload state
     currentUploadIndex = 0;
     isUploading = true;
     uploadPaused = false;
     activeUploadTasks.clear();
     uploadRetryAttempts.clear();
     
-    console.log(`Starting Conveyor Belt upload of ${uploadQueue.length} files`);
+    console.log(`✅ Starting validated upload:`);
+    console.log(`   - Valid files to upload: ${uploadQueue.length}`);
+    console.log(`   - Rejected files (will NOT upload): ${window.rejectedFiles?.length || 0}`);
+    console.log(`   - Total files selected: ${window.allSelectedFiles?.length || 0}`);
+    
+    // Show detailed file breakdown in console for debugging
+    if (window.rejectedFiles && window.rejectedFiles.length > 0) {
+      console.log('🚫 Rejected files:');
+      window.rejectedFiles.forEach((rejected, index) => {
+        console.log(`   ${index + 1}. ${rejected.file.name} - ${rejected.reason}`);
+      });
+    }
     
     // Backend validation (keep existing validation)
     try {
@@ -1419,7 +1453,7 @@ async function startPhotoUpload() {
     if (pauseUploadBtn) pauseUploadBtn.style.display = 'inline-block';
     if (cancelUploadBtn) cancelUploadBtn.disabled = false;
     
-    // Start the conveyor belt (sequential processing)
+    // Start the upload process - now with only valid files
     await processUploadQueue();
     
   } catch (error) {
@@ -1845,6 +1879,7 @@ function formatFileSize(bytes) {
  * Enhanced updateUploadPreview function to show both valid and rejected files
  * Displays each file with its status and rejection reason if applicable
  */
+
 function updateUploadPreview(files) {
   const uploadPreview = document.getElementById('uploadPreview');
   if (!uploadPreview) return;
@@ -1856,34 +1891,54 @@ function updateUploadPreview(files) {
     // Check if this file is in the rejected list
     const rejectedInfo = window.rejectedFiles?.find(r => r.file === file);
     const isRejected = !!rejectedInfo;
+    const willUpload = window.filesToUpload?.includes(file);
     
     // Create file item container
     const fileItem = document.createElement('div');
     fileItem.className = 'upload-file-item';
     fileItem.setAttribute('data-index', index);
     
-    // Add rejected class if needed
+    // Add appropriate classes
     if (isRejected) {
       fileItem.classList.add('upload-file-rejected');
+    } else if (willUpload) {
+      fileItem.classList.add('upload-file-valid');
     }
     
     // Create elements using a file reader to generate thumbnail
     const reader = new FileReader();
     reader.onload = function(e) {
+      // Determine status text and icon
+      let statusText = 'Waiting';
+      let statusIcon = '⏳';
+      let statusClass = 'status-waiting';
+      
+      if (isRejected) {
+        statusText = 'Will NOT Upload';
+        statusIcon = '🚫';
+        statusClass = 'status-rejected';
+      } else if (willUpload) {
+        statusText = 'Ready to Upload';
+        statusIcon = '✅';
+        statusClass = 'status-ready';
+      }
+      
       // Build the HTML for the file item
       fileItem.innerHTML = `
         <div class="upload-file-thumbnail" style="background-image: url('${e.target.result}')">
           ${isRejected ? '<div class="rejection-overlay"><i class="fas fa-ban"></i></div>' : ''}
+          ${willUpload ? '<div class="ready-overlay"><i class="fas fa-check"></i></div>' : ''}
         </div>
         <div class="upload-file-info">
           <div class="upload-file-name">${file.name}</div>
           <div class="upload-file-meta">
             <span class="upload-file-size">${formatFileSize(file.size)}</span>
-            <span class="upload-file-status ${isRejected ? 'status-rejected' : 'status-waiting'}">
-              ${isRejected ? 'Rejected' : 'Waiting'}
+            <span class="upload-file-status ${statusClass}">
+              ${statusIcon} ${statusText}
             </span>
           </div>
-          ${isRejected ? `<div class="rejection-reason">${rejectedInfo.reason}</div>` : ''}
+          ${isRejected ? `<div class="rejection-reason">❌ ${rejectedInfo.reason}</div>` : ''}
+          ${willUpload ? `<div class="upload-confirmation">✅ This file will be uploaded</div>` : ''}
         </div>
         <div class="upload-progress">
           <div class="upload-progress-bar" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
@@ -1896,38 +1951,53 @@ function updateUploadPreview(files) {
     uploadPreview.appendChild(fileItem);
   });
   
-  // Update the counts with more detail
+  // Update the counts with clear messaging
   const totalCountElement = document.getElementById('uploadTotalCount');
   if (totalCountElement) {
     const validFiles = window.filesToUpload?.length || 0;
     const rejectedFiles = window.rejectedFiles?.length || 0;
+    const totalFiles = files.length;
     
     if (rejectedFiles > 0) {
-      totalCountElement.innerHTML = `${files.length} files selected - <span class="valid-count">${validFiles} valid</span>, <span class="rejected-count">${rejectedFiles} rejected</span>`;
+      totalCountElement.innerHTML = `
+        <div class="upload-summary">
+          <div class="total-files">${totalFiles} files selected</div>
+          <div class="file-breakdown">
+            <span class="valid-count">✅ ${validFiles} will be uploaded</span>
+            <span class="rejected-count">🚫 ${rejectedFiles} will be skipped</span>
+          </div>
+        </div>
+      `;
     } else {
-      totalCountElement.textContent = `${files.length} files selected`;
+      totalCountElement.innerHTML = `
+        <div class="upload-summary">
+          <div class="total-files">✅ ${totalFiles} files ready to upload</div>
+        </div>
+      `;
     }
   }
   
-  // Show a summary of reasons if there are rejected files
+  // Show detailed rejection summary
   const rejectionSummary = document.getElementById('rejectionSummary');
   if (rejectionSummary) {
     if (window.rejectedFiles && window.rejectedFiles.length > 0) {
       // Count occurrences of each reason
       const reasonCounts = {};
       window.rejectedFiles.forEach(item => {
-        if (!reasonCounts[item.reason]) {
-          reasonCounts[item.reason] = 0;
+        const reason = item.reason;
+        if (!reasonCounts[reason]) {
+          reasonCounts[reason] = 0;
         }
-        reasonCounts[item.reason]++;
+        reasonCounts[reason]++;
       });
       
-      // Create summary text
-      let summaryHTML = '<div class="rejection-summary-header">Files rejected due to:</div><ul>';
+      // Create summary with clear messaging
+      let summaryHTML = '<div class="rejection-summary-header">⚠️ Files that will NOT be uploaded:</div><ul>';
       for (const reason in reasonCounts) {
-        summaryHTML += `<li>${reasonCounts[reason]} files: ${reason}</li>`;
+        summaryHTML += `<li><strong>${reasonCounts[reason]} files:</strong> ${reason}</li>`;
       }
       summaryHTML += '</ul>';
+      summaryHTML += '<div class="rejection-note">💡 These files will be skipped during upload.</div>';
       
       rejectionSummary.innerHTML = summaryHTML;
       rejectionSummary.style.display = 'block';
@@ -1937,6 +2007,8 @@ function updateUploadPreview(files) {
   }
 }
 
+
+ 
 /**
  * Enhanced showUploadStatus function to display more detailed upload information
  * Shows steps and clear indicators for the upload process
