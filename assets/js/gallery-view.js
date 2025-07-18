@@ -1071,11 +1071,15 @@ function applyPlanLimits(files) {
  */
 
 // Add this new function for checking duplicates
+
+// REPLACE THE ENTIRE checkForDuplicates() function with this improved version
 async function checkForDuplicates(files, galleryId) {
   try {
     if (!files || files.length === 0 || !galleryId) {
       return []; // Return empty array if no files or gallery ID
     }
+
+    console.log(`🔍 Checking ${files.length} files for duplicates in gallery ${galleryId}`);
 
     // Get existing photos from Firestore for this gallery
     const db = firebase.firestore();
@@ -1084,30 +1088,88 @@ async function checkForDuplicates(files, galleryId) {
       .where('status', '==', 'active') // Only check active photos
       .get();
 
-    // Create a map of existing photos for quick lookup
-    const existingPhotos = new Map();
+    console.log(`📁 Found ${existingPhotosSnapshot.size} existing photos in gallery`);
+
+    // Create multiple maps for different duplicate detection strategies
+    const existingByNameSize = new Map(); // Original name + size
+    const existingBySanitizedNameSize = new Map(); // Sanitized name + size
+    const existingByNameSizeType = new Map(); // Name + size + type
+
     existingPhotosSnapshot.forEach(doc => {
       const data = doc.data();
-      // Create a unique key: filename + size + type
-      const key = `${data.name}_${data.size}_${data.type}`;
-      existingPhotos.set(key, data);
+      
+      // Strategy 1: Original name + size (most reliable)
+      if (data.name && data.size) {
+        const key1 = `${data.name.toLowerCase()}_${data.size}`;
+        existingByNameSize.set(key1, data);
+      }
+      
+      // Strategy 2: Sanitized name + size (handles filename changes)
+      if (data.name && data.size) {
+        const sanitizedName = data.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+        const key2 = `${sanitizedName.toLowerCase()}_${data.size}`;
+        existingBySanitizedNameSize.set(key2, data);
+      }
+      
+      // Strategy 3: Name + size + type (strictest)
+      if (data.name && data.size && data.type) {
+        const key3 = `${data.name.toLowerCase()}_${data.size}_${data.type}`;
+        existingByNameSizeType.set(key3, data);
+      }
     });
 
-    // Check each file against existing photos
+    // Check each file against existing photos using multiple strategies
     const duplicates = [];
+    
     files.forEach(file => {
-      const fileKey = `${file.name}_${file.size}_${file.type}`;
-      if (existingPhotos.has(fileKey)) {
+      let isDuplicate = false;
+      let existingPhoto = null;
+      let detectionMethod = '';
+      
+      // Strategy 1: Check original name + size
+      const key1 = `${file.name.toLowerCase()}_${file.size}`;
+      if (existingByNameSize.has(key1)) {
+        isDuplicate = true;
+        existingPhoto = existingByNameSize.get(key1);
+        detectionMethod = 'name+size';
+      }
+      
+      // Strategy 2: Check sanitized name + size (if not already found)
+      if (!isDuplicate) {
+        const sanitizedFileName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+        const key2 = `${sanitizedFileName.toLowerCase()}_${file.size}`;
+        if (existingBySanitizedNameSize.has(key2)) {
+          isDuplicate = true;
+          existingPhoto = existingBySanitizedNameSize.get(key2);
+          detectionMethod = 'sanitized+size';
+        }
+      }
+      
+      // Strategy 3: Check name + size + type (if not already found)
+      if (!isDuplicate) {
+        const key3 = `${file.name.toLowerCase()}_${file.size}_${file.type}`;
+        if (existingByNameSizeType.has(key3)) {
+          isDuplicate = true;
+          existingPhoto = existingByNameSizeType.get(key3);
+          detectionMethod = 'name+size+type';
+        }
+      }
+      
+      if (isDuplicate) {
+        console.log(`🚫 Duplicate found: ${file.name} (${detectionMethod}) - matches existing photo: ${existingPhoto.name}`);
         duplicates.push({
           file: file,
-          existingPhoto: existingPhotos.get(fileKey)
+          existingPhoto: existingPhoto,
+          detectionMethod: detectionMethod
         });
       }
     });
 
+    console.log(`✅ Duplicate check complete: ${duplicates.length} duplicates found out of ${files.length} files`);
     return duplicates;
+
   } catch (error) {
-    console.error('Error checking for duplicates:', error);
+    console.error('❌ Error checking for duplicates:', error);
     // If duplicate check fails, return empty array to not block uploads
     return [];
   }
@@ -1145,11 +1207,20 @@ async function handleFiles(files) {
   const maxFileSizeMB = planLimits.maxSize;
   
   // *** NEW: Check for duplicates first ***
+ // *** ENHANCED: Check for duplicates with better detection ***
   let duplicateFiles = [];
   try {
+    console.log('🔍 Starting duplicate detection...');
     duplicateFiles = await checkForDuplicates(imageFiles, galleryId);
+    
+    if (duplicateFiles.length > 0) {
+      console.log(`🚫 Found ${duplicateFiles.length} duplicate files:`);
+      duplicateFiles.forEach(dup => {
+        console.log(`  - ${dup.file.name} (detected via ${dup.detectionMethod})`);
+      });
+    }
   } catch (error) {
-    console.error('Duplicate check failed, continuing with upload:', error);
+    console.error('❌ Duplicate check failed, continuing with upload:', error);
     // If duplicate check fails, continue without blocking uploads
   }
 
@@ -1176,10 +1247,11 @@ async function handleFiles(files) {
     let rejectionReason = '';
     
     // *** NEW: Check if file is a duplicate first ***
-    const isDuplicate = duplicateFiles.find(dup => dup.file === file);
-    if (isDuplicate) {
+    // *** ENHANCED: Check if file is a duplicate first ***
+    const duplicateInfo = duplicateFiles.find(dup => dup.file === file);
+    if (duplicateInfo) {
       rejected = true;
-      rejectionReason = `Already uploaded (same name and size)`;
+      rejectionReason = `Already uploaded as "${duplicateInfo.existingPhoto.name}" (${duplicateInfo.detectionMethod} match)`;
     }
     // Check if we've exceeded count limit (EXISTING LOGIC - UNCHANGED)
     else if (countLimited && index >= availableSlots) {
