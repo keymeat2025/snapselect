@@ -1073,108 +1073,118 @@ function applyPlanLimits(files) {
 // Add this new function for checking duplicates
 
 // REPLACE THE ENTIRE checkForDuplicates() function with this improved version
+
 async function checkForDuplicates(files, galleryId) {
   try {
     if (!files || files.length === 0 || !galleryId) {
-      return []; // Return empty array if no files or gallery ID
+      return [];
     }
 
-    console.log(`🔍 Checking ${files.length} files for duplicates in gallery ${galleryId}`);
+    console.log(`🔍 IMPROVED: Checking ${files.length} files for duplicates in gallery ${galleryId}`);
 
     // Get existing photos from Firestore for this gallery
     const db = firebase.firestore();
     const existingPhotosSnapshot = await db.collection('photos')
       .where('galleryId', '==', galleryId)
-      .where('status', '==', 'active') // Only check active photos
+      .where('status', '==', 'active')
       .get();
 
     console.log(`📁 Found ${existingPhotosSnapshot.size} existing photos in gallery`);
 
-    // Create multiple maps for different duplicate detection strategies
-    const existingByNameSize = new Map(); // Original name + size
-    const existingBySanitizedNameSize = new Map(); // Sanitized name + size
-    const existingByNameSizeType = new Map(); // Name + size + type
+    if (existingPhotosSnapshot.empty) {
+      console.log(`✅ No existing photos found, no duplicates possible`);
+      return [];
+    }
 
+    // Create a comprehensive set of existing file signatures
+    const existingSignatures = new Set();
+    
     existingPhotosSnapshot.forEach(doc => {
       const data = doc.data();
       
-      // Strategy 1: Original name + size (most reliable)
-      if (data.name && data.size) {
-        const key1 = `${data.name.toLowerCase()}_${data.size}`;
-        existingByNameSize.set(key1, data);
-      }
-      
-      // Strategy 2: Sanitized name + size (handles filename changes)
-      if (data.name && data.size) {
-        const sanitizedName = data.name.replace(/[^a-zA-Z0-9._-]/g, '_');
-        const key2 = `${sanitizedName.toLowerCase()}_${data.size}`;
-        existingBySanitizedNameSize.set(key2, data);
-      }
-      
-      // Strategy 3: Name + size + type (strictest)
-      if (data.name && data.size && data.type) {
-        const key3 = `${data.name.toLowerCase()}_${data.size}_${data.type}`;
-        existingByNameSizeType.set(key3, data);
+      if (data.name && data.size !== undefined) {
+        // Multiple ways to identify the same file
+        const signatures = [
+          `${data.name.toLowerCase()}_${data.size}`,
+          `${data.name.toLowerCase()}_${data.size}_${data.type || ''}`,
+          // Handle sanitized names
+          `${data.name.replace(/[^a-zA-Z0-9._-]/g, '_').toLowerCase()}_${data.size}`,
+        ];
+        
+        signatures.forEach(sig => existingSignatures.add(sig));
+        
+        console.log(`📝 Added signatures for existing photo: ${data.name} (${data.size} bytes)`);
       }
     });
 
-    // Check each file against existing photos using multiple strategies
+    // Check each file against all existing signatures
     const duplicates = [];
     
     files.forEach(file => {
+      const fileSignatures = [
+        `${file.name.toLowerCase()}_${file.size}`,
+        `${file.name.toLowerCase()}_${file.size}_${file.type || ''}`,
+        `${file.name.replace(/[^a-zA-Z0-9._-]/g, '_').toLowerCase()}_${file.size}`,
+      ];
+      
       let isDuplicate = false;
-      let existingPhoto = null;
-      let detectionMethod = '';
+      let matchedSignature = '';
       
-      // Strategy 1: Check original name + size
-      const key1 = `${file.name.toLowerCase()}_${file.size}`;
-      if (existingByNameSize.has(key1)) {
-        isDuplicate = true;
-        existingPhoto = existingByNameSize.get(key1);
-        detectionMethod = 'name+size';
-      }
-      
-      // Strategy 2: Check sanitized name + size (if not already found)
-      if (!isDuplicate) {
-        const sanitizedFileName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
-        const key2 = `${sanitizedFileName.toLowerCase()}_${file.size}`;
-        if (existingBySanitizedNameSize.has(key2)) {
+      for (const signature of fileSignatures) {
+        if (existingSignatures.has(signature)) {
           isDuplicate = true;
-          existingPhoto = existingBySanitizedNameSize.get(key2);
-          detectionMethod = 'sanitized+size';
-        }
-      }
-      
-      // Strategy 3: Check name + size + type (if not already found)
-      if (!isDuplicate) {
-        const key3 = `${file.name.toLowerCase()}_${file.size}_${file.type}`;
-        if (existingByNameSizeType.has(key3)) {
-          isDuplicate = true;
-          existingPhoto = existingByNameSizeType.get(key3);
-          detectionMethod = 'name+size+type';
+          matchedSignature = signature;
+          break;
         }
       }
       
       if (isDuplicate) {
-        console.log(`🚫 Duplicate found: ${file.name} (${detectionMethod}) - matches existing photo: ${existingPhoto.name}`);
+        console.log(`🚫 DUPLICATE FOUND: ${file.name} (matched: ${matchedSignature})`);
         duplicates.push({
           file: file,
-          existingPhoto: existingPhoto,
-          detectionMethod: detectionMethod
+          existingPhoto: { name: file.name, size: file.size }, // Simplified
+          detectionMethod: 'comprehensive'
         });
+      } else {
+        console.log(`✅ No duplicate found for: ${file.name}`);
       }
     });
 
-    console.log(`✅ Duplicate check complete: ${duplicates.length} duplicates found out of ${files.length} files`);
+    console.log(`📊 Duplicate check complete: ${duplicates.length} duplicates found out of ${files.length} files`);
     return duplicates;
 
   } catch (error) {
-    console.error('❌ Error checking for duplicates:', error);
-    // If duplicate check fails, return empty array to not block uploads
-    return [];
+    console.error('❌ Error in duplicate check:', error);
+    return []; // Return empty array on error to not block uploads
   }
 }
 
+
+async function debugDuplicateDetection(fileName, fileSize) {
+  try {
+    console.log(`🔧 DEBUG: Checking for duplicates of ${fileName} (${fileSize} bytes)`);
+    
+    const db = firebase.firestore();
+    const existingPhotosSnapshot = await db.collection('photos')
+      .where('galleryId', '==', galleryId)
+      .where('status', '==', 'active')
+      .get();
+
+    console.log(`📁 Found ${existingPhotosSnapshot.size} existing photos in gallery`);
+
+    existingPhotosSnapshot.forEach(doc => {
+      const data = doc.data();
+      console.log(`📝 Existing photo: ${data.name} (${data.size} bytes) - ${data.type || 'unknown type'}`);
+      
+      if (data.name.toLowerCase() === fileName.toLowerCase() && data.size === fileSize) {
+        console.log(`🚫 EXACT MATCH FOUND: ${data.name}`);
+      }
+    });
+
+  } catch (error) {
+    console.error('❌ Debug error:', error);
+  }
+}
 /**
  * REPLACE the existing handleFiles() function with this enhanced version
  * This preserves ALL existing functionality and adds duplicate detection
@@ -1506,9 +1516,22 @@ function updateTotalProgressSequential() {
   console.log(`Progress: ${completedFiles}/${totalFiles} (${progress}%)`);
 }
 
+
 async function uploadSingleFileSequential(file, index) {
-  return new Promise((resolve, reject) => {
+  return new Promise(async (resolve, reject) => {
     try {
+      // *** CRITICAL: RE-CHECK FOR DUPLICATES BEFORE UPLOAD ***
+      console.log(`🔍 Double-checking for duplicates before uploading: ${file.name}`);
+      
+      const duplicateCheck = await checkForDuplicates([file], galleryId);
+      if (duplicateCheck.length > 0) {
+        console.log(`🚫 DUPLICATE DETECTED during upload: ${file.name}`);
+        reject(new Error(`Duplicate file detected: ${file.name} already exists`));
+        return;
+      }
+      
+      console.log(`✅ No duplicate found, proceeding with upload: ${file.name}`);
+      
       // Create unique filename (same as before)
       const safeOriginalName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
       const timestamp = Date.now();
@@ -1551,6 +1574,25 @@ async function uploadSingleFileSequential(file, index) {
             // Get download URL
             const downloadURL = await uploadTask.snapshot.ref.getDownloadURL();
             
+            // *** CRITICAL: FINAL CHECK BEFORE SAVING TO FIRESTORE ***
+            console.log(`🔍 Final duplicate check before saving to Firestore: ${file.name}`);
+            
+            const finalDuplicateCheck = await checkForDuplicates([file], galleryId);
+            if (finalDuplicateCheck.length > 0) {
+              console.log(`🚫 DUPLICATE DETECTED before Firestore save: ${file.name}`);
+              
+              // Delete the uploaded file from storage since it's a duplicate
+              try {
+                await fileRef.delete();
+                console.log(`🗑️ Deleted duplicate file from storage: ${fileName}`);
+              } catch (deleteError) {
+                console.error('Error deleting duplicate file from storage:', deleteError);
+              }
+              
+              reject(new Error(`Duplicate file detected during final check: ${file.name}`));
+              return;
+            }
+            
             // Save to Firestore
             await savePhotoToFirestoreSequential(file, fileName, downloadURL);
             
@@ -1566,6 +1608,7 @@ async function uploadSingleFileSequential(file, index) {
       );
       
     } catch (error) {
+      console.error(`Error in uploadSingleFileSequential for ${file.name}:`, error);
       reject(error);
     }
   });
@@ -3089,3 +3132,5 @@ window.galleryView = {
   // Add the new function here
   checkIfGalleryIsShared
 };
+// Add this to your window object for debugging
+window.debugDuplicateDetection = debugDuplicateDetection;
