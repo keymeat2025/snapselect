@@ -1019,6 +1019,8 @@ function resumeUploadSession() {
   showUploadStatus();
 }
 
+
+/**
 // Function to apply plan limits to uploads but preserves the files for display
 function applyPlanLimits(files) {
   if (!planLimits) {
@@ -1059,13 +1061,16 @@ function applyPlanLimits(files) {
     }
     // File is good
     else {
-      window.filesToUpload.push(file);
+      //window.filesToUpload.push(file);
+      uploadQueue.push(file);
     }
   });
   
   //return window.filesToUpload;
   return uploadQueue;
 }
+
+*/
 
 /**
  * SAFE DUPLICATE DETECTION - Add this to gallery-view.js
