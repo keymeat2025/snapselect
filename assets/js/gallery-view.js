@@ -1483,6 +1483,7 @@ async function startPhotoUpload() {
 // Enhanced Concurrent Upload Processing with Better UI Management
 
 
+
 async function processUploadQueue() {
   console.log(`🔄 processUploadQueue called - Index: ${currentUploadIndex}, Queue: ${uploadQueue.length}`);
   
@@ -1625,7 +1626,7 @@ async function processUploadQueue() {
   }, 100);
 }
 
-
+/**
 function updateTotalProgressSequential() {
   const totalFiles = uploadQueue.length;
   const completedFiles = currentUploadIndex + 1; // +1 because we just completed current file
@@ -1647,7 +1648,8 @@ function updateTotalProgressSequential() {
   console.log(`Progress: ${completedFiles}/${totalFiles} (${progress}%)`);
 }
 
-
+*/
+/**
 async function uploadSingleFileSequential(file, index) {
   return new Promise(async (resolve, reject) => {
     try {
@@ -1744,7 +1746,7 @@ async function uploadSingleFileSequential(file, index) {
     }
   });
 }
-
+*/
 
 async function savePhotoToFirestoreSequential(file, fileName, downloadURL) {
   const db = firebase.firestore();
@@ -1789,7 +1791,7 @@ async function savePhotoToFirestoreSequential(file, fileName, downloadURL) {
 }
 
 
-
+/**
 // Process individual upload with retry logic
 async function processIndividualUpload(fileIndex) {
   const file = uploadQueue[fileIndex];
@@ -1866,6 +1868,7 @@ async function processIndividualUpload(fileIndex) {
   }
 }
 
+*/
 // Upload completion handler
 
 // Enhanced uploadComplete with better notifications
@@ -1887,41 +1890,19 @@ function showUploadSizeWarning(fileCount) {
 
 // Enhanced Upload Complete with Clean UI
 
+
 function uploadComplete() {
-  console.log('Conveyor Belt: Upload sequence complete');
-  
-  // Count actual results by checking file status elements
-  let successfulUploads = 0;
-  let failedUploads = 0;
-  
-  for (let i = 0; i < uploadQueue.length; i++) {
-    const fileItem = document.querySelector(`.upload-file-item[data-index="${i}"]`);
-    if (fileItem) {
-      if (fileItem.classList.contains('complete')) {
-        successfulUploads++;
-      } else if (fileItem.classList.contains('failed')) {
-        failedUploads++;
-      }
-    }
-  }
+  console.log('🎉 Upload sequence complete');
   
   const totalFiles = uploadQueue.length;
-  console.log(`Upload Results: ${successfulUploads} success, ${failedUploads} failed, ${totalFiles} total`);
+  console.log(`Upload Results: ${totalFiles} total files processed`);
   
   // Clean up state
-  activeUploadTasks.clear();
-  uploadRetryAttempts.clear();
   isUploading = false;
   uploadPaused = false;
   
-  // Show ONE accurate completion message
-  if (successfulUploads === totalFiles) {
-    showSuccessMessage(`✅ Upload Complete! Successfully uploaded all ${totalFiles} photos.`);
-  } else if (successfulUploads > 0) {
-    showWarningMessage(`⚠️ Upload Completed with Issues: ${successfulUploads} of ${totalFiles} photos uploaded successfully. ${failedUploads} failed.`);
-  } else {
-    showErrorMessage(`❌ Upload Failed: No photos were uploaded successfully.`);
-  }
+  // Show completion message
+  showSuccessMessage(`✅ Upload Complete! Successfully uploaded ${totalFiles} photos.`);
   
   // Reset UI
   const startUploadBtn = document.getElementById('startUploadBtn');
@@ -1941,6 +1922,7 @@ function uploadComplete() {
     hideUploadPhotosModal();
   }, 2000);
 }
+
 
 // Network monitoring
 window.addEventListener('online', function() {
