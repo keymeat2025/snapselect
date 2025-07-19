@@ -17,7 +17,7 @@ let selectedStatus = 'active'; // Track selected status filter
 let planLimits = null; // Store plan limits
 
 // Upload management variables
-let uploadQueue = [];
+//let window.filesToUpload = [];
 let isUploading = false;
 let uploadPaused = false;
 let currentUploadIndex = 0;
@@ -126,7 +126,7 @@ class UploadStateManager {
   }
 
   hasResumableUpload() {
-    return this.state && this.state.uploadQueue && this.state.uploadQueue.length > 0;
+    return this.state && this.state.uploadQueue && this.state.window.filesToUpload.length > 0;
   }
 }
 
@@ -847,7 +847,7 @@ function showUploadPhotosModal() {
   window.rejectedFiles = [];
   
   // Reset upload state
-  uploadQueue = [];
+  window.filesToUpload = [];
   isUploading = false;
   uploadPaused = false;
   currentUploadIndex = 0;
@@ -877,7 +877,7 @@ function hideUploadPhotosModal() {
 function cancelUpload(showMessage = true) {
   isUploading = false;
   uploadPaused = false;
-  uploadQueue = [];
+  window.filesToUpload = [];
   currentUploadIndex = 0;
   
   // Reset UI
@@ -997,7 +997,7 @@ function resumeUploadSession() {
   // Show notification
   if (window.NotificationSystem) {
     window.NotificationSystem.showNotification('info', 'Resuming Upload', 
-      `Resuming upload of ${state.uploadQueue.length} files from previous session`);
+      `Resuming upload of ${state.window.filesToUpload.length} files from previous session`);
   }
   
   // Restore upload state
@@ -1009,7 +1009,7 @@ function resumeUploadSession() {
   if (uploadStatusText) {
     uploadStatusText.innerHTML = `
       <div class="upload-resumed">
-        🔄 Resuming upload session: ${state.uploadQueue.length} files
+        🔄 Resuming upload session: ${state.window.filesToUpload.length} files
       </div>
     `;
   }
@@ -1380,10 +1380,10 @@ async function startPhotoUpload() {
     }
 
     // 🔧 CRITICAL FIX: Use ONLY validated files (this excludes duplicates)
-    uploadQueue = [...window.filesToUpload];
+    //window.filesToUpload = [...window.filesToUpload];
     
     console.log('✅ Upload queue created:', {
-      queueLength: uploadQueue.length,
+      queueLength: window.filesToUpload.length,
       validFiles: window.filesToUpload.length,
       rejectedFiles: window.rejectedFiles?.length || 0
     });
@@ -1430,7 +1430,7 @@ async function startPhotoUpload() {
       
       await validateFunc({
         galleryId: galleryId,
-        fileCount: uploadQueue.length,
+        fileCount: window.filesToUpload.length,
         totalSize: totalSize
       });
       
@@ -1458,7 +1458,7 @@ async function startPhotoUpload() {
     if (pauseUploadBtn) pauseUploadBtn.style.display = 'inline-block';
     if (cancelUploadBtn) cancelUploadBtn.disabled = false;
     
-    console.log(`🚀 Starting upload process with ${uploadQueue.length} validated files...`);
+    console.log(`🚀 Starting upload process with ${window.filesToUpload.length} validated files...`);
     
     // Start the upload process
     await processUploadQueue();
@@ -1483,10 +1483,10 @@ async function startPhotoUpload() {
 // Enhanced Concurrent Upload Processing with Better UI Management
 
 async function processUploadQueue() {
-  console.log(`Conveyor Belt: Processing ${uploadQueue.length} files sequentially`);
+  console.log(`Conveyor Belt: Processing ${window.filesToUpload.length} files sequentially`);
   
   // Process files one by one
-  for (let i = 0; i < uploadQueue.length; i++) {
+  for (let i = 0; i < window.filesToUpload.length; i++) {
     // Check if upload was cancelled or paused
     if (!isUploading) {
       console.log('Upload cancelled, stopping conveyor belt');
@@ -1502,9 +1502,9 @@ async function processUploadQueue() {
     if (!isUploading) break;
     
     currentUploadIndex = i;
-    const file = uploadQueue[i];
+    const file = window.filesToUpload[i];
     
-    console.log(`Conveyor Belt: Processing file ${i + 1}/${uploadQueue.length}: ${file.name}`);
+    console.log(`Conveyor Belt: Processing file ${i + 1}/${window.filesToUpload.length}: ${file.name}`);
     
     // Update UI
     updateFileStatus(i, 'Uploading');
@@ -1537,7 +1537,7 @@ async function processUploadQueue() {
 
 
 function updateTotalProgressSequential() {
-  const totalFiles = uploadQueue.length;
+  const totalFiles = window.filesToUpload.length;
   const completedFiles = currentUploadIndex + 1; // +1 because we just completed current file
   const progress = Math.min(100, Math.round((completedFiles / totalFiles) * 100));
   
@@ -1702,7 +1702,7 @@ async function savePhotoToFirestoreSequential(file, fileName, downloadURL) {
 
 // Process individual upload with retry logic
 async function processIndividualUpload(fileIndex) {
-  const file = uploadQueue[fileIndex];
+  const file = window.filesToUpload[fileIndex];
   const maxRetries = 3;
   let retryCount = uploadRetryAttempts.get(fileIndex) || 0;
   
@@ -1804,7 +1804,7 @@ function uploadComplete() {
   let successfulUploads = 0;
   let failedUploads = 0;
   
-  for (let i = 0; i < uploadQueue.length; i++) {
+  for (let i = 0; i < window.filesToUpload.length; i++) {
     const fileItem = document.querySelector(`.upload-file-item[data-index="${i}"]`);
     if (fileItem) {
       if (fileItem.classList.contains('complete')) {
@@ -1815,7 +1815,7 @@ function uploadComplete() {
     }
   }
   
-  const totalFiles = uploadQueue.length;
+  const totalFiles = window.filesToUpload.length;
   console.log(`Upload Results: ${successfulUploads} success, ${failedUploads} failed, ${totalFiles} total`);
   
   // Clean up state
@@ -2144,7 +2144,7 @@ function updateTotalProgress() {
   }
 
   // More aggressive throttling for large uploads
-  const delay = uploadQueue.length > 50 ? 500 : 200; // Longer delay for large batches
+  const delay = window.filesToUpload.length > 50 ? 500 : 200; // Longer delay for large batches
 
   progressUpdateThrottler = setTimeout(() => {
     const progressBars = document.querySelectorAll('.upload-progress-bar');
@@ -3069,7 +3069,7 @@ function showEnhancedUploadUI() {
   const batchStatusHtml = `
     <div id="uploadBatchStatus" class="upload-batch-status uploading">
       <div class="upload-queue-status" id="uploadQueueStatus"></div>
-      <div>Preparing to upload ${uploadQueue.length} files...</div>
+      <div>Preparing to upload ${window.filesToUpload.length} files...</div>
     </div>
   `;
   
