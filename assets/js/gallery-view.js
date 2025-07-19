@@ -33,8 +33,8 @@ let uploadSessionId = null; // Unique session ID for this upload batch
 
 
 // New file selection variables
-window.allSelectedFiles = []; // All files selected for upload (includes rejected ones)
-window.filesToUpload = []; // Files that passed validation
+//window.allSelectedFiles = []; // All files selected for upload (includes rejected ones)
+//window.filesToUpload = []; // Files that passed validation
 window.rejectedFiles = []; // Files that were rejected with reasons
 
 // Constants
@@ -842,9 +842,10 @@ function showUploadPhotosModal() {
   }
   
   // Clear stored files
-  window.allSelectedFiles = [];
-  window.filesToUpload = [];
+  //window.allSelectedFiles = [];
+  //window.filesToUpload = [];
   window.rejectedFiles = [];
+  uploadQueue = []; // Reset upload queue
   
   // Reset upload state
   uploadQueue = [];
@@ -1028,7 +1029,8 @@ function applyPlanLimits(files) {
   // Messages are shown in handleFiles which is more comprehensive
   
   // Clean arrays
-  window.filesToUpload = [];
+  //window.filesToUpload = [];
+  uploadQueue = [];
   window.rejectedFiles = [];
   
   // Check photo count limit
@@ -1061,7 +1063,8 @@ function applyPlanLimits(files) {
     }
   });
   
-  return window.filesToUpload;
+  //return window.filesToUpload;
+  return uploadQueue;
 }
 
 /**
@@ -1235,7 +1238,8 @@ async function handleFiles(files) {
   }
 
   // Separate valid files from rejected ones (ENHANCED LOGIC)
-  window.filesToUpload = [];
+ // window.filesToUpload = [];
+  uploadQueue = [];
   window.rejectedFiles = [];
   
   // Check total count first (EXISTING LOGIC - UNCHANGED)
@@ -1280,14 +1284,16 @@ async function handleFiles(files) {
         reason: rejectionReason
       });
     } else {
-      window.filesToUpload.push(file);
+      //window.filesToUpload.push(file);
+      uploadQueue.push(file);
     }
   });
   
   // Show count summary (ENHANCED WITH DUPLICATE INFO)
   if (window.rejectedFiles.length > 0) {
     const duplicateCount = duplicateFiles.length;
-    if (window.filesToUpload.length === 0) {
+    //if (window.filesToUpload.length === 0) {
+    if (uploadQueue.length === 0) {
       // All files rejected
       if (duplicateCount > 0 && duplicateCount === window.rejectedFiles.length) {
         showErrorMessage(`All ${duplicateCount} files are already uploaded to this gallery.`);
@@ -1310,7 +1316,8 @@ async function handleFiles(files) {
   updateUploadPreview(window.allSelectedFiles);
   
   // Show next step if we have at least one valid file (EXISTING LOGIC - UNCHANGED)
-  if (window.filesToUpload.length > 0) {
+  //if (window.filesToUpload.length > 0) {
+  if (uploadQueue.length > 0) {
     showUploadStatus();
   } else {
     // Keep on first step if all files are rejected (EXISTING LOGIC - UNCHANGED)
@@ -1366,7 +1373,7 @@ function handleFileSelect(event) {
 async function startPhotoUpload() {
   try {
     console.log('🚀 Starting upload with validation check...');
-    
+   /** 
     // ✅ Check if we have valid files to upload
     if (!window.filesToUpload || window.filesToUpload.length === 0) {
       showErrorMessage('No valid files selected for upload');
@@ -1379,12 +1386,24 @@ async function startPhotoUpload() {
       return;
     }
 
+*/
+    if (uploadQueue.length === 0) {
+      showErrorMessage('No valid files selected for upload');
+      console.log('❌ No valid files found');
+      console.log('📊 Files status:', {
+        selected: window.allSelectedFiles?.length || 0,
+        valid: uploadQueue.length || 0,
+        rejected: window.rejectedFiles?.length || 0
+      });
+      return;
+    }
+
     // 🔧 CRITICAL FIX: Use ONLY validated files (this excludes duplicates)
-    uploadQueue = [...window.filesToUpload];
+    //uploadQueue = [...window.filesToUpload];
     
     console.log('✅ Upload queue created:', {
       queueLength: uploadQueue.length,
-      validFiles: window.filesToUpload.length,
+      //validFiles: window.filesToUpload.length,
       rejectedFiles: window.rejectedFiles?.length || 0
     });
     
@@ -1898,7 +1917,8 @@ function updateUploadPreview(files) {
     // Check if this file is in the rejected list
     const rejectedInfo = window.rejectedFiles?.find(r => r.file === file);
     const isRejected = !!rejectedInfo;
-    const willUpload = window.filesToUpload?.includes(file);
+    //const willUpload = window.filesToUpload?.includes(file);
+    const willUpload = uploadQueue.includes(file);
     
     // Create file item container
     const fileItem = document.createElement('div');
@@ -1961,7 +1981,9 @@ function updateUploadPreview(files) {
   // Update the counts with clear messaging
   const totalCountElement = document.getElementById('uploadTotalCount');
   if (totalCountElement) {
-    const validFiles = window.filesToUpload?.length || 0;
+    //const validFiles = window.filesToUpload?.length || 0;
+    //const validFiles = window.filesToUpload?.length || 0;
+    const validFiles = uploadQueue.length || 0;
     const rejectedFiles = window.rejectedFiles?.length || 0;
     const totalFiles = files.length;
     
@@ -2038,23 +2060,26 @@ function showUploadStatus() {
   // Update status text
   const uploadStatusText = document.getElementById('uploadStatusText');
   if (uploadStatusText) {
-    const validCount = window.filesToUpload?.length || 0;
+    //const validCount = window.filesToUpload?.length || 0;
+    const validCount = uploadQueue.length || 0;
     uploadStatusText.textContent = `Ready to upload ${validCount} files`;
   }
   
   // Enable/disable buttons based on valid file count
   const startUploadBtn = document.getElementById('startUploadBtn');
   if (startUploadBtn) {
-    const validCount = window.filesToUpload?.length || 0;
-    startUploadBtn.disabled = validCount === 0;
+    //const validCount = window.filesToUpload?.length || 0;
+    //startUploadBtn.disabled = validCount === 0;
+    startUploadBtn.disabled = uploadQueue.length === 0;
   }
   
   // Show the back button if we have rejected files but no valid ones
   const backToSelectBtn = document.getElementById('backToSelectBtn');
   if (backToSelectBtn) {
+  
     backToSelectBtn.style.display = 
       (window.rejectedFiles && window.rejectedFiles.length > 0 && 
-       (!window.filesToUpload || window.filesToUpload.length === 0)) ? 'inline-block' : 'none';
+       uploadQueue.length === 0) ? 'inline-block' : 'none';
   }
 }
 
