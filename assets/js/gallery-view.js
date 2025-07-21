@@ -1,5 +1,4 @@
  /**
- *
  * gallery-view.js - Handles displaying and interacting with a photo gallery
  * Updated with pagination, synchronization, plan enforcement, and upload reliability
  * Enhanced with improved file rejection handling and visualization
@@ -23,16 +22,6 @@ let isUploading = false;
 let uploadPaused = false;
 let currentUploadIndex = 0;
 
-// MVP Upload Enhancement Variables
-let activeUploadTasks = new Map(); // Store active Firebase upload tasks
-let uploadStateManager = null; // Upload state persistence manager
-let progressUpdateThrottler = null; // Progress update throttler
-let concurrentUploadLimit = 5; // Number of concurrent uploads
-let uploadRetryAttempts = new Map(); // Track retry attempts per file
-let uploadSessionId = null; // Unique session ID for this upload batch
-
-
-
 // New file selection variables
 window.allSelectedFiles = []; // All files selected for upload (includes rejected ones)
 window.filesToUpload = []; // Files that passed validation
@@ -42,11 +31,6 @@ window.rejectedFiles = []; // Files that were rejected with reasons
 const THUMBNAIL_SIZE = 'md'; // Thumbnail size to use (options: sm, md, lg)
 const PHOTOS_PER_PAGE = 30; // Number of photos to load per page
 const DEFAULT_PLAN = 'basic'; // Default plan if no plan is found
-
-// Upload state persistence keys
-const UPLOAD_STATE_KEY = 'snapselect_upload_state';
-const UPLOAD_QUEUE_KEY = 'snapselect_upload_queue';
-const UPLOAD_PROGRESS_KEY = 'snapselect_upload_progress';
 
 // Plan limits based on subscription
 const PLAN_LIMITS = {
@@ -73,64 +57,6 @@ function hideLoadingOverlay() {
   const loadingOverlay = document.getElementById('loadingOverlay');
   if (loadingOverlay) loadingOverlay.style.display = 'none';
 }
-
-// MVP Upload State Manager
-class UploadStateManager {
-  constructor() {
-    this.sessionId = Date.now().toString();
-    this.state = this.loadState();
-  }
-
-  saveState() {
-    try {
-      const stateData = {
-        sessionId: this.sessionId,
-        galleryId: galleryId,
-        uploadQueue: uploadQueue.map(file => ({
-          name: file.name,
-          size: file.size,
-          type: file.type,
-          lastModified: file.lastModified
-        })),
-        currentIndex: currentUploadIndex,
-        isUploading: isUploading,
-        isPaused: uploadPaused,
-        timestamp: Date.now()
-      };
-      
-      localStorage.setItem(UPLOAD_STATE_KEY, JSON.stringify(stateData));
-    } catch (error) {
-      console.error('Failed to save upload state:', error);
-    }
-  }
-
-  loadState() {
-    try {
-      const saved = localStorage.getItem(UPLOAD_STATE_KEY);
-      if (saved) {
-        const state = JSON.parse(saved);
-        // Only restore if it's recent (within 1 hour) and same gallery
-        if (Date.now() - state.timestamp < 3600000 && state.galleryId === galleryId) {
-          return state;
-        }
-      }
-    } catch (error) {
-      console.error('Failed to load upload state:', error);
-    }
-    return null;
-  }
-
-  clearState() {
-    localStorage.removeItem(UPLOAD_STATE_KEY);
-    localStorage.removeItem(UPLOAD_QUEUE_KEY);
-    localStorage.removeItem(UPLOAD_PROGRESS_KEY);
-  }
-
-  hasResumableUpload() {
-    return this.state && this.state.uploadQueue && this.state.uploadQueue.length > 0;
-  }
-}
-
 
 // Initialize gallery view
 function initGalleryView() {
@@ -240,25 +166,10 @@ function setupEventListeners() {
   const startUploadBtn = document.getElementById('startUploadBtn');
   const cancelUploadBtn = document.getElementById('cancelUploadBtn');
   const pauseUploadBtn = document.getElementById('pauseUploadBtn');
-
- /**
+  
   if (startUploadBtn) startUploadBtn.addEventListener('click', startPhotoUpload);
   if (cancelUploadBtn) cancelUploadBtn.addEventListener('click', cancelUpload);
   if (pauseUploadBtn) pauseUploadBtn.addEventListener('click', togglePauseUpload);
-*/
-
-  if (startUploadBtn) {
-   startUploadBtn.removeEventListener('click', startPhotoUpload);
-   startUploadBtn.addEventListener('click', startPhotoUpload);
-  }
-  if (cancelUploadBtn) {
-    cancelUploadBtn.removeEventListener('click', cancelUpload);
-    cancelUploadBtn.addEventListener('click', cancelUpload);
-  }
-  if (pauseUploadBtn) {
-    pauseUploadBtn.removeEventListener('click', togglePauseUpload);
-    pauseUploadBtn.addEventListener('click', togglePauseUpload);
-  }
   
   // --- NEW EVENT LISTENERS ---
   
@@ -925,113 +836,31 @@ function cancelUpload(showMessage = true) {
 }
 
 // Toggle pause/resume for uploads
-
-// Enhanced Pause/Resume with Real Upload Task Control
 function togglePauseUpload() {
   const pauseUploadBtn = document.getElementById('pauseUploadBtn');
   
   if (uploadPaused) {
     // Resume upload
     uploadPaused = false;
-    
-    // Resume all active upload tasks
-    activeUploadTasks.forEach((uploadTask, fileIndex) => {
-      try {
-        uploadTask.resume();
-        updateFileStatus(fileIndex, 'Uploading');
-      } catch (error) {
-        console.error(`Failed to resume upload for file ${fileIndex}:`, error);
-      }
-    });
-    
     if (pauseUploadBtn) {
       pauseUploadBtn.innerHTML = '<i class="fas fa-pause"></i> Pause Upload';
     }
-    
-    // Show notification
-    if (window.NotificationSystem) {
-      window.NotificationSystem.showNotification('info', 'Upload Resumed', 'Upload process has been resumed');
-    }
-    
-    // Continue processing queue
-    processUploadQueue();
-    
+    showInfoMessage('Upload resumed');
+    processUploadQueue(); // Resume processing
   } else {
     // Pause upload
     uploadPaused = true;
-    
-    // Pause all active upload tasks
-    activeUploadTasks.forEach((uploadTask, fileIndex) => {
-      try {
-        uploadTask.pause();
-        updateFileStatus(fileIndex, 'Paused');
-      } catch (error) {
-        console.error(`Failed to pause upload for file ${fileIndex}:`, error);
-      }
-    });
-    
     if (pauseUploadBtn) {
       pauseUploadBtn.innerHTML = '<i class="fas fa-play"></i> Resume Upload';
     }
-    
-    // Show notification
-    if (window.NotificationSystem) {
-      window.NotificationSystem.showNotification('info', 'Upload Paused', 'Upload process has been paused');
-    }
+    showInfoMessage('Upload paused');
   }
   
-  // Save state
-  if (uploadStateManager) {
-    uploadStateManager.saveState();
+  // Update status for the current file
+  if (uploadQueue.length > 0 && currentUploadIndex < uploadQueue.length) {
+    const status = uploadPaused ? 'Paused' : 'Uploading';
+    updateFileStatus(currentUploadIndex, status);
   }
-}
-
-
-// Initialize Upload Session with Resume Capability
-function initializeUploadSession() {
-  uploadSessionId = Date.now().toString();
-  uploadStateManager = new UploadStateManager();
-  
-  // Check for resumable uploads
-  if (uploadStateManager.hasResumableUpload()) {
-    const resumeConfirm = confirm('Found incomplete upload from previous session. Would you like to resume?');
-    if (resumeConfirm) {
-      resumeUploadSession();
-      return true;
-    } else {
-      uploadStateManager.clearState();
-    }
-  }
-  
-  return false;
-}
-
-function resumeUploadSession() {
-  const state = uploadStateManager.state;
-  if (!state || !state.uploadQueue) return;
-  
-  // Show notification
-  if (window.NotificationSystem) {
-    window.NotificationSystem.showNotification('info', 'Resuming Upload', 
-      `Resuming upload of ${state.uploadQueue.length} files from previous session`);
-  }
-  
-  // Restore upload state
-  currentUploadIndex = state.currentIndex || 0;
-  uploadPaused = state.isPaused || false;
-  
-  // Update UI to show resumed state
-  const uploadStatusText = document.getElementById('uploadStatusText');
-  if (uploadStatusText) {
-    uploadStatusText.innerHTML = `
-      <div class="upload-resumed">
-        🔄 Resuming upload session: ${state.uploadQueue.length} files
-      </div>
-    `;
-  }
-  
-  // Show upload step 2
-  showUploadStatus();
 }
 
 // Function to apply plan limits to uploads but preserves the files for display
@@ -1087,120 +916,48 @@ function applyPlanLimits(files) {
  */
 
 // Add this new function for checking duplicates
-
-// REPLACE THE ENTIRE checkForDuplicates() function with this improved version
-
 async function checkForDuplicates(files, galleryId) {
   try {
     if (!files || files.length === 0 || !galleryId) {
-      return [];
+      return []; // Return empty array if no files or gallery ID
     }
-
-    console.log(`🔍 IMPROVED: Checking ${files.length} files for duplicates in gallery ${galleryId}`);
 
     // Get existing photos from Firestore for this gallery
     const db = firebase.firestore();
     const existingPhotosSnapshot = await db.collection('photos')
       .where('galleryId', '==', galleryId)
-      .where('status', '==', 'active')
+      .where('status', '==', 'active') // Only check active photos
       .get();
 
-    console.log(`📁 Found ${existingPhotosSnapshot.size} existing photos in gallery`);
-
-    if (existingPhotosSnapshot.empty) {
-      console.log(`✅ No existing photos found, no duplicates possible`);
-      return [];
-    }
-
-    // Create a comprehensive set of existing file signatures
-    const existingSignatures = new Set();
-    
+    // Create a map of existing photos for quick lookup
+    const existingPhotos = new Map();
     existingPhotosSnapshot.forEach(doc => {
       const data = doc.data();
-      
-      if (data.name && data.size !== undefined) {
-        // Multiple ways to identify the same file
-        const signatures = [
-          `${data.name.toLowerCase()}_${data.size}`,
-          `${data.name.toLowerCase()}_${data.size}_${data.type || ''}`,
-          // Handle sanitized names
-          `${data.name.replace(/[^a-zA-Z0-9._-]/g, '_').toLowerCase()}_${data.size}`,
-        ];
-        
-        signatures.forEach(sig => existingSignatures.add(sig));
-        
-        console.log(`📝 Added signatures for existing photo: ${data.name} (${data.size} bytes)`);
-      }
+      // Create a unique key: filename + size + type
+      const key = `${data.name}_${data.size}_${data.type}`;
+      existingPhotos.set(key, data);
     });
 
-    // Check each file against all existing signatures
+    // Check each file against existing photos
     const duplicates = [];
-    
     files.forEach(file => {
-      const fileSignatures = [
-        `${file.name.toLowerCase()}_${file.size}`,
-        `${file.name.toLowerCase()}_${file.size}_${file.type || ''}`,
-        `${file.name.replace(/[^a-zA-Z0-9._-]/g, '_').toLowerCase()}_${file.size}`,
-      ];
-      
-      let isDuplicate = false;
-      let matchedSignature = '';
-      
-      for (const signature of fileSignatures) {
-        if (existingSignatures.has(signature)) {
-          isDuplicate = true;
-          matchedSignature = signature;
-          break;
-        }
-      }
-      
-      if (isDuplicate) {
-        console.log(`🚫 DUPLICATE FOUND: ${file.name} (matched: ${matchedSignature})`);
+      const fileKey = `${file.name}_${file.size}_${file.type}`;
+      if (existingPhotos.has(fileKey)) {
         duplicates.push({
           file: file,
-          existingPhoto: { name: file.name, size: file.size }, // Simplified
-          detectionMethod: 'comprehensive'
+          existingPhoto: existingPhotos.get(fileKey)
         });
-      } else {
-        console.log(`✅ No duplicate found for: ${file.name}`);
       }
     });
 
-    console.log(`📊 Duplicate check complete: ${duplicates.length} duplicates found out of ${files.length} files`);
     return duplicates;
-
   } catch (error) {
-    console.error('❌ Error in duplicate check:', error);
-    return []; // Return empty array on error to not block uploads
+    console.error('Error checking for duplicates:', error);
+    // If duplicate check fails, return empty array to not block uploads
+    return [];
   }
 }
 
-
-async function debugDuplicateDetection(fileName, fileSize) {
-  try {
-    console.log(`🔧 DEBUG: Checking for duplicates of ${fileName} (${fileSize} bytes)`);
-    
-    const db = firebase.firestore();
-    const existingPhotosSnapshot = await db.collection('photos')
-      .where('galleryId', '==', galleryId)
-      .where('status', '==', 'active')
-      .get();
-
-    console.log(`📁 Found ${existingPhotosSnapshot.size} existing photos in gallery`);
-
-    existingPhotosSnapshot.forEach(doc => {
-      const data = doc.data();
-      console.log(`📝 Existing photo: ${data.name} (${data.size} bytes) - ${data.type || 'unknown type'}`);
-      
-      if (data.name.toLowerCase() === fileName.toLowerCase() && data.size === fileSize) {
-        console.log(`🚫 EXACT MATCH FOUND: ${data.name}`);
-      }
-    });
-
-  } catch (error) {
-    console.error('❌ Debug error:', error);
-  }
-}
 /**
  * REPLACE the existing handleFiles() function with this enhanced version
  * This preserves ALL existing functionality and adds duplicate detection
@@ -1233,20 +990,11 @@ async function handleFiles(files) {
   const maxFileSizeMB = planLimits.maxSize;
   
   // *** NEW: Check for duplicates first ***
- // *** ENHANCED: Check for duplicates with better detection ***
   let duplicateFiles = [];
   try {
-    console.log('🔍 Starting duplicate detection...');
     duplicateFiles = await checkForDuplicates(imageFiles, galleryId);
-    
-    if (duplicateFiles.length > 0) {
-      console.log(`🚫 Found ${duplicateFiles.length} duplicate files:`);
-      duplicateFiles.forEach(dup => {
-        console.log(`  - ${dup.file.name} (detected via ${dup.detectionMethod})`);
-      });
-    }
   } catch (error) {
-    console.error('❌ Duplicate check failed, continuing with upload:', error);
+    console.error('Duplicate check failed, continuing with upload:', error);
     // If duplicate check fails, continue without blocking uploads
   }
 
@@ -1273,11 +1021,10 @@ async function handleFiles(files) {
     let rejectionReason = '';
     
     // *** NEW: Check if file is a duplicate first ***
-    // *** ENHANCED: Check if file is a duplicate first ***
-    const duplicateInfo = duplicateFiles.find(dup => dup.file === file);
-    if (duplicateInfo) {
+    const isDuplicate = duplicateFiles.find(dup => dup.file === file);
+    if (isDuplicate) {
       rejected = true;
-      rejectionReason = `Already uploaded as "${duplicateInfo.existingPhoto.name}" (${duplicateInfo.detectionMethod} match)`;
+      rejectionReason = `Already uploaded (same name and size)`;
     }
     // Check if we've exceeded count limit (EXISTING LOGIC - UNCHANGED)
     else if (countLimited && index >= availableSlots) {
@@ -1374,133 +1121,75 @@ function handleFileSelect(event) {
 }
 
 // Enhanced startPhotoUpload with queue processing
-
-// Enhanced startPhotoUpload with backend validation
-
-// Enhanced Upload Start with Session Management
-
 async function startPhotoUpload() {
   try {
-    console.log('🚀 Starting upload with validation check...');
-    
-    // ✅ Check if we have valid files to upload
     if (!window.filesToUpload || window.filesToUpload.length === 0) {
-      showErrorMessage('No valid files selected for upload');
-      console.log('❌ No valid files found');
-      console.log('📊 Files status:', {
-        selected: window.allSelectedFiles?.length || 0,
-        valid: window.filesToUpload?.length || 0,
-        rejected: window.rejectedFiles?.length || 0
-      });
-      return;
-    }
-
-    // 🔧 CRITICAL FIX: Use ONLY validated files (this excludes duplicates)
-    uploadQueue = [...window.filesToUpload];
-    
-    console.log('✅ Upload queue created:', {
-      queueLength: uploadQueue.length,
-      validFiles: window.filesToUpload.length,
-      rejectedFiles: window.rejectedFiles?.length || 0
-    });
-    
-    // 🔍 Log what files are being uploaded vs rejected
-    console.log('📝 Files TO UPLOAD:');
-    uploadQueue.forEach((file, i) => console.log(`  ${i + 1}. ${file.name}`));
-    
-    if (window.rejectedFiles?.length > 0) {
-      console.log('🚫 Files REJECTED (will NOT upload):');
-      window.rejectedFiles.forEach((rejected, i) => {
-        console.log(`  ${i + 1}. ${rejected.file.name} - ${rejected.reason}`);
-      });
-    }
-    
-    // ✅ Verify no rejected files are in upload queue
-    const rejectedNames = new Set((window.rejectedFiles || []).map(r => r.file.name));
-    const duplicatesInQueue = uploadQueue.filter(file => rejectedNames.has(file.name));
-    
-    if (duplicatesInQueue.length > 0) {
-      console.error('❌ CRITICAL ERROR: Rejected files found in upload queue!');
-      duplicatesInQueue.forEach(file => console.error(`  - ${file.name}`));
-      showErrorMessage('Upload queue contains rejected files. Please refresh and try again.');
+      showErrorMessage('No files selected for upload');
       return;
     }
     
-    console.log('✅ Queue validation passed - no rejected files in upload queue');
+    if (!galleryId || !currentUser) {
+      showErrorMessage('Gallery information missing');
+      return;
+    }
     
-    // Reset upload state
+    // Prevent starting if already uploading
+    if (isUploading) {
+      showWarningMessage('Upload already in progress');
+      return;
+    }
+    
+    // Clear existing queue
+    uploadQueue = [];
     currentUploadIndex = 0;
     isUploading = true;
     uploadPaused = false;
-    activeUploadTasks.clear();
-    uploadRetryAttempts.clear();
     
-    // Backend validation (existing code)
-    try {
-      showLoadingOverlay('Validating upload permissions...');
-      
-      const functions = firebase.app().functions('asia-south1');
-      const validateFunc = functions.httpsCallable('validatePhotoUpload');
-      
-      const totalSize = uploadQueue.reduce((sum, file) => sum + file.size, 0);
-      
-      await validateFunc({
-        galleryId: galleryId,
-        fileCount: uploadQueue.length,
-        totalSize: totalSize
-      });
-      
-      hideLoadingOverlay();
-      
-    } catch (validationError) {
-      hideLoadingOverlay();
-      console.error('Upload validation failed:', validationError);
-      showErrorMessage('Upload validation failed: ' + validationError.message);
-      return;
-    }
+    // Add files to upload queue - we don't need to apply plan limits again
+    // since we already filtered them in handleFiles
+    uploadQueue = window.filesToUpload;
     
-    // Show progress UI
+    // Show progress container
     const uploadProgressContainer = document.getElementById('uploadProgressContainer');
-    if (uploadProgressContainer) {
-      uploadProgressContainer.style.display = 'block';
-    }
+    if (uploadProgressContainer) uploadProgressContainer.style.display = 'block';
     
-    // Update buttons
+    // Disable upload buttons
     const startUploadBtn = document.getElementById('startUploadBtn');
-    const pauseUploadBtn = document.getElementById('pauseUploadBtn');
     const cancelUploadBtn = document.getElementById('cancelUploadBtn');
+    const pauseUploadBtn = document.getElementById('pauseUploadBtn');
+    const backToSelectBtn = document.getElementById('backToSelectBtn');
     
     if (startUploadBtn) startUploadBtn.disabled = true;
-    if (pauseUploadBtn) pauseUploadBtn.style.display = 'inline-block';
     if (cancelUploadBtn) cancelUploadBtn.disabled = false;
+    if (pauseUploadBtn) {
+      pauseUploadBtn.disabled = false;
+      pauseUploadBtn.style.display = 'inline-block';
+    }
+    if (backToSelectBtn) backToSelectBtn.style.display = 'none';
     
-    console.log(`🚀 Starting upload process with ${uploadQueue.length} validated files...`);
+    // Set initial statuses
+    for (let i = 0; i < uploadQueue.length; i++) {
+      updateFileStatus(i, 'Waiting');
+    }
     
-    // Start the upload process
-    await processUploadQueue();
+    // Start processing queue
+    processUploadQueue();
     
   } catch (error) {
     console.error('Error starting upload:', error);
     showErrorMessage(`Upload failed: ${error.message}`);
     isUploading = false;
+    
+    // Re-enable buttons
+    const startUploadBtn = document.getElementById('startUploadBtn');
+    const cancelUploadBtn = document.getElementById('cancelUploadBtn');
+    if (startUploadBtn) startUploadBtn.disabled = false;
+    if (cancelUploadBtn) cancelUploadBtn.disabled = false;
   }
 }
 
- 
-
 /**
  * Process upload queue with pause/resume support and improved progress tracking
- */
-
-// Enhanced processUploadQueue with better error handling
-
-// Enhanced Concurrent Upload Processing
-
-// Enhanced Concurrent Upload Processing with Better UI Management
-
-/**
- * FIXED processUploadQueue function - restores the working event-driven approach
- * Replace your current processUploadQueue() function with this one
  */
 async function processUploadQueue() {
   if (!isUploading || uploadPaused) return;
@@ -1513,8 +1202,6 @@ async function processUploadQueue() {
   }
   
   const file = uploadQueue[currentUploadIndex];
-  console.log(`📤 Starting upload ${currentUploadIndex + 1}/${uploadQueue.length}: ${file.name}`);
-  
   try {
     // Update file status to "Uploading"
     updateFileStatus(currentUploadIndex, 'Uploading');
@@ -1524,8 +1211,6 @@ async function processUploadQueue() {
     const timestamp = Date.now();
     const random = Math.floor(Math.random() * 10000);
     const fileName = `${timestamp}_${random}_${safeOriginalName}`;
-    
-    console.log(`📝 Generated filename: ${fileName}`);
     
     // Initialize storage
     const storage = firebase.storage();
@@ -1546,7 +1231,7 @@ async function processUploadQueue() {
       }
     });
     
-    // 🎯 CRITICAL FIX: Use Firebase's event-driven approach (like the working version)
+    // Set up progress tracking and state management
     uploadTask.on('state_changed', 
       // Progress handler
       (snapshot) => {
@@ -1558,22 +1243,18 @@ async function processUploadQueue() {
       },
       // Error handler
       (error) => {
-        console.error(`❌ Upload failed for file ${currentUploadIndex + 1}:`, error);
+        console.error('Upload error:', error);
         updateFileStatus(currentUploadIndex, 'Failed');
         
-        // 🔥 CRITICAL: Only ONE place moves to next file
+        // Continue with next file
         currentUploadIndex++;
-        console.log(`➡️ Moving to next file after error (index ${currentUploadIndex})`);
         processUploadQueue();
       },
-      // Success handler - this is where the working version puts the logic
+      // Completion handler
       async () => {
         try {
-          console.log('✅ Upload completed, getting download URL...');
-          
           // Get download URL
           const downloadURL = await uploadTask.snapshot.ref.getDownloadURL();
-          console.log('📎 Download URL obtained');
           
           // Create thumbnails
           const thumbnails = {
@@ -1593,7 +1274,6 @@ async function processUploadQueue() {
           };
           
           // Add to Firestore
-          console.log('💾 Saving to Firestore...');
           const db = firebase.firestore();
           const photoDoc = db.collection('photos').doc();
           
@@ -1614,8 +1294,6 @@ async function processUploadQueue() {
             ...searchableInfo
           });
           
-          console.log('✅ Saved to Firestore');
-          
           // Update file status to "Complete"
           updateFileStatus(currentUploadIndex, 'Complete');
           
@@ -1628,340 +1306,71 @@ async function processUploadQueue() {
           // Update plan storage usage if needed
           if (galleryData.planId) {
             await db.collection('client-plans').doc(galleryData.planId).update({
-              storageUsed: firebase.firestore.FieldValue.increment(file.size / (1024 * 1024)),
+              storageUsed: firebase.firestore.FieldValue.increment(file.size / (1024 * 1024)), // Convert to MB
               photosUploaded: firebase.firestore.FieldValue.increment(1),
               updatedAt: firebase.firestore.FieldValue.serverTimestamp()
             });
           }
           
-          console.log(`🎉 File ${currentUploadIndex + 1} completed successfully: ${file.name}`);
-          
-          // 🔥 CRITICAL: Only ONE place moves to next file
+          // Move to next file
           currentUploadIndex++;
-          console.log(`➡️ Moving to next file after success (index ${currentUploadIndex})`);
           processUploadQueue();
           
         } catch (error) {
-          console.error(`❌ Error processing uploaded file:`, error);
+          console.error('Error processing uploaded file:', error);
           updateFileStatus(currentUploadIndex, 'Failed');
           
-          // 🔥 CRITICAL: Only ONE place moves to next file
+          // Continue with next file
           currentUploadIndex++;
-          console.log(`➡️ Moving to next file after Firestore error (index ${currentUploadIndex})`);
           processUploadQueue();
         }
       }
     );
     
   } catch (error) {
-    console.error(`❌ Error uploading file:`, error);
+    console.error('Error uploading file:', error);
     updateFileStatus(currentUploadIndex, 'Failed');
     
-    // 🔥 CRITICAL: Only ONE place moves to next file
+    // Continue with next file
     currentUploadIndex++;
-    console.log(`➡️ Moving to next file after catch error (index ${currentUploadIndex})`);
     processUploadQueue();
   }
 }
 
-
-/**
-function updateTotalProgressSequential() {
-  const totalFiles = uploadQueue.length;
-  const completedFiles = currentUploadIndex + 1; // +1 because we just completed current file
-  const progress = Math.min(100, Math.round((completedFiles / totalFiles) * 100));
-  
-  // Update progress bar
-  const totalProgressBar = document.getElementById('totalProgressBar');
-  if (totalProgressBar) {
-    totalProgressBar.style.width = `${progress}%`;
-    totalProgressBar.setAttribute('aria-valuenow', progress);
-  }
-  
-  // Update progress text
-  const progressText = document.getElementById('totalProgressText');
-  if (progressText) {
-    progressText.textContent = `${progress}% Complete (${Math.min(completedFiles, totalFiles)}/${totalFiles})`;
-  }
-  
-  console.log(`Progress: ${completedFiles}/${totalFiles} (${progress}%)`);
-}
-
-*/
-/**
-async function uploadSingleFileSequential(file, index) {
-  return new Promise(async (resolve, reject) => {
-    try {
-      // *** CRITICAL: RE-CHECK FOR DUPLICATES BEFORE UPLOAD ***
-      console.log(`🔍 Double-checking for duplicates before uploading: ${file.name}`);
-      
-      const duplicateCheck = await checkForDuplicates([file], galleryId);
-      if (duplicateCheck.length > 0) {
-        console.log(`🚫 DUPLICATE DETECTED during upload: ${file.name}`);
-        reject(new Error(`Duplicate file detected: ${file.name} already exists`));
-        return;
-      }
-      
-      console.log(`✅ No duplicate found, proceeding with upload: ${file.name}`);
-      
-      // Create unique filename (same as before)
-      const safeOriginalName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
-      const timestamp = Date.now();
-      const random = Math.floor(Math.random() * 10000);
-      const fileName = `${timestamp}_${random}_${safeOriginalName}`;
-      
-      // Initialize Firebase storage
-      const storage = firebase.storage();
-      const fileRef = storage.ref(`galleries/${galleryId}/photos/${fileName}`);
-      
-      // Create upload task
-      const uploadTask = fileRef.put(file, {
-        contentType: file.type,
-        customMetadata: {
-          'uploadedBy': currentUser.uid,
-          'uploaderEmail': currentUser.email,
-          'galleryId': galleryId,
-          'originalName': file.name,
-          'sessionId': uploadSessionId || Date.now().toString()
-        }
-      });
-      
-      // Store for pause/resume
-      activeUploadTasks.set(index, uploadTask);
-      
-      // Progress tracking
-      uploadTask.on('state_changed',
-        (snapshot) => {
-          if (!isUploading) return;
-          const progress = (snapshot.bytesTransferred / snapshot.totalBytes);
-          updateFileProgress(index, progress);
-        },
-        (error) => {
-          console.error(`Upload error for ${file.name}:`, error);
-          activeUploadTasks.delete(index);
-          reject(error);
-        },
-        async () => {
-          try {
-            // Get download URL
-            const downloadURL = await uploadTask.snapshot.ref.getDownloadURL();
-            
-            // *** CRITICAL: FINAL CHECK BEFORE SAVING TO FIRESTORE ***
-            console.log(`🔍 Final duplicate check before saving to Firestore: ${file.name}`);
-            
-            const finalDuplicateCheck = await checkForDuplicates([file], galleryId);
-            if (finalDuplicateCheck.length > 0) {
-              console.log(`🚫 DUPLICATE DETECTED before Firestore save: ${file.name}`);
-              
-              // Delete the uploaded file from storage since it's a duplicate
-              try {
-                await fileRef.delete();
-                console.log(`🗑️ Deleted duplicate file from storage: ${fileName}`);
-              } catch (deleteError) {
-                console.error('Error deleting duplicate file from storage:', deleteError);
-              }
-              
-              reject(new Error(`Duplicate file detected during final check: ${file.name}`));
-              return;
-            }
-            
-            // Save to Firestore
-            await savePhotoToFirestoreSequential(file, fileName, downloadURL);
-            
-            activeUploadTasks.delete(index);
-            resolve({ success: true, fileName, downloadURL });
-            
-          } catch (firestoreError) {
-            console.error(`Firestore save error for ${file.name}:`, firestoreError);
-            activeUploadTasks.delete(index);
-            reject(firestoreError);
-          }
-        }
-      );
-      
-    } catch (error) {
-      console.error(`Error in uploadSingleFileSequential for ${file.name}:`, error);
-      reject(error);
-    }
-  });
-}
-*/
-
-async function savePhotoToFirestoreSequential(file, fileName, downloadURL) {
-  const db = firebase.firestore();
-  const photoDoc = db.collection('photos').doc();
-  
-  // Create photo document
-  await photoDoc.set({
-    galleryId: galleryId,
-    photographerId: currentUser.uid,
-    name: file.name,
-    fileName: fileName,
-    storageRef: `galleries/${galleryId}/photos/${fileName}`,
-    url: downloadURL,
-    thumbnails: {
-      sm: downloadURL,
-      md: downloadURL,
-      lg: downloadURL
-    },
-    size: file.size,
-    type: file.type,
-    width: 0,
-    height: 0,
-    status: 'active',
-    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-    sessionId: uploadSessionId || Date.now().toString(),
-    // Searchable info (keep existing structure)
-    galleryName: galleryData.name || 'Untitled Gallery',
-    clientName: galleryData.clientName || 'Unknown Client',
-    photoName: file.name,
-    photoNameLower: file.name.toLowerCase(),
-    searchLabel: `Photo: ${file.name} in ${galleryData.name}`,
-    photographerEmail: currentUser.email
-  });
-  
-  // Update gallery count
-  await db.collection('galleries').doc(galleryId).update({
-    photosCount: firebase.firestore.FieldValue.increment(1),
-    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-  });
-  
-  console.log(`✅ Saved to Firestore: ${file.name}`);
-}
-
-
-/**
-// Process individual upload with retry logic
-async function processIndividualUpload(fileIndex) {
-  const file = uploadQueue[fileIndex];
-  const maxRetries = 3;
-  let retryCount = uploadRetryAttempts.get(fileIndex) || 0;
-  
-  while (retryCount < maxRetries) {
-    try {
-      updateFileStatus(fileIndex, 'Uploading');
-      
-      // Create unique filename
-      const safeOriginalName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
-      const timestamp = Date.now();
-      const random = Math.floor(Math.random() * 10000);
-      const fileName = `${timestamp}_${random}_${safeOriginalName}`;
-      
-      // Initialize storage
-      const storage = firebase.storage();
-      const storageRef = storage.ref();
-      const fileRef = storageRef.child(`galleries/${galleryId}/photos/${fileName}`);
-      
-      // Create upload task
-      const uploadTask = fileRef.put(file, {
-        contentType: file.type,
-        customMetadata: {
-          'uploadedBy': currentUser.uid,
-          'uploaderEmail': currentUser.email,
-          'galleryId': galleryId,
-          'originalName': file.name,
-          'sessionId': uploadSessionId
-        }
-      });
-      
-      // Store upload task for pause/resume
-      activeUploadTasks.set(fileIndex, uploadTask);
-      
-      // Set up progress tracking
-      uploadTask.on('state_changed', 
-        (snapshot) => {
-          if (!isUploading) return;
-          const progress = (snapshot.bytesTransferred / snapshot.totalBytes);
-          updateFileProgress(fileIndex, progress);
-          updateTotalProgress();
-        }
-      );
-      
-      // Wait for upload completion
-      await uploadTask;
-      
-      // Get download URL and save to Firestore
-      const downloadURL = await uploadTask.snapshot.ref.getDownloadURL();
-      await savePhotoToFirestore(fileIndex, file, fileName, downloadURL);
-      
-      updateFileStatus(fileIndex, 'Complete');
-      activeUploadTasks.delete(fileIndex);
-      uploadRetryAttempts.delete(fileIndex);
-      
-      return; // Success, exit retry loop
-      
-    } catch (error) {
-      console.error(`Upload error for file ${fileIndex}:`, error);
-      retryCount++;
-      uploadRetryAttempts.set(fileIndex, retryCount);
-      
-      if (retryCount < maxRetries) {
-        updateFileStatus(fileIndex, `Retrying (${retryCount}/${maxRetries})`);
-        await new Promise(resolve => setTimeout(resolve, 1000 * retryCount)); // Exponential backoff
-      } else {
-        updateFileStatus(fileIndex, 'Failed');
-        activeUploadTasks.delete(fileIndex);
-        break; // Max retries reached
-      }
-    }
-  }
-}
-
-*/
 // Upload completion handler
-
-// Enhanced uploadComplete with better notifications
-
-// Enhanced Upload Complete with State Cleanup
-
-// Add warning for large file uploads
-function showUploadSizeWarning(fileCount) {
-  if (fileCount > 100) {
-    const warningMsg = `You're uploading ${fileCount} files. For best performance, consider uploading in smaller batches of 50-100 files.`;
-    if (window.NotificationSystem) {
-      window.NotificationSystem.showNotification('warning', 'Large Upload Warning', warningMsg);
-    } else {
-      alert(warningMsg);
-    }
-  }
-}
-
-
-// Enhanced Upload Complete with Clean UI
-
-
 function uploadComplete() {
-  console.log('🎉 Upload sequence complete');
+  const uploadedFiles = uploadQueue.length;
   
-  const totalFiles = uploadQueue.length;
-  console.log(`Upload Results: ${totalFiles} total files processed`);
+  // Show success message
+  showSuccessMessage(`Successfully uploaded ${uploadedFiles} photos`);
   
-  // Clean up state
-  isUploading = false;
-  uploadPaused = false;
+  // Add notification
+  if (window.NotificationSystem) {
+    window.NotificationSystem.createNotificationFromEvent({
+      type: 'upload_complete',
+      count: uploadedFiles,
+      galleryName: galleryData.name || 'gallery'
+    });
+  }
   
-  // Show completion message
-  showSuccessMessage(`✅ Upload Complete! Successfully uploaded ${totalFiles} photos.`);
-  
-  // Reset UI
+  // Reset buttons
   const startUploadBtn = document.getElementById('startUploadBtn');
-  const pauseUploadBtn = document.getElementById('pauseUploadBtn');
   const cancelUploadBtn = document.getElementById('cancelUploadBtn');
+  const pauseUploadBtn = document.getElementById('pauseUploadBtn');
   
   if (startUploadBtn) startUploadBtn.disabled = false;
-  if (pauseUploadBtn) pauseUploadBtn.style.display = 'none';
   if (cancelUploadBtn) cancelUploadBtn.disabled = true;
+  if (pauseUploadBtn) pauseUploadBtn.style.display = 'none';
   
-  // Reload gallery to show new photos
+  // Reload gallery after delay
   setTimeout(() => {
     photosList = [];
     lastVisiblePhoto = null;
     allPhotosLoaded = false;
     loadGalleryPhotos(true);
     hideUploadPhotosModal();
-  }, 2000);
+  }, 1500);
 }
-
 
 // Network monitoring
 window.addEventListener('online', function() {
@@ -1997,7 +1406,6 @@ function formatFileSize(bytes) {
  * Enhanced updateUploadPreview function to show both valid and rejected files
  * Displays each file with its status and rejection reason if applicable
  */
-
 function updateUploadPreview(files) {
   const uploadPreview = document.getElementById('uploadPreview');
   if (!uploadPreview) return;
@@ -2009,54 +1417,34 @@ function updateUploadPreview(files) {
     // Check if this file is in the rejected list
     const rejectedInfo = window.rejectedFiles?.find(r => r.file === file);
     const isRejected = !!rejectedInfo;
-    const willUpload = window.filesToUpload?.includes(file);
     
     // Create file item container
     const fileItem = document.createElement('div');
     fileItem.className = 'upload-file-item';
     fileItem.setAttribute('data-index', index);
     
-    // Add appropriate classes
+    // Add rejected class if needed
     if (isRejected) {
       fileItem.classList.add('upload-file-rejected');
-    } else if (willUpload) {
-      fileItem.classList.add('upload-file-valid');
     }
     
     // Create elements using a file reader to generate thumbnail
     const reader = new FileReader();
     reader.onload = function(e) {
-      // Determine status text and icon
-      let statusText = 'Waiting';
-      let statusIcon = '⏳';
-      let statusClass = 'status-waiting';
-      
-      if (isRejected) {
-        statusText = 'Will NOT Upload';
-        statusIcon = '🚫';
-        statusClass = 'status-rejected';
-      } else if (willUpload) {
-        statusText = 'Ready to Upload';
-        statusIcon = '✅';
-        statusClass = 'status-ready';
-      }
-      
       // Build the HTML for the file item
       fileItem.innerHTML = `
         <div class="upload-file-thumbnail" style="background-image: url('${e.target.result}')">
           ${isRejected ? '<div class="rejection-overlay"><i class="fas fa-ban"></i></div>' : ''}
-          ${willUpload ? '<div class="ready-overlay"><i class="fas fa-check"></i></div>' : ''}
         </div>
         <div class="upload-file-info">
           <div class="upload-file-name">${file.name}</div>
           <div class="upload-file-meta">
             <span class="upload-file-size">${formatFileSize(file.size)}</span>
-            <span class="upload-file-status ${statusClass}">
-              ${statusIcon} ${statusText}
+            <span class="upload-file-status ${isRejected ? 'status-rejected' : 'status-waiting'}">
+              ${isRejected ? 'Rejected' : 'Waiting'}
             </span>
           </div>
-          ${isRejected ? `<div class="rejection-reason">❌ ${rejectedInfo.reason}</div>` : ''}
-          ${willUpload ? `<div class="upload-confirmation">✅ This file will be uploaded</div>` : ''}
+          ${isRejected ? `<div class="rejection-reason">${rejectedInfo.reason}</div>` : ''}
         </div>
         <div class="upload-progress">
           <div class="upload-progress-bar" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
@@ -2069,53 +1457,38 @@ function updateUploadPreview(files) {
     uploadPreview.appendChild(fileItem);
   });
   
-  // Update the counts with clear messaging
+  // Update the counts with more detail
   const totalCountElement = document.getElementById('uploadTotalCount');
   if (totalCountElement) {
     const validFiles = window.filesToUpload?.length || 0;
     const rejectedFiles = window.rejectedFiles?.length || 0;
-    const totalFiles = files.length;
     
     if (rejectedFiles > 0) {
-      totalCountElement.innerHTML = `
-        <div class="upload-summary">
-          <div class="total-files">${totalFiles} files selected</div>
-          <div class="file-breakdown">
-            <span class="valid-count">✅ ${validFiles} will be uploaded</span>
-            <span class="rejected-count">🚫 ${rejectedFiles} will be skipped</span>
-          </div>
-        </div>
-      `;
+      totalCountElement.innerHTML = `${files.length} files selected - <span class="valid-count">${validFiles} valid</span>, <span class="rejected-count">${rejectedFiles} rejected</span>`;
     } else {
-      totalCountElement.innerHTML = `
-        <div class="upload-summary">
-          <div class="total-files">✅ ${totalFiles} files ready to upload</div>
-        </div>
-      `;
+      totalCountElement.textContent = `${files.length} files selected`;
     }
   }
   
-  // Show detailed rejection summary
+  // Show a summary of reasons if there are rejected files
   const rejectionSummary = document.getElementById('rejectionSummary');
   if (rejectionSummary) {
     if (window.rejectedFiles && window.rejectedFiles.length > 0) {
       // Count occurrences of each reason
       const reasonCounts = {};
       window.rejectedFiles.forEach(item => {
-        const reason = item.reason;
-        if (!reasonCounts[reason]) {
-          reasonCounts[reason] = 0;
+        if (!reasonCounts[item.reason]) {
+          reasonCounts[item.reason] = 0;
         }
-        reasonCounts[reason]++;
+        reasonCounts[item.reason]++;
       });
       
-      // Create summary with clear messaging
-      let summaryHTML = '<div class="rejection-summary-header">⚠️ Files that will NOT be uploaded:</div><ul>';
+      // Create summary text
+      let summaryHTML = '<div class="rejection-summary-header">Files rejected due to:</div><ul>';
       for (const reason in reasonCounts) {
-        summaryHTML += `<li><strong>${reasonCounts[reason]} files:</strong> ${reason}</li>`;
+        summaryHTML += `<li>${reasonCounts[reason]} files: ${reason}</li>`;
       }
       summaryHTML += '</ul>';
-      summaryHTML += '<div class="rejection-note">💡 These files will be skipped during upload.</div>';
       
       rejectionSummary.innerHTML = summaryHTML;
       rejectionSummary.style.display = 'block';
@@ -2125,8 +1498,6 @@ function updateUploadPreview(files) {
   }
 }
 
-
- 
 /**
  * Enhanced showUploadStatus function to display more detailed upload information
  * Shows steps and clear indicators for the upload process
@@ -2172,8 +1543,6 @@ function showUploadStatus() {
 /**
  * Update file status in the UI with improved styling
  */
-
-// Enhanced file status update with better UI management
 function updateFileStatus(index, status) {
   const fileItem = document.querySelector(`.upload-file-item[data-index="${index}"]`);
   if (!fileItem) return;
@@ -2187,33 +1556,60 @@ function updateFileStatus(index, status) {
     statusElement.classList.remove('status-waiting', 'status-uploading', 'status-complete', 'status-failed', 'status-rejected', 'status-paused');
     
     // Add appropriate status class
-    const statusClass = status.toLowerCase().replace(/[^a-z]/g, '');
-    statusElement.classList.add(`status-${statusClass}`);
+    statusElement.classList.add(`status-${status.toLowerCase()}`);
   }
   
   // Update the file item container class
   fileItem.classList.remove('waiting', 'uploading', 'complete', 'failed', 'rejected', 'paused');
-  const containerClass = status.toLowerCase().replace(/[^a-z]/g, '');
-  fileItem.classList.add(containerClass);
+  fileItem.classList.add(status.toLowerCase());
   
-  // Add retry indicator if needed
-  const retryCount = uploadRetryAttempts.get(index);
-  if (retryCount && retryCount > 0) {
-    let retryIndicator = fileItem.querySelector('.upload-retry-indicator');
-    if (!retryIndicator) {
-      retryIndicator = document.createElement('div');
-      retryIndicator.className = 'upload-retry-indicator';
-      fileItem.appendChild(retryIndicator);
+  // Add status icon if needed
+  const statusIcon = fileItem.querySelector('.status-icon');
+  if (!statusIcon) {
+    const metaElement = fileItem.querySelector('.upload-file-meta');
+    if (metaElement && status !== 'Waiting') {
+      const iconElement = document.createElement('span');
+      iconElement.className = 'status-icon';
+      
+      // Choose icon based on status
+      let iconHTML = '';
+      switch(status.toLowerCase()) {
+        case 'uploading':
+          iconHTML = '<i class="fas fa-spinner fa-spin"></i>';
+          break;
+        case 'complete':
+          iconHTML = '<i class="fas fa-check-circle"></i>';
+          break;
+        case 'failed':
+          iconHTML = '<i class="fas fa-times-circle"></i>';
+          break;
+        case 'paused':
+          iconHTML = '<i class="fas fa-pause-circle"></i>';
+          break;
+      }
+      
+      iconElement.innerHTML = iconHTML;
+      metaElement.appendChild(iconElement);
     }
-    retryIndicator.textContent = retryCount;
-  }
-  
-  // Update queue visualization - DEBOUNCED
-  if (!updateFileStatus.debounceTimer) {
-    updateFileStatus.debounceTimer = setTimeout(() => {
-      updateQueueVisualization();
-      updateFileStatus.debounceTimer = null;
-    }, 200);
+  } else if (statusIcon) {
+    // Update existing icon if status changed
+    switch(status.toLowerCase()) {
+      case 'uploading':
+        statusIcon.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+        break;
+      case 'complete':
+        statusIcon.innerHTML = '<i class="fas fa-check-circle"></i>';
+        break;
+      case 'failed':
+        statusIcon.innerHTML = '<i class="fas fa-times-circle"></i>';
+        break;
+      case 'paused':
+        statusIcon.innerHTML = '<i class="fas fa-pause-circle"></i>';
+        break;
+      case 'waiting':
+        statusIcon.innerHTML = '';
+        break;
+    }
   }
 }
 
@@ -2244,85 +1640,27 @@ function updateFileProgress(index, progress) {
   }
 }
 // Update total progress in the UI
-
-// Enhanced Progress Update with Debouncing
-
-// Enhanced Progress Update with Aggressive Debouncing
 function updateTotalProgress() {
-  // Clear existing throttler
-  if (progressUpdateThrottler) {
-    clearTimeout(progressUpdateThrottler);
+  const progressBars = document.querySelectorAll('.upload-progress-bar');
+  const totalProgressBar = document.getElementById('totalProgressBar');
+  
+  if (!totalProgressBar || progressBars.length === 0) return;
+  
+  let totalProgress = 0;
+  
+  progressBars.forEach(bar => {
+    const value = parseInt(bar.getAttribute('aria-valuenow') || '0', 10);
+    totalProgress += value;
+  });
+  
+  const averageProgress = Math.round(totalProgress / progressBars.length);
+  totalProgressBar.style.width = `${averageProgress}%`;
+  totalProgressBar.setAttribute('aria-valuenow', averageProgress);
+  
+  const progressText = document.getElementById('totalProgressText');
+  if (progressText) {
+    progressText.textContent = `${averageProgress}% Complete`;
   }
-
-  // More aggressive throttling for large uploads
-  const delay = uploadQueue.length > 50 ? 500 : 200; // Longer delay for large batches
-
-  progressUpdateThrottler = setTimeout(() => {
-    const progressBars = document.querySelectorAll('.upload-progress-bar');
-    const totalProgressBar = document.getElementById('totalProgressBar');
-    
-    if (!totalProgressBar || progressBars.length === 0) return;
-    
-    let totalProgress = 0;
-    let completedUploads = 0;
-    
-    progressBars.forEach(bar => {
-      const value = parseInt(bar.getAttribute('aria-valuenow') || '0', 10);
-      totalProgress += value;
-      if (value === 100) completedUploads++;
-    });
-    
-    const averageProgress = Math.round(totalProgress / progressBars.length);
-    
-    // Smooth progress bar animation
-    totalProgressBar.style.width = `${averageProgress}%`;
-    totalProgressBar.setAttribute('aria-valuenow', averageProgress);
-    
-    // Update progress text
-    const progressText = document.getElementById('totalProgressText');
-    if (progressText) {
-      progressText.textContent = `${averageProgress}% Complete (${completedUploads}/${progressBars.length})`;
-    }
-    
-    // Update batch status - also debounced
-    if (!updateTotalProgress.batchUpdateTimer) {
-      updateTotalProgress.batchUpdateTimer = setTimeout(() => {
-        updateBatchStatus(completedUploads, progressBars.length, averageProgress);
-        updateTotalProgress.batchUpdateTimer = null;
-      }, 300);
-    }
-    
-    // Save progress state - less frequently
-    if (uploadStateManager && Math.random() < 0.1) { // Only 10% of the time
-      uploadStateManager.saveState();
-    }
-  }, delay);
-}
-
-// New function to update batch status
-function updateBatchStatus(completed, total, progress) {
-  const batchStatus = document.getElementById('uploadBatchStatus');
-  if (!batchStatus) return;
-  
-  let statusClass = 'uploading';
-  let statusText = `Uploading ${completed}/${total} files...`;
-  
-  if (uploadPaused) {
-    statusClass = 'paused';
-    statusText = `Paused - ${completed}/${total} files completed`;
-  } else if (completed === total) {
-    statusClass = 'complete';
-    statusText = `All ${total} files uploaded successfully!`;
-  }
-  
-  batchStatus.className = `upload-batch-status ${statusClass}`;
-  batchStatus.innerHTML = `
-    <div class="upload-queue-status" id="uploadQueueStatus"></div>
-    <div>${statusText}</div>
-  `;
-  
-  // Update queue visualization
-  updateQueueVisualization();
 }
 
 // Enhanced showSuccessMessage with NotificationSystem integration
@@ -3171,135 +2509,6 @@ async function checkIfGalleryIsShared() {
   }
 }
 
-// Enhanced Upload UI Functions
-function showEnhancedUploadUI() {
-  const uploadProgressContainer = document.getElementById('uploadProgressContainer');
-  if (!uploadProgressContainer) return;
-  
-  // Add batch status indicator
-  const batchStatusHtml = `
-    <div id="uploadBatchStatus" class="upload-batch-status uploading">
-      <div class="upload-queue-status" id="uploadQueueStatus"></div>
-      <div>Preparing to upload ${uploadQueue.length} files...</div>
-    </div>
-  `;
-  
-  uploadProgressContainer.insertAdjacentHTML('afterbegin', batchStatusHtml);
-  uploadProgressContainer.style.display = 'block';
-  
-  // Initialize queue visualization
-  updateQueueVisualization();
-  
-  // Update buttons
-  const startUploadBtn = document.getElementById('startUploadBtn');
-  const pauseUploadBtn = document.getElementById('pauseUploadBtn');
-  const cancelUploadBtn = document.getElementById('cancelUploadBtn');
-  
-  if (startUploadBtn) startUploadBtn.disabled = true;
-  if (pauseUploadBtn) {
-    pauseUploadBtn.disabled = false;
-    pauseUploadBtn.style.display = 'inline-block';
-  }
-  if (cancelUploadBtn) cancelUploadBtn.disabled = false;
-}
-
-function updateQueueVisualization() {
-  const queueStatus = document.getElementById('uploadQueueStatus');
-  if (!queueStatus) return;
-  
-  queueStatus.innerHTML = '';
-  
-  uploadQueue.forEach((file, index) => {
-    const queueItem = document.createElement('div');
-    queueItem.className = 'upload-queue-item';
-    
-    if (index < currentUploadIndex) {
-      queueItem.classList.add('complete');
-    } else if (activeUploadTasks.has(index)) {
-      queueItem.classList.add('uploading');
-    } else if (uploadRetryAttempts.has(index)) {
-      queueItem.classList.add('failed');
-    } else if (uploadPaused) {
-      queueItem.classList.add('paused');
-    } else {
-      queueItem.classList.add('waiting');
-    }
-    
-    queueStatus.appendChild(queueItem);
-  });
-}
-
-// Enhanced file status update with retry indicators
-function updateFileStatus(index, status) {
-  const fileItem = document.querySelector(`.upload-file-item[data-index="${index}"]`);
-  if (!fileItem) return;
-  
-  // Update status text
-  const statusElement = fileItem.querySelector('.upload-file-status');
-  if (statusElement) {
-    statusElement.textContent = status;
-    statusElement.className = `upload-file-status status-${status.toLowerCase().replace(/[^a-z]/g, '')}`;
-  }
-  
-  // Update file item class
-  fileItem.className = `upload-file-item ${status.toLowerCase().replace(/[^a-z]/g, '')}`;
-  
-  // Add retry indicator if needed
-  const retryCount = uploadRetryAttempts.get(index);
-  if (retryCount && retryCount > 0) {
-    let retryIndicator = fileItem.querySelector('.upload-retry-indicator');
-    if (!retryIndicator) {
-      retryIndicator = document.createElement('div');
-      retryIndicator.className = 'upload-retry-indicator';
-      fileItem.appendChild(retryIndicator);
-    }
-    retryIndicator.textContent = retryCount;
-  }
-  
-  // Update queue visualization
-  updateQueueVisualization();
-}
-
-// Save photo to Firestore (extracted from processIndividualUpload)
-async function savePhotoToFirestore(fileIndex, file, fileName, downloadURL) {
-  const thumbnails = { sm: downloadURL, md: downloadURL, lg: downloadURL };
-  
-  const searchableInfo = {
-    galleryName: galleryData.name || 'Untitled Gallery',
-    clientName: galleryData.clientName || 'Unknown Client',
-    photoName: file.name,
-    photoNameLower: file.name.toLowerCase(),
-    searchLabel: `Photo: ${file.name} in ${galleryData.name}`,
-    photographerEmail: currentUser.email
-  };
-  
-  const db = firebase.firestore();
-  const photoDoc = db.collection('photos').doc();
-  
-  await photoDoc.set({
-    galleryId: galleryId,
-    photographerId: currentUser.uid,
-    name: file.name,
-    fileName: fileName,
-    storageRef: `galleries/${galleryId}/photos/${fileName}`,
-    url: downloadURL,
-    thumbnails: thumbnails,
-    size: file.size,
-    type: file.type,
-    width: 0,
-    height: 0,
-    status: 'active',
-    createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-    sessionId: uploadSessionId,
-    ...searchableInfo
-  });
-  
-  // Update gallery count
-  await db.collection('galleries').doc(galleryId).update({
-    photosCount: firebase.firestore.FieldValue.increment(1),
-    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-  });
-}
 
 // Export gallery view functions to window object for debugging and external access
 window.galleryView = {
@@ -3322,5 +2531,3 @@ window.galleryView = {
   // Add the new function here
   checkIfGalleryIsShared
 };
-// Add this to your window object for debugging
-window.debugDuplicateDetection = debugDuplicateDetection;
