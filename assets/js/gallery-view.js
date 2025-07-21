@@ -240,10 +240,25 @@ function setupEventListeners() {
   const startUploadBtn = document.getElementById('startUploadBtn');
   const cancelUploadBtn = document.getElementById('cancelUploadBtn');
   const pauseUploadBtn = document.getElementById('pauseUploadBtn');
-  
+
+ /**
   if (startUploadBtn) startUploadBtn.addEventListener('click', startPhotoUpload);
   if (cancelUploadBtn) cancelUploadBtn.addEventListener('click', cancelUpload);
   if (pauseUploadBtn) pauseUploadBtn.addEventListener('click', togglePauseUpload);
+*/
+
+  if (startUploadBtn) {
+   startUploadBtn.removeEventListener('click', startPhotoUpload);
+   startUploadBtn.addEventListener('click', startPhotoUpload);
+  }
+  if (cancelUploadBtn) {
+    cancelUploadBtn.removeEventListener('click', cancelUpload);
+    cancelUploadBtn.addEventListener('click', cancelUpload);
+  }
+  if (pauseUploadBtn) {
+    pauseUploadBtn.removeEventListener('click', togglePauseUpload);
+    pauseUploadBtn.addEventListener('click', togglePauseUpload);
+  }
   
   // --- NEW EVENT LISTENERS ---
   
