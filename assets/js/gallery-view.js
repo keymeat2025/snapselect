@@ -1140,7 +1140,7 @@ function showEnhancedErrorMessage(errorInfo) {
   showErrorMessage(errorInfo.message + ' ' + errorInfo.suggestion);
 }
 
-/ ============================================================================
+// ============================================================================
 // 4. SERVER-SIDE VALIDATION ENDPOINT (30 minutes)
 // ============================================================================
 
