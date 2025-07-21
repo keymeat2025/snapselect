@@ -1,4 +1,5 @@
  /**
+ *
  * gallery-view.js - Handles displaying and interacting with a photo gallery
  * Updated with pagination, synchronization, plan enforcement, and upload reliability
  * Enhanced with improved file rejection handling and visualization
