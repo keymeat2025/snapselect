@@ -1483,18 +1483,15 @@ async function startPhotoUpload() {
 
 // Enhanced Concurrent Upload Processing with Better UI Management
 
-
-
+/**
+ * FIXED processUploadQueue function - restores the working event-driven approach
+ * Replace your current processUploadQueue() function with this one
+ */
 async function processUploadQueue() {
-  console.log(`🔄 processUploadQueue called - Index: ${currentUploadIndex}, Queue: ${uploadQueue.length}`);
-  
-  if (!isUploading || uploadPaused) {
-    console.log('🛑 Upload stopped or paused');
-    return;
-  }
+  if (!isUploading || uploadPaused) return;
   
   if (currentUploadIndex >= uploadQueue.length) {
-    console.log('✅ All files uploaded, completing');
+    // Upload complete
     isUploading = false;
     uploadComplete();
     return;
@@ -1534,98 +1531,124 @@ async function processUploadQueue() {
       }
     });
     
-    // 🔥 KEY FIX: Only track progress, don't handle completion with events
-    uploadTask.on('state_changed', (snapshot) => {
-      if (!isUploading) return;
-      const progress = (snapshot.bytesTransferred / snapshot.totalBytes);
-      updateFileProgress(currentUploadIndex, progress);
-      updateTotalProgress();
-    });
-    
-    // 🎯 MAIN FIX: Use Promise instead of event handlers
-    console.log('⏳ Waiting for upload to complete...');
-    const snapshot = await uploadTask; // This waits for upload to finish
-    console.log('✅ Upload completed, getting download URL...');
-    
-    // Get download URL
-    const downloadURL = await snapshot.ref.getDownloadURL();
-    console.log('📎 Download URL obtained');
-    
-    // Create thumbnails
-    const thumbnails = {
-      sm: downloadURL,
-      md: downloadURL,
-      lg: downloadURL
-    };
-    
-    // Add searchable info
-    const searchableInfo = {
-      galleryName: galleryData.name || 'Untitled Gallery',
-      clientName: galleryData.clientName || 'Unknown Client',
-      photoName: file.name,
-      photoNameLower: file.name.toLowerCase(),
-      searchLabel: `Photo: ${file.name} in ${galleryData.name}`,
-      photographerEmail: currentUser.email
-    };
-    
-    // Add to Firestore
-    console.log('💾 Saving to Firestore...');
-    const db = firebase.firestore();
-    const photoDoc = db.collection('photos').doc();
-    
-    await photoDoc.set({
-      galleryId: galleryId,
-      photographerId: currentUser.uid,
-      name: file.name,
-      fileName: fileName,
-      storageRef: fileRef.fullPath,
-      url: downloadURL,
-      thumbnails: thumbnails,
-      size: file.size,
-      type: file.type,
-      width: 0,
-      height: 0,
-      status: 'active',
-      createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-      ...searchableInfo
-    });
-    
-    console.log('✅ Saved to Firestore');
-    
-    // Update file status to "Complete"
-    updateFileStatus(currentUploadIndex, 'Complete');
-    
-    // Update gallery count
-    await db.collection('galleries').doc(galleryId).update({
-      photosCount: firebase.firestore.FieldValue.increment(1),
-      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-    });
-    
-    // Update plan storage usage if needed
-    if (galleryData.planId) {
-      await db.collection('client-plans').doc(galleryData.planId).update({
-        storageUsed: firebase.firestore.FieldValue.increment(file.size / (1024 * 1024)),
-        photosUploaded: firebase.firestore.FieldValue.increment(1),
-        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-      });
-    }
-    
-    console.log(`🎉 File ${currentUploadIndex + 1} completed successfully: ${file.name}`);
+    // 🎯 CRITICAL FIX: Use Firebase's event-driven approach (like the working version)
+    uploadTask.on('state_changed', 
+      // Progress handler
+      (snapshot) => {
+        if (!isUploading) return; // Check if upload was cancelled
+        
+        const progress = (snapshot.bytesTransferred / snapshot.totalBytes);
+        updateFileProgress(currentUploadIndex, progress);
+        updateTotalProgress();
+      },
+      // Error handler
+      (error) => {
+        console.error(`❌ Upload failed for file ${currentUploadIndex + 1}:`, error);
+        updateFileStatus(currentUploadIndex, 'Failed');
+        
+        // 🔥 CRITICAL: Only ONE place moves to next file
+        currentUploadIndex++;
+        console.log(`➡️ Moving to next file after error (index ${currentUploadIndex})`);
+        processUploadQueue();
+      },
+      // Success handler - this is where the working version puts the logic
+      async () => {
+        try {
+          console.log('✅ Upload completed, getting download URL...');
+          
+          // Get download URL
+          const downloadURL = await uploadTask.snapshot.ref.getDownloadURL();
+          console.log('📎 Download URL obtained');
+          
+          // Create thumbnails
+          const thumbnails = {
+            sm: downloadURL,
+            md: downloadURL,
+            lg: downloadURL
+          };
+          
+          // Add searchable info
+          const searchableInfo = {
+            galleryName: galleryData.name || 'Untitled Gallery',
+            clientName: galleryData.clientName || 'Unknown Client',
+            photoName: file.name,
+            photoNameLower: file.name.toLowerCase(),
+            searchLabel: `Photo: ${file.name} in ${galleryData.name}`,
+            photographerEmail: currentUser.email
+          };
+          
+          // Add to Firestore
+          console.log('💾 Saving to Firestore...');
+          const db = firebase.firestore();
+          const photoDoc = db.collection('photos').doc();
+          
+          await photoDoc.set({
+            galleryId: galleryId,
+            photographerId: currentUser.uid,
+            name: file.name,
+            fileName: fileName,
+            storageRef: fileRef.fullPath,
+            url: downloadURL,
+            thumbnails: thumbnails,
+            size: file.size,
+            type: file.type,
+            width: 0,
+            height: 0,
+            status: 'active',
+            createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+            ...searchableInfo
+          });
+          
+          console.log('✅ Saved to Firestore');
+          
+          // Update file status to "Complete"
+          updateFileStatus(currentUploadIndex, 'Complete');
+          
+          // Update gallery count
+          await db.collection('galleries').doc(galleryId).update({
+            photosCount: firebase.firestore.FieldValue.increment(1),
+            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+          });
+          
+          // Update plan storage usage if needed
+          if (galleryData.planId) {
+            await db.collection('client-plans').doc(galleryData.planId).update({
+              storageUsed: firebase.firestore.FieldValue.increment(file.size / (1024 * 1024)),
+              photosUploaded: firebase.firestore.FieldValue.increment(1),
+              updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+          }
+          
+          console.log(`🎉 File ${currentUploadIndex + 1} completed successfully: ${file.name}`);
+          
+          // 🔥 CRITICAL: Only ONE place moves to next file
+          currentUploadIndex++;
+          console.log(`➡️ Moving to next file after success (index ${currentUploadIndex})`);
+          processUploadQueue();
+          
+        } catch (error) {
+          console.error(`❌ Error processing uploaded file:`, error);
+          updateFileStatus(currentUploadIndex, 'Failed');
+          
+          // 🔥 CRITICAL: Only ONE place moves to next file
+          currentUploadIndex++;
+          console.log(`➡️ Moving to next file after Firestore error (index ${currentUploadIndex})`);
+          processUploadQueue();
+        }
+      }
+    );
     
   } catch (error) {
-    console.error(`❌ Upload failed for file ${currentUploadIndex + 1}:`, error);
+    console.error(`❌ Error uploading file:`, error);
     updateFileStatus(currentUploadIndex, 'Failed');
-  }
-  
-  // 🔥 CRITICAL: Only ONE place moves to next file
-  currentUploadIndex++;
-  console.log(`➡️ Moving to next file (index ${currentUploadIndex})`);
-  
-  // Small delay to prevent issues, then continue
-  setTimeout(() => {
+    
+    // 🔥 CRITICAL: Only ONE place moves to next file
+    currentUploadIndex++;
+    console.log(`➡️ Moving to next file after catch error (index ${currentUploadIndex})`);
     processUploadQueue();
-  }, 100);
+  }
 }
+
 
 /**
 function updateTotalProgressSequential() {
