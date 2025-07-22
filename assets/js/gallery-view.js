@@ -42,6 +42,10 @@ const PLAN_LIMITS = {
   ultimate: { photos: 2500, storageGB: 100, maxSize: 25 }
 };
 
+// Add this new helper function
+function delay(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
 // Functions for loading overlay
 function showLoadingOverlay(message) {
   const loadingOverlay = document.getElementById('loadingOverlay');
@@ -1191,6 +1195,7 @@ async function startPhotoUpload() {
 /**
  * Process upload queue with pause/resume support and improved progress tracking
  */
+
 async function processUploadQueue() {
   if (!isUploading || uploadPaused) return;
   
@@ -1231,112 +1236,105 @@ async function processUploadQueue() {
       }
     });
     
-    // Set up progress tracking and state management
-    uploadTask.on('state_changed', 
-      // Progress handler
-      (snapshot) => {
-        if (!isUploading) return; // Check if upload was cancelled
-        
-        const progress = (snapshot.bytesTransferred / snapshot.totalBytes);
-        updateFileProgress(currentUploadIndex, progress);
-        updateTotalProgress();
-      },
-      // Error handler
-      (error) => {
-        console.error('Upload error:', error);
-        updateFileStatus(currentUploadIndex, 'Failed');
-        
-        // Continue with next file
-        currentUploadIndex++;
-        processUploadQueue();
-      },
-      // Completion handler
-      async () => {
-        try {
-          // Get download URL
-          const downloadURL = await uploadTask.snapshot.ref.getDownloadURL();
+    // MAIN CHANGE: Wait for each upload to complete
+    await new Promise((resolve, reject) => {
+      uploadTask.on('state_changed', 
+        // Progress handler
+        (snapshot) => {
+          if (!isUploading) return;
           
-          // Create thumbnails
-          const thumbnails = {
-            sm: downloadURL,
-            md: downloadURL,
-            lg: downloadURL
-          };
-          
-          // Add searchable info
-          const searchableInfo = {
-            galleryName: galleryData.name || 'Untitled Gallery',
-            clientName: galleryData.clientName || 'Unknown Client',
-            photoName: file.name,
-            photoNameLower: file.name.toLowerCase(),
-            searchLabel: `Photo: ${file.name} in ${galleryData.name}`,
-            photographerEmail: currentUser.email
-          };
-          
-          // Add to Firestore
-          const db = firebase.firestore();
-          const photoDoc = db.collection('photos').doc();
-          
-          await photoDoc.set({
-            galleryId: galleryId,
-            photographerId: currentUser.uid,
-            name: file.name,
-            fileName: fileName,
-            storageRef: fileRef.fullPath,
-            url: downloadURL,
-            thumbnails: thumbnails,
-            size: file.size,
-            type: file.type,
-            width: 0,
-            height: 0,
-            status: 'active',
-            createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-            ...searchableInfo
-          });
-          
-          // Update file status to "Complete"
-          updateFileStatus(currentUploadIndex, 'Complete');
-          
-          // Update gallery count
-          await db.collection('galleries').doc(galleryId).update({
-            photosCount: firebase.firestore.FieldValue.increment(1),
-            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-          });
-          
-          // Update plan storage usage if needed
-          if (galleryData.planId) {
-            await db.collection('client-plans').doc(galleryData.planId).update({
-              storageUsed: firebase.firestore.FieldValue.increment(file.size / (1024 * 1024)), // Convert to MB
-              photosUploaded: firebase.firestore.FieldValue.increment(1),
+          const progress = (snapshot.bytesTransferred / snapshot.totalBytes);
+          updateFileProgress(currentUploadIndex, progress);
+          updateTotalProgress();
+        },
+        // Error handler
+        (error) => {
+          console.error('Upload error:', error);
+          updateFileStatus(currentUploadIndex, 'Failed');
+          reject(error);
+        },
+        // Completion handler
+        async () => {
+          try {
+            const downloadURL = await uploadTask.snapshot.ref.getDownloadURL();
+            
+            const thumbnails = {
+              sm: downloadURL,
+              md: downloadURL,
+              lg: downloadURL
+            };
+            
+            const searchableInfo = {
+              galleryName: galleryData.name || 'Untitled Gallery',
+              clientName: galleryData.clientName || 'Unknown Client',
+              photoName: file.name,
+              photoNameLower: file.name.toLowerCase(),
+              searchLabel: `Photo: ${file.name} in ${galleryData.name}`,
+              photographerEmail: currentUser.email
+            };
+            
+            const db = firebase.firestore();
+            const photoDoc = db.collection('photos').doc();
+            
+            await photoDoc.set({
+              galleryId: galleryId,
+              photographerId: currentUser.uid,
+              name: file.name,
+              fileName: fileName,
+              storageRef: fileRef.fullPath,
+              url: downloadURL,
+              thumbnails: thumbnails,
+              size: file.size,
+              type: file.type,
+              width: 0,
+              height: 0,
+              status: 'active',
+              createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+              ...searchableInfo
+            });
+            
+            updateFileStatus(currentUploadIndex, 'Complete');
+            
+            await db.collection('galleries').doc(galleryId).update({
+              photosCount: firebase.firestore.FieldValue.increment(1),
               updatedAt: firebase.firestore.FieldValue.serverTimestamp()
             });
+            
+            if (galleryData.planId) {
+              await db.collection('client-plans').doc(galleryData.planId).update({
+                storageUsed: firebase.firestore.FieldValue.increment(file.size / (1024 * 1024)),
+                photosUploaded: firebase.firestore.FieldValue.increment(1),
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+              });
+            }
+            
+            resolve();
+            
+          } catch (error) {
+            console.error('Error processing uploaded file:', error);
+            updateFileStatus(currentUploadIndex, 'Failed');
+            reject(error);
           }
-          
-          // Move to next file
-          currentUploadIndex++;
-          processUploadQueue();
-          
-        } catch (error) {
-          console.error('Error processing uploaded file:', error);
-          updateFileStatus(currentUploadIndex, 'Failed');
-          
-          // Continue with next file
-          currentUploadIndex++;
-          processUploadQueue();
         }
-      }
-    );
+      );
+    });
     
   } catch (error) {
     console.error('Error uploading file:', error);
     updateFileStatus(currentUploadIndex, 'Failed');
-    
-    // Continue with next file
-    currentUploadIndex++;
-    processUploadQueue();
   }
+  
+  // Move to next file
+  currentUploadIndex++;
+  
+  // Small delay between uploads
+  if (currentUploadIndex < uploadQueue.length) {
+    await delay(500);
+  }
+  
+  // Process next file
+  processUploadQueue();
 }
-
 // Upload completion handler
 function uploadComplete() {
   const uploadedFiles = uploadQueue.length;
@@ -1406,58 +1404,105 @@ function formatFileSize(bytes) {
  * Enhanced updateUploadPreview function to show both valid and rejected files
  * Displays each file with its status and rejection reason if applicable
  */
-function updateUploadPreview(files) {
+
+async function updateUploadPreview(files) {
   const uploadPreview = document.getElementById('uploadPreview');
   if (!uploadPreview) return;
   
   uploadPreview.innerHTML = '';
   
-  // Create file items for each file
-  files.forEach((file, index) => {
-    // Check if this file is in the rejected list
-    const rejectedInfo = window.rejectedFiles?.find(r => r.file === file);
-    const isRejected = !!rejectedInfo;
+  // For large file counts, process UI updates in small batches
+  const BATCH_SIZE = 20;
+  const shouldBatch = files.length > 50;
+  
+  if (shouldBatch) {
+    // Show loading message for large batches
+    const loadingDiv = document.createElement('div');
+    loadingDiv.innerHTML = `<div style="text-align: center; padding: 20px; color: #666;">
+      <i class="fas fa-spinner fa-spin"></i> Loading ${files.length} files...
+    </div>`;
+    uploadPreview.appendChild(loadingDiv);
     
-    // Create file item container
-    const fileItem = document.createElement('div');
-    fileItem.className = 'upload-file-item';
-    fileItem.setAttribute('data-index', index);
+    await delay(100);
+    uploadPreview.removeChild(loadingDiv);
+  }
+  
+  // Process files in batches for UI
+  for (let i = 0; i < files.length; i += BATCH_SIZE) {
+    const batch = files.slice(i, i + BATCH_SIZE);
     
-    // Add rejected class if needed
-    if (isRejected) {
-      fileItem.classList.add('upload-file-rejected');
+    for (let j = 0; j < batch.length; j++) {
+      const file = batch[j];
+      const index = i + j;
+      
+      const rejectedInfo = window.rejectedFiles?.find(r => r.file === file);
+      const isRejected = !!rejectedInfo;
+      
+      const fileItem = document.createElement('div');
+      fileItem.className = 'upload-file-item';
+      fileItem.setAttribute('data-index', index);
+      
+      if (isRejected) {
+        fileItem.classList.add('upload-file-rejected');
+      }
+      
+      // For large batches, don't generate thumbnails
+      if (shouldBatch || file.size > 10 * 1024 * 1024) {
+        fileItem.innerHTML = `
+          <div class="upload-file-thumbnail no-thumbnail">
+            <i class="fas fa-image"></i>
+            ${isRejected ? '<div class="rejection-overlay"><i class="fas fa-ban"></i></div>' : ''}
+          </div>
+          <div class="upload-file-info">
+            <div class="upload-file-name">${file.name}</div>
+            <div class="upload-file-meta">
+              <span class="upload-file-size">${formatFileSize(file.size)}</span>
+              <span class="upload-file-status ${isRejected ? 'status-rejected' : 'status-waiting'}">
+                ${isRejected ? 'Rejected' : 'Waiting'}
+              </span>
+            </div>
+            ${isRejected ? `<div class="rejection-reason">${rejectedInfo.reason}</div>` : ''}
+          </div>
+          <div class="upload-progress">
+            <div class="upload-progress-bar" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+          </div>
+        `;
+        uploadPreview.appendChild(fileItem);
+      } else {
+        // Generate thumbnail for smaller batches
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          fileItem.innerHTML = `
+            <div class="upload-file-thumbnail" style="background-image: url('${e.target.result}')">
+              ${isRejected ? '<div class="rejection-overlay"><i class="fas fa-ban"></i></div>' : ''}
+            </div>
+            <div class="upload-file-info">
+              <div class="upload-file-name">${file.name}</div>
+              <div class="upload-file-meta">
+                <span class="upload-file-size">${formatFileSize(file.size)}</span>
+                <span class="upload-file-status ${isRejected ? 'status-rejected' : 'status-waiting'}">
+                  ${isRejected ? 'Rejected' : 'Waiting'}
+                </span>
+              </div>
+              ${isRejected ? `<div class="rejection-reason">${rejectedInfo.reason}</div>` : ''}
+            </div>
+            <div class="upload-progress">
+              <div class="upload-progress-bar" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+            </div>
+          `;
+        };
+        reader.readAsDataURL(file);
+        uploadPreview.appendChild(fileItem);
+      }
     }
     
-    // Create elements using a file reader to generate thumbnail
-    const reader = new FileReader();
-    reader.onload = function(e) {
-      // Build the HTML for the file item
-      fileItem.innerHTML = `
-        <div class="upload-file-thumbnail" style="background-image: url('${e.target.result}')">
-          ${isRejected ? '<div class="rejection-overlay"><i class="fas fa-ban"></i></div>' : ''}
-        </div>
-        <div class="upload-file-info">
-          <div class="upload-file-name">${file.name}</div>
-          <div class="upload-file-meta">
-            <span class="upload-file-size">${formatFileSize(file.size)}</span>
-            <span class="upload-file-status ${isRejected ? 'status-rejected' : 'status-waiting'}">
-              ${isRejected ? 'Rejected' : 'Waiting'}
-            </span>
-          </div>
-          ${isRejected ? `<div class="rejection-reason">${rejectedInfo.reason}</div>` : ''}
-        </div>
-        <div class="upload-progress">
-          <div class="upload-progress-bar" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
-        </div>
-      `;
-    };
-    
-    // Read the file to generate thumbnail
-    reader.readAsDataURL(file);
-    uploadPreview.appendChild(fileItem);
-  });
+    // Small delay between batches
+    if (shouldBatch && i + BATCH_SIZE < files.length) {
+      await delay(50);
+    }
+  }
   
-  // Update the counts with more detail
+  // Update counts (same as before)
   const totalCountElement = document.getElementById('uploadTotalCount');
   if (totalCountElement) {
     const validFiles = window.filesToUpload?.length || 0;
@@ -1470,11 +1515,10 @@ function updateUploadPreview(files) {
     }
   }
   
-  // Show a summary of reasons if there are rejected files
+  // Show rejection summary (same as before)
   const rejectionSummary = document.getElementById('rejectionSummary');
   if (rejectionSummary) {
     if (window.rejectedFiles && window.rejectedFiles.length > 0) {
-      // Count occurrences of each reason
       const reasonCounts = {};
       window.rejectedFiles.forEach(item => {
         if (!reasonCounts[item.reason]) {
@@ -1483,7 +1527,6 @@ function updateUploadPreview(files) {
         reasonCounts[item.reason]++;
       });
       
-      // Create summary text
       let summaryHTML = '<div class="rejection-summary-header">Files rejected due to:</div><ul>';
       for (const reason in reasonCounts) {
         summaryHTML += `<li>${reasonCounts[reason]} files: ${reason}</li>`;
