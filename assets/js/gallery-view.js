@@ -42,6 +42,35 @@ const PLAN_LIMITS = {
   ultimate: { photos: 2500, storageGB: 100, maxSize: 25 }
 };
 
+
+
+// Add this new function to gallery-view.js
+async function validatePhotoCountLimit(galleryId) {
+  try {
+    const db = firebase.firestore();
+    const galleryDoc = await db.collection('galleries').doc(galleryId).get();
+    
+    if (!galleryDoc.exists) {
+      throw new Error('Gallery not found');
+    }
+    
+    const currentGalleryData = galleryDoc.data();
+    const currentPhotoCount = currentGalleryData.photosCount || 0;
+    
+    const currentPlanLimits = planLimits || PLAN_LIMITS[DEFAULT_PLAN];
+    const maxPhotos = currentPlanLimits.photos;
+    
+    if (currentPhotoCount >= maxPhotos) {
+      throw new Error(`Photo limit reached: ${currentPhotoCount}/${maxPhotos} photos. Cannot upload more.`);
+    }
+    
+    return true;
+    
+  } catch (error) {
+    throw error;
+  }
+}
+
 // Add this new helper function
 function delay(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
@@ -1208,6 +1237,17 @@ async function processUploadQueue() {
   
   const file = uploadQueue[currentUploadIndex];
   try {
+
+     // ADD VALIDATION CHECK BEFORE UPLOADING
+    try {
+      await validatePhotoCountLimit(galleryId);
+    } catch (validationError) {
+      updateFileStatus(currentUploadIndex, 'Failed');
+      isUploading = false;
+      showErrorMessage(validationError.message);
+      return;
+    }
+    
     // Update file status to "Uploading"
     updateFileStatus(currentUploadIndex, 'Uploading');
     
