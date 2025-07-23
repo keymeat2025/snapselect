@@ -552,17 +552,68 @@ async function loadActivePlans() {
     }
     
     // Process active plans and check for sharing data
-
-     // Process active plans and check for sharing data
     for (const doc of activePlansSnapshot.docs) {
       const planData = { id: doc.id, ...doc.data() };
+      
+      // 🚀 AUTO-FIX: Check and fix missing galleryId
+      if (!planData.galleryId) {
+        console.warn(`⚠️ Plan ${planData.id} missing galleryId - attempting auto-fix...`);
+        try {
+          // Method 1: Find gallery by planId
+          let galleryQuery = await db.collection('galleries')
+            .where('planId', '==', planData.id)
+            .where('status', '==', 'active')
+            .limit(1)
+            .get();
+          
+          // Method 2: If not found, try by clientId
+          if (galleryQuery.empty && planData.clientId) {
+            galleryQuery = await db.collection('galleries')
+              .where('clientId', '==', planData.clientId)
+              .where('photographerId', '==', currentUser.uid)
+              .where('status', '==', 'active')
+              .limit(1)
+              .get();
+          }
+          
+          if (!galleryQuery.empty) {
+            const galleryId = galleryQuery.docs[0].id;
+            const galleryDoc = galleryQuery.docs[0];
+            const galleryDocData = galleryDoc.data();
+            
+            // Update the plan in Firestore with galleryId
+            await db.collection('client-plans').doc(planData.id).update({
+              galleryId: galleryId,
+              updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            
+            // Update local plan data
+            planData.galleryId = galleryId;
+            
+            // Also ensure gallery has correct planId (bidirectional linking)
+            if (!galleryDocData.planId || galleryDocData.planId !== planData.id) {
+              await db.collection('galleries').doc(galleryId).update({
+                planId: planData.id,
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+              });
+              console.log(`🔗 Also updated gallery ${galleryId} with planId ${planData.id}`);
+            }
+            
+            console.log(`✅ Auto-fixed plan ${planData.id} with gallery ${galleryId}`);
+          } else {
+            console.log(`⚠️ No gallery found for plan ${planData.id} - this plan may need manual attention`);
+          }
+        } catch (error) {
+          console.error(`❌ Error auto-fixing plan ${planData.id}:`, error);
+        }
+      }
       
       // Ensure storageUsed exists (default to 0 if not present)
       if (typeof planData.storageUsed === 'undefined') {
         planData.storageUsed = 0;
       }
       
-      // OPTION A: Get shareUrl from galleryShares collection
+      // Get shareUrl from galleryShares collection
       if (planData.galleryId) {
         try {
           const shareQuery = await db.collection('galleryShares')
@@ -587,8 +638,6 @@ async function loadActivePlans() {
           planData.shareId = null;
         }
       }
-      
-
       
       // Add to arrays
       activePlans.push(planData);
@@ -618,9 +667,47 @@ async function loadActivePlans() {
       }
     }
     
-    // Process expired plans
-    expiredPlansSnapshot.forEach(doc => {
+    // Process expired plans with auto-fix
+    for (const doc of expiredPlansSnapshot.docs) {
       const planData = { id: doc.id, ...doc.data() };
+      
+      // 🚀 AUTO-FIX: Check and fix missing galleryId for expired plans too
+      if (!planData.galleryId) {
+        console.warn(`⚠️ Expired plan ${planData.id} missing galleryId - attempting auto-fix...`);
+        try {
+          // Method 1: Find gallery by planId
+          let galleryQuery = await db.collection('galleries')
+            .where('planId', '==', planData.id)
+            .limit(1)
+            .get();
+          
+          // Method 2: If not found, try by clientId
+          if (galleryQuery.empty && planData.clientId) {
+            galleryQuery = await db.collection('galleries')
+              .where('clientId', '==', planData.clientId)
+              .where('photographerId', '==', currentUser.uid)
+              .limit(1)
+              .get();
+          }
+          
+          if (!galleryQuery.empty) {
+            const galleryId = galleryQuery.docs[0].id;
+            
+            // Update the plan in Firestore with galleryId
+            await db.collection('client-plans').doc(planData.id).update({
+              galleryId: galleryId,
+              updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            
+            // Update local plan data
+            planData.galleryId = galleryId;
+            
+            console.log(`✅ Auto-fixed expired plan ${planData.id} with gallery ${galleryId}`);
+          }
+        } catch (error) {
+          console.error(`❌ Error auto-fixing expired plan ${planData.id}:`, error);
+        }
+      }
       
       // Ensure storageUsed exists
       if (typeof planData.storageUsed === 'undefined') {
@@ -628,12 +715,22 @@ async function loadActivePlans() {
       }
       
       allPlans.push(planData);
-    });
+    }
 
     // Update UI
     updateStorageUsage();
     filterAndDisplayPlans(); // Only use this for the updated UI
     updateDashboardStats();
+    
+    // Log summary of auto-fixes
+    const plansWithGalleryId = allPlans.filter(p => p.galleryId).length;
+    const plansWithoutGalleryId = allPlans.filter(p => !p.galleryId).length;
+    
+    if (plansWithoutGalleryId > 0) {
+      console.log(`⚠️ Plans summary: ${plansWithGalleryId} have galleryId, ${plansWithoutGalleryId} still missing galleryId`);
+    } else {
+      console.log(`✅ All ${plansWithGalleryId} plans have galleryId`);
+    }
     
   } catch (error) {
     console.error('Error loading plans:', error);
@@ -643,12 +740,10 @@ async function loadActivePlans() {
     filterAndDisplayPlans();
   }
 
- // Load auto-deletion states after plans are loaded
+  // Load auto-deletion states after plans are loaded
   setTimeout(() => {
     loadExistingToggleStates();
   }, 200);
-
- 
 }
 
 /**
