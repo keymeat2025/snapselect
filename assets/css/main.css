@@ -227,7 +227,7 @@ nav {
 }
 
 .hero-slides-wrapper {
-    width: 300% !important;
+    width: 400% !important;
     height: 100% !important;
     display: flex !important;
     flex-direction: row !important;
@@ -236,9 +236,9 @@ nav {
 }
 
 .hero-slide {
-    width: 33.333% !important;
-    min-width: 33.333% !important;
-    max-width: 33.333% !important;
+    width: 25% !important;
+    min-width: 25% !important;
+    max-width: 25% !important;
     height: 100% !important;
     display: flex !important;
     align-items: center !important;
@@ -261,6 +261,33 @@ nav {
 
 .hero-slide:nth-child(3) {
     background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%) !important;
+}
+
+.hero-slide:nth-child(4) {
+    background: linear-gradient(135deg, #10B981 0%, #059669 100%) !important;
+}
+
+
+.hero-slide:nth-child(4) .hero-slide-icon {
+    background: rgba(255, 255, 255, 0.2) !important;
+    backdrop-filter: blur(10px) !important;
+    border: 1px solid rgba(255, 255, 255, 0.3) !important;
+    border-radius: 15px !important;
+    padding: 15px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+}
+
+.hero-slide:nth-child(4) .hero-slide-features .hero-slide-feature {
+    background: rgba(255, 255, 255, 0.15) !important;
+    backdrop-filter: blur(5px) !important;
+    border: 1px solid rgba(255, 255, 255, 0.2) !important;
+}
+
+.hero-slide:nth-child(4) .hero-slide-features .hero-slide-feature:hover {
+    background: rgba(255, 255, 255, 0.25) !important;
+    transform: translateY(-2px) !important;
 }
 
 .hero-slide::before {
