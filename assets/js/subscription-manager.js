@@ -1,0 +1,3867 @@
+ /**
+ * subscription-manager.js - Manages client-based plan purchases for photographers
+ */
+// Global variables for filtered plans
+let allPlans = [];
+let activeFilter = 'all';
+let searchTerm = '';
+let currentSortOption = 'recent';
+
+
+// ADD THESE FUNCTIONS to subscription-manager.js (after the global variables)
+
+// Function to get retention period
+function getRetentionPeriod(planType) {
+  return {
+    'lite': 7,
+    'mini': 7,
+    'basic': 14,
+    'pro': 14,
+    'premium': 21,
+    'ultimate': 21
+  }[planType] || 14;
+}
+
+// Function to create toggle switch HTML
+function createToggleSwitchHTML(plan) {
+  const retentionDays = getRetentionPeriod(plan.planType);
+  
+  return `
+    <div class="gallery-autodeletion-toggle" data-plan-id="${plan.id}" data-client-id="${plan.clientId}">
+      <div class="autodeletion-switch" data-plan-type="${plan.planType}">
+        <div class="autodeletion-circle">${retentionDays}</div>
+      </div>
+      <span class="autodeletion-label">Gallery_AutoDelete</span>
+      <div class="autodeletion-tooltip">
+        <div style="text-align: center;">
+          <div style="font-weight: 600; margin-bottom: 2px;">✅ Gallery Auto-Delete Disabled</div>
+          <div style="font-size: 12px; opacity: 0.9;">Your gallery will be automatically deleted when plan expires.</div>
+          <div style="font-size: 12px; color: #2196F3; margin-top: 2px;">🔒 Your photos are safe and protected till active plan only!</div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+
+// Function to add event listeners for toggle switches (FIXED - No User Control)
+function addToggleSwitchListeners() {
+  document.querySelectorAll('.autodeletion-switch').forEach(toggleSwitch => {
+    // Skip if already has listener
+    if (toggleSwitch.hasAttribute('data-listener-added')) {
+      return;
+    }
+    
+    toggleSwitch.setAttribute('data-listener-added', 'true');
+    
+    const container = toggleSwitch.closest('.gallery-autodeletion-toggle');
+    const planId = container.getAttribute('data-plan-id');
+    const plan = allPlans.find(p => p.id === planId);
+    
+    if (!plan) return;
+    
+    // 👈 AUTOMATIC BUSINESS LOGIC: Set state based on plan status ONLY
+    let isOn = false;
+    let isLocked = true; // ALWAYS LOCKED - no user control
+    
+    if (plan.status === PLAN_STATUS.EXPIRED) {
+      isOn = true; // Auto-enable when expired
+      toggleSwitch.classList.add('locked', 'on');
+    } else if (plan.status === PLAN_STATUS.ACTIVE || plan.status === PLAN_STATUS.EXPIRING_SOON) {
+      isOn = false; // Always OFF for active plans
+      toggleSwitch.classList.add('locked');
+      toggleSwitch.classList.remove('on');
+    }
+    
+    const circle = toggleSwitch.querySelector('.autodeletion-circle');
+    const label = container.querySelector('.autodeletion-label');
+    const tooltip = container.querySelector('.autodeletion-tooltip');
+    const planType = toggleSwitch.getAttribute('data-plan-type');
+    const retentionDays = getRetentionPeriod(planType);
+    
+    // Set visual state
+    if (isOn) {
+      label.style.color = '#4285f4';
+      // Update tooltip for enabled state
+      if (tooltip) {
+        tooltip.innerHTML = `
+          <div style="text-align: center;">
+            <div style="font-weight: 600; margin-bottom: 2px;">⚠️ Gallery Auto-Delete ENABLED</div>
+            <div style="font-size: 12px; opacity: 0.9;">Gallery will be deleted ${retentionDays} days after plan expiry.</div>
+            <div style="font-size: 12px; color: #f44336; margin-top: 2px;">🔒 Automatic - Cannot be changed for expired plans</div>
+          </div>
+        `;
+      }
+    } else {
+      label.style.color = '#666';
+      // Update tooltip for disabled state
+      if (tooltip) {
+        tooltip.innerHTML = `
+          <div style="text-align: center;">
+            <div style="font-weight: 600; margin-bottom: 2px;">✅ Gallery Auto-Delete DISABLED</div>
+            <div style="font-size: 12px; opacity: 0.9;">Your gallery is safe while plan is active.</div>
+            <div style="font-size: 12px; color: #4CAF50; margin-top: 2px;">🔒 Automatic - Enabled only when plan expires</div>
+          </div>
+        `;
+      }
+    }
+    
+    // 👈 CRITICAL FIX: Remove click handler - NO USER CONTROL
+    toggleSwitch.addEventListener('click', function(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      
+      // Show informational message instead of allowing toggle
+      if (plan.status === PLAN_STATUS.EXPIRED) {
+        showInfoMessage('Auto-deletion is automatically enabled for expired plans. Renew the plan to disable it.');
+      } else {
+        showInfoMessage('Auto-deletion is automatically managed based on plan status. It will be enabled when the plan expires.');
+      }
+      
+      return false; // Prevent any action
+    });
+    
+    // Add visual indication that it's not clickable
+    toggleSwitch.style.cursor = 'not-allowed';
+    toggleSwitch.style.opacity = '0.8';
+  });
+}
+ 
+
+// Plan status constants
+const PLAN_STATUS = {
+  CREATED: 'created', PENDING: 'pending', ACTIVE: 'active', FAILED: 'failed',
+  EXPIRED: 'expired', CANCELED: 'canceled', REFUNDED: 'refunded', EXPIRING_SOON: 'expiring_soon'
+};
+
+const SHARING_STATUS = {
+  NOTSHARED: 'not shared',
+  SHARED: 'shared',
+  DISABLED: 'disabled'
+};
+
+// Subscription plans data
+const SUBSCRIPTION_PLANS = {
+  lite: {
+    name: 'Lite', price: 79, priceType: 'per client', storageLimit: 2, galleryLimit: 1,
+    photosPerGallery: 100, maxClients: 1, expiryDays: 7,
+    features: ['Basic uploads', 'Client selection', 'Basic sharing', 'Mobile-friendly Galleries', 'Client Favorites Feature']
+  },
+  mini: {
+    name: 'Mini', price: 149, priceType: 'per client', storageLimit: 5, galleryLimit: 1,
+    photosPerGallery: 200, maxClients: 1, expiryDays: 14,
+    features: ['Basic uploads', 'Client selection', 'Basic sharing', 'Mobile-friendly Galleries', 'Client Favorites Feature', 'Basic Gallery Customization']
+  },
+  basic: {
+    name: 'Basic', price: 399, priceType: 'per client', storageLimit: 15, galleryLimit: 1,
+    photosPerGallery: 500, maxClients: 1, expiryDays: 30,
+    features: ['Advanced uploads', 'Client selection', 'Password protection', 'Mobile-friendly Galleries', 'Client Favorites Feature', 'Custom branding', 'Basic Analytics']
+  },
+  pro: {
+    name: 'Pro', price: 799, priceType: 'per client', storageLimit: 25, galleryLimit: 1,
+    photosPerGallery: 800, maxClients: 1, expiryDays: 45,
+    features: ['Advanced uploads', 'Client selection', 'Password protection', 'Mobile-friendly Galleries', 'Client Favorites Feature', 'Advanced Gallery Customization', 'Client Comments', 'Detailed Analytics']
+  },
+  premium: {
+    name: 'Premium', price: 1499, priceType: 'per client', storageLimit: 50, galleryLimit: 1,
+    photosPerGallery: 1200, maxClients: 1, expiryDays: 60,
+    features: ['Advanced uploads', 'Client selection', 'Password protection', 'Mobile-friendly Galleries', 'Client Favorites Feature', 'Complete Gallery Customization', 'Client Comments', 'Detailed Analytics', 'Priority Support']
+  },
+  ultimate: {
+    name: 'Ultimate', price: 2999, priceType: 'per client', storageLimit: 100, galleryLimit: 1,
+    photosPerGallery: 2500, maxClients: 1, expiryDays: 90,
+    features: ['Advanced uploads', 'Client selection', 'Password protection', 'Mobile-friendly Galleries', 'Client Favorites Feature', 'White-label Gallery Customization', 'Client Comments', 'Advanced Analytics', 'Priority Phone Support']
+  }
+};
+
+// Global variables
+let selectedPlan = null, selectedClient = null, currentUser = null, userClients = [], activePlans = [];
+// Add tracking variables for dashboard stats
+let totalStorageLimit = 0;
+let activeGalleriesCount = 0;
+let totalGalleriesCount = 0;
+let isUpdatingGalleryDropdown = false; // Flag to prevent duplicate execution
+
+// Error handling function
+function handleError(error, context) {
+  console.error(`Error in ${context}:`, error);
+  
+  // Show user-friendly error
+  let userMessage = 'An error occurred. Please try again.';
+  
+  if (error.code === 'permission-denied') {
+    userMessage = 'You don\'t have permission to perform this action.';
+  } else if (error.code === 'network-error' || (error.message && error.message.includes('network'))) {
+    userMessage = 'Network error. Please check your connection.';
+  } else if (error.code === 'quota-exceeded') {
+    userMessage = 'You\'ve reached your plan limit. Please upgrade.';
+  }
+  
+  // Use NotificationSystem if available, otherwise use showErrorMessage
+  if (window.NotificationSystem && typeof window.NotificationSystem.showNotification === 'function') {
+    window.NotificationSystem.showNotification('error', 'Error', userMessage);
+  } else {
+    showErrorMessage(userMessage);
+  }
+  
+  // Log error for debugging
+  if (firebase && firebase.auth && firebase.auth().currentUser) {
+    firebase.firestore().collection('error_logs').add({
+      userId: firebase.auth().currentUser.uid,
+      error: error.toString(),
+      context: context,
+      timestamp: firebase.firestore.FieldValue.serverTimestamp()
+    }).catch(err => console.error('Error logging error:', err));
+  }
+}
+
+// Initialize subscription manager with enhanced error handling
+async function initSubscriptionManager() {
+  try {
+    // Show loading overlay at the start
+    showLoadingOverlay('Initializing...');
+    
+    firebase.auth().onAuthStateChanged(async user => {
+      if (user) {
+        currentUser = user;
+        
+        try {
+          // Check if SecurityManager exists before calling methods
+          if (window.SecurityManager && typeof window.SecurityManager.init === 'function') {
+            window.SecurityManager.init();
+          }
+          
+          // Check if PerformanceManager exists before calling methods
+          const cachedClients = window.PerformanceManager && typeof window.PerformanceManager.getCachedData === 'function' 
+            ? window.PerformanceManager.getCachedData('user_clients') 
+            : null;
+            
+          const cachedPlans = window.PerformanceManager && typeof window.PerformanceManager.getCachedData === 'function'
+            ? window.PerformanceManager.getCachedData('active_plans')
+            : null;
+          
+          if (cachedClients) {
+            userClients = cachedClients;
+            updateClientDropdown();
+            updateClientList();
+          }
+          
+          if (cachedPlans) {
+            activePlans = cachedPlans;
+            updateActivePlansDisplay();
+            updateStorageUsage();
+          } else {
+            // Set default empty array if no cached plans
+            activePlans = [];
+          }
+          
+          // Load fresh data
+          try {
+            await Promise.all([
+              loadUserData(),
+              loadClientData(),
+              loadActivePlans()
+            ]);
+          } catch (loadError) {
+            console.error('Error loading data:', loadError);
+            // Try to update UI elements even if some data loading failed
+            updateClientDropdown();
+            updateClientList();
+            updateActivePlansDisplay();
+            updateStorageUsage();
+          }
+          
+          // Update dashboard stats after loading data
+          updateDashboardStats();
+          
+          // Cache the new data if PerformanceManager exists
+          if (window.PerformanceManager && typeof window.PerformanceManager.cacheData === 'function') {
+            window.PerformanceManager.cacheData('user_clients', userClients);
+            window.PerformanceManager.cacheData('active_plans', activePlans);
+          }
+          
+          hideLoadingOverlay();
+        } catch (error) {
+          console.error('Error loading data:', error);
+          showErrorMessage('Failed to load your data. Please refresh the page.');
+          hideLoadingOverlay();
+        }
+      } else {
+        // Hide loading overlay if user is not logged in
+        hideLoadingOverlay();
+      }
+    });
+    
+    setupEventListeners();
+    initPlanStatusMonitoring();
+    startRestorationPolling();
+  } catch (error) {
+    console.error('Error initializing subscription manager:', error);
+    hideLoadingOverlay(); // Make sure loading overlay is hidden even if there's an error
+  }
+}
+
+// Set up event listeners
+function setupEventListeners() {
+  // Plan upgrade button
+  const upgradePlanBtn = document.getElementById('upgradePlanBtn');
+  if (upgradePlanBtn) upgradePlanBtn.addEventListener('click', showUpgradeModal);
+
+  // Plan tabs in upgrade modal
+  document.querySelectorAll('.plan-tab').forEach(tab => {
+    tab.addEventListener('click', function() {
+      document.querySelectorAll('.plan-tab').forEach(t => t.classList.remove('active'));
+      this.classList.add('active');
+      selectedPlan = this.getAttribute('data-plan');
+      updatePlanDisplay(selectedPlan);
+    });
+  });
+    // In the setupEventListeners() function, add this:
+  document.addEventListener('click', function(e) {
+    if (e.target.classList.contains('view-gallery-btn')) {
+      const clientId = e.target.getAttribute('data-client-id');
+      if (clientId) viewGallery(clientId);
+    }
+  });
+
+  // Client selection and buttons
+  const clientSelect = document.getElementById('clientSelect');
+  if (clientSelect) clientSelect.addEventListener('change', function() { selectedClient = this.value; });
+  
+  const confirmUpgradeBtn = document.getElementById('confirmUpgradeBtn');
+  if (confirmUpgradeBtn) {
+    confirmUpgradeBtn.addEventListener('click', function(e) {
+      e.preventDefault();
+      
+      // Basic validation before processing
+      if (!selectedPlan || !selectedClient) {
+        showPaymentError('Please select both a plan and a client');
+        return;
+      }
+      
+      processPayment(selectedPlan);
+    });
+  }
+  
+  const cancelUpgradeBtn = document.getElementById('cancelUpgradeBtn');
+  if (cancelUpgradeBtn) cancelUpgradeBtn.addEventListener('click', hideUpgradeModal);
+  
+  const closeModalBtn = document.querySelector('#upgradePlanModal .close-modal');
+  if (closeModalBtn) closeModalBtn.addEventListener('click', hideUpgradeModal);
+  
+  const createClientBtn = document.getElementById('createClientBtn');
+  if (createClientBtn) createClientBtn.addEventListener('click', showCreateClientModal);
+
+  // Plan action buttons
+  document.addEventListener('click', function(e) {
+    if (e.target.classList.contains('cancel-plan-btn')) {
+      const planId = e.target.getAttribute('data-plan-id');
+      const clientId = e.target.getAttribute('data-client-id');
+      if (planId && clientId) confirmCancelPlan(planId, clientId);
+    }
+    
+    if (e.target.classList.contains('extend-plan-btn')) {
+      const planId = e.target.getAttribute('data-plan-id');
+      const clientId = e.target.getAttribute('data-client-id');
+      if (planId && clientId) showExtendPlanModal(planId, clientId);
+    }
+  });
+  
+  // Gallery buttons
+  const createGalleryBtn = document.getElementById('createGalleryBtn');
+  if (createGalleryBtn) createGalleryBtn.addEventListener('click', showCreateGalleryModal);
+  
+  const emptyStateCreateGalleryBtn = document.getElementById('emptyStateCreateGalleryBtn');
+  if (emptyStateCreateGalleryBtn) emptyStateCreateGalleryBtn.addEventListener('click', showCreateGalleryModal);
+  
+  // Gallery form submission
+  const createGalleryForm = document.getElementById('createGalleryForm');
+  if (createGalleryForm) {
+    createGalleryForm.addEventListener('submit', handleGalleryFormSubmit);
+  }
+}
+/**
+ * Navigate to the gallery view page for a specific client's gallery
+ * @param {string} clientId - The ID of the client whose gallery to view
+ */
+
+
+
+function viewGallery(clientId) {
+  if (!clientId) {
+    showErrorMessage('Could not find gallery details');
+    return;
+  }
+  
+  // Show loading overlay while we get the gallery info
+  showLoadingOverlay('Fetching gallery details...');
+  
+  // Find the client
+  const client = userClients.find(c => c.id === clientId);
+  if (!client) {
+    hideLoadingOverlay();
+    showErrorMessage('Client not found');
+    return;
+  }
+  
+  // Find the client's plan
+  const plan = activePlans.find(p => p.clientId === clientId);
+  if (!plan) {
+    hideLoadingOverlay();
+    showErrorMessage('No active plan found for this client');
+    return;
+  }
+  
+  // Check if plan has a gallery
+  if (!plan.galleryId) {
+    // Try to fetch gallery by client ID
+    findGalleryByClientId(clientId)
+      .then(galleryId => {
+        if (galleryId) {
+          // Navigate to gallery view page with correct absolute path
+          window.location.href = `/snapselect/pages/gallery-view.html?id=${galleryId}&client=${clientId}`;
+        } else {
+          showErrorMessage('No gallery found for this client. Create a gallery first.');
+          hideLoadingOverlay();
+        }
+      })
+      .catch(error => {
+        console.error('Error finding gallery:', error);
+        showErrorMessage('Error finding gallery details');
+        hideLoadingOverlay();
+      });
+  } else {
+    // Navigate directly to gallery view page with correct absolute path
+    window.location.href = `/snapselect/pages/gallery-view.html?id=${plan.galleryId}&client=${clientId}`;
+    hideLoadingOverlay();
+  }
+}
+
+/**
+ * Find a gallery by client ID
+ * @param {string} clientId - The client ID to search for
+ * @returns {Promise<string|null>} - Returns gallery ID if found, null otherwise
+ */
+
+async function findGalleryByClientId(clientId) {
+  try {
+    if (!currentUser || !clientId) return null;
+    
+    const db = firebase.firestore();
+    const gallerySnapshot = await db.collection('galleries')
+      .where('clientId', '==', clientId)
+      .where('photographerId', '==', currentUser.uid)
+      .where('status', '==', 'active')
+      .limit(1)
+      .get();
+    
+    if (gallerySnapshot.empty) {
+      console.log('No gallery found for client:', clientId);
+      return null;
+    }
+    
+    // Return the first gallery ID found
+    return gallerySnapshot.docs[0].id;
+  } catch (error) {
+    console.error('Error finding gallery by client ID:', error);
+    throw error;
+  }
+}
+
+// Modified loadUserData function to return a Promise
+async function loadUserData() {
+  try {
+    if (!currentUser) return;
+    const db = firebase.firestore();
+    const userDoc = await db.collection('users').doc(currentUser.uid).get();
+    
+    if (!userDoc.exists) {
+      await db.collection('users').doc(currentUser.uid).set({
+        email: currentUser.email,
+        displayName: currentUser.displayName || '',
+        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+        defaultPlan: 'free',
+        planActive: false,
+        totalPlans: 0,
+        totalSpent: 0
+      });
+      return;
+    }
+    
+    updateUserInfo(userDoc.data());
+  } catch (error) {
+    console.error('Error loading user data:', error);
+    throw error; // Re-throw to be caught by the Promise.all
+  }
+}
+
+// Modified loadClientData function to return a Promise
+async function loadClientData() {
+  try {
+    if (!currentUser) return;
+    const db = firebase.firestore();
+    const clientsSnapshot = await db.collection('clients')
+      .where('photographerId', '==', currentUser.uid)
+      .get();
+    
+    userClients = [];
+    clientsSnapshot.forEach(doc => {
+      userClients.push({ id: doc.id, ...doc.data() });
+    });
+    
+    updateClientDropdown();
+    updateClientList();
+    updateDashboardStats(); // Add this call to update dashboard stats
+  } catch (error) {
+    console.error('Error loading client data:', error);
+    throw error; // Re-throw to be caught by the Promise.all
+  }
+}
+
+// Modified loadActivePlans function to return a Promise
+
+
+async function loadActivePlans() {
+  try {
+    if (!currentUser) return;
+    const db = firebase.firestore();
+    
+    // Get active and expiring soon plans
+    const activePlansSnapshot = await db.collection('client-plans')
+      .where('photographerId', '==', currentUser.uid)
+      .where('status', 'in', [PLAN_STATUS.ACTIVE, PLAN_STATUS.EXPIRING_SOON])
+      .get();
+    
+    // Get expired plans (separate query)
+    const expiredPlansSnapshot = await db.collection('client-plans')
+      .where('photographerId', '==', currentUser.uid)
+      .where('status', '==', PLAN_STATUS.EXPIRED)
+      .get();
+    
+    // Reset plans arrays
+    activePlans = []; // Keep this for compatibility
+    allPlans = [];
+    totalStorageLimit = 0;
+    
+    if (activePlansSnapshot.empty && expiredPlansSnapshot.empty) {
+      console.log('No plans found for this user');
+      updateActivePlansDisplay(); // Keep this for compatibility
+      updateStorageUsage();
+      filterAndDisplayPlans(); // Add this for the new UI
+      return;
+    }
+    
+    // Process active plans and check for sharing data
+    for (const doc of activePlansSnapshot.docs) {
+      const planData = { id: doc.id, ...doc.data() };
+      
+      // 🚀 AUTO-FIX: Check and fix missing galleryId
+      if (!planData.galleryId) {
+        console.warn(`⚠️ Plan ${planData.id} missing galleryId - attempting auto-fix...`);
+        try {
+          // Method 1: Find gallery by planId
+          let galleryQuery = await db.collection('galleries')
+            .where('planId', '==', planData.id)
+            .where('status', '==', 'active')
+            .limit(1)
+            .get();
+          
+          // Method 2: If not found, try by clientId
+          if (galleryQuery.empty && planData.clientId) {
+            galleryQuery = await db.collection('galleries')
+              .where('clientId', '==', planData.clientId)
+              .where('photographerId', '==', currentUser.uid)
+              .where('status', '==', 'active')
+              .limit(1)
+              .get();
+          }
+          
+          if (!galleryQuery.empty) {
+            const galleryId = galleryQuery.docs[0].id;
+            const galleryDoc = galleryQuery.docs[0];
+            const galleryDocData = galleryDoc.data();
+            
+            // Update the plan in Firestore with galleryId
+            await db.collection('client-plans').doc(planData.id).update({
+              galleryId: galleryId,
+              updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            
+            // Update local plan data
+            planData.galleryId = galleryId;
+            
+            // Also ensure gallery has correct planId (bidirectional linking)
+            if (!galleryDocData.planId || galleryDocData.planId !== planData.id) {
+              await db.collection('galleries').doc(galleryId).update({
+                planId: planData.id,
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+              });
+              console.log(`🔗 Also updated gallery ${galleryId} with planId ${planData.id}`);
+            }
+            
+            console.log(`✅ Auto-fixed plan ${planData.id} with gallery ${galleryId}`);
+          } else {
+            console.log(`⚠️ No gallery found for plan ${planData.id} - this plan may need manual attention`);
+          }
+        } catch (error) {
+          console.error(`❌ Error auto-fixing plan ${planData.id}:`, error);
+        }
+      }
+      
+      // Ensure storageUsed exists (default to 0 if not present)
+      if (typeof planData.storageUsed === 'undefined') {
+        planData.storageUsed = 0;
+      }
+      
+      // Get shareUrl from galleryShares collection
+      if (planData.galleryId) {
+        try {
+          const shareQuery = await db.collection('galleryShares')
+            .where('galleryId', '==', planData.galleryId)
+            .where('photographerId', '==', currentUser.uid)
+            .where('status', '==', 'active')
+            .limit(1)
+            .get();
+          
+          if (!shareQuery.empty) {
+            const shareData = shareQuery.docs[0].data();
+            planData.shareUrl = shareData.shareUrl;
+            planData.shareId = shareData.shareId;
+            console.log("Found active share for gallery:", planData.galleryId, "URL:", shareData.shareUrl);
+          } else {
+            planData.shareUrl = null;
+            planData.shareId = null;
+          }
+        } catch (error) {
+          console.error("Error fetching share data for gallery:", planData.galleryId, error);
+          planData.shareUrl = null;
+          planData.shareId = null;
+        }
+      }
+      
+      // Add to arrays
+      activePlans.push(planData);
+      allPlans.push(planData);
+      
+      // Add to total storage limit
+      if (planData.planType && SUBSCRIPTION_PLANS[planData.planType]) {
+        totalStorageLimit += SUBSCRIPTION_PLANS[planData.planType].storageLimit || 0;
+      }
+      
+      // Create notification for expiring plans
+      if (planData.status === PLAN_STATUS.EXPIRING_SOON && 
+          planData.daysLeftBeforeExpiration <= 7 &&
+          !localStorage.getItem(`plan_expiry_notified_${planData.id}`)) {
+        
+        if (window.NotificationSystem) {
+          const client = userClients.find(c => c.id === planData.clientId);
+          window.NotificationSystem.createNotificationFromEvent({
+            type: 'plan_expiring',
+            planName: SUBSCRIPTION_PLANS[planData.planType]?.name || planData.planType,
+            clientName: client?.name || planData.clientName || 'your client',
+            daysLeft: planData.daysLeftBeforeExpiration
+          });
+        }
+        
+        localStorage.setItem(`plan_expiry_notified_${planData.id}`, 'true');
+      }
+    }
+    
+    // Process expired plans with auto-fix
+    for (const doc of expiredPlansSnapshot.docs) {
+      const planData = { id: doc.id, ...doc.data() };
+      
+      // 🚀 AUTO-FIX: Check and fix missing galleryId for expired plans too
+      if (!planData.galleryId) {
+        console.warn(`⚠️ Expired plan ${planData.id} missing galleryId - attempting auto-fix...`);
+        try {
+          // Method 1: Find gallery by planId
+          let galleryQuery = await db.collection('galleries')
+            .where('planId', '==', planData.id)
+            .limit(1)
+            .get();
+          
+          // Method 2: If not found, try by clientId
+          if (galleryQuery.empty && planData.clientId) {
+            galleryQuery = await db.collection('galleries')
+              .where('clientId', '==', planData.clientId)
+              .where('photographerId', '==', currentUser.uid)
+              .limit(1)
+              .get();
+          }
+          
+          if (!galleryQuery.empty) {
+            const galleryId = galleryQuery.docs[0].id;
+            
+            // Update the plan in Firestore with galleryId
+            await db.collection('client-plans').doc(planData.id).update({
+              galleryId: galleryId,
+              updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            
+            // Update local plan data
+            planData.galleryId = galleryId;
+            
+            console.log(`✅ Auto-fixed expired plan ${planData.id} with gallery ${galleryId}`);
+          }
+        } catch (error) {
+          console.error(`❌ Error auto-fixing expired plan ${planData.id}:`, error);
+        }
+      }
+      
+      // Ensure storageUsed exists
+      if (typeof planData.storageUsed === 'undefined') {
+        planData.storageUsed = 0;
+      }
+      
+      allPlans.push(planData);
+    }
+
+    // Update UI
+    updateStorageUsage();
+    filterAndDisplayPlans(); // Only use this for the updated UI
+    updateDashboardStats();
+    
+    // Log summary of auto-fixes
+    const plansWithGalleryId = allPlans.filter(p => p.galleryId).length;
+    const plansWithoutGalleryId = allPlans.filter(p => !p.galleryId).length;
+    
+    if (plansWithoutGalleryId > 0) {
+      console.log(`⚠️ Plans summary: ${plansWithGalleryId} have galleryId, ${plansWithoutGalleryId} still missing galleryId`);
+    } else {
+      console.log(`✅ All ${plansWithGalleryId} plans have galleryId`);
+    }
+    
+  } catch (error) {
+    console.error('Error loading plans:', error);
+    // Even in case of error, try to update UI with whatever data we have
+    updateActivePlansDisplay();
+    updateStorageUsage();
+    filterAndDisplayPlans();
+  }
+
+  // Load auto-deletion states after plans are loaded
+  setTimeout(() => {
+    loadExistingToggleStates();
+  }, 200);
+}
+
+/**
+ * Update dashboard statistics with total counts
+ */
+function updateDashboardStats() {
+  try {
+    // Update active clients count
+    const activeClientsCount = document.getElementById('activeClientsCount');
+    if (activeClientsCount) {
+      // Count clients with active plans
+      const activeClients = userClients.filter(client => client.planActive).length;
+      activeClientsCount.textContent = `${activeClients}/${userClients.length}`;
+    }
+    
+    // Update active galleries count
+    const activeGalleriesCount = document.getElementById('activeGalleriesCount');
+    if (activeGalleriesCount) {
+      // Count active galleries from plans data
+      const galleryCount = activePlans.length; // Each active plan typically has one gallery
+      
+      // For total galleries, we would need to query all galleries, but for now
+      // we can use a simple estimation based on plans and client counts
+      // This could be replaced with an actual gallery count query in the future
+      const estimatedTotalGalleries = Math.max(galleryCount, userClients.length);
+      
+      activeGalleriesCount.textContent = `${galleryCount}/${estimatedTotalGalleries}`;
+    }
+    
+    // Note: Storage usage is already handled in updateStorageUsage()
+  } catch (error) {
+    console.error('Error updating dashboard stats:', error);
+  }
+}
+
+// Update user info in UI
+function updateUserInfo(userData) {
+  const userNameEl = document.getElementById('userName');
+  if (userNameEl) userNameEl.textContent = userData.displayName || currentUser.email || 'User';
+  
+  const avatarPlaceholder = document.querySelector('.avatar-placeholder');
+  if (avatarPlaceholder) {
+    avatarPlaceholder.textContent = (userData.displayName || currentUser.email || 'U').charAt(0).toUpperCase();
+  }
+}
+
+// Update client dropdown
+function updateClientDropdown() {
+  const clientSelect = document.getElementById('clientSelect');
+  if (!clientSelect) return;
+  
+  clientSelect.innerHTML = '<option value="">Select a client</option><option value="new">+ Create New Client</option>';
+  
+  userClients.forEach(client => {
+    const option = document.createElement('option');
+    option.value = client.id;
+    option.textContent = client.name || client.email;
+    if (client.planActive) option.textContent += ` (${client.planType} Plan)`;
+    clientSelect.appendChild(option);
+  });
+}
+
+// Update client list
+function updateClientList() {
+  const clientListEl = document.getElementById('clientList');
+  if (!clientListEl) return;
+  
+  clientListEl.innerHTML = '';
+  
+  if (userClients.length === 0) {
+    clientListEl.innerHTML = '<div class="empty-state">No clients yet. Add your first client to get started.</div>';
+    return;
+  }
+  
+  userClients.forEach(client => {
+    const clientCard = document.createElement('div');
+    clientCard.className = 'client-card';
+    
+    let planBadge = '';
+    if (client.planActive) {
+      planBadge = `<span class="plan-badge ${client.planType}">${SUBSCRIPTION_PLANS[client.planType]?.name || client.planType}</span>`;
+    } else {
+      planBadge = '<span class="plan-badge no-plan">No Plan</span>';
+    }
+    
+    let endDateDisplay = '';
+    if (client.planEndDate) {
+      endDateDisplay = client.planEndDate.toDate().toLocaleDateString();
+    }
+    
+    clientCard.innerHTML = `
+      <div class="client-info">
+        <h3 class="client-name">${client.name || 'Unknown Client'}</h3>
+        <div class="client-email">${client.email || ''}</div>
+        <div class="client-plan">
+          ${planBadge}
+          ${endDateDisplay ? `<span class="plan-expiry">Expires: ${endDateDisplay}</span>` : ''}
+        </div>
+      </div>
+      <div class="client-actions">
+        <button class="btn view-client-btn" data-client-id="${client.id}">View Client</button>
+        ${!client.planActive ? `<button class="btn add-plan-btn" data-client-id="${client.id}">Add Plan</button>` : ''}
+      </div>
+    `;
+    
+    clientListEl.appendChild(clientCard);
+  });
+  
+  // Add event listeners
+  document.querySelectorAll('.view-client-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+      viewClient(this.getAttribute('data-client-id'));
+    });
+  });
+  
+  document.querySelectorAll('.add-plan-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+      showUpgradeModal(this.getAttribute('data-client-id'));
+    });
+  });
+}
+
+// Update active plans display
+function updateActivePlansDisplay() {
+  const activePlansEl = document.getElementById('activePlans');
+  if (!activePlansEl) return;
+  
+  activePlansEl.innerHTML = '';
+  
+  if (activePlans.length === 0) {
+    activePlansEl.innerHTML = '<div class="empty-state">No active plans. Purchase a plan for a client to get started.</div>';
+    return;
+  }
+  
+  activePlans.forEach(plan => {
+    const planCard = document.createElement('div');
+    planCard.className = 'plan-card';
+    planCard.classList.add(plan.status);
+    
+    const startDate = plan.planStartDate?.toDate().toLocaleDateString() || 'Unknown';
+    const endDate = plan.planEndDate?.toDate().toLocaleDateString() || 'Unknown';
+    
+    const client = userClients.find(c => c.id === plan.clientId);
+    const clientName = client?.name || plan.clientName || 'Unknown Client';
+    
+    planCard.innerHTML = `
+      <div class="plan-header">
+        <h3 class="plan-type">${SUBSCRIPTION_PLANS[plan.planType]?.name || plan.planType} Plan</h3>
+        <span class="plan-status ${plan.status}">${formatPlanStatus(plan.status)}</span>
+      </div>
+      <div class="plan-details">
+        <div class="plan-client"><strong>Client:</strong> ${clientName}</div>
+        <div class="plan-dates">
+          <div><strong>Started:</strong> ${startDate}</div>
+          <div><strong>Expires:</strong> ${endDate}</div>
+        </div>
+        ${plan.daysLeftBeforeExpiration ? `<div class="plan-expiry-warning">Expires in ${plan.daysLeftBeforeExpiration} days</div>` : ''}
+        <div class="plan-usage">
+          <div class="usage-item">
+            <span>Storage: ${formatStorageUsage(plan.storageUsed || 0, SUBSCRIPTION_PLANS[plan.planType]?.storageLimit || 1)}</span>
+            <div class="usage-bar">
+              <div class="usage-progress" style="width: ${calculateUsagePercent(plan.storageUsed || 0, SUBSCRIPTION_PLANS[plan.planType]?.storageLimit || 1)}%"></div>
+            </div>
+          </div>
+          <div class="usage-item">
+            <span>Photos: ${formatPhotoUsage(plan.photosUploaded || 0, SUBSCRIPTION_PLANS[plan.planType]?.photosPerGallery || 50)}</span>
+            <div class="usage-bar">
+              <div class="usage-progress" style="width: ${calculateUsagePercent(plan.photosUploaded || 0, SUBSCRIPTION_PLANS[plan.planType]?.photosPerGallery || 50)}%"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="plan-actions">
+        <button class="btn view-gallery-btn" data-client-id="${plan.clientId}">View Gallery</button>
+        ${plan.status === PLAN_STATUS.ACTIVE || plan.status === PLAN_STATUS.EXPIRING_SOON ?
+          `<button class="btn extend-plan-btn" data-plan-id="${plan.id}" data-client-id="${plan.clientId}">Extend Plan</button>
+           //<button class="btn cancel-plan-btn" data-plan-id="${plan.id}" data-client-id="${plan.clientId}">Cancel Plan</button>` : ''}
+      </div>
+    `;
+    
+    activePlansEl.appendChild(planCard);
+  });
+}
+
+// Helper functions for formatting
+function formatPlanStatus(status) {
+  const statusMap = {
+    [PLAN_STATUS.ACTIVE]: 'Active',
+    [PLAN_STATUS.EXPIRING_SOON]: 'Expiring Soon',
+    [PLAN_STATUS.EXPIRED]: 'Expired',
+    [PLAN_STATUS.CANCELED]: 'Canceled',
+    [PLAN_STATUS.PENDING]: 'Pending'
+  };
+  return statusMap[status] || status;
+}
+
+function formatStorageUsage(used, limit) {
+  return `${(used / 1024).toFixed(2)}/${limit} GB`;
+}
+
+function formatPhotoUsage(used, limit) {
+  return `${used}/${limit} photos`;
+}
+
+function calculateUsagePercent(used, limit) {
+  return Math.min((used / limit) * 100, 100);
+}
+
+// Modal functions
+function showUpgradeModal(clientId = null) {
+  const modal = document.getElementById('upgradePlanModal');
+  if (!modal) return;
+  
+  if (clientId) {
+    const clientSelect = document.getElementById('clientSelect');
+    if (clientSelect) {
+      clientSelect.value = clientId;
+      selectedClient = clientId;
+    }
+  }
+  
+  modal.style.display = 'block';
+  document.querySelector('.plan-tab[data-plan="basic"]')?.click();
+}
+
+function hideUpgradeModal() {
+  const modal = document.getElementById('upgradePlanModal');
+  if (modal) modal.style.display = 'none';
+}
+
+function showCreateClientModal() {
+  const upgradeModal = document.getElementById('upgradePlanModal');
+  if (upgradeModal) upgradeModal.style.display = 'none';
+  
+  const createClientModal = document.getElementById('createClientModal');
+  if (createClientModal) createClientModal.style.display = 'block';
+}
+
+
+/**
+ * Check if a client with the given name already exists
+ * @param {string} clientName - The name to check for duplicates
+ * @returns {Promise<boolean>} - True if a duplicate exists, false otherwise
+ */
+
+// Add this function to subscription-manager.js
+/**
+ * Check if a client with the given name already exists
+ */
+
+
+// Client management
+
+async function createClient(name, email, additionalData = {}) {
+  try {
+    if (!currentUser) return null;
+    
+    const db = firebase.firestore();
+    const clientRef = await db.collection('clients').add({
+      name, 
+      email,
+      photographerId: currentUser.uid,
+      createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+      planActive: false,
+      ...additionalData // This spreads the additional data into the client object
+    });
+    
+    // Add notification for client creation
+    if (window.NotificationSystem) {
+      window.NotificationSystem.createNotificationFromEvent({
+        type: 'client_created',
+        clientName: name || email || 'New client'
+      });
+    }
+    
+    await loadClientData();
+    return clientRef.id;
+  } catch (error) {
+    console.error('Error creating client:', error);
+    return null;
+  }
+}
+
+
+
+  
+
+// Plan display and payment
+function updatePlanDisplay(planType) {
+  const planDetails = SUBSCRIPTION_PLANS[planType];
+  if (!planDetails) return;
+
+  const planNameElement = document.getElementById('selectedPlanName');
+  const planPriceElement = document.getElementById('selectedPlanPrice');
+  
+  if (planNameElement) planNameElement.textContent = planDetails.name;
+  if (planPriceElement) planPriceElement.textContent = `₹${planDetails.price}/${planDetails.priceType}`;
+
+  const featuresList = document.getElementById('planFeaturesList');
+  if (featuresList) {
+    featuresList.innerHTML = '';
+    planDetails.features.forEach(feature => {
+      const li = document.createElement('li');
+      li.textContent = feature;
+      featuresList.appendChild(li);
+    });
+  }
+  
+  const validityInfo = document.getElementById('validityInfo');
+  if (validityInfo) validityInfo.textContent = `Valid for ${planDetails.expiryDays} days`;
+}
+
+
+async function processPayment(planType) {
+  try {
+    showPaymentProgress('Processing your request...');
+    
+    // Fix: Ensure selectedClient is properly handled
+    if (!selectedClient || selectedClient === 'undefined' || selectedClient === '') {
+      selectedClient = null;
+    }
+    
+    // Handle client selection
+    let clientId = selectedClient;
+    let clientName = '';
+    
+    if (selectedClient === 'new') {
+      const clientNameInput = document.getElementById('newClientName');
+      const clientEmailInput = document.getElementById('newClientEmail');
+      
+      if (!clientNameInput || !clientNameInput.value) {
+        showPaymentError('Please enter a client name');
+        setTimeout(resetPaymentButtons, 3000);
+        return;
+      }
+      
+      clientName = clientNameInput.value;
+      const clientEmail = clientEmailInput ? clientEmailInput.value : '';
+      clientId = await createClient(clientName, clientEmail);
+      
+      if (!clientId) throw new Error('Failed to create client');
+    } else if (clientId) {
+      const client = userClients.find(c => c.id === clientId);
+      clientName = client?.name || 'Selected Client';
+    }
+    
+    if (!firebase.auth().currentUser) {
+      showPaymentError('You must be logged in to make a payment');
+      setTimeout(resetPaymentButtons, 3000);
+      return;
+    }
+    
+    if (!SUBSCRIPTION_PLANS[planType]) throw new Error(`Invalid plan selected: ${planType}`);
+    
+    const plan = SUBSCRIPTION_PLANS[planType];
+    const functions = firebase.app().functions('asia-south1');
+    
+    // Create payment order
+    const createPaymentOrder = functions.httpsCallable('createPaymentOrder');
+    
+    // Fix: Ensure clientId is properly passed
+    const orderResponse = await createPaymentOrder({
+      planType,
+      amount: plan.price,
+      clientId: clientId || null, // Explicitly set to null if not provided
+      clientName: clientName || ''
+    });
+    
+    const orderData = orderResponse.data;
+    if (!orderData || !orderData.orderId) throw new Error('Invalid response from payment order creation');
+    
+    // Configure Razorpay
+    const options = {
+      key: 'rzp_test_k2If7sWFzrbatR',
+      amount: orderData.amount * 100,
+      currency: orderData.currency || 'INR',
+      name: 'SnapSelect',
+      description: `${plan.name} Plan for ${clientName || 'Default Plan'}`,
+      order_id: orderData.orderId,
+      handler: function(response) {
+        verifyPayment(response.razorpay_order_id, response.razorpay_payment_id, response.razorpay_signature);
+      },
+      prefill: {
+        name: document.getElementById('userName')?.textContent || '',
+        email: currentUser.email || '',
+      },
+      theme: { color: '#4A90E2' },
+      modal: {
+        ondismiss: function() {
+          resetPaymentButtons();
+        }
+      }
+    };
+    
+    const razorpay = new Razorpay(options);
+    razorpay.open();
+    
+  } catch (error) {
+    console.error('Payment process error:', error);
+    showPaymentError(`Payment failed: ${error.message}`);
+    setTimeout(resetPaymentButtons, 3000);
+  }
+}
+
+
+async function verifyPayment(orderId, paymentId, signature) {
+  try {
+    showPaymentProgress('Verifying payment...');
+    
+    const functions = firebase.app().functions('asia-south1');
+    const verifyPaymentFunc = functions.httpsCallable('verifyPayment');
+    const result = await verifyPaymentFunc({
+      orderId,
+      paymentId,
+      signature
+    });
+    
+    const responseData = result.data;
+    
+    if (responseData && responseData.success) {
+      showPaymentSuccess(`Payment successful! The ${SUBSCRIPTION_PLANS[responseData.planType]?.name || responseData.planType} plan has been activated for your client.`);
+      
+      // Add notification for successful payment
+      if (window.NotificationSystem) {
+        window.NotificationSystem.createNotificationFromEvent({
+          type: 'payment_successful',
+          amount: SUBSCRIPTION_PLANS[responseData.planType]?.price || 0,
+          planName: SUBSCRIPTION_PLANS[responseData.planType]?.name || responseData.planType,
+          clientName: document.getElementById('clientSelect')?.options[document.getElementById('clientSelect')?.selectedIndex]?.text || 'your client'
+        });
+        
+        window.NotificationSystem.createNotificationFromEvent({
+          type: 'plan_purchased',
+          planName: SUBSCRIPTION_PLANS[responseData.planType]?.name || responseData.planType,
+          clientName: document.getElementById('clientSelect')?.options[document.getElementById('clientSelect')?.selectedIndex]?.text || 'your client'
+        });
+      }
+
+      // 👈 ADD THIS NEW LINE - Setup auto-deletion for new plans
+      if (responseData.planId && responseData.planType) {
+        await ensureNewPlanHasAutoDeletionFields(responseData.planId, responseData.planType);
+      }
+     
+          // Handle plan renewal/purchase - disable auto-deletion
+      // Handle plan renewal/purchase - disable auto-deletion
+
+     // BULLETPROOF: Handle plan renewal without blocking payment success
+      if (responseData.planId) {
+        setTimeout(() => {
+          handlePlanRenewal(responseData.planId).catch(error => {
+            console.error('Non-blocking: Plan renewal failed:', error);
+          });
+        }, 500);
+      } else if (responseData.clientId) {
+        setTimeout(() => {
+          try {
+            const clientPlan = allPlans.find(p => p.clientId === responseData.clientId);
+            if (clientPlan) {
+              handlePlanRenewal(clientPlan.id).catch(error => {
+                console.error('Non-blocking: Client plan renewal failed:', error);
+              });
+            } else {
+              console.log('Client plan not found for renewal, but payment succeeded');
+            }
+          } catch (error) {
+            console.error('Non-blocking: Error finding client plan:', error);
+          }
+        }, 1000);
+      }
+     
+      setTimeout(() => {
+        hideUpgradeModal();
+        loadClientData();
+        loadActivePlans();
+        updateDashboardStats(); // Add this call to update dashboard stats after plan purchase
+      }, 2000);
+    } else {
+      throw new Error('Payment verification failed');
+    }
+    
+  } catch (error) {
+    console.error('Payment verification error:', error);
+    showPaymentError(`Payment verification failed: ${error.message}`);
+    setTimeout(resetPaymentButtons, 3000);
+  }
+}
+
+
+// ADD THIS FUNCTION TO YOUR subscription-manager.js FILE
+// Place it after your other auto-deletion functions
+
+/**
+ * Ensure new plan has auto-deletion fields
+ * Call this after successful payment to add missing fields to new plans
+ */
+async function ensureNewPlanHasAutoDeletionFields(planId, planType) {
+  try {
+    if (!planId || !planType) {
+      console.log('Missing planId or planType, skipping auto-deletion setup');
+      return;
+    }
+
+    console.log(`🔧 Setting up auto-deletion fields for new plan: ${planId}`);
+    
+    const db = firebase.firestore();
+    
+    // Check if the new plan already has auto-deletion fields
+    const planDoc = await db.collection('client-plans').doc(planId).get();
+    
+    if (!planDoc.exists) {
+      console.error(`Plan ${planId} not found`);
+      return;
+    }
+    
+    const planData = planDoc.data();
+    
+    // If missing auto-deletion fields, add them
+    if (planData.autoDeletionEnabled === undefined) {
+      const retentionDays = getRetentionPeriod(planType);
+      
+      const updateData = {
+        autoDeletionEnabled: false,  // New active plans should not auto-delete
+        retentionPeriodDays: retentionDays,
+        deletionStatus: 'cancelled',
+        lastModified: firebase.firestore.FieldValue.serverTimestamp()
+        // Note: No scheduledDeletionDate since plan is active
+      };
+      
+      await db.collection('client-plans').doc(planId).update(updateData);
+      console.log(`✅ Added auto-deletion fields to new plan ${planId}:`, updateData);
+    } else {
+      console.log(`✅ Plan ${planId} already has auto-deletion fields`);
+    }
+    
+  } catch (error) {
+    console.error('Error ensuring auto-deletion fields:', error);
+    // Don't throw error - this shouldn't break payment flow
+  }
+}
+
+// UI feedback functions
+function showPaymentProgress(message) {
+  const progressEl = document.querySelector('.payment-progress');
+  if (progressEl) {
+    progressEl.textContent = message;
+    progressEl.style.display = 'block';
+  }
+  
+  const successEl = document.querySelector('.payment-success');
+  if (successEl) successEl.style.display = 'none';
+  
+  const errorEl = document.querySelector('.payment-error');
+  if (errorEl) errorEl.style.display = 'none';
+  
+  const confirmBtn = document.getElementById('confirmUpgradeBtn');
+  if (confirmBtn) {
+    confirmBtn.disabled = true;
+    confirmBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+  }
+}
+
+function showPaymentSuccess(message) {
+  const successEl = document.querySelector('.payment-success');
+  if (successEl) {
+    successEl.textContent = message;
+    successEl.style.display = 'block';
+  }
+  
+  const progressEl = document.querySelector('.payment-progress');
+  if (progressEl) progressEl.style.display = 'none';
+  
+  const errorEl = document.querySelector('.payment-error');
+  if (errorEl) errorEl.style.display = 'none';
+  
+  const confirmBtn = document.getElementById('confirmUpgradeBtn');
+  if (confirmBtn) {
+    confirmBtn.disabled = false;
+    confirmBtn.innerHTML = 'Upgrade Complete!';
+  }
+}
+
+function showPaymentError(message) {
+  const errorEl = document.querySelector('.payment-error');
+  if (errorEl) {
+    errorEl.textContent = message;
+    errorEl.style.display = 'block';
+  }
+  
+  const progressEl = document.querySelector('.payment-progress');
+  if (progressEl) progressEl.style.display = 'none';
+  
+  const successEl = document.querySelector('.payment-success');
+  if (successEl) successEl.style.display = 'none';
+  
+  const confirmBtn = document.getElementById('confirmUpgradeBtn');
+  if (confirmBtn) {
+    confirmBtn.disabled = false;
+    confirmBtn.innerHTML = 'Try Again';
+  }
+}
+
+
+function resetPaymentButtons() {
+  const confirmBtn = document.getElementById('confirmUpgradeBtn');
+  if (confirmBtn) {
+    confirmBtn.disabled = false;
+    confirmBtn.innerHTML = 'Upgrade Now';
+  }
+}
+
+// Plan management
+function confirmCancelPlan(planId, clientId) {
+  if (confirm('Are you sure you want to cancel this plan? This action cannot be undone.')) {
+    cancelClientPlan(planId, clientId);
+  }
+}
+
+async function cancelClientPlan(planId, clientId) {
+  try {
+    showLoadingOverlay('Canceling plan...');
+    
+    const functions = firebase.app().functions('asia-south1');
+    const cancelPlanFunc = functions.httpsCallable('cancelClientPlan');
+    const result = await cancelPlanFunc({
+      clientId,
+      reason: 'User requested cancellation'
+    });
+    
+    if (result.data && result.data.success) {
+      showSuccessMessage('Plan canceled successfully');
+      
+      // Add notification for plan cancellation
+      if (window.NotificationSystem) {
+        const plan = activePlans.find(p => p.id === planId);
+        const client = userClients.find(c => c.id === clientId);
+        if (plan && client) {
+          window.NotificationSystem.createNotificationFromEvent({
+            type: 'info',
+            title: 'Plan Canceled',
+            message: `The ${SUBSCRIPTION_PLANS[plan.planType]?.name || plan.planType} plan for ${client.name || 'your client'} has been canceled.`
+          });
+        }
+      }
+      
+      loadClientData();
+      loadActivePlans();
+      updateDashboardStats(); // Add this call to update dashboard stats after cancellation
+    } else {
+      throw new Error('Failed to cancel plan');
+    }
+    
+  } catch (error) {
+    console.error('Error canceling plan:', error);
+    showErrorMessage(`Error canceling plan: ${error.message}`);
+  } finally {
+    hideLoadingOverlay();
+  }
+}
+
+// Loading and notification utilities
+function showLoadingOverlay(message) {
+  const loadingOverlay = document.getElementById('loadingOverlay');
+  if (!loadingOverlay) return;
+  
+  const loadingText = loadingOverlay.querySelector('.loading-text');
+  if (loadingText) loadingText.textContent = message || 'Loading...';
+  
+  loadingOverlay.style.display = 'flex';
+  
+  // Add safety timeout to hide loading overlay after 10 seconds
+  // This prevents the UI from being stuck in loading state forever
+  clearTimeout(window.loadingTimeout);
+  window.loadingTimeout = setTimeout(() => {
+    hideLoadingOverlay();
+    showErrorMessage('Operation timed out. Please try again.');
+  }, 10000);
+}
+
+function hideLoadingOverlay() {
+  const loadingOverlay = document.getElementById('loadingOverlay');
+  if (loadingOverlay) loadingOverlay.style.display = 'none';
+  
+  // Clear the safety timeout
+  clearTimeout(window.loadingTimeout);
+}
+
+function showSuccessMessage(message) {
+  // Try to use NotificationSystem if available
+  if (window.NotificationSystem && typeof window.NotificationSystem.showNotification === 'function') {
+    window.NotificationSystem.showNotification('success', 'Success', message);
+    return;
+  }
+  
+  // Fallback to custom toast
+  const toastContainer = document.getElementById('toastContainer');
+  if (!toastContainer) return;
+  
+  const toast = document.createElement('div');
+  toast.className = 'toast toast-success';
+  toast.innerHTML = `<i class="fas fa-check-circle"></i><span>${message}</span>`;
+  
+  toastContainer.appendChild(toast);
+  
+  setTimeout(() => {
+    toast.classList.add('hide');
+    setTimeout(() => { toast.remove(); }, 300);
+  }, 3000);
+}
+
+function showErrorMessage(message) {
+  // Try to use NotificationSystem if available
+  if (window.NotificationSystem && typeof window.NotificationSystem.showNotification === 'function') {
+    window.NotificationSystem.showNotification('error', 'Error', message);
+    return;
+  }
+  
+  // Fallback to custom toast
+  const toastContainer = document.getElementById('toastContainer');
+  if (!toastContainer) return;
+  
+  const toast = document.createElement('div');
+  toast.className = 'toast toast-error';
+  toast.innerHTML = `<i class="fas fa-exclamation-circle"></i><span>${message}</span>`;
+  
+  toastContainer.appendChild(toast);
+  
+  setTimeout(() => {
+    toast.classList.add('hide');
+    setTimeout(() => { toast.remove(); }, 300);
+  }, 3000);
+}
+
+
+function showInfoMessage(message) {
+  // Try to use NotificationSystem if available
+  if (window.NotificationSystem && typeof window.NotificationSystem.showNotification === 'function') {
+    window.NotificationSystem.showNotification('info', 'Information', message);
+    return;
+  }
+  
+  // Fallback to custom toast
+  const toastContainer = document.getElementById('toastContainer');
+  if (!toastContainer) return;
+  
+  const toast = document.createElement('div');
+  toast.className = 'toast toast-info';
+  toast.innerHTML = `<i class="fas fa-info-circle"></i><span>${message}</span>`;
+  
+  toastContainer.appendChild(toast);
+  
+  setTimeout(() => {
+    toast.classList.add('hide');
+    setTimeout(() => { toast.remove(); }, 300);
+  }, 3000);
+}
+
+
+// Add a function to refresh all data
+function refreshAllData() {
+  showLoadingOverlay('Refreshing data...');
+  
+  Promise.all([
+    loadUserData(),
+    loadClientData(),
+    loadActivePlans()
+  ])
+  .then(() => {
+    updateDashboardStats(); // Add this call to update dashboard stats after refresh
+    hideLoadingOverlay();
+    showSuccessMessage('Data refreshed successfully');
+  })
+  .catch(error => {
+    console.error('Error refreshing data:', error);
+    showErrorMessage('Failed to refresh your data.');
+    hideLoadingOverlay();
+  });
+}
+
+/**
+ * Update storage usage display
+ * Fixed to handle empty state and ensure proper display of small values
+ * Updated to show total storage limit from all plans
+ */
+function updateStorageUsage() {
+  try {
+    // Check if storage element exists
+    const storageUsedElement = document.getElementById('storageUsed');
+    const storageBarElement = document.getElementById('storageUsageBar');
+    const storageUsageTextElement = document.getElementById('storageUsageText');
+    
+    if (!storageUsedElement || !storageBarElement) return;
+    
+    // Get storage from all sources
+    let storageUsed = 0;
+    
+    // Calculate used storage from active plans
+    if (activePlans && activePlans.length > 0) {
+      storageUsed = activePlans.reduce((total, plan) => 
+        total + (plan.storageUsed || 0), 0
+      );
+    }
+    
+    // Ensure we have at least a minimum limit to avoid division by zero
+    if (totalStorageLimit <= 0) {
+      totalStorageLimit = 1; // Default to 1 GB if no plans exist
+    }
+    
+    // Convert storage to GB for display (from MB)
+    const storageGB = (storageUsed / 1024).toFixed(2);
+    
+    // Always show at least 0.01 GB if any storage is used but less than 0.01 GB
+    const displayStorageGB = storageUsed > 0 && storageGB === "0.00" ? "0.01" : storageGB;
+    
+    // Update the storage text display with active/total format
+    storageUsedElement.textContent = `${displayStorageGB}/${totalStorageLimit} GB`;
+    
+    // Set storage usage text if the element exists
+    if (storageUsageTextElement) {
+      storageUsageTextElement.textContent = `${displayStorageGB}/${totalStorageLimit} GB`;
+    }
+    
+    // Calculate percentage - ensure it's always at least 1% if there's any usage
+    // This makes the bar visible even with minimal usage
+    let usagePercent = (storageUsed / (totalStorageLimit * 1024)) * 100;
+    
+    // Make sure small values show at least a tiny bar (minimum 1%)
+    if (storageUsed > 0 && usagePercent < 1) {
+      usagePercent = 1;
+    }
+    
+    // Cap at 100% for safety
+    usagePercent = Math.min(usagePercent, 100);
+    
+    // Update progress bar width
+    storageBarElement.style.width = `${usagePercent}%`;
+    
+    // Add warning colors
+    storageBarElement.classList.remove('warning', 'critical');
+    if (usagePercent > 90) {
+      storageBarElement.classList.add('critical');
+    } else if (usagePercent > 75) {
+      storageBarElement.classList.add('warning');
+    }
+    
+    // Add notification for storage warning
+    if (usagePercent > 80 && !localStorage.getItem('storageWarningShown')) {
+      if (window.NotificationSystem) {
+        window.NotificationSystem.createNotificationFromEvent({
+          type: 'storage_warning',
+          percentage: usagePercent.toFixed(0)
+        });
+      }
+      localStorage.setItem('storageWarningShown', 'true');
+    }
+    
+    // Log storage information for debugging
+    console.log('Storage information:', {
+      storageUsed: storageUsed,
+      storageGB: storageGB,
+      totalLimitGB: totalStorageLimit,
+      usagePercent: usagePercent,
+      plans: activePlans.length
+    });
+    
+  } catch (error) {
+    console.error('Error updating storage usage:', error);
+    
+    // Fallback to show default values in case of error
+    const storageUsedElement = document.getElementById('storageUsed');
+    if (storageUsedElement) {
+      storageUsedElement.textContent = '0.00/1 GB';
+    }
+    
+    const storageBarElement = document.getElementById('storageUsageBar');
+    if (storageBarElement) {
+      storageBarElement.style.width = '0%';
+    }
+    
+    const storageUsageTextElement = document.getElementById('storageUsageText');
+    if (storageUsageTextElement) {
+      storageUsageTextElement.textContent = '0/1 GB';
+    }
+  }
+}
+
+/**
+ * Helper function to manually set storage for debugging or initial setup
+ * Can be called from the console to simulate storage usage
+ */
+function setDebugStorageUsage(usedMB) {
+  try {
+    // Set a debug flag to indicate manual override
+    window.debugStorageOverride = true;
+    
+    // Create a mock plan if no plans exist
+    if (!activePlans || activePlans.length === 0) {
+      activePlans = [{
+        planType: 'basic',
+        storageUsed: usedMB || 100, // Default to 100MB if no value provided
+        status: PLAN_STATUS.ACTIVE
+      }];
+    } else {
+      // Update the first plan's storage
+      activePlans[0].storageUsed = usedMB || 100;
+    }
+    
+    // Update the display
+    updateStorageUsage();
+    
+    console.log(`Debug: Storage set to ${usedMB || 100}MB`);
+    return true;
+  } catch (error) {
+    console.error('Error setting debug storage:', error);
+    return false;
+  }
+}
+
+// Define a viewClient function if needed
+function viewClient(clientId) {
+  if (!clientId) return;
+  
+  // This function would navigate to a client view page
+  // For now, just show a message
+  showSuccessMessage(`Viewing client ${clientId}`);
+  
+  // In the future, you could implement:
+  // window.location.href = `/client-view.html?id=${clientId}`;
+}
+
+// Define a showExtendPlanModal function if needed
+
+
+function showExtendPlanModal(planId, clientId) {
+  if (!planId || !clientId) return;
+  
+  // Find the plan based on planId
+  const plan = allPlans.find(p => p.id === planId);
+  if (!plan) {
+    showErrorMessage('Plan details not found.');
+    return;
+  }
+  
+  // Find the client name
+  const client = userClients.find(c => c.id === clientId);
+  const clientName = client?.name || plan.clientName || 'Unknown Client';
+  
+  // Get formatted expiry date
+  const expiryDate = plan.planEndDate?.toDate().toLocaleDateString() || 'Unknown';
+  
+  // Check if plan is active and not in expiring_soon status
+  if (plan.status === PLAN_STATUS.ACTIVE) {
+    // Show notification that plan is active and cannot be extended yet
+    if (window.NotificationSystem) {
+      window.NotificationSystem.showNotification(
+        'info',
+        'Plan is Active',
+        `This plan is currently active until ${expiryDate}. You can extend it when it's closer to expiration.`
+      );
+    } else {
+      // Fallback to built-in alert if NotificationSystem is not available
+      showSuccessMessage(`This plan is active until ${expiryDate}. You can extend it when it's closer to expiration.`);
+    }
+    return;
+  }
+  
+  // If the plan is in EXPIRING_SOON status, show the extension modal
+  if (plan.status === PLAN_STATUS.EXPIRING_SOON) {
+    // TODO: Implement actual extension modal here
+    showSuccessMessage(`Extension options for ${clientName}'s plan will be available here.`);
+    return;
+  }
+  
+  // If the plan is already expired, redirect to renewal
+  if (plan.status === PLAN_STATUS.EXPIRED) {
+    showUpgradeModal(clientId);
+    return;
+  }
+}
+
+/**
+ * NEW FUNCTIONS FOR GALLERY MANAGEMENT
+ */
+
+/**
+ * Updates the gallery client dropdown to only show clients with valid active plans
+ * Called when the Create Gallery modal is opened
+ * Fixed to prevent duplicate execution
+ */
+function updateGalleryClientDropdown() {
+  // Check if update is already in progress
+  if (isUpdatingGalleryDropdown) {
+    console.log("Gallery dropdown update already in progress, skipping");
+    return;
+  }
+  
+  isUpdatingGalleryDropdown = true;
+  
+  try {
+    const galleryClientSelect = document.getElementById('galleryClient');
+    if (!galleryClientSelect) {
+      isUpdatingGalleryDropdown = false;
+      return;
+    }
+    
+    // Clear existing options
+    galleryClientSelect.innerHTML = '<option value="">Select a client</option>';
+    
+    console.log('Starting gallery client dropdown update');
+    console.log('All clients:', userClients);
+    console.log('All active plans:', activePlans);
+    
+    // First check - do we have any clients?
+    if (!userClients || userClients.length === 0) {
+      console.log('No clients found at all');
+      const option = document.createElement('option');
+      option.disabled = true;
+      option.textContent = 'No clients available';
+      galleryClientSelect.appendChild(option);
+      
+      showErrorMessage('Please create a client first');
+      isUpdatingGalleryDropdown = false;
+      return;
+    }
+    
+    // Second check - check both client.planActive flag AND active plans array
+    // This handles potential data inconsistencies
+    let clientsForGallery = [];
+    
+    // First try clients with matching active plans in the activePlans array
+    if (activePlans && activePlans.length > 0) {
+      console.log('Found active plans, checking for matching clients');
+      
+      // Filter clients that have plans in the activePlans array
+      const clientsWithActivePlans = userClients.filter(client => 
+        activePlans.some(plan => 
+          plan.clientId === client.id && 
+          (plan.status === PLAN_STATUS.ACTIVE || plan.status === PLAN_STATUS.EXPIRING_SOON)
+        )
+      );
+      
+      if (clientsWithActivePlans.length > 0) {
+        console.log(`Found ${clientsWithActivePlans.length} clients with matching active plans`);
+        clientsForGallery = clientsWithActivePlans;
+      }
+    }
+    
+    // If no clients found with active plans array, fall back to client.planActive flag
+    if (clientsForGallery.length === 0) {
+      console.log('No clients with matching active plans found, checking planActive flag');
+      
+      // Check clients with planActive flag
+      const clientsWithPlanActive = userClients.filter(client => client.planActive === true);
+      
+      if (clientsWithPlanActive.length > 0) {
+        console.log(`Found ${clientsWithPlanActive.length} clients with planActive flag`);
+        clientsForGallery = clientsWithPlanActive;
+      }
+    }
+    
+    // If we still have no clients, try one more fallback - clients with plan type
+    if (clientsForGallery.length === 0) {
+      console.log('No clients found with planActive flag, checking for planType');
+      
+      // Check clients with planType property
+      const clientsWithPlanType = userClients.filter(client => client.planType && client.planType !== '');
+      
+      if (clientsWithPlanType.length > 0) {
+        console.log(`Found ${clientsWithPlanType.length} clients with planType property`);
+        clientsForGallery = clientsWithPlanType;
+      }
+    }
+    
+    // If we have found clients to show
+    if (clientsForGallery.length > 0) {
+      // Add them to the dropdown
+      clientsForGallery.forEach(client => {
+        const option = document.createElement('option');
+        option.value = client.id;
+        
+        // Find the plan for this client to show its type
+        let planType = client.planType || 'Active';
+        
+        // Try to get plan type from activePlans array if available
+        const plan = activePlans && activePlans.length > 0 ? 
+          activePlans.find(p => p.clientId === client.id) : null;
+          
+        if (plan && plan.planType) {
+          planType = SUBSCRIPTION_PLANS[plan.planType]?.name || plan.planType;
+        }
+        
+        option.textContent = `${client.name || client.email || 'Client'} (${planType} Plan)`;
+        galleryClientSelect.appendChild(option);
+      });
+      
+      console.log(`Added ${clientsForGallery.length} clients to gallery dropdown`);
+    } else {
+      // No clients with plans found
+      const option = document.createElement('option');
+      option.disabled = true;
+      option.textContent = 'No clients with active plans';
+      galleryClientSelect.appendChild(option);
+      
+      // Show helpful message
+      showErrorMessage('You need clients with active plans to create galleries');
+      console.log('No clients with any type of plan found');
+    }
+    
+    // Log debug info to help troubleshoot
+    console.log('Gallery clients dropdown updated');
+    console.log('Total clients:', userClients.length);
+  } catch (error) {
+    console.error('Error updating gallery client dropdown:', error);
+  } finally {
+    // Always reset the flag when done
+    isUpdatingGalleryDropdown = false;
+  }
+}
+
+/**
+ * Event handler to open the Create Gallery modal
+ */
+
+/**
+ * Event handler to open the Create Gallery modal with better validation
+ */
+function showCreateGalleryModal() {
+  // Check if user has any clients first
+  if (!userClients || userClients.length === 0) {
+    showErrorMessage('You need to create clients before you can create galleries. Please add a client first.');
+    return;
+  }
+  
+  // Check if any clients have active plans
+  const clientsWithPlans = userClients.filter(client => 
+    client.planActive || activePlans.some(plan => 
+      plan.clientId === client.id && 
+      (plan.status === PLAN_STATUS.ACTIVE || plan.status === PLAN_STATUS.EXPIRING_SOON)
+    )
+  );
+  
+  if (clientsWithPlans.length === 0) {
+    showErrorMessage('You need clients with active plans to create galleries. Please purchase a plan for your clients first.');
+    return;
+  }
+  
+  // Get the modal element
+  const createGalleryModal = document.getElementById('createGalleryModal');
+  if (!createGalleryModal) {
+    showErrorMessage('Gallery creation form not found. Please refresh the page.');
+    return;
+  }
+  
+  // First update the client dropdown with active clients
+  updateGalleryClientDropdown();
+  
+  // Reset form
+  const createGalleryForm = document.getElementById('createGalleryForm');
+  if (createGalleryForm) {
+    createGalleryForm.reset();
+  }
+  
+  // Then show the modal
+  createGalleryModal.style.display = 'block';
+}
+
+/**
+ * Handle gallery form submission
+ */
+
+function handleGalleryFormSubmit(e) {
+  e.preventDefault();
+  
+  const galleryName = document.getElementById('galleryName').value;
+  const clientId = document.getElementById('galleryClient').value;
+  const galleryDescription = document.getElementById('galleryDescription').value;
+  
+  if (!galleryName) {
+    showErrorMessage('Please enter a gallery name');
+    return;
+  }
+  
+  if (!clientId) {
+    showErrorMessage('Please select a client');
+    return;
+  }
+  
+  // Show loading overlay
+  showLoadingOverlay('Creating gallery...');
+  
+  // Get client info for success message
+  const client = userClients.find(c => c.id === clientId);
+  const clientName = client?.name || 'your client';
+  
+  // Create new gallery with enhanced error handling
+  createGallery(galleryName, clientId, galleryDescription)
+    .then(galleryId => {
+      if (galleryId) {
+        // Show success message
+        showSuccessMessage(`Gallery "${galleryName}" created successfully for ${clientName}`);
+        
+        // Add notification for gallery creation
+        if (window.NotificationSystem) {
+          window.NotificationSystem.createNotificationFromEvent({
+            type: 'gallery_created',
+            galleryName: galleryName,
+            clientName: clientName
+          });
+        }
+        
+        // Close the modal
+        const createGalleryModal = document.getElementById('createGalleryModal');
+        if (createGalleryModal) createGalleryModal.style.display = 'none';
+        
+        // Reset the form
+        const createGalleryForm = document.getElementById('createGalleryForm');
+        if (createGalleryForm) createGalleryForm.reset();
+        
+        // Refresh data
+        refreshAllData();
+      }
+    })
+    .catch(error => {
+      console.error('Error creating gallery:', error);
+      
+      // Show specific error message from backend validation
+      showErrorMessage(error.message || 'Error creating gallery. Please try again.');
+      
+      // Don't close modal on error so user can fix the issue
+    })
+    .finally(() => {
+      hideLoadingOverlay();
+    });
+}
+
+/**
+ * Create a new gallery for a client
+ */
+
+/**
+ * Create a new gallery for a client with backend validation
+ */
+async function createGallery(name, clientId, description = '') {
+  try {
+    if (!currentUser) {
+      throw new Error('You must be logged in to create a gallery');
+    }
+    
+    // Basic input validation
+    if (!name || !name.trim()) {
+      throw new Error('Gallery name is required');
+    }
+    
+    if (!clientId) {
+      throw new Error('Client selection is required');
+    }
+    
+    // Validate client exists in our local data
+    const client = userClients.find(c => c.id === clientId);
+    if (!client) {
+      throw new Error('Selected client not found');
+    }
+    
+    // 🚀 NEW: Use backend validation instead of direct Firestore write
+    console.log('Creating gallery via backend validation...');
+    
+    const functions = firebase.app().functions('asia-south1');
+    const createGalleryFunc = functions.httpsCallable('createGallery');
+    
+    const result = await createGalleryFunc({
+      name: name.trim(),
+      clientId: clientId,
+      description: description.trim()
+    });
+    
+    if (result.data && result.data.success) {
+      console.log('Gallery created successfully:', result.data);
+      return result.data.galleryId;
+    } else {
+      throw new Error('Backend validation failed');
+    }
+    
+  } catch (error) {
+    console.error('Error creating gallery:', error);
+    
+    // Handle specific backend validation errors
+    if (error.code === 'resource-exhausted') {
+      throw new Error('Gallery limit reached for this plan. Please upgrade to create more galleries.');
+    } else if (error.code === 'failed-precondition') {
+      throw new Error('No active plan found for this client. Please purchase a plan first.');
+    } else if (error.code === 'permission-denied') {
+      throw new Error('You do not have permission to create galleries for this client.');
+    } else if (error.code === 'unauthenticated') {
+      throw new Error('Please log in again to create galleries.');
+    } else if (error.code === 'invalid-argument') {
+      throw new Error('Invalid gallery information provided.');
+    } else if (error.code === 'not-found') {
+      throw new Error('Client not found. Please refresh and try again.');
+    }
+    
+    // For any other errors, return the original message or a generic one
+    throw new Error(error.message || 'Failed to create gallery. Please try again.');
+  }
+}
+
+// Initialize on document ready
+document.addEventListener('DOMContentLoaded', function() {
+  console.log('Subscription manager initializing...');
+  
+  // Check if required JS libraries are loaded
+  const requiredLibraries = {
+    firebase: typeof firebase !== 'undefined',
+    razorpay: typeof Razorpay !== 'undefined',
+    performanceManager: typeof window.PerformanceManager !== 'undefined',
+    securityManager: typeof window.SecurityManager !== 'undefined',
+    notificationSystem: typeof window.NotificationSystem !== 'undefined'
+  };
+  
+  console.log('Required libraries status:', requiredLibraries);
+  
+  // Try to initialize anyway
+  initSubscriptionManager();
+
+   // Initialize plans UI (add this line)
+  initPlansUI();
+});
+
+/**
+ * Update download button states based on client submissions and download history
+ */
+async function updateDownloadButtonStates() {
+  const downloadButtons = document.querySelectorAll('.download-gallery-btn:not(.disabled)');
+  
+  for (const button of downloadButtons) {
+    const clientId = button.getAttribute('data-client-id');
+    const galleryId = button.getAttribute('data-gallery-id');
+    const planId = button.getAttribute('data-plan-id');
+    
+    try {
+      // Check if client has submitted selections
+      const hasSubmissions = await checkClientSubmissions(clientId, galleryId);
+      
+      // Check download history
+      const downloadHistory = await checkDownloadHistory(planId);
+      
+      // Update button state
+      updateButtonState(button, hasSubmissions, downloadHistory);
+      
+    } catch (error) {
+      console.error('Error checking button state:', error);
+      button.querySelector('.btn-subtitle').textContent = 'Error checking status';
+    }
+  }
+}
+
+/**
+ * Check if client has submitted their selections
+ */
+async function checkClientSubmissions(clientId, galleryId) {
+  try {
+    if (!galleryId) {
+      galleryId = await findGalleryByClientId(clientId);
+    }
+    
+    if (!galleryId) return false;
+    
+    const db = firebase.firestore();
+    
+    // Check if gallery has submission status
+    const galleryDoc = await db.collection('galleries').doc(galleryId).get();
+    
+    if (galleryDoc.exists) {
+      const galleryData = galleryDoc.data();
+      
+      // Check if gallery is marked as submitted
+      if (galleryData.submissionStatus === 'submitted' || galleryData.isSubmitted === true) {
+        return true;
+      }
+      
+      // Fallback: Check if there are any selections marked as submitted
+      const selectionsSnapshot = await db.collection('photoSelections')
+        .where('galleryId', '==', galleryId)
+        .where('selected', '==', true)
+        .limit(1)
+        .get();
+      
+      return !selectionsSnapshot.empty;
+    }
+    
+    return false;
+  } catch (error) {
+    console.error('Error checking submissions:', error);
+    return false;
+  }
+}
+
+/**
+ * Check download history for this plan
+ */
+async function checkDownloadHistory(planId) {
+  try {
+    const db = firebase.firestore();
+    
+    const downloadSnapshot = await db.collection('downloadHistory')
+      .where('planId', '==', planId)
+      .where('downloadType', '==', 'gallery')
+      .get();
+    
+    return downloadSnapshot.size; // Return number of downloads
+  } catch (error) {
+    console.error('Error checking download history:', error);
+    return 0;
+  }
+}
+
+/**
+ * Update button state based on submissions and download history
+ */
+function updateButtonState(button, hasSubmissions, downloadCount) {
+  const subtitle = button.querySelector('.btn-subtitle');
+  
+  if (!hasSubmissions) {
+    // No submissions - disable button
+    button.disabled = true;
+    button.classList.add('no-submissions');
+    subtitle.textContent = 'Client hasn\'t submitted selections';
+  } else if (downloadCount === 0) {
+    // Has submissions, no downloads yet - enable for free download
+    button.disabled = false;
+    button.classList.remove('no-submissions');
+    button.classList.add('free-download');
+    subtitle.textContent = 'Ready for FREE download';
+  } else {
+    // Has submissions, already downloaded - warn about paid download
+    button.disabled = false;
+    button.classList.remove('no-submissions', 'free-download');
+    button.classList.add('paid-download');
+    subtitle.textContent = `Download #${downloadCount + 1} - PAID`;
+  }
+}
+
+/**
+ * Smart download function with submission check and download limiting
+ */
+async function downloadClientGallery(clientId, galleryId, planId) {
+  try {
+    if (!currentUser) {
+      showErrorMessage('You must be logged in to download galleries');
+      return;
+    }
+    
+    // Get client info
+    const client = userClients.find(c => c.id === clientId);
+    const clientName = client?.name || 'Unknown Client';
+    
+    // Check submissions first
+    const hasSubmissions = await checkClientSubmissions(clientId, galleryId);
+    
+    if (!hasSubmissions) {
+      showErrorMessage(`${clientName} hasn't submitted their photo selections yet. Please ask them to complete their selection first.`);
+      return;
+    }
+    
+    // Check download history
+    const downloadCount = await checkDownloadHistory(planId);
+    
+    if (downloadCount > 0) {
+      // Show paid download warning
+      const confirmMessage = `⚠️ WARNING: This will be download #${downloadCount + 1} for ${clientName}.\n\nFirst download was FREE. Additional downloads may incur charges.\n\nDo you want to proceed with PAID download?`;
+      
+      if (!confirm(confirmMessage)) {
+        return;
+      }
+    } else {
+      // Show free download confirmation
+      const confirmMessage = `Download ${clientName}'s selected photos?\n\nThis is your FREE download for this gallery.`;
+      
+      if (!confirm(confirmMessage)) {
+        return;
+      }
+    }
+    
+    // Proceed with download
+    showLoadingOverlay('Preparing gallery download...');
+    
+    // Get gallery ID if not provided
+    if (!galleryId) {
+      galleryId = await findGalleryByClientId(clientId);
+      
+      if (!galleryId) {
+        hideLoadingOverlay();
+        showErrorMessage(`No gallery found for ${clientName}.`);
+        return;
+      }
+    }
+    
+    // Get selected photos only
+    const selectedPhotos = await getSelectedPhotos(galleryId);
+    
+    if (selectedPhotos.length === 0) {
+      hideLoadingOverlay();
+      showErrorMessage(`No selected photos found for ${clientName}.`);
+      return;
+    }
+    
+    // Download the selected photos
+    await downloadPhotosAsZip(selectedPhotos, clientName, galleryId);
+    
+    // Record download in history
+    await recordDownloadHistory(planId, galleryId, selectedPhotos.length);
+    
+    // Update button state
+    setTimeout(() => {
+      updateDownloadButtonStates();
+    }, 1000);
+    
+    hideLoadingOverlay();
+    showSuccessMessage(`Downloaded ${selectedPhotos.length} selected photos for ${clientName}!`);
+    
+  } catch (error) {
+    console.error('Error downloading gallery:', error);
+    hideLoadingOverlay();
+    showErrorMessage(`Error downloading gallery: ${error.message}`);
+  }
+}
+
+/**
+ * Get only selected photos from gallery
+ */
+async function getSelectedPhotos(galleryId) {
+  try {
+    const db = firebase.firestore();
+    
+    // Get selected photo IDs
+    const selectionsSnapshot = await db.collection('photoSelections')
+      .where('galleryId', '==', galleryId)
+      .where('selected', '==', true)
+      .get();
+    
+    if (selectionsSnapshot.empty) {
+      return [];
+    }
+    
+    const selectedPhotoIds = selectionsSnapshot.docs.map(doc => doc.data().photoId);
+    
+    // Get photo details
+    const photosSnapshot = await db.collection('photos')
+      .where('galleryId', '==', galleryId)
+      .where('status', '==', 'active')
+      .get();
+    
+    const allPhotos = photosSnapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    }));
+    
+    // Filter to only selected photos
+    return allPhotos.filter(photo => selectedPhotoIds.includes(photo.id));
+    
+  } catch (error) {
+    console.error('Error getting selected photos:', error);
+    return [];
+  }
+}
+
+/**
+ * Download photos as ZIP using JSZip
+ */
+async function downloadPhotosAsZip(photos, clientName, galleryId) {
+  try {
+    // Check if JSZip is available
+    if (typeof JSZip === 'undefined') {
+      throw new Error('JSZip library not loaded. Please add JSZip to download as ZIP.');
+    }
+    
+    const zip = new JSZip();
+    const folder = zip.folder(`${clientName}_Gallery_${galleryId.slice(-8)}`);
+    
+    console.log(`Creating ZIP with ${photos.length} photos...`);
+    
+    // Add each photo to the zip
+    for (let i = 0; i < photos.length; i++) {
+      const photo = photos[i];
+      
+      try {
+        // Update loading message
+        showLoadingOverlay(`Adding photo ${i + 1} of ${photos.length} to ZIP...`);
+        
+        // Fetch the photo data
+        const response = await fetch(photo.url);
+        if (!response.ok) {
+          console.warn(`Failed to fetch photo ${photo.filename}: ${response.statusText}`);
+          continue;
+        }
+        
+        const blob = await response.blob();
+        
+        // Use original filename or create one
+        const filename = photo.filename || photo.originalName || `photo_${i + 1}.jpg`;
+        
+        folder.file(filename, blob);
+        
+      } catch (photoError) {
+        console.error(`Error adding photo ${photo.filename} to ZIP:`, photoError);
+      }
+    }
+    
+    // Generate and download the ZIP
+    showLoadingOverlay('Generating ZIP file...');
+    
+    const zipBlob = await zip.generateAsync({ type: 'blob' });
+    
+    // Create download link
+    const downloadLink = document.createElement('a');
+    downloadLink.href = URL.createObjectURL(zipBlob);
+    downloadLink.download = `${clientName}_Gallery_${new Date().toISOString().split('T')[0]}.zip`;
+    
+    // Trigger download
+    document.body.appendChild(downloadLink);
+    downloadLink.click();
+    document.body.removeChild(downloadLink);
+    
+    // Clean up object URL
+    URL.revokeObjectURL(downloadLink.href);
+    
+    console.log('ZIP download completed');
+    
+  } catch (error) {
+    console.error('Error creating ZIP:', error);
+    throw new Error(`Failed to create ZIP file: ${error.message}`);
+  }
+}
+
+/**
+ * Record download in history
+ */
+async function recordDownloadHistory(planId, galleryId, photoCount) {
+  try {
+    const db = firebase.firestore();
+    
+    await db.collection('downloadHistory').add({
+      planId: planId,
+      galleryId: galleryId,
+      photographerId: currentUser.uid,
+      downloadType: 'gallery',
+      photoCount: photoCount,
+      downloadedAt: firebase.firestore.FieldValue.serverTimestamp(),
+      userAgent: navigator.userAgent,
+      downloadMethod: 'zip'
+    });
+    
+  } catch (error) {
+    console.error('Error recording download history:', error);
+  }
+}
+
+
+// Export global functions
+
+window.subscriptionManager = {
+  updatePlanDisplay,
+  refreshSubscription: refreshAllData,
+  getPlanDetails: (planType) => SUBSCRIPTION_PLANS[planType] || null,
+  showUpgradeModal,
+  hideUpgradeModal,
+  createClient,
+  cancelClientPlan,
+  updateDashboardStats,
+  // Add debug functions for testing
+  setDebugStorageUsage,
+  updateStorageUsage,
+  // Add gallery functions
+  updateGalleryClientDropdown,
+  showCreateGalleryModal,
+  createGallery,
+  viewGallery  // Add this line
+};
+
+
+// Add this code AFTER window.subscriptionManager is defined
+window.subscriptionManager.checkDuplicateClientName = async function(clientName) {
+  try {
+    if (!currentUser) return false;
+    
+    // Normalize the name for comparison (trim and convert to lowercase)
+    const normalizedName = clientName.trim().toLowerCase();
+    
+    // Query Firestore for clients with this photographer ID
+    const db = firebase.firestore();
+    const clientsSnapshot = await db.collection('clients')
+      .where('photographerId', '==', currentUser.uid)
+      .get();
+    
+    // Check if any existing client has the same name (case insensitive)
+    const duplicateExists = clientsSnapshot.docs.some(doc => {
+      const existingClient = doc.data();
+      return existingClient.name && existingClient.name.trim().toLowerCase() === normalizedName;
+    });
+    
+    return duplicateExists;
+  } catch (error) {
+    console.error('Error checking for duplicate clients:', error);
+    // In case of error, return false to allow creation
+    return false;
+  }
+};
+
+
+// Export subscription plans
+window.SUBSCRIPTION_PLANS = SUBSCRIPTION_PLANS;
+
+
+
+
+// Initialize tabs and search
+function initPlansUI() {
+  // Add tab click handlers
+  document.querySelectorAll('.tab').forEach(tab => {
+    tab.addEventListener('click', function() {
+      // Update active tab
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      this.classList.add('active');
+      
+      // Update filter
+      activeFilter = this.getAttribute('data-filter');
+      
+      // Apply filters and update display
+      filterAndDisplayPlans();
+    });
+  });
+  
+  // Add search input handler
+  const searchInput = document.getElementById('searchPlansInput');
+  if (searchInput) {
+    searchInput.addEventListener('input', function() {
+      searchTerm = this.value.toLowerCase().trim();
+      filterAndDisplayPlans();
+    });
+  }
+  
+  // Add sort button handler
+  const sortBtn = document.getElementById('sortPlansBtn');
+  if (sortBtn) {
+    sortBtn.addEventListener('click', function() {
+      // Toggle between sort options
+      if (currentSortOption === 'recent') {
+        currentSortOption = 'expiring';
+        this.querySelector('span').textContent = 'Sort: Expiring Soon';
+      } else if (currentSortOption === 'expiring') {
+        currentSortOption = 'alphabetical';
+        this.querySelector('span').textContent = 'Sort: A-Z Client';
+      } else {
+        currentSortOption = 'recent';
+        this.querySelector('span').textContent = 'Sort: Recent';
+      }
+      
+      // Apply sort and update display
+      filterAndDisplayPlans();
+    });
+  }
+}
+
+// Filter and sort plans
+function filterAndDisplayPlans() {
+  let filteredPlans = [...allPlans]; // Create a copy to avoid modifying the original
+  
+  // Apply status filter
+  if (activeFilter !== 'all') {
+    filteredPlans = filteredPlans.filter(plan => {
+      if (activeFilter === 'active') {
+        return plan.status === PLAN_STATUS.ACTIVE;
+      } else if (activeFilter === 'expiring') {
+        return plan.status === PLAN_STATUS.EXPIRING_SOON;
+      } else if (activeFilter === 'expired') {
+        return plan.status === PLAN_STATUS.EXPIRED;
+      }
+      return true;
+    });
+  }
+  
+  // Apply search filter if needed
+  if (searchTerm) {
+    filteredPlans = filteredPlans.filter(plan => {
+      const client = userClients.find(c => c.id === plan.clientId);
+      const clientName = (client?.name || plan.clientName || '').toLowerCase();
+      const planType = (SUBSCRIPTION_PLANS[plan.planType]?.name || plan.planType || '').toLowerCase();
+      
+      return (
+        clientName.includes(searchTerm) ||
+        planType.includes(searchTerm)
+      );
+    });
+  }
+  
+  // Sort the filtered plans
+  filteredPlans = sortPlans(filteredPlans, currentSortOption);
+  
+  // Update display
+  updatePlansDisplay(filteredPlans);
+  
+  // Update tab counts
+  updateTabCounts();
+}
+
+// Sort plans based on selected option
+function sortPlans(plans, sortOption) {
+  if (sortOption === 'recent') {
+
+    // Sort by start date (newest first)
+    return plans.sort((a, b) => {
+      const dateA = a.planStartDate ? 
+        (a.planStartDate.toDate ? a.planStartDate.toDate().getTime() : new Date(a.planStartDate).getTime()) : 0;
+      const dateB = b.planStartDate ? 
+        (b.planStartDate.toDate ? b.planStartDate.toDate().getTime() : new Date(b.planStartDate).getTime()) : 0;
+      return dateB - dateA; // Descending (newest first)
+    });
+
+     
+  } else if (sortOption === 'expiring') {
+    // Sort by days left before expiration (soonest first)
+    return plans.sort((a, b) => {
+      // Expired plans go to the bottom
+      if (a.status === PLAN_STATUS.EXPIRED && b.status !== PLAN_STATUS.EXPIRED) return 1;
+      if (a.status !== PLAN_STATUS.EXPIRED && b.status === PLAN_STATUS.EXPIRED) return -1;
+      
+      // Compare expiration dates for non-expired plans
+      const dateA = a.planEndDate ? a.planEndDate.toDate().getTime() : Infinity;
+      const dateB = b.planEndDate ? b.planEndDate.toDate().getTime() : Infinity;
+      return dateA - dateB; // Ascending (soonest first)
+    });
+  } else if (sortOption === 'alphabetical') {
+    // Sort by client name (A-Z)
+    return plans.sort((a, b) => {
+      const clientA = userClients.find(c => c.id === a.clientId);
+      const clientB = userClients.find(c => c.id === b.clientId);
+      
+      const nameA = (clientA?.name || a.clientName || '').toLowerCase();
+      const nameB = (clientB?.name || b.clientName || '').toLowerCase();
+      
+      return nameA.localeCompare(nameB);
+    });
+  }
+  
+  return plans;
+}
+
+/**
+ * Generate download button HTML based on plan status
+ */
+function getDownloadButtonHTML(plan) {
+  const isActivePlan = plan.status === PLAN_STATUS.ACTIVE || plan.status === PLAN_STATUS.EXPIRING_SOON;
+  
+  if (!isActivePlan) {
+    // Expired plan - grey disabled button
+    return `
+      <button class="btn download-gallery-btn disabled" disabled>
+        <i class="fas fa-download"></i> Download Gallery
+        <small class="btn-subtitle">Plan Expired</small>
+      </button>
+    `;
+  }
+  
+  // Active plan - button will be enabled/disabled based on submissions (checked dynamically)
+  return `
+    <button class="btn download-gallery-btn" 
+            data-client-id="${plan.clientId}" 
+            data-gallery-id="${plan.galleryId || ''}"
+            data-plan-id="${plan.id}">
+      <i class="fas fa-download"></i> Download Gallery
+      <small class="btn-subtitle">Checking submissions...</small>
+    </button>
+  `;
+}
+
+
+
+// Update the display with filtered plans - Row-based layout
+function updatePlansDisplay(plans) {
+  const plansContainer = document.getElementById('plansContainer');
+  if (!plansContainer) return;
+  
+  // Clear existing content
+  plansContainer.innerHTML = '';
+  
+  // If no plans
+  if (!plans || plans.length === 0) {
+    plansContainer.innerHTML = `
+      <div class="empty-state">
+        <i class="fas fa-ticket-alt empty-icon"></i>
+        <h3>No plans found</h3>
+        <p>No plans match your current filters</p>
+        <button class="btn" id="resetFiltersBtn">Reset Filters</button>
+      </div>
+    `;
+    
+    // Add event listener to reset filters button
+    const resetFiltersBtn = document.getElementById('resetFiltersBtn');
+    if (resetFiltersBtn) {
+      resetFiltersBtn.addEventListener('click', function() {
+        // Reset active filter
+        activeFilter = 'all';
+        document.querySelectorAll('.tab').forEach(t => {
+          t.classList.remove('active');
+          if (t.getAttribute('data-filter') === 'all') {
+            t.classList.add('active');
+          }
+        });
+        
+        // Reset search
+        const searchInput = document.getElementById('searchPlansInput');
+        if (searchInput) {
+          searchInput.value = '';
+          searchTerm = '';
+        }
+        
+        // Apply filters
+        filterAndDisplayPlans();
+      });
+    }
+    
+    return;
+  }
+  
+  // Create table for plans instead of cards
+  const plansTable = document.createElement('table');
+  plansTable.className = 'plans-table';
+  
+  // Add table header
+  plansTable.innerHTML = `
+    <thead>
+      <tr>
+        <th>Plan Type</th>
+        <th>Client</th>
+        <th>Dates</th>
+        <th>Status</th>
+        <!--<th>Storage</th>-->
+       
+        <th>Photos & Sharing</th>
+        <th>Client Ratings</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  `;
+  
+  const tableBody = plansTable.querySelector('tbody');
+  
+  // Create rows for each plan
+  plans.forEach(plan => {
+    const planRow = document.createElement('tr');
+    
+    // Add status-based classes to the row
+    if (plan.status === PLAN_STATUS.EXPIRED) {
+      planRow.classList.add('is-expired');
+    } else if (plan.status === PLAN_STATUS.EXPIRING_SOON) {
+      planRow.classList.add('is-expiring');
+    }
+    
+    // Format dates
+    const startDate = plan.planStartDate?.toDate().toLocaleDateString() || 'Unknown';
+    const endDate = plan.planEndDate?.toDate().toLocaleDateString() || 'Unknown';
+    
+    // Get client info
+    const client = userClients.find(c => c.id === plan.clientId);
+    const clientName = client?.name || plan.clientName || 'Unknown Client';
+    
+    // Create HTML for the plan row
+    planRow.innerHTML = `
+      <td class="plan-type">${SUBSCRIPTION_PLANS[plan.planType]?.name || plan.planType}</td>
+      <td class="plan-client">${clientName}</td>
+      <td class="plan-dates">
+        <div><strong>Started:</strong> ${startDate}</div>
+        <div><strong>Expires:</strong> ${endDate}</div>
+      </td>
+      <td class="plan-status-cell">
+        <span class="plan-status ${plan.status}">${formatPlanStatus(plan.status)}</span>
+        ${getArchivalStatusHTML(plan)}
+        ${plan.status === PLAN_STATUS.EXPIRING_SOON ? 
+          `<div class="expiry-warning"><i class="fas fa-exclamation-triangle"></i> Expires in ${plan.daysLeftBeforeExpiration} days</div>` : ''}
+        ${plan.status === PLAN_STATUS.EXPIRED ? 
+          `<div class="expired-badge"><i class="fas fa-calendar-times"></i> Expired on ${endDate}</div>` : ''}
+      </td>
+      <!--
+      <td class="plan-storage">
+        ${formatStorageUsage(plan.storageUsed || 0, SUBSCRIPTION_PLANS[plan.planType]?.storageLimit || 1)}
+      </td> 
+      -->
+   
+
+      <td class="plan-photos-sharing">
+        ${formatPhotoUsage(plan.photosUploaded || 0, SUBSCRIPTION_PLANS[plan.planType]?.photosPerGallery || 50)}
+        ${getSharingHTML(plan)}
+      </td>
+
+
+      <td class="plan-client-ratings">
+        <div class="ratings-loading">Loading ratings...</div>
+      </td>
+
+      <td class="plan-actions-cell">
+        <button class="btn view-gallery-btn" data-client-id="${plan.clientId}">View Gallery</button>
+        ${getDownloadButtonHTML(plan)}
+        <div style="display: flex; align-items: center; margin-top: 8px;">
+          ${plan.status === PLAN_STATUS.EXPIRED ?
+            `<button class="btn renew-plan-btn" data-plan-id="${plan.id}" data-client-id="${plan.clientId}">Renew Plan</button>` :
+            `<button class="btn extend-plan-btn" data-plan-id="${plan.id}" data-client-id="${plan.clientId}">Extend Plan</button>`
+          }
+          ${createToggleSwitchHTML(plan)}
+        </div>
+      </td>
+     
+    `;
+    
+    tableBody.appendChild(planRow);
+   // After creating all plan rows, update ratings
+    setTimeout(() => {
+      updateAllRatingsDisplay();
+    }, 100);
+  });
+  
+  plansContainer.appendChild(plansTable);
+  
+  // Add event listeners for buttons
+  document.querySelectorAll('.view-gallery-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+      viewGallery(this.getAttribute('data-client-id'));
+    });
+  });
+
+  // Add event listeners for Download Gallery buttons
+  document.querySelectorAll('.download-gallery-btn:not(.disabled)').forEach(btn => {
+    btn.addEventListener('click', function() {
+      const clientId = this.getAttribute('data-client-id');
+      const galleryId = this.getAttribute('data-gallery-id');
+      const planId = this.getAttribute('data-plan-id');
+      downloadClientGallery(clientId, galleryId, planId);
+    });
+  });
+  
+  // Check submissions and update button states
+  setTimeout(() => {
+    updateDownloadButtonStates();
+    if (window.GalleryDownloadSystem) {
+     window.GalleryDownloadSystem.refreshAllDownloadButtonStates();
+   }
+  }, 500);
+
+ 
+  document.querySelectorAll('.extend-plan-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+      const planId = this.getAttribute('data-plan-id');
+      const clientId = this.getAttribute('data-client-id');
+      showExtendPlanModal(planId, clientId);
+    });
+  });
+  
+  document.querySelectorAll('.renew-plan-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+      const clientId = this.getAttribute('data-client-id');
+      showUpgradeModal(clientId);
+    });
+  });
+
+
+   // Add this after your existing event listeners in updatePlansDisplay function
+  
+  // Add edit share button listeners
+  document.querySelectorAll('.edit-share-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+      const galleryId = this.getAttribute('data-gallery-id');
+      if (galleryId && window.GalleryShareModal) {
+        // Create gallery data object for the modal
+        const galleryData = { id: galleryId };
+        window.GalleryShareModal.open(galleryData);
+      } else {
+        showErrorMessage('Gallery not found or share modal not loaded');
+      }
+    });
+  });
+ // ADD THIS CODE right before the closing brace of updatePlansDisplay function
+  
+  // Add toggle switch listeners
+  setTimeout(() => {
+    addToggleSwitchListeners();
+  }, 100);
+}
+
+
+
+
+/**
+ * Update download button states based on client submissions and download history
+ */
+async function updateDownloadButtonStates() {
+  const downloadButtons = document.querySelectorAll('.download-gallery-btn:not(.disabled)');
+  
+  for (const button of downloadButtons) {
+    const clientId = button.getAttribute('data-client-id');
+    const galleryId = button.getAttribute('data-gallery-id');
+    const planId = button.getAttribute('data-plan-id');
+    
+    try {
+      // Check if client has submitted selections
+      const hasSubmissions = await checkClientSubmissions(clientId, galleryId);
+      
+      // Check download history
+      const downloadHistory = await checkDownloadHistory(planId);
+      
+      // Update button state
+      updateButtonState(button, hasSubmissions, downloadHistory);
+      
+    } catch (error) {
+      console.error('Error checking button state:', error);
+      button.querySelector('.btn-subtitle').textContent = 'Error checking status';
+    }
+  }
+}
+
+/**
+ * Check if client has submitted their selections
+ */
+async function checkClientSubmissions(clientId, galleryId) {
+  try {
+    if (!galleryId) {
+      galleryId = await findGalleryByClientId(clientId);
+    }
+    
+    if (!galleryId) return false;
+    
+    const db = firebase.firestore();
+    
+    // Check if gallery has submission status
+    const galleryDoc = await db.collection('galleries').doc(galleryId).get();
+    
+    if (galleryDoc.exists) {
+      const galleryData = galleryDoc.data();
+      
+      // Check if gallery is marked as submitted
+      if (galleryData.submissionStatus === 'submitted' || galleryData.isSubmitted === true) {
+        return true;
+      }
+      
+      // Fallback: Check if there are any selections marked as submitted
+      const selectionsSnapshot = await db.collection('photoSelections')
+        .where('galleryId', '==', galleryId)
+        .where('selected', '==', true)
+        .limit(1)
+        .get();
+      
+      return !selectionsSnapshot.empty;
+    }
+    
+    return false;
+  } catch (error) {
+    console.error('Error checking submissions:', error);
+    return false;
+  }
+}
+
+/**
+ * Check download history for this plan
+ */
+async function checkDownloadHistory(planId) {
+  try {
+    const db = firebase.firestore();
+    
+    const downloadSnapshot = await db.collection('downloadHistory')
+      .where('planId', '==', planId)
+      .where('downloadType', '==', 'gallery')
+      .get();
+    
+    return downloadSnapshot.size; // Return number of downloads
+  } catch (error) {
+    console.error('Error checking download history:', error);
+    return 0;
+  }
+}
+
+/**
+ * Update button state based on submissions and download history
+ */
+function updateButtonState(button, hasSubmissions, downloadCount) {
+  const subtitle = button.querySelector('.btn-subtitle');
+  
+  if (!hasSubmissions) {
+    // No submissions - disable button
+    button.disabled = true;
+    button.classList.add('no-submissions');
+    subtitle.textContent = 'Client hasn\'t submitted selections';
+  } else if (downloadCount === 0) {
+    // Has submissions, no downloads yet - enable for free download
+    button.disabled = false;
+    button.classList.remove('no-submissions');
+    button.classList.add('free-download');
+    subtitle.textContent = 'Ready for FREE download';
+  } else {
+    // Has submissions, already downloaded - warn about paid download
+    button.disabled = false;
+    button.classList.remove('no-submissions', 'free-download');
+    button.classList.add('paid-download');
+    subtitle.textContent = `Download #${downloadCount + 1} - PAID`;
+  }
+}
+
+/**
+ * Smart download function with submission check and download limiting
+ */
+
+
+async function downloadClientGallery(clientId, galleryId, planId) {
+  console.log('📥 Download request delegated to secure system');
+  
+  if (window.GalleryDownloadSystem) {
+    return window.GalleryDownloadSystem.initiateSecureDownload(clientId, galleryId, planId);
+  } else {
+    console.error('Gallery Download System not loaded');
+    showErrorMessage('Download system not loaded. Please refresh the page.');
+  }
+}
+
+/**
+ * Get only selected photos from gallery
+ */
+async function getSelectedPhotos(galleryId) {
+  try {
+    const db = firebase.firestore();
+    
+    // Get selected photo IDs
+    const selectionsSnapshot = await db.collection('photoSelections')
+      .where('galleryId', '==', galleryId)
+      .where('selected', '==', true)
+      .get();
+    
+    if (selectionsSnapshot.empty) {
+      return [];
+    }
+    
+    const selectedPhotoIds = selectionsSnapshot.docs.map(doc => doc.data().photoId);
+    
+    // Get photo details
+    const photosSnapshot = await db.collection('photos')
+      .where('galleryId', '==', galleryId)
+      .where('status', '==', 'active')
+      .get();
+    
+    const allPhotos = photosSnapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    }));
+    
+    // Filter to only selected photos
+    return allPhotos.filter(photo => selectedPhotoIds.includes(photo.id));
+    
+  } catch (error) {
+    console.error('Error getting selected photos:', error);
+    return [];
+  }
+}
+
+/**
+ * Record download in history
+ */
+async function recordDownloadHistory(planId, galleryId, photoCount) {
+  try {
+    const db = firebase.firestore();
+    
+    await db.collection('downloadHistory').add({
+      planId: planId,
+      galleryId: galleryId,
+      photographerId: currentUser.uid,
+      downloadType: 'gallery',
+      photoCount: photoCount,
+      downloadedAt: firebase.firestore.FieldValue.serverTimestamp(),
+      userAgent: navigator.userAgent,
+      downloadMethod: 'zip'
+    });
+    
+  } catch (error) {
+    console.error('Error recording download history:', error);
+  }
+}
+
+
+
+// Update the tab counts based on plan counts
+function updateTabCounts() {
+  const activeCount = allPlans.filter(plan => plan.status === PLAN_STATUS.ACTIVE).length;
+  const expiringCount = allPlans.filter(plan => plan.status === PLAN_STATUS.EXPIRING_SOON).length;
+  const expiredCount = allPlans.filter(plan => plan.status === PLAN_STATUS.EXPIRED).length;
+  
+  // Update count elements
+  const tabCounts = {
+    'all': allPlans.length,
+    'active': activeCount,
+    'expiring': expiringCount,
+    'expired': expiredCount
+  };
+  
+  document.querySelectorAll('.tab').forEach(tab => {
+    const filter = tab.getAttribute('data-filter');
+    const countEl = tab.querySelector('.plan-count');
+    if (countEl && tabCounts[filter] !== undefined) {
+      countEl.textContent = tabCounts[filter];
+    }
+  });
+}
+
+
+/**
+ * Utility function to fix all photo count discrepancies and gallery-share references
+ * This will ensure dashboard displays show accurate counts and proper sharing links
+ */
+async function fixAllPhotoCountDiscrepancies() {
+  try {
+    if (!currentUser) {
+      console.error('User must be logged in');
+      return false;
+    }
+    
+    console.log('Starting to fix all data discrepancies...');
+    showLoadingOverlay('Fixing data consistency...');
+    
+    const db = firebase.firestore();
+    
+    // Step 1: Get all galleries for this user
+    const galleriesSnapshot = await db.collection('galleries')
+      .where('photographerId', '==', currentUser.uid)
+      .get();
+    
+    if (galleriesSnapshot.empty) {
+      console.log('No galleries found');
+      hideLoadingOverlay();
+      return false;
+    }
+    
+    console.log(`Found ${galleriesSnapshot.size} galleries to check`);
+    
+    // Step 2: Process each gallery
+    const galleryFixes = [];
+    
+    for (const galleryDoc of galleriesSnapshot.docs) {
+      const galleryData = galleryDoc.data();
+      const galleryId = galleryDoc.id;
+      
+      // Get actual photo count
+      const photosSnapshot = await db.collection('photos')
+        .where('galleryId', '==', galleryId)
+        .where('status', '==', 'active')
+        .get();
+      
+      const actualPhotoCount = photosSnapshot.size;
+      const galleryPhotoCount = galleryData.photosCount || 0;
+      
+      // Calculate total size
+      const totalSize = photosSnapshot.docs.reduce((sum, doc) => {
+        return sum + (doc.data().size || 0);
+      }, 0);
+      
+      const totalSizeMB = totalSize / (1024 * 1024);
+      
+      // Find associated plan
+      let planDoc = null;
+      let planId = galleryData.planId;
+      
+      if (planId) {
+        // Try to get the plan directly
+        const planSnapshot = await db.collection('client-plans').doc(planId).get();
+        if (planSnapshot.exists) {
+          planDoc = planSnapshot;
+        }
+      }
+      
+      // Try to find by client ID if plan ID not available or not found
+      if (!planDoc && galleryData.clientId) {
+        const plansSnapshot = await db.collection('client-plans')
+          .where('clientId', '==', galleryData.clientId)
+          .where('status', 'in', ['active', 'expiring_soon', 'expired'])
+          .get();
+        
+        if (!plansSnapshot.empty) {
+          // Prefer active plans over expired ones
+          const activePlans = plansSnapshot.docs.filter(doc => 
+            doc.data().status === 'active' || doc.data().status === 'expiring_soon'
+          );
+          
+          planDoc = activePlans.length > 0 ? 
+            activePlans[0] : plansSnapshot.docs[0];
+          
+          planId = planDoc.id;
+        }
+      }
+      
+      // Apply fixes if needed
+      if (galleryPhotoCount !== actualPhotoCount) {
+        console.log(`Fixing gallery ${galleryId}: ${galleryPhotoCount} → ${actualPhotoCount} photos`);
+        
+        galleryFixes.push(
+          db.collection('galleries').doc(galleryId).update({
+            photosCount: actualPhotoCount,
+            updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+          })
+        );
+      }
+      
+      // Fix plan count if we found a plan
+      if (planDoc) {
+        const planData = planDoc.data();
+        const planPhotoCount = planData.photosUploaded || 0;
+        
+        if (planPhotoCount !== actualPhotoCount) {
+          console.log(`Fixing plan ${planId}: ${planPhotoCount} → ${actualPhotoCount} photos`);
+          
+          galleryFixes.push(
+            db.collection('client-plans').doc(planId).update({
+              photosUploaded: actualPhotoCount,
+              storageUsed: totalSizeMB,
+              updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            })
+          );
+        }
+        
+        // Update gallery with plan ID if needed
+        if (galleryData.planId !== planId) {
+          console.log(`Updating gallery ${galleryId} with correct planId: ${planId}`);
+          
+          galleryFixes.push(
+            db.collection('galleries').doc(galleryId).update({
+              planId: planId,
+              planType: planData.planType,
+              updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            })
+          );
+        }
+      }
+      
+      // NEW: Fix gallery-share references
+      if (galleryData.shareId) {
+        try {
+          // Find the share document with this shareId
+          const shareQuery = await db.collection('galleryShares')
+            .where('shareId', '==', galleryData.shareId)
+            .where('photographerId', '==', currentUser.uid)
+            .limit(1)
+            .get();
+          
+          if (!shareQuery.empty) {
+            const shareDoc = shareQuery.docs[0];
+            const shareData = shareDoc.data();
+            
+            // If galleryId doesn't match, fix it
+            if (shareData.galleryId !== galleryId) {
+              console.log(`Fixing share reference for gallery ${galleryId}: ${shareData.galleryId} → ${galleryId}`);
+              
+              galleryFixes.push(
+                db.collection('galleryShares').doc(shareDoc.id).update({
+                  galleryId: galleryId,
+                  updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                })
+              );
+            }
+          }
+        } catch (shareError) {
+          console.error(`Error fixing share reference for gallery ${galleryId}:`, shareError);
+        }
+      }
+    }
+    
+    // Apply all fixes
+    if (galleryFixes.length > 0) {
+      await Promise.all(galleryFixes);
+      console.log(`Successfully applied ${galleryFixes.length} fixes`);
+      
+      // Refresh dashboard data
+      await refreshAllData();
+      
+      showSuccessMessage(`Data consistency fixed successfully. ${galleryFixes.length} issues resolved.`);
+    } else {
+      console.log('No fixes needed - all data is already consistent');
+      showInfoMessage('All data is already consistent.');
+    }
+    
+    hideLoadingOverlay();
+    return true;
+    
+  } catch (error) {
+    console.error('Error fixing data consistency:', error);
+    hideLoadingOverlay();
+    showErrorMessage(`Error fixing data consistency: ${error.message}`);
+    return false;
+  }
+}
+
+
+
+
+
+ 
+
+async function copyShareUrl(shareUrl, clientName) {
+  try {
+    await navigator.clipboard.writeText(`https://${shareUrl}`);
+    showSuccessMessage(`Share link copied for ${clientName}!`);
+  } catch (error) {
+    const textArea = document.createElement('textarea');
+    textArea.value = `https://${shareUrl}`;
+    document.body.appendChild(textArea);
+    textArea.select();
+    document.execCommand('copy');
+    document.body.removeChild(textArea);
+    showSuccessMessage(`Share link copied for ${clientName}!`);
+  }
+}
+
+// Make function globally available
+window.copyShareUrl = copyShareUrl; 
+
+
+
+
+function getSharingHTML(plan) {
+  const client = userClients.find(c => c.id === plan.clientId);
+  const clientName = client?.name || plan.clientName || 'Unknown Client';
+  
+  const canShare = plan.status === PLAN_STATUS.ACTIVE || plan.status === PLAN_STATUS.EXPIRING_SOON;
+  
+  if (!canShare) {
+    return `
+      <div style="margin-top: 5px;">
+        <span style="color: #999; font-size: 12px;">🔒 Not Shared (Expired)</span>
+      </div>
+    `;
+  }
+  
+  // Show shareUrl if it exists, otherwise show "Not Shared"
+  if (plan.shareUrl) {
+    const displayUrl = plan.shareUrl.length > 40 ? 
+      plan.shareUrl.substring(0, 37) + '...' : plan.shareUrl;
+    
+    return `
+      <div style="margin-top: 5px;">
+        <span style="color: #4CAF50; font-size: 12px; cursor: pointer;" 
+              onclick="copyFullShareUrl('${plan.shareUrl}', '${clientName}')"
+              title="${plan.shareUrl}">
+          🔗 ${displayUrl}
+        </span>
+        <button class="edit-share-btn" 
+                data-gallery-id="${plan.galleryId}" 
+                style="margin-left: 8px; padding: 2px 6px; font-size: 10px; background: #2196F3; color: white; border: none; border-radius: 3px; cursor: pointer;">
+          ✏️ Edit
+        </button>
+      </div>
+    `;
+  } else {
+    return `
+      <div style="margin-top: 5px;">
+        <span style="color: #999; font-size: 12px;">🔒 Not Shared</span>
+        <button class="edit-share-btn" 
+                data-gallery-id="${plan.galleryId}" 
+                style="margin-left: 8px; padding: 2px 6px; font-size: 10px; background: #2196F3; color: white; border: none; border-radius: 3px; cursor: pointer;">
+          ✏️ Share
+        </button>
+      </div>
+    `;
+  }
+}
+
+
+// New function to copy full share URL
+async function copyFullShareUrl(fullUrl, clientName) {
+  try {
+    await navigator.clipboard.writeText(fullUrl);
+    showSuccessMessage(`Full share link copied for ${clientName}!`);
+    console.log("Share link copied:", fullUrl); // Additional logging
+  } catch (error) {
+    const textArea = document.createElement('textarea');
+    textArea.value = fullUrl;
+    document.body.appendChild(textArea);
+    textArea.select();
+    document.execCommand('copy');
+    document.body.removeChild(textArea);
+    showSuccessMessage(`Full share link copied for ${clientName}!`);
+    console.log("Share link copied (fallback):", fullUrl);
+  }
+}
+
+
+
+async function loadGalleryRatings(galleryId) {
+  try {
+    if (!galleryId) {
+      return { 
+        display: '<span class="no-ratings">No gallery</span>',
+        counts: { heart: 0, thumbsUp: 0, thinking: 0, thumbsDown: 0, total: 0 }
+      };
+    }
+
+    const db = firebase.firestore();
+    
+    // Query all ratings for this gallery from all users
+    const ratingsSnapshot = await db.collection('photoRatings')
+      .where('galleryId', '==', galleryId)
+      .get();
+
+    if (ratingsSnapshot.empty) {
+      return { 
+        display: '<span class="no-ratings">No ratings yet</span>',
+        counts: { heart: 0, thumbsUp: 0, thinking: 0, thumbsDown: 0, total: 0 }
+      };
+    }
+
+    // *** NEW LOGIC: Group by photo, then take latest rating per photo ***
+    const photoRatings = {};
+    
+    // Collect all ratings and group by photoId
+    ratingsSnapshot.forEach(doc => {
+      const data = doc.data();
+      const photoId = data.photoId;
+      const rating = data.rating;
+      const timestamp = data.timestamp;
+      
+      if (!photoRatings[photoId]) {
+        photoRatings[photoId] = [];
+      }
+      
+      photoRatings[photoId].push({
+        rating: rating,
+        timestamp: timestamp,
+        userId: data.userId
+      });
+    });
+
+    // For each photo, take the most recent rating (like client view)
+    const finalRatings = {};
+    for (const photoId in photoRatings) {
+      const ratings = photoRatings[photoId];
+      
+      // Sort by timestamp (most recent first)
+      ratings.sort((a, b) => {
+        const timeA = a.timestamp ? a.timestamp.toMillis() : 0;
+        const timeB = b.timestamp ? b.timestamp.toMillis() : 0;
+        return timeB - timeA;
+      });
+      
+      // Take the most recent rating for this photo
+      finalRatings[photoId] = ratings[0].rating;
+    }
+
+    // Count the final ratings (matching client view logic)
+    const ratingCounts = {
+      heart: 0,
+      thumbsUp: 0,
+      thinking: 0,
+      thumbsDown: 0,
+      total: 0
+    };
+
+    // Count each rating type from final ratings
+    for (const photoId in finalRatings) {
+      const rating = finalRatings[photoId];
+      if (ratingCounts[rating] !== undefined) {
+        ratingCounts[rating]++;
+        ratingCounts.total++;
+      }
+    }
+
+    // Format display - only show ratings that exist
+    const ratingParts = [];
+    if (ratingCounts.heart > 0) ratingParts.push(`❤️ ${ratingCounts.heart}`);
+    if (ratingCounts.thumbsUp > 0) ratingParts.push(`👍 ${ratingCounts.thumbsUp}`);
+    if (ratingCounts.thinking > 0) ratingParts.push(`🤔 ${ratingCounts.thinking}`);
+    if (ratingCounts.thumbsDown > 0) ratingParts.push(`👎 ${ratingCounts.thumbsDown}`);
+
+    const display = ratingParts.length > 0 ? 
+      `<div class="ratings-summary">${ratingParts.join(' ')}</div>` :
+      '<span class="no-ratings">No ratings yet</span>';
+
+    return {
+      display: display,
+      counts: ratingCounts
+    };
+
+  } catch (error) {
+    console.error('Error loading gallery ratings:', error);
+    return { 
+      display: '<span class="ratings-error">Error loading</span>',
+      counts: { heart: 0, thumbsUp: 0, thinking: 0, thumbsDown: 0, total: 0 }
+    };
+  }
+}
+
+/**
+ * Update ratings display for all visible plan rows
+ * Called after the table is created
+ */
+async function updateAllRatingsDisplay() {
+  const ratingCells = document.querySelectorAll('.plan-client-ratings');
+  
+  for (const cell of ratingCells) {
+    const row = cell.closest('tr');
+    if (!row) continue;
+
+    // Find the plan data for this row
+    const viewGalleryBtn = row.querySelector('.view-gallery-btn');
+    if (!viewGalleryBtn) continue;
+
+    const clientId = viewGalleryBtn.getAttribute('data-client-id');
+    
+    // Find the plan for this client
+    const plan = allPlans.find(p => p.clientId === clientId);
+    if (plan && plan.galleryId) {
+      // Load ratings for this gallery
+      const ratingsData = await loadGalleryRatings(plan.galleryId);
+      cell.innerHTML = ratingsData.display;
+    } else {
+      cell.innerHTML = '<span class="no-ratings">No gallery</span>';
+    }
+  }
+}
+
+// Function to update toggle states when plan status changes (automatic)
+function updateToggleForPlanStatusChange(planId, newStatus) {
+  const toggleSwitch = document.querySelector(`[data-plan-id="${planId}"] .autodeletion-switch`);
+  if (!toggleSwitch) return;
+  
+  const container = toggleSwitch.closest('.gallery-autodeletion-toggle');
+  const label = container.querySelector('.autodeletion-label');
+  const tooltip = container.querySelector('.autodeletion-tooltip');
+  
+  if (newStatus === PLAN_STATUS.EXPIRED) {
+    // Plan just expired - auto-enable deletion
+    toggleSwitch.classList.add('on', 'locked');
+    if (label) label.style.color = '#4285f4';
+    
+    // Update backend automatically
+    const plan = allPlans.find(p => p.id === planId);
+    if (plan) {
+      updateAutoDeletionSetting(planId, true).catch(console.error);
+    }
+    
+    // Show notification
+    showInfoMessage('Plan expired. Auto-deletion automatically enabled.');
+    
+  } else if (newStatus === PLAN_STATUS.ACTIVE) {
+    // Plan renewed - auto-disable deletion
+    toggleSwitch.classList.remove('on');
+    toggleSwitch.classList.add('locked');
+    if (label) label.style.color = '#666';
+    
+    // Update backend automatically
+    updateAutoDeletionSetting(planId, false).catch(console.error);
+    
+    // Show notification
+    showSuccessMessage('Plan renewed. Auto-deletion automatically disabled.');
+  }
+}
+
+
+// PHASE 1: IMMEDIATE IMPLEMENTATION
+// Add these functions to your subscription-manager.js file
+
+
+// REPLACE your existing updateAutoDeletionSetting function with this version:
+
+
+
+async function updateAutoDeletionSetting(planId, enabled) {
+  try {
+    // BULLETPROOF: Basic validation only
+    if (!planId) {
+      console.error('updateAutoDeletionSetting: planId is required');
+      return false;
+    }
+    
+    const plan = allPlans.find(p => p.id === planId);
+    if (!plan) {
+      console.log(`Plan ${planId} not found in allPlans array, skipping auto-deletion update`);
+      return false;
+    }
+    
+    if (!plan.planType) {
+      console.log(`Plan ${planId} missing planType, skipping auto-deletion update`);
+      return false;
+    }
+    
+    // 👈 SECURITY CHECK: Prevent manual enabling for active plans
+    if (enabled && (plan.status === PLAN_STATUS.ACTIVE || plan.status === PLAN_STATUS.EXPIRING_SOON)) {
+      console.warn('Prevented manual enabling of auto-deletion for active plan');
+      throw new Error('Cannot enable auto-deletion for active plans');
+    }
+    
+    // 👈 SECURITY CHECK: Prevent manual disabling for expired plans
+    if (!enabled && plan.status === PLAN_STATUS.EXPIRED) {
+      console.warn('Prevented manual disabling of auto-deletion for expired plan');
+      throw new Error('Cannot disable auto-deletion for expired plans. Please renew the plan.');
+    }
+    
+    showLoadingOverlay('Updating auto-deletion setting...');
+    
+    const db = firebase.firestore();
+    const retentionDays = getRetentionPeriod(plan.planType);
+    
+    // Prepare update data
+    const updateData = {
+      autoDeletionEnabled: enabled,
+      retentionPeriodDays: retentionDays,
+      lastModified: firebase.firestore.FieldValue.serverTimestamp()
+    };
+    
+    if (enabled) {
+      // Calculate deletion date (plan expiry + retention period)
+      const expiryDate = plan.planEndDate.toDate();
+      const deletionDate = new Date(expiryDate.getTime() + (retentionDays * 24 * 60 * 60 * 1000));
+      
+      updateData.scheduledDeletionDate = firebase.firestore.Timestamp.fromDate(deletionDate);
+      updateData.deletionStatus = 'scheduled';
+      
+      console.log(`Auto-scheduling deletion for ${deletionDate.toLocaleDateString()}`);
+    } else {
+      // Remove deletion schedule
+      updateData.scheduledDeletionDate = firebase.firestore.FieldValue.delete();
+      updateData.deletionStatus = 'cancelled';
+      
+      console.log('Auto-cancelling deletion schedule');
+    }
+    
+    // Update Firestore
+    await db.collection('client-plans').doc(planId).update(updateData);
+    
+    // Update local plan object
+    plan.autoDeletionEnabled = enabled;
+    plan.retentionPeriodDays = retentionDays;
+    plan.deletionStatus = enabled ? 'scheduled' : 'cancelled';
+    
+    hideLoadingOverlay();
+    
+    console.log(`Auto-deletion automatically ${enabled ? 'enabled' : 'disabled'} for plan ${planId}`);
+    return true;
+    
+  } catch (error) {
+    hideLoadingOverlay();
+    console.error('Error updating auto-deletion setting:', error);
+    throw error;
+  }
+}
+
+
+
+// 3. Function to load existing toggle states from database
+function loadExistingToggleStates() {
+  console.log("📥 Loading existing toggle states...");
+  
+  allPlans.forEach(plan => {
+    if (plan.autoDeletionEnabled === true) {
+      const toggleSwitch = document.querySelector(`[data-plan-id="${plan.id}"] .autodeletion-switch`);
+      if (toggleSwitch) {
+        console.log(`Setting toggle ON for plan ${plan.id}`);
+        toggleSwitch.classList.add('on');
+        
+        const container = toggleSwitch.closest('.gallery-autodeletion-toggle');
+        const label = container.querySelector('.autodeletion-label');
+        if (label) label.style.color = '#4285f4';
+      }
+    }
+  });
+}
+
+// Add this to subscription-manager.js
+function initPlanStatusMonitoring() {
+  // Monitor for plan status changes
+  setInterval(checkPlanStatusChanges, 60000); // Check every minute
+}
+
+async function checkPlanStatusChanges() {
+  if (!currentUser) return;
+  
+  const now = new Date();
+  let statusChanges = false;
+  
+  allPlans.forEach(async plan => {
+    const expiryDate = plan.planEndDate?.toDate();
+    const wasActive = plan.status === PLAN_STATUS.ACTIVE;
+    const isNowExpired = expiryDate && now > expiryDate;
+    
+    if (wasActive && isNowExpired) {
+      // Plan just expired - auto-enable deletion
+      await handlePlanExpiration(plan.id);
+      statusChanges = true;
+    }
+  });
+  
+  if (statusChanges) {
+    await loadActivePlans(); // Refresh data
+  }
+}
+
+
+
+// Add this function
+
+async function handlePlanRenewal(planId) {
+  try {
+    console.log(`🔄 Handling plan renewal for: ${planId}`);
+    
+    if (!planId || planId === 'undefined' || planId === 'null') {
+      console.log('handlePlanRenewal: Invalid planId, skipping renewal handling');
+      return;
+    }
+    
+    if (!allPlans || allPlans.length === 0) {
+      console.log('handlePlanRenewal: No plans loaded, skipping renewal handling');
+      return;
+    }
+    
+    const plan = allPlans.find(p => p.id === planId);
+    if (!plan) {
+      console.log(`handlePlanRenewal: Plan ${planId} not found, skipping renewal handling`);
+      return;
+    }
+    
+    // Only disable auto-deletion if it was previously enabled
+    if (plan.autoDeletionEnabled === true) {
+      console.log(`Disabling auto-deletion for renewed plan: ${planId}`);
+      
+      try {
+        await updateAutoDeletionSetting(planId, false);
+        
+        showSuccessMessage('Plan renewed! Auto-deletion disabled.');
+        
+        // Update toggle UI
+        const toggleSwitch = document.querySelector(`[data-plan-id="${planId}"] .autodeletion-switch`);
+        if (toggleSwitch) {
+          toggleSwitch.classList.remove('on', 'locked');
+          
+          const container = toggleSwitch.closest('.gallery-autodeletion-toggle');
+          const label = container?.querySelector('.autodeletion-label');
+          if (label) label.style.color = '#666';
+        }
+      } catch (disableError) {
+        console.error('Error disabling auto-deletion during renewal:', disableError);
+        // Don't throw - renewal should continue
+      }
+    } else {
+      console.log(`Plan ${planId} renewal: Auto-deletion was not enabled, no action needed`);
+    }
+    
+  } catch (error) {
+    console.error('Error handling renewal:', error);
+    // Don't throw error - this shouldn't break the payment flow
+  }
+}
+
+function showRenewalRequiredMessage(plan) {
+  const client = userClients.find(c => c.id === plan.clientId);
+  const clientName = client?.name || 'this client';
+  
+  // Show modal or notification
+  if (window.NotificationSystem) {
+    window.NotificationSystem.showNotification('warning', 
+      'Renewal Required', 
+      `Please renew ${clientName}'s plan to disable auto-deletion.`
+    );
+  }
+  
+  // Optionally redirect to renewal
+  setTimeout(() => {
+    if (confirm(`Renew ${clientName}'s plan now?`)) {
+      showUpgradeModal(plan.clientId);
+    }
+  }, 1000);
+}
+
+
+// 4. Update your loadActivePlans function to include auto-deletion data
+// Find this function and add this code after loading plans:
+
+// ADD THIS TO THE END OF YOUR loadActivePlans() FUNCTION:
+/*
+    // Load auto-deletion states after plans are loaded
+    setTimeout(() => {
+      loadExistingToggleStates();
+    }, 200);
+*/
+
+// 5. Make functions globally available for debugging
+window.autoDeletionSystem = {
+  updateAutoDeletionSetting,
+  loadExistingToggleStates,
+  testToggle: function(planId, enabled) {
+    return updateAutoDeletionSetting(planId, enabled);
+  }
+};
+
+console.log("✅ Auto-deletion system Phase 1 loaded");
+console.log("🧪 Test with: window.autoDeletionSystem.testToggle('planId', true)");
+
+// 6. TESTING FUNCTION - Use this to test the integration
+async function testAutoDeletionIntegration() {
+  console.log("🧪 Testing auto-deletion integration...");
+  
+  try {
+    // Check if we have plans
+    if (allPlans.length === 0) {
+      console.log("❌ No plans loaded. Load plans first.");
+      return false;
+    }
+    
+    const testPlan = allPlans[0];
+    console.log(`Testing with plan: ${testPlan.id}`);
+    
+    // Test enabling auto-deletion
+    console.log("Testing enable...");
+    await updateAutoDeletionSetting(testPlan.id, true);
+    console.log("✅ Enable test passed");
+    
+    // Wait a moment, then test disabling
+    setTimeout(async () => {
+      console.log("Testing disable...");
+      await updateAutoDeletionSetting(testPlan.id, false);
+      console.log("✅ Disable test passed");
+      console.log("🎉 Auto-deletion integration test completed successfully!");
+    }, 2000);
+    
+    return true;
+  } catch (error) {
+    console.error("❌ Test failed:", error);
+    return false;
+  }
+}
+
+
+// ADD THESE FUNCTIONS - They're referenced but not defined:
+
+async function handlePlanExpiration(planId) {
+  try {
+    // Auto-enable deletion when plan expires
+    await updateAutoDeletionSetting(planId, true);
+    
+    showInfoMessage('Plan expired! Auto-deletion enabled.');
+    
+    // Update toggle UI to locked ON state
+    const toggleSwitch = document.querySelector(`[data-plan-id="${planId}"] .autodeletion-switch`);
+    if (toggleSwitch) {
+      toggleSwitch.classList.add('on', 'locked');
+    }
+    
+  } catch (error) {
+    console.error('Error handling expiration:', error);
+  }
+}
+
+// ADD this new function at the end of subscription-manager.js
+function getArchivalStatusHTML(plan) {
+  const archivalStatus = plan.archivalStatus || 'active'; // Default to 'active' if missing
+  
+  if (archivalStatus === 'pending') {
+    const archivalDate = plan.scheduledArchivalDate?.toDate()?.toLocaleDateString() || 'Soon';
+    return `<div class="archival-pending">📦 Archival scheduled: ${archivalDate}</div>`;
+  } else if (archivalStatus === 'archived') {
+    return `<div class="archival-status">📦 Archived (restorable)</div>`;
+  } else if (archivalStatus === 'restoring') {
+    return `<div class="restoration-status">🔄 Restoring gallery...</div>`;
+  }
+  return ''; // For 'active' or undefined status
+}
+
+
+// Add this function at the very end of subscription-manager.js
+function startRestorationPolling() {
+  setInterval(async () => {
+    // Check if any plans are currently restoring
+    const restoringPlans = allPlans.filter(p => p.archivalStatus === 'restoring');
+    
+    if (restoringPlans.length > 0) {
+      console.log(`Checking status for ${restoringPlans.length} restoring galleries`);
+      
+      // Refresh the data to get latest status
+      await loadActivePlans();
+      
+      // Update the display
+      filterAndDisplayPlans();
+      
+      // Show notification if any restoration completed
+      restoringPlans.forEach(plan => {
+        const updatedPlan = allPlans.find(p => p.id === plan.id);
+        if (updatedPlan && updatedPlan.archivalStatus === 'active') {
+          const client = userClients.find(c => c.id === plan.clientId);
+          const clientName = client?.name || 'your client';
+          
+          if (window.NotificationSystem) {
+            window.NotificationSystem.showNotification('success', 
+              'Gallery Restored', 
+              `${clientName}'s gallery has been restored and is now active!`
+            );
+          }
+        }
+      });
+    }
+  }, 30 * 60 * 1000); // Check every 30 minutes
+}
+
+// Make test function globally available
+window.testAutoDeletionIntegration = testAutoDeletionIntegration;
+
+// Make function globally available
+window.copyFullShareUrl = copyFullShareUrl;
+
+// Add to window.subscriptionManager
+window.subscriptionManager.fixAllPhotoCountDiscrepancies = fixAllPhotoCountDiscrepancies;
+
+// Add client name validation function
+window.subscriptionManager.validateNewClientName = async function(clientName) {
+  if (!clientName || clientName.trim() === '') {
+    return { isValid: false, message: 'Client name cannot be empty' };
+  }
+  
+  const isDuplicate = await this.checkDuplicateClientName(clientName);
+  if (isDuplicate) {
+    return { isValid: false, message: 'A client with this name already exists. Please use a different name.' };
+  }
+  
+  return { isValid: true, message: '' };
+};

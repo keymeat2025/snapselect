@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>View Shared Gallery - SnapSelect</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* Basic styles */
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f5f5f5;
+            color: #333;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+        
+        /* Header */
+        header {
+            background-color: #fff;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            padding: 15px 0;
+        }
+        
+        .logo-text {
+            font-size: 24px;
+            font-weight: bold;
+            color: #3498db;
+        }
+        
+        /* Password screen */
+        .password-container {
+            max-width: 400px;
+            margin: 100px auto;
+            padding: 30px;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        
+        .password-input {
+            width: 100%;
+            padding: 12px;
+            margin: 15px 0;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        
+        .btn {
+            padding: 12px 20px;
+            background-color: #3498db;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        
+        .btn:hover {
+            background-color: #2980b9;
+        }
+        
+        .error-message {
+            color: #e74c3c;
+            margin: 10px 0;
+            display: none;
+        }
+        
+        /* Gallery container */
+        .gallery-container {
+            max-width: 1200px;
+            margin: 30px auto;
+            padding: 20px;
+        }
+        
+        /* Photo grid */
+        .photos-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+        
+        .photo-item {
+            background-color: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            transition: transform 0.2s;
+        }
+        
+        .photo-item:hover {
+            transform: translateY(-5px);
+        }
+        
+        .photo-container {
+            height: 200px;
+            width: 100%;
+            background-size: cover;
+            background-position: center;
+            position: relative;
+            cursor: pointer;
+        }
+        
+        .photo-details {
+            padding: 12px;
+        }
+        
+        .photo-name {
+            font-weight: 500;
+            margin-bottom: 5px;
+        }
+        
+        .photo-date {
+            font-size: 12px;
+            color: #777;
+        }
+        
+        /* Toast notifications */
+        .toast-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+        }
+        
+        .toast {
+            padding: 12px 20px;
+            margin-bottom: 10px;
+            border-radius: 4px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            color: white;
+            animation: slideIn 0.3s ease;
+        }
+        
+        .toast-success {
+            background-color: #27ae60;
+        }
+        
+        .toast-error {
+            background-color: #e74c3c;
+        }
+        
+        .toast-info {
+            background-color: #3498db;
+        }
+        
+        .toast.fadeOut {
+            animation: fadeOut 0.3s ease;
+        }
+        
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        
+        @keyframes fadeOut {
+            from { opacity: 1; }
+            to { opacity: 0; }
+        }
+        
+        /* Loading spinner */
+        .loading-indicator {
+            text-align: center;
+            margin: 100px auto;
+        }
+        
+        .spinner {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            border-left-color: #3498db;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        /* Footer */
+        footer {
+            margin-top: 50px;
+            padding: 20px 0;
+            background-color: #f9f9f9;
+            text-align: center;
+            color: #777;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div id="toastContainer" class="toast-container"></div>
+    
+    <header>
+        <div class="container">
+            <nav>
+                <a href="../../index.html" class="logo">
+                    <div class="logo-text">SnapSelect</div>
+                </a>
+            </nav>
+        </div>
+    </header>
+
+    <main>
+        <!-- Loading indicator -->
+        <div id="loadingIndicator" class="loading-indicator">
+            <div class="spinner"></div>
+            <p>Loading gallery...</p>
+        </div>
+        
+        <!-- Password protection screen (initially hidden) -->
+        <div id="passwordScreen" class="password-container" style="display: none;">
+            <h2>Protected Gallery</h2>
+            <p>This gallery is password protected. Please enter the password to view it.</p>
+            <div id="passwordError" class="error-message">Incorrect password. Please try again.</div>
+            <input type="password" id="galleryPassword" class="password-input" placeholder="Enter password">
+            <button id="submitPasswordBtn" class="btn">View Gallery</button>
+        </div>
+        
+        <!-- Gallery container (initially hidden) -->
+        <div id="galleryContainer" class="gallery-container" style="display: none;">
+            <h1 id="galleryTitle">Shared Gallery</h1>
+            <div id="photosGrid" class="photos-grid">
+                <!-- Photos will be loaded here -->
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2025 SnapSelect. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <!-- Firebase SDK Scripts -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js"></script>
+    
+    <!-- Inline script to load the gallery -->
+    <script>
+        // Direct Firebase initialization for standalone shared gallery page
+        (function() {
+            // Firebase configuration
+            const firebaseConfig = {
+                apiKey: "AIzaSyCAl15Yq8Y727PKknJNs0Q8UZbRRbcWkMo",
+                authDomain: "snapselect01-eb74c.firebaseapp.com",
+                projectId: "snapselect01-eb74c",
+                storageBucket: "snapselect01-eb74c.firebasestorage.app",
+                messagingSenderId: "749450852067",
+                appId: "1:749450852067:web:8b1887075d607b3e91f7d6",
+                measurementId: "G-J5XGE71VF6"
+            };
+            
+            // Initialize Firebase directly
+            try {
+                if (firebase.apps.length === 0) {
+                    firebase.initializeApp(firebaseConfig);
+                    console.log("Firebase initialized successfully");
+                }
+                
+                // Continue with gallery loading
+                loadSharedGallery();
+            } catch (error) {
+                console.error("Error initializing Firebase:", error);
+                showError("Failed to initialize the gallery. Please try again later.");
+            }
+        })();
+        
+        // Load shared gallery based on URL parameter
+        function loadSharedGallery() {
+            // Get shared gallery ID from URL
+            const urlParams = new URLSearchParams(window.location.search);
+            const shareId = urlParams.get('share');
+            
+            if (!shareId) {
+                showError("Invalid gallery link. No gallery ID provided.");
+                return;
+            }
+            
+            console.log("Looking for shared gallery with ID:", shareId);
+            
+            // Get reference to Firestore
+            const db = firebase.firestore();
+            
+            // Find the shared gallery by ID
+            db.collection('sharedGalleries').where('shareId', '==', shareId)
+                .get()
+                .then(snapshot => {
+                    if (snapshot.empty) {
+                        showError("Gallery not found or access has been revoked.");
+                        return;
+                    }
+                    
+                    const sharedGallery = snapshot.docs[0].data();
+                    console.log("Found shared gallery:", sharedGallery);
+                    
+                    // Hide loading indicator
+                    document.getElementById('loadingIndicator').style.display = 'none';
+                    
+                    if (sharedGallery.passwordProtected) {
+                        // Show password screen
+                        document.getElementById('passwordScreen').style.display = 'block';
+                        
+                        // Set up password form submission
+                        document.getElementById('submitPasswordBtn').addEventListener('click', function() {
+                            const password = document.getElementById('galleryPassword').value;
+                            
+                            if (password === sharedGallery.password) {
+                                // Password correct, load the gallery
+                                loadGalleryContent(sharedGallery.galleryId);
+                            } else {
+                                // Show error
+                                document.getElementById('passwordError').style.display = 'block';
+                            }
+                        });
+                    } else {
+                        // No password needed, load gallery directly
+                        loadGalleryContent(sharedGallery.galleryId);
+                    }
+                })
+                .catch(error => {
+                    console.error("Error fetching shared gallery:", error);
+                    showError("Error loading gallery. Please try again later.");
+                });
+        }
+        
+        // Load gallery content
+        function loadGalleryContent(galleryId) {
+            console.log("Loading gallery content for ID:", galleryId);
+            
+            // Hide password screen if visible
+            document.getElementById('passwordScreen').style.display = 'none';
+            
+            // Show gallery container
+            document.getElementById('galleryContainer').style.display = 'block';
+            
+            // Get reference to Firestore
+            const db = firebase.firestore();
+            
+            // Get gallery details
+            db.collection('galleries').doc(galleryId)
+                .get()
+                .then(doc => {
+                    if (!doc.exists) {
+                        showError("Gallery not found.");
+                        return;
+                    }
+                    
+                    const gallery = doc.data();
+                    console.log("Gallery details:", gallery);
+                    
+                    // Set gallery title
+                    document.getElementById('galleryTitle').textContent = gallery.name || 'Shared Gallery';
+                    
+                    // Load photos
+                    db.collection('photos')
+                        .where('galleryId', '==', galleryId)
+                        .where('status', '==', 'active')
+                        .limit(20)
+                        .get()
+                        .then(snapshot => {
+                            const photosGrid = document.getElementById('photosGrid');
+                            photosGrid.innerHTML = '';
+                            
+                            if (snapshot.empty) {
+                                photosGrid.innerHTML = '<p>No photos in this gallery yet.</p>';
+                                return;
+                            }
+                            
+                            // Create elements for each photo
+                            snapshot.forEach(doc => {
+                                const photo = doc.data();
+                                const photoElement = createPhotoElement(photo);
+                                photosGrid.appendChild(photoElement);
+                            });
+                        })
+                        .catch(error => {
+                            console.error("Error loading photos:", error);
+                            showError("Error loading photos. Please try again.");
+                        });
+                })
+                .catch(error => {
+                    console.error("Error loading gallery details:", error);
+                    showError("Error loading gallery details. Please try again.");
+                });
+        }
+        
+        // Create a photo element
+        function createPhotoElement(photo) {
+            const photoItem = document.createElement('div');
+            photoItem.className = 'photo-item';
+            
+            const photoContainer = document.createElement('div');
+            photoContainer.className = 'photo-container';
+            photoContainer.style.backgroundImage = `url(${photo.thumbnailUrl || photo.url})`;
+            
+            const photoDetails = document.createElement('div');
+            photoDetails.className = 'photo-details';
+            
+            const photoName = document.createElement('div');
+            photoName.className = 'photo-name';
+            photoName.textContent = photo.name || 'Photo';
+            
+            const photoDate = document.createElement('div');
+            photoDate.className = 'photo-date';
+            if (photo.uploadedAt) {
+                const date = photo.uploadedAt.toDate ? photo.uploadedAt.toDate() : new Date(photo.uploadedAt);
+                photoDate.textContent = date.toLocaleDateString();
+            }
+            
+            photoDetails.appendChild(photoName);
+            photoDetails.appendChild(photoDate);
+            
+            photoItem.appendChild(photoContainer);
+            photoItem.appendChild(photoDetails);
+            
+            // Make photo clickable to view larger version
+            photoContainer.addEventListener('click', function() {
+                window.open(photo.url, '_blank');
+            });
+            
+            return photoItem;
+        }
+        
+        // Show error message
+        function showError(message) {
+            // Hide loading indicator
+            document.getElementById('loadingIndicator').style.display = 'none';
+            
+            // Show toast notification
+            showToast(message, 'error');
+        }
+        
+        // Show toast notification
+        function showToast(message, type = 'info') {
+            const toastContainer = document.getElementById('toastContainer');
+            
+            const toast = document.createElement('div');
+            toast.className = `toast toast-${type}`;
+            toast.textContent = message;
+            
+            toastContainer.appendChild(toast);
+            
+            // Remove toast after 3 seconds
+            setTimeout(() => {
+                toast.classList.add('fadeOut');
+                setTimeout(() => {
+                    toast.remove();
+                }, 300);
+            }, 3000);
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SnapSelect - Admin Portal</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Using the same CSS files from the photographer dashboard for consistency -->
+    <link rel="stylesheet" href="../../assets/css/variables.css">
+    <link rel="stylesheet" href="../../assets/css/main.css">
+    <link rel="stylesheet" href="../../assets/css/animations.css">
+    <style>
+        /* Admin-specific styles */
+        .admin-login-container {
+            max-width: 450px;
+            margin: 60px auto;
+            padding: 30px;
+            background-color: var(--color-white);
+            border-radius: 8px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+            animation: fadeInUp 0.5s ease-out;
+        }
+        
+        .admin-badge {
+            display: inline-block;
+            background-color: var(--color-accent);
+            color: white;
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            margin-left: 8px;
+            vertical-align: middle;
+        }
+        
+        .admin-login-container h1 {
+            margin-bottom: 30px;
+            text-align: center;
+            color: var(--color-primary);
+        }
+        
+        .admin-login-form .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .admin-login-form label {
+            display: block;
+            margin-bottom: 6px;
+            font-weight: 600;
+            color: var(--color-text-dark);
+        }
+        
+        .admin-login-form input {
+            width: 100%;
+            padding: 12px 15px;
+            border: 1px solid var(--color-border);
+            border-radius: 6px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+        
+        .admin-login-form input:focus {
+            border-color: var(--color-primary);
+            outline: none;
+            box-shadow: 0 0 0 2px rgba(63, 81, 181, 0.2);
+        }
+        
+        .form-footer {
+            margin-top: 30px;
+        }
+        
+        .admin-login-btn {
+            width: 100%;
+            padding: 12px;
+            background-color: var(--color-primary);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        
+        .admin-login-btn:hover {
+            background-color: var(--color-primary-dark);
+        }
+        
+        .form-help {
+            text-align: center;
+            margin-top: 20px;
+            color: var(--color-text-light);
+        }
+        
+        .form-help a {
+            color: var(--color-primary);
+            text-decoration: none;
+        }
+        
+        .form-help a:hover {
+            text-decoration: underline;
+        }
+        
+        .error-message {
+            background-color: var(--color-error-bg);
+            border-left: 4px solid var(--color-error);
+            color: var(--color-error);
+            padding: 10px 15px;
+            margin-bottom: 20px;
+            font-size: 14px;
+            border-radius: 4px;
+            display: none;
+        }
+        
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(255, 255, 255, 0.8);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            display: none;
+        }
+        
+        .loading-spinner {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            border-left: 4px solid var(--color-primary);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin-bottom: 15px;
+        }
+        
+        .loading-text {
+            color: var(--color-text-dark);
+            font-weight: 600;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        /* Toast notification */
+        #toastContainer {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 9999;
+        }
+        
+        .toast {
+            padding: 15px 20px;
+            margin-bottom: 10px;
+            border-radius: 4px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            display: flex;
+            align-items: center;
+            animation: slideInRight 0.3s, fadeOut 0.5s 5s forwards;
+            max-width: 350px;
+        }
+        
+        .toast-success {
+            background-color: #e7f7ed;
+            border-left: 4px solid #28a745;
+            color: #155724;
+        }
+        
+        .toast-error {
+            background-color: #f8d7da;
+            border-left: 4px solid #dc3545;
+            color: #721c24;
+        }
+        
+        .toast-info {
+            background-color: #e1ecf8;
+            border-left: 4px solid #007bff;
+            color: #0c5460;
+        }
+        
+        .toast-icon {
+            margin-right: 10px;
+            font-size: 20px;
+        }
+        
+        .toast-content {
+            flex: 1;
+        }
+        
+        .toast-title {
+            font-weight: 700;
+            margin-bottom: 3px;
+        }
+        
+        .toast-message {
+            font-size: 14px;
+        }
+        
+        .toast-close {
+            background: none;
+            border: none;
+            font-size: 16px;
+            cursor: pointer;
+            margin-left: 10px;
+            color: inherit;
+            opacity: 0.7;
+        }
+        
+        .toast-close:hover {
+            opacity: 1;
+        }
+        
+        @keyframes slideInRight {
+            from { transform: translateX(100%); }
+            to { transform: translateX(0); }
+        }
+        
+        @keyframes fadeOut {
+            from { opacity: 1; }
+            to { opacity: 0; }
+        }
+    </style>
+</head>
+<body>
+    <!-- Toast Container for Notifications -->
+    <div id="toastContainer" class="toast-container"></div>
+
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="loading-overlay">
+        <div class="loading-spinner"></div>
+        <div class="loading-text">Authenticating...</div>
+    </div>
+
+    <header>
+        <div class="container">
+            <nav>
+                <a href="../../index.html" class="logo">
+                    <div class="logo-text">SnapSelect</div>
+                    <span class="admin-badge">Admin</span>
+                </a>
+                <div class="right-nav">
+                    <a href="../../index.html" class="btn-link">Back to Homepage</a>
+                </div>
+            </nav>
+        </div>
+    </header>
+
+    <main>
+        <div class="container">
+            <div class="admin-login-container">
+                <h1>Admin Portal Login</h1>
+                <div id="errorMessage" class="error-message">
+                    <i class="fas fa-exclamation-circle"></i>
+                    <span id="errorText">Invalid credentials. Please try again.</span>
+                </div>
+                <form id="adminLoginForm" class="admin-login-form">
+                    <div class="form-group">
+                        <label for="adminEmail">Email</label>
+                        <input type="email" id="adminEmail" placeholder="Enter your admin email" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="adminPassword">Password</label>
+                        <input type="password" id="adminPassword" placeholder="Enter your password" required>
+                    </div>
+                    <div class="form-footer">
+                        <button type="submit" class="admin-login-btn">
+                            <i class="fas fa-sign-in-alt"></i> Login
+                        </button>
+                    </div>
+                    <div class="form-help">
+                        <a href="#" id="forgotPasswordLink">Forgot Password?</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <div class="container">
+            <div class="footer-bottom">
+                <p class="copyright">&copy; 2025 SnapSelect. All rights reserved.</p>
+                <div class="footer-links">
+                    <a href="#">Privacy Policy</a>
+                    <a href="#">Terms of Service</a>
+                    <a href="#">Contact Support</a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Firebase Scripts -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-functions-compat.js"></script>
+    <script src="../../assets/js/firebase-config.js"></script>
+
+    <script>
+        // Toast notification system
+        const NotificationSystem = {
+            showNotification: function(type, title, message, duration = 5000) {
+                const toastContainer = document.getElementById('toastContainer');
+                
+                // Create toast element
+                const toast = document.createElement('div');
+                toast.className = `toast toast-${type}`;
+                
+                // Create toast content
+                let iconClass = 'fa-info-circle';
+                if (type === 'success') iconClass = 'fa-check-circle';
+                if (type === 'error') iconClass = 'fa-exclamation-circle';
+                
+                toast.innerHTML = `
+                    <i class="fas ${iconClass} toast-icon"></i>
+                    <div class="toast-content">
+                        <div class="toast-title">${title}</div>
+                        <div class="toast-message">${message}</div>
+                    </div>
+                    <button class="toast-close">&times;</button>
+                `;
+                
+                // Add to container
+                toastContainer.appendChild(toast);
+                
+                // Add close event
+                toast.querySelector('.toast-close').addEventListener('click', function() {
+                    toast.remove();
+                });
+                
+                // Auto remove after duration
+                setTimeout(() => {
+                    if (toast.parentNode) {
+                        toast.remove();
+                    }
+                }, duration);
+            }
+        };
+
+        // Admin Authentication System
+        const AdminAuthSystem = {
+            init: function() {
+                // Check if Firebase is initialized
+                if (!firebase || !firebase.auth) {
+                    console.error('Firebase is not available');
+                    return;
+                }
+                
+                // Set up the login form
+                const loginForm = document.getElementById('adminLoginForm');
+                if (loginForm) {
+                    loginForm.addEventListener('submit', this.handleLogin.bind(this));
+                }
+                
+                // Set up forgot password link
+                const forgotPasswordLink = document.getElementById('forgotPasswordLink');
+                if (forgotPasswordLink) {
+                    forgotPasswordLink.addEventListener('click', this.handleForgotPassword.bind(this));
+                }
+                
+                // Check if user is already logged in
+                this.checkAuthState();
+            },
+            
+            checkAuthState: function() {
+                const loadingOverlay = document.getElementById('loadingOverlay');
+                if (loadingOverlay) {
+                    loadingOverlay.style.display = 'flex';
+                }
+                
+                firebase.auth().onAuthStateChanged(async (user) => {
+                    if (loadingOverlay) {
+                        loadingOverlay.style.display = 'none';
+                    }
+                    
+                    if (user) {
+                        // User is signed in, check if they have admin privileges
+                        try {
+                            const isAdmin = await this.checkAdminRole(user.uid);
+                            if (isAdmin) {
+                                // Redirect to admin dashboard
+                                window.location.href = 'admin-dashboard.html';
+                            } else {
+                                // Not an admin, sign them out
+                                this.showError('Access denied. You do not have admin privileges.');
+                                firebase.auth().signOut();
+                            }
+                        } catch (error) {
+                            console.error('Error checking admin role:', error);
+                            this.showError('Error verifying admin privileges. Please try again.');
+                            firebase.auth().signOut();
+                        }
+                    }
+                });
+            },
+            
+            async handleLogin(event) {
+                event.preventDefault();
+                
+                const email = document.getElementById('adminEmail').value;
+                const password = document.getElementById('adminPassword').value;
+                
+                if (!email || !password) {
+                    this.showError('Please enter both email and password.');
+                    return;
+                }
+                
+                // Show loading overlay
+                const loadingOverlay = document.getElementById('loadingOverlay');
+                if (loadingOverlay) {
+                    loadingOverlay.style.display = 'flex';
+                }
+                
+                // Hide any existing error
+                this.hideError();
+                
+                try {
+                    // Sign in with Firebase
+                    const userCredential = await firebase.auth().signInWithEmailAndPassword(email, password);
+                    
+                    // Check if user has admin role
+                    const isAdmin = await this.checkAdminRole(userCredential.user.uid);
+                    
+                    if (isAdmin) {
+                        // Redirect to admin dashboard
+                        window.location.href = 'admin-dashboard.html';
+                    } else {
+                        // Not an admin, sign them out
+                        await firebase.auth().signOut();
+                        this.showError('Access denied. You do not have admin privileges.');
+                    }
+                } catch (error) {
+                    console.error('Login error:', error);
+                    
+                    // Handle specific errors
+                    let errorMessage = 'Login failed. Please try again.';
+                    
+                    if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
+                        errorMessage = 'Invalid email or password. Please try again.';
+                    } else if (error.code === 'auth/invalid-email') {
+                        errorMessage = 'Invalid email format.';
+                    } else if (error.code === 'auth/too-many-requests') {
+                        errorMessage = 'Too many unsuccessful login attempts. Please try again later.';
+                    }
+                    
+                    this.showError(errorMessage);
+                } finally {
+                    // Hide loading overlay
+                    if (loadingOverlay) {
+                        loadingOverlay.style.display = 'none';
+                    }
+                }
+            },
+            
+            async checkAdminRole(userId) {
+                try {
+                    // Get user document from Firestore
+                    const userDoc = await firebase.firestore().collection('users').doc(userId).get();
+                    
+                    if (userDoc.exists) {
+                        const userData = userDoc.data();
+                        // Check if user has admin role
+                        return userData.role === 'admin';
+                    }
+                    
+                    return false;
+                } catch (error) {
+                    console.error('Error checking admin role:', error);
+                    return false;
+                }
+            },
+            
+            async handleForgotPassword(event) {
+                event.preventDefault();
+                
+                const email = document.getElementById('adminEmail').value;
+                
+                if (!email) {
+                    this.showError('Please enter your email address to reset password.');
+                    return;
+                }
+                
+                // Show loading overlay
+                const loadingOverlay = document.getElementById('loadingOverlay');
+                if (loadingOverlay) {
+                    loadingOverlay.querySelector('.loading-text').textContent = 'Sending reset email...';
+                    loadingOverlay.style.display = 'flex';
+                }
+                
+                try {
+                    await firebase.auth().sendPasswordResetEmail(email);
+                    
+                    // Show success notification
+                    NotificationSystem.showNotification(
+                        'success',
+                        'Email Sent',
+                        'Password reset instructions have been sent to your email.'
+                    );
+                } catch (error) {
+                    console.error('Password reset error:', error);
+                    
+                    // Handle specific errors
+                    let errorMessage = 'Failed to send reset email. Please try again.';
+                    
+                    if (error.code === 'auth/user-not-found') {
+                        errorMessage = 'No account found with this email address.';
+                    } else if (error.code === 'auth/invalid-email') {
+                        errorMessage = 'Invalid email format.';
+                    }
+                    
+                    this.showError(errorMessage);
+                } finally {
+                    // Hide loading overlay
+                    if (loadingOverlay) {
+                        loadingOverlay.style.display = 'none';
+                    }
+                }
+            },
+            
+            showError(message) {
+                const errorMessage = document.getElementById('errorMessage');
+                const errorText = document.getElementById('errorText');
+                
+                if (errorMessage && errorText) {
+                    errorText.textContent = message;
+                    errorMessage.style.display = 'block';
+                }
+            },
+            
+            hideError() {
+                const errorMessage = document.getElementById('errorMessage');
+                
+                if (errorMessage) {
+                    errorMessage.style.display = 'none';
+                }
+            }
+        };
+
+        // Initialize when DOM is ready
+        document.addEventListener('DOMContentLoaded', function() {
+            AdminAuthSystem.init();
+        });
+    </script>
+</body>
+</html>

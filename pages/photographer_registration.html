@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SnapSelect</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-storage.js"></script>
+    <!-- Firebase config -->
+    <script src="../assets/js/firebase-config.js"></script>
+    <script src="../assets/js/firebase-auth.js"></script>
+    <script src="../assets/js/firebase-db.js"></script>
+    <style>
+        :root {--primary:#00a0e9; --primary-light:#e0f5ff; --accent:#ffa837; --dark:#2d2d2d; --gray:#555; 
+               --light-gray:#f8f9fa; --border:#e0e0e0; --white:#fff; --success:#28a745; --success-light:#d4edda;}
+        * {margin:0; padding:0; box-sizing:border-box; font-family:'Segoe UI',sans-serif;}
+        body {background-color:var(--white); color:var(--dark); line-height:1.6; display:flex; min-height:100vh;}
+        .left-panel {flex:0.5; background-color:var(--primary-light); padding:60px 40px; display:flex; flex-direction:column;}
+        .right-panel {flex:1; padding:60px 40px; display:flex; flex-direction:column; justify-content:center;}
+        .logo-container {
+            display: flex;
+            align-items: center;
+            justify-content: flex-start;
+            margin-bottom: 60px;
+        }
+        
+        .logo {
+            display: flex;
+            align-items: center;
+            text-decoration: none;
+            color: var(--primary);
+            padding: 10px 0;
+        }
+        
+        .logo-image {
+            height: 70px;
+            width: 70px;
+            margin-right: 18px;
+            border-radius: 12px;
+            border: 3px solid rgba(0, 160, 233, 0.2);
+            box-shadow: 0 4px 12px rgba(0, 160, 233, 0.15);
+            object-fit: cover;
+        }
+        
+        .logo-text {
+            font-size: 30px;
+            font-weight: 800;
+            letter-spacing: -0.8px;
+            line-height: 1;
+            margin: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: var(--primary);
+        }
+        
+        /* Mobile responsive adjustments */
+        @media (max-width: 768px) {
+            .logo-image {
+                height: 60px;
+                width: 60px;
+                margin-right: 15px;
+                border: 2px solid rgba(0, 160, 233, 0.2);
+            }
+            
+            .logo-text {
+                font-size: 26px;
+                letter-spacing: -0.6px;
+            }
+            
+            .logo-container {
+                margin-bottom: 40px;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .logo-image {
+                height: 50px;
+                width: 50px;
+                margin-right: 12px;
+            }
+            
+            .logo-text {
+                font-size: 22px;
+                letter-spacing: -0.4px;
+            }
+            
+            .logo-container {
+                margin-bottom: 30px;
+            }
+        }
+    
+        .trial-headline {font-size:32px; color:var(--dark); margin-bottom:15px; font-weight:600;}
+        .testimonial {background-color:var(--white); padding:30px; border-radius:10px; margin:40px 0; box-shadow:0 5px 15px rgba(0,0,0,0.05);}
+        .steps {display:flex; margin-bottom:30px;}
+        .step {flex:1; text-align:center; position:relative;}
+        .step:not(:last-child):after {content:""; position:absolute; top:14px; left:60%; width:80%; height:2px; background-color:var(--border);}
+        .step.active:not(:last-child):after {background-color:var(--primary);}
+        .step-number {width:30px; height:30px; background-color:var(--white); border:2px solid var(--border); border-radius:50%; display:flex; align-items:center; justify-content:center; margin:0 auto 10px; color:var(--gray); font-weight:600;}
+        .step.active .step-number {background-color:var(--primary); border-color:var(--primary); color:var(--white);}
+        .step-label {font-size:14px; color:var(--gray); font-weight:500;}
+        .step.active .step-label {color:var(--primary); font-weight:600;}
+        .form-screen {display:none; opacity:0; transform:translateX(20px); transition:opacity 0.3s,transform 0.3s; position:absolute; width:calc(100% - 80px);}
+        .form-screen.active {display:block; opacity:1; transform:translateX(0); position:relative;}
+        .form-group {margin-bottom:25px;}
+        .form-group label {display:block; margin-bottom:8px; font-weight:500;}
+        .input-icon-wrapper {position:relative;}
+        .input-icon {position:absolute; left:15px; top:50%; transform:translateY(-50%); color:var(--gray);}
+        .form-group input {width:100%; padding:12px 15px; border:1px solid var(--border); border-radius:5px; font-size:16px; transition:border-color 0.3s;}
+        .input-with-icon {padding-left:45px !important;}
+        .btn {display:block; width:100%; background-color:var(--primary); color:var(--white); padding:15px; border-radius:5px; text-decoration:none; font-weight:600; text-align:center; border:none; cursor:pointer; font-size:16px; text-transform:uppercase; letter-spacing:1px; transition:all 0.3s;}
+        .btn:hover {background-color:#0082c0; transform:translateY(-2px);}
+        .btn-secondary {background-color:var(--light-gray); color:var(--dark); border:1px solid var(--border);}
+        .btn:disabled {opacity:0.7; cursor:not-allowed; transform:none;}
+        .google-btn {display:flex; align-items:center; justify-content:center; width:100%; background-color:var(--white); color:var(--dark); padding:12px 15px; border-radius:5px; font-weight:500; text-align:center; border:1px solid var(--border); cursor:pointer; font-size:16px; margin-bottom:20px;}
+        .divider {position:relative; text-align:center; margin:20px 0 30px;}
+        .divider:before {content:""; position:absolute; top:50%; left:0; right:0; height:1px; background-color:var(--border);}
+        .divider span {position:relative; background-color:var(--white); padding:0 15px; color:var(--gray); font-size:14px;}
+        .benefit-item {display:flex; align-items:flex-start; margin-bottom:18px; padding-bottom:18px; border-bottom:1px solid var(--border);}
+        .benefit-item:last-child {border-bottom:none; padding-bottom:0; margin-bottom:0;}
+        .benefit-icon {flex:0 0 36px; width:36px; height:36px; background-color:var(--primary-light); border-radius:50%; display:flex; align-items:center; justify-content:center; margin-right:15px; color:var(--primary);}
+        .benefit-content {flex:1;}
+        .benefit-title {font-weight:600; margin-bottom:3px; color:var(--dark);}
+        .benefit-desc {color:var(--gray); font-size:14px;}
+        .field-hint {color:var(--gray); font-size:12px; margin-top:5px;}
+        .success-message {background-color:var(--success-light); border:1px solid var(--success); color:var(--success); padding:20px; border-radius:10px; text-align:center; margin-bottom:30px; display:none;}
+        .success-icon {font-size:48px; margin-bottom:15px; color:var(--success);}
+        .success-title {font-size:24px; font-weight:600; margin-bottom:10px;}
+        .success-text {font-size:16px; margin-bottom:15px;}
+        .notification-message {background-color:var(--primary-light); border:1px dashed var(--primary); color:var(--dark); padding:15px; border-radius:10px; margin-top:20px; display:none;}
+        .notification-title {font-weight:600; margin-bottom:5px; display:flex; align-items:center;}
+        .notification-icon {color:var(--primary); margin-right:8px;}
+        .registration-title {text-align:center; margin-bottom:25px; font-size:24px;}
+        .registration-subtitle {text-align:center; margin-bottom:30px; font-size:16px; color:var(--gray);}
+        @media (max-width:992px) {
+            body {flex-direction:column;}
+            .left-panel, .right-panel {padding:40px 20px;}
+            .form-screen {width:calc(100% - 40px);}
+        }
+    </style>
+</head>
+<body>
+    <div class="left-panel">
+      
+        <div class="logo-container">
+            <a href="/snapselect/index.html" class="logo">
+                <img src="../assets/images/snapselect-logo.jpeg" alt="SnapSelect" class="logo-image">
+                <div class="logo-text">SnapSelect</div>
+            </a>
+        </div>
+        <h1 class="trial-headline">Start your SnapSelect Journey today.</h1>
+        <p>Streamline your photo memories workflow with client happiness</p>
+        <div class="testimonial">
+            <p>"Since I found SnapSelect, my workflow has become incredibly efficient. I save hours on each project because clients select their favorites."</p>
+            <p><b>Magesh Madavan</b></p>
+            <p style="color:var(--gray);font-size:14px">SnapSelect user since 2023</p>
+        </div>
+    </div>
+    
+    <div class="right-panel">
+        <div class="steps">
+            <div class="step active" id="step-1-indicator"><div class="step-number">1</div><div class="step-label">Account</div></div>
+            <div class="step" id="step-2-indicator"><div class="step-number">2</div><div class="step-label">Studio Info</div></div>
+        </div>
+        
+        <!-- Step 1: Account -->
+        <div class="form-screen active" id="step-1-screen">
+            <form id="step-1-form">
+                <button type="button" class="google-btn" id="google-signin-btn"><i class="fab fa-google" style="margin-right:10px"></i>Sign up with Google</button>
+                <div class="divider"><span>or sign up with email</span></div>
+                <div class="form-group">
+                    <label for="email">Email</label>
+                    <div class="input-icon-wrapper"><i class="fas fa-envelope input-icon"></i><input type="email" id="email" class="input-with-icon" placeholder="your@email.com" required></div>
+                </div>
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <div class="input-icon-wrapper"><i class="fas fa-lock input-icon"></i><input type="password" id="password" class="input-with-icon" placeholder="Choose a password" required></div>
+                </div>
+                <div class="form-group">
+                    <label for="confirm-password">Confirm Password</label>
+                    <div class="input-icon-wrapper"><i class="fas fa-lock input-icon"></i><input type="password" id="confirm-password" class="input-with-icon" placeholder="Confirm your password" required></div>
+                </div>
+                <button type="button" class="btn" id="to-step-2-btn">Continue</button>
+            </form>
+        </div>
+        
+        <!-- Step 2: Studio Info -->
+        <div class="form-screen" id="step-2-screen">
+            <form id="step-2-form">
+                <div class="form-group">
+                    <label for="studio-name">Studio Name</label>
+                    <div class="input-icon-wrapper"><i class="fas fa-camera input-icon"></i><input type="text" id="studio-name" class="input-with-icon" placeholder="Enter a Studio Name" required></div>
+                </div>
+                <div class="form-group">
+                    <label for="owner-name">Owner Name</label>
+                    <div class="input-icon-wrapper"><i class="fas fa-user input-icon"></i><input type="text" id="owner-name" class="input-with-icon" placeholder="Your Name" required></div>
+                </div>
+                <div class="form-group">
+                    <label for="owner-email">Owner Email</label>
+                    <div class="input-icon-wrapper"><i class="fas fa-envelope input-icon"></i><input type="email" id="owner-email" class="input-with-icon" placeholder="your@email.com" required></div>
+                </div>
+                <div class="form-group">
+                    <label for="owner-number">Owner Number</label>
+                    <div class="input-icon-wrapper"><i class="fas fa-phone input-icon"></i>
+                        <input type="tel" id="owner-number" class="input-with-icon" placeholder="10-digit Mobile Number" pattern="[6-9][0-9]{9}" maxlength="10" required>
+                    </div>
+                    <div class="field-hint">Indian mobile number starting with 6-9</div>
+                </div>
+                <h3 style="margin:20px 0 15px; font-size:18px;">India Location</h3>
+                <div class="form-group">
+                    <label for="studio-address">Studio Address</label>
+                    <div class="input-icon-wrapper"><i class="fas fa-map-marker-alt input-icon"></i>
+                        <input type="text" id="studio-address" class="input-with-icon" placeholder="Studio Full Address in India" required>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="studio-pincode">Pin Code</label>
+                    <div class="input-icon-wrapper"><i class="fas fa-map-pin input-icon"></i>
+                        <input type="text" id="studio-pincode" class="input-with-icon" placeholder="6-digit Pin Code" pattern="[1-9][0-9]{5}" maxlength="6" required>
+                    </div>
+                    <div class="field-hint">6-digit Indian PIN code</div>
+                </div>
+                <div class="form-group">
+                    <div class="checkbox-group" style="display:flex; align-items:flex-start;">
+                        <input type="checkbox" id="terms" required style="margin-right:10px; margin-top:5px;">
+                        <div>I agree to the <a href="#" style="color:var(--primary);text-decoration:none">Terms of Service</a> and 
+                        <a href="#" style="color:var(--primary);text-decoration:none">Privacy Policy</a>.</div>
+                    </div>
+                </div>
+                <div style="display:flex; gap:15px">
+                    <button type="button" class="btn btn-secondary" id="back-to-step-1-btn">Back</button>
+                    <button type="button" class="btn" id="complete-registration-btn">
+                        <i class="fas fa-check-circle" style="margin-right:8px;"></i>Complete Registration
+                    </button>
+                </div>
+            </form>
+        </div>
+        
+        <!-- Success Screen (initially hidden) -->
+        <div class="form-screen" id="success-screen" style="display:none; text-align:center">
+            <div class="success-message" style="display:block">
+                <i class="fas fa-check-circle success-icon"></i>
+                <div class="success-title">Registration Successful!</div>
+                <div class="success-text">Your SnapSelect account has been created successfully.</div>
+                <div>Your SnapSelect journey begins now!</div>
+            </div>
+            
+            <div class="notification-message" style="display:block">
+                <div class="notification-title">
+                    <i class="fas fa-info-circle notification-icon"></i>
+                    <span>Important Information</span>
+                </div>
+                <p>You now have full access to SnapSelect. Start uploading photos and creating galleries for your clients!</p>
+            </div>
+            
+            <button type="button" class="btn" id="go-to-dashboard-btn" style="max-width:250px; margin:30px auto 0">
+                <i class="fas fa-tachometer-alt" style="margin-right:8px"></i>Go to Dashboard
+            </button>
+        </div>
+    </div>
+    
+    <!-- Registration Script -->
+    <script src="../assets/js/photographer_registration.js"></script>
+</body>
+</html>

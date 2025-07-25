@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SnapSelect Pricing Comparison</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SnapSelect Pricing Comparison</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="../assets/css/variables.css">
+    <link rel="stylesheet" href="../assets/css/main.css">
+    <link rel="stylesheet" href="../assets/css/responsive.css">
+    <style>
+        :root {
+            --primary: #4a6fa5;
+            --primary-light: #6989bd;
+            --accent: #f09b29;
+            --dark: #232630;
+            --white: #ffffff;
+            --gray: #6c757d;
+            --light-gray: #f8f9fa;
+            --border: #e6e8ea;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+            line-height: 1.6;
+            color: var(--dark);
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+            color: var(--primary);
+        }
+        
+        .pricing-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 30px;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        
+        .pricing-table th, .pricing-table td {
+            padding: 12px 15px;
+            text-align: center;
+            border-bottom: 1px solid var(--border);
+        }
+        
+        .pricing-table th {
+            background-color: var(--primary);
+            font-weight: 600;
+            color: var(--white);
+            position: sticky;
+            top: 0;
+        }
+        
+        .pricing-table th:first-child {
+            text-align: left;
+            padding-left: 20px;
+        }
+        
+        .pricing-table td:first-child {
+            text-align: left;
+            font-weight: 500;
+            padding-left: 20px;
+            color: var(--primary);
+        }
+        
+        .pricing-table tr:nth-child(even) {
+            background-color: var(--light-gray);
+        }
+        
+        .pricing-table tr:hover {
+            background-color: var(--border);
+            transition: background-color 0.3s ease;
+        }
+        
+        .price-row {
+            background-color: var(--primary-light) !important;
+            color: var(--white);
+            font-weight: bold;
+            font-size: 1.2em;
+        }
+        
+        .price-row td {
+            padding: 15px;
+        }
+        
+        .price-row td:first-child {
+            color: var(--white);
+        }
+        
+        .tier-name {
+            font-size: 1.3em;
+            font-weight: 600;
+        }
+        
+        .popular {
+            background-color: var(--accent);
+            color: var(--white);
+            padding: 5px 0;
+            font-size: 0.8em;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .check {
+            color: #27ae60;
+            font-size: 1.2em;
+        }
+        
+        .cross {
+            color: #e74c3c;
+        }
+        
+        .addon-section {
+            background-color: var(--light-gray);
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 30px;
+            border: 1px solid var(--border);
+        }
+        
+        .addon-section h2 {
+            margin-top: 0;
+            color: var(--primary);
+        }
+        
+        .addon-list {
+            list-style: none;
+            padding: 0;
+        }
+        
+        .addon-list li {
+            padding: 10px 0;
+            border-bottom: 1px solid var(--border);
+        }
+        
+        .addon-list li:last-child {
+            border-bottom: none;
+        }
+        
+        .addon-list strong {
+            color: var(--primary);
+        }
+    </style>
+</head>
+<body>
+    <header class="comparison-header">
+        <div class="container">
+            <nav>
+                <a href="../index.html" class="logo">SnapSelect</a>
+                <div class="right-nav">
+                    <a href="../index.html" class="btn btn-outline">Back to Home</a>
+                </div>
+            </nav>
+        </div>
+    </header>
+    <h1>SnapSelect Pricing Comparison</h1>
+    
+    <table class="pricing-table">
+        <thead>
+            <tr>
+                <th>Features</th>
+                <th>Lite</th>
+                <th>Mini</th>
+                <th>Basic</th>
+                <th>Pro</th>
+                <th>Premium</th>
+                <th>Ultimate</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr class="price-row">
+                <td>Price</td>
+                <td>₹79/client</td>
+                <td>₹149/client</td>
+                <td>₹399/client</td>
+                <td>₹799/client</td>
+                <td>₹1,499/client</td>
+                <td>₹2,999/client</td>
+            </tr>
+            <tr>
+                <td>Photo Uploads</td>
+                <td>Up to 100</td>
+                <td>Up to 200</td>
+                <td>Up to 500</td>
+                <td>Up to 800</td>
+                <td>Up to 1,200</td>
+                <td>Up to 2,500</td>
+            </tr>
+            <tr>
+                <td>Total Storage</td>
+                <td>2GB</td>
+                <td>5GB</td>
+                <td>15GB</td>
+                <td>25GB</td>
+                <td>50GB</td>
+                <td>100GB</td>
+            </tr>
+            <tr>
+                <td>Image Quality</td>
+                <td>Up to 5MB per image</td>
+                <td>Up to 8MB per image</td>
+                <td>Up to 12MB per image</td>
+                <td>Up to 15MB per image</td>
+                <td>Up to 20MB per image</td>
+                <td>Up to 25MB per image</td>
+            </tr>
+            <tr>
+                <td>Client Selection Window</td>
+                <td>7 days</td>
+                <td>14 days</td>
+                <td>30 days</td>
+                <td>45 days</td>
+                <td>60 days</td>
+                <td>90 days</td>
+            </tr>
+            <tr>
+                <td>Gallery Customization</td>
+                <td>Simple</td>
+                <td>Basic</td>
+                <td>Custom branding</td>
+                <td>Advanced</td>
+                <td>Complete</td>
+                <td>White-label</td>
+            </tr>
+            <tr>
+                <td>Support</td>
+                <td>Email (72h)</td>
+                <td>Email (48h)</td>
+                <td>Email (48h)</td>
+                <td>Email (24h)</td>
+                <td>Priority email (24h)</td>
+                <td>Priority phone</td>
+            </tr>
+            <tr>
+                <td>Watermarking</td>
+                <td>Basic</td>
+                <td>Basic</td>
+                <td>Customizable</td>
+                <td>Advanced options</td>
+                <td>Advanced options</td>
+                <td>Advanced options</td>
+            </tr>
+            <tr>
+                <td>Mobile-friendly Galleries</td>
+                <td><span class="check">✓</span></td>
+                <td><span class="check">✓</span></td>
+                <td><span class="check">✓</span></td>
+                <td><span class="check">✓</span></td>
+                <td><span class="check">✓</span></td>
+                <td><span class="check">✓</span></td>
+            </tr>
+            <tr>
+                <td>Private Galleries</td>
+                <td>1</td>
+                <td>1</td>
+                <td>1</td>
+                <td>1</td>
+                <td>1</td>
+                <td>2</td>
+            </tr>
+            <tr>
+                <td>Bandwidth</td>
+                <td>250GB</td>
+                <td>500GB</td>
+                <td>1TB</td>
+                <td>2TB</td>
+                <td>3TB</td>
+                <td>5TB</td>
+            </tr>
+            <tr>
+                <td>Client Favorites Feature</td>
+                <td><span class="check">✓</span></td>
+                <td><span class="check">✓</span></td>
+                <td><span class="check">✓</span></td>
+                <td><span class="check">✓</span></td>
+                <td><span class="check">✓</span></td>
+                <td><span class="check">✓</span></td>
+            </tr>
+            <tr>
+                <td>Client Comments</td>
+                <td><span class="cross">✗</span></td>
+                <td><span class="cross">✗</span></td>
+                <td><span class="cross">✗</span></td>
+                <td><span class="check">✓</span></td>
+                <td><span class="check">✓</span></td>
+                <td><span class="check">✓</span></td>
+            </tr>
+            <tr>
+                <td>Analytics Dashboard</td>
+                <td><span class="cross">✗</span></td>
+                <td><span class="cross">✗</span></td>
+                <td>Basic</td>
+                <td>Detailed</td>
+                <td>Detailed</td>
+                <td>Advanced</td>
+            </tr>
+            <tr>
+                <td>Direct Client Downloads</td>
+                <td><span class="cross">✗</span></td>
+                <td><span class="cross">✗</span></td>
+                <td><span class="cross">✗</span></td>
+                <td><span class="cross">✗</span></td>
+                <td><span class="cross">✗</span></td>
+                <td><span class="cross">✗</span></td>
+    
+            </tr>
+            <tr>
+                <td>Recommended For</td>
+                <td>Beginners and occasional photography projects</td>
+                <td>Hobby photographers with regular projects</td>
+                <td>Part-time professionals</td>
+                <td>Growing photography businesses</td>
+                <td>Established professional photographers</td>
+                <td>Studios and high-volume photographers</td>
+            </tr>
+        </tbody>
+    </table>
+    <footer>
+        <div class="container">
+        
+            <div class="footer-bottom">
+                <p class="copyright">&copy; 2025 SnapSelect. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+</body>
+</html>

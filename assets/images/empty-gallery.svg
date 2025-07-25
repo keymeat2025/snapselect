@@ -1,0 +1,29 @@
+<svg width="80" height="80" viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg">
+  <style>
+    .frame { fill: none; stroke: #ccc; stroke-width: 2; }
+    .photo { fill: #f0f0f0; stroke: #ddd; stroke-width: 1; }
+    .mountain { fill: #e0e0e0; }
+    .sun { fill: #ddd; }
+    .photo-stack { fill: #f5f5f5; stroke: #ddd; stroke-width: 1; }
+  </style>
+  
+  <!-- Photo frames stack -->
+  <rect class="photo-stack" x="15" y="22" width="50" height="40" rx="2" ry="2" />
+  <rect class="photo-stack" x="12" y="25" width="50" height="40" rx="2" ry="2" />
+  
+  <!-- Main photo frame -->
+  <rect class="frame" x="10" y="20" width="50" height="40" rx="2" ry="2" />
+  <rect class="photo" x="15" y="25" width="40" height="30" rx="1" ry="1" />
+  
+  <!-- Simple landscape in the photo -->
+  <path class="mountain" d="M15 55 L25 40 L35 50 L45 35 L55 55 Z" />
+  <circle class="sun" cx="25" cy="35" r="5" />
+  
+  <!-- Dashed outline to indicate emptiness -->
+  <rect x="15" y="25" width="40" height="30" rx="1" ry="1" 
+        stroke="#ccc" stroke-width="1.5" stroke-dasharray="4 2" fill="none" />
+  
+  <!-- "+" sign to indicate adding photos -->
+  <line x1="40" y1="35" x2="40" y2="45" stroke="#aaa" stroke-width="2" />
+  <line x1="35" y1="40" x2="45" y2="40" stroke="#aaa" stroke-width="2" />
+</svg>

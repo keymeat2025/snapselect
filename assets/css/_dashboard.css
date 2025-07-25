@@ -1,0 +1,73 @@
+color: #3b82f6;
+        cursor: pointer;
+        margin-right: 15px;
+    }
+    
+    .search-input {
+        width: 200px;
+    }
+    
+    .search-input:focus {
+        width: 220px;
+    }
+    
+    .profile-info {
+        display: none;
+    }
+}
+
+@media (max-width: 768px) {
+    .main-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    
+    .header-actions {
+        margin-top: 16px;
+        width: 100%;
+    }
+    
+    .search-bar {
+        width: 100%;
+        margin-right: 10px;
+    }
+    
+    .search-input, .search-input:focus {
+        width: 100%;
+    }
+    
+    .stats-grid {
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    }
+    
+    .profile-info {
+        display: none;
+    }
+}
+
+@media (max-width: 576px) {
+    .photos-grid, .collections-grid {
+        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    }
+    
+    .stats-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .welcome-text h1 {
+        font-size: 20px;
+    }
+    
+    .profile-info {
+        display: none;
+    }
+    
+    .activity-item {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    
+    .activity-icon {
+        margin-bottom: 10px;
+    }
+}

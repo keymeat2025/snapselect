@@ -1,0 +1,75 @@
+/* Toast Notifications */
+#toastContainer {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 9999;
+}
+
+.toast {
+  display: flex;
+  align-items: center;
+  background-color: white; /* Ensure this is more visible */
+  border-radius: 8px;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.15); /* Slightly stronger shadow */
+  padding: 15px;
+  margin-bottom: 10px;
+  min-width: 280px;
+  max-width: 350px;
+  transition: transform 0.3s, opacity 0.3s;
+  animation: slideIn 0.3s;
+}
+
+/* Success toast */
+.toast-success {
+  background-color: #f0fff0; /* Light green background */
+  border-left: 4px solid #4CAF50;
+}
+.toast-success i {
+  color: #4CAF50;
+}
+
+/* Error toast */
+.toast-error {
+  background-color: #fff0f0; /* Light red background */
+  border-left: 4px solid #F44336;
+}
+.toast-error i {
+  color: #F44336;
+}
+
+/* Warning toast */
+.toast-warning {
+  background-color: #fffaf0; /* Light orange background */
+  border-left: 4px solid #FF9800;
+}
+.toast-warning i {
+  color: #FF9800;
+}
+
+/* Info toast */
+.toast-info {
+  background-color: #f0f8ff; /* Light blue background */
+  border-left: 4px solid #2196F3;
+}
+.toast-info i {
+  color: #2196F3;
+}
+
+/* Payment toast */
+.toast-payment {
+  background-color: #fcf5ff; /* Light purple background */
+  border-left: 4px solid #9C27B0;
+}
+.toast-payment i {
+  color: #9C27B0;
+}
+
+/* Plan toast */
+.toast-plan {
+  background-color: #f0f4ff; /* Light indigo background */
+  border-left: 4px solid #3F51B5;
+}
+.toast-plan i {
+  color: #3F51B5;
+}

@@ -1,0 +1,204 @@
+/* Download Protection and Watermarking CSS */
+
+/* Protected Gallery Styles */
+.protected-gallery .photo-container {
+  position: relative;
+  overflow: hidden;
+}
+
+/* Invisible overlay to prevent selection */
+.selection-prevention {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 5;
+  background: transparent;
+  cursor: default;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+
+/* Photo overlay for protected images */
+.protected-gallery .photo-overlay {
+  opacity: 0.2;
+  background: rgba(0,0,0,0.4);
+}
+
+.protected-gallery .photo-container:hover .photo-overlay {
+  opacity: 0.7;
+}
+
+/* Download notice banner */
+.download-notice {
+  background-color: #f8f9fa;
+  border-left: 4px solid #4A90E2;
+  padding: 12px 15px;
+  margin-bottom: 20px;
+  border-radius: 4px;
+  font-size: 14px;
+  color: #495057;
+}
+
+.download-notice p {
+  margin: 0;
+}
+
+/* Purchase info modal */
+.purchase-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0,0,0,0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1100;
+}
+
+.purchase-modal-content {
+  background: white;
+  padding: 30px;
+  border-radius: 8px;
+  max-width: 400px;
+  text-align: center;
+}
+
+.purchase-modal-content h3 {
+  margin-top: 0;
+  margin-bottom: 15px;
+  color: #333;
+}
+
+.purchase-modal-content p {
+  margin-bottom: 20px;
+  color: #666;
+}
+
+/* Watermark overlay */
+.watermark-overlay {
+  position: absolute;
+  bottom: 10px;
+  right: 10px;
+  color: rgba(255, 255, 255, 0.7);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+  font-size: 12px;
+  padding: 4px 8px;
+  background-color: rgba(0, 0, 0, 0.3);
+  border-radius: 3px;
+  pointer-events: none;
+}
+
+/* Diagonal watermark banner - more visible */
+.watermark-banner {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 150%;
+  transform: rotate(45deg) translateY(-50%);
+  background-color: rgba(74, 144, 226, 0.2);
+  color: rgba(255, 255, 255, 0.9);
+  text-align: center;
+  padding: 5px 0;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  pointer-events: none;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+  z-index: 3;
+}
+
+/* Expiry message styling */
+.expiry-message {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 300px;
+  padding: 30px;
+}
+
+.expiry-content {
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  padding: 30px;
+  text-align: center;
+  max-width: 500px;
+}
+
+.expiry-content h2 {
+  color: #dc3545;
+  margin-bottom: 15px;
+}
+
+.expiry-content p {
+  color: #666;
+  margin-bottom: 10px;
+}
+
+/* Client Selection Buttons */
+.selection-button {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background-color: rgba(255, 255, 255, 0.8);
+  border: none;
+  border-radius: 50%;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 10;
+  transition: all 0.2s;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+}
+
+.selection-button:hover {
+  background-color: white;
+  box-shadow: 0 3px 8px rgba(0,0,0,0.3);
+}
+
+.selection-button.selected {
+  background-color: #e74c3c;
+  color: white;
+}
+
+/* Selection Counter */
+.selection-counter {
+  display: inline-block;
+  background-color: #f8f9fa;
+  padding: 8px 12px;
+  border-radius: 4px;
+  font-size: 14px;
+  color: #495057;
+  margin-right: 10px;
+}
+
+.finish-selections-btn {
+  margin-left: auto;
+}
+
+/* For mobile devices */
+@media (max-width: 768px) {
+  .watermark-banner {
+    font-size: 10px;
+    letter-spacing: 1px;
+  }
+  
+  .download-notice {
+    font-size: 12px;
+    padding: 10px;
+  }
+  
+  .purchase-modal-content {
+    width: 90%;
+    padding: 20px;
+  }
+}

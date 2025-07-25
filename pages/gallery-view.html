@@ -1,0 +1,1420 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SnapSelect - Gallery View</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="../assets/css/variables.css">
+    <link rel="stylesheet" href="../assets/css/main.css">
+    <link rel="stylesheet" href="../assets/css/dashboard.css">
+    <link rel="stylesheet" href="../assets/css/responsive.css">
+    <link rel="stylesheet" href="../assets/css/user-menu.css">
+    <link rel="stylesheet" href="../assets/css/animations.css">
+    <link rel="stylesheet" href="../assets/css/features.css">
+    <link rel="stylesheet" href="../assets/css/payment.css">
+    <link rel="stylesheet" href="../assets/css/gallery-view.css">
+    <!-- In your gallery-view.html, add: -->
+    <link rel="stylesheet" href="../assets/css/gallery-sharing.css">
+   
+    <style>
+        /* Ensure toast container has proper positioning */
+        #toastContainer {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 9999;
+        }
+        
+        /* Gallery-specific styles */
+
+        .gallery-main .container {
+            padding-top: 80px;
+        }
+
+        /* Add this to your existing <style> section */
+        .gallery-main .container {
+            padding-top: 80px;
+        }
+        
+        /* Ensure toast container has proper positioning */
+        #toastContainer {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 9999;
+        }
+/* ... rest of your existing styles ... */
+        .gallery-info-section {
+            padding: 20px;
+            background-color: var(--background-light);
+            border-bottom: 1px solid var(--border-color);
+        }
+        
+        .gallery-info-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+        
+        .gallery-details {
+            flex: 1;
+        }
+        
+        .gallery-meta {
+            margin: 10px 0;
+            color: var(--text-secondary);
+        }
+        
+        .gallery-meta span {
+            margin-right: 15px;
+        }
+        
+        .gallery-description {
+            margin-top: 10px;
+            color: var(--text-secondary);
+            max-width: 800px;
+        }
+        
+        .gallery-actions {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .gallery-content-section {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .gallery-filters {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+        
+        .filter-dropdown {
+            padding: 8px 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            background-color: white;
+        }
+        
+        .view-toggle {
+            display: flex;
+            gap: 5px;
+        }
+        
+        .view-btn {
+            width: 36px;
+            height: 36px;
+            border: 1px solid var(--border-color);
+            background-color: white;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+        }
+        
+        .view-btn.active {
+            background-color: var(--primary-color);
+            color: white;
+            border-color: var(--primary-color);
+        }
+        
+        .photos-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 20px;
+        }
+        
+        .photo-item {
+            background-color: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            transition: transform 0.2s;
+        }
+        
+        .photo-item:hover {
+            transform: translateY(-5px);
+        }
+        
+        .photo-container {
+            height: 200px;
+            width: 100%;
+            background-size: cover;
+            background-position: center;
+            position: relative;
+            cursor: pointer;
+        }
+        
+        .photo-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            opacity: 0;
+            transition: opacity 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .photo-container:hover .photo-overlay {
+            opacity: 1;
+        }
+        
+        .photo-actions {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .photo-action-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background-color: white;
+            color: var(--text-primary);
+            border: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        
+        .photo-action-btn:hover {
+            background-color: var(--primary-color);
+            color: white;
+        }
+        
+        .photo-details {
+            padding: 12px;
+        }
+        
+        .photo-name {
+            font-weight: 500;
+            margin-bottom: 5px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        .photo-date {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+        
+        /* List view */
+        .photos-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        
+        .photo-list-item {
+            display: flex;
+            align-items: center;
+            padding: 12px;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        
+        .photo-list-thumbnail {
+            width: 80px;
+            height: 80px;
+            background-size: cover;
+            background-position: center;
+            border-radius: 4px;
+            margin-right: 15px;
+            cursor: pointer;
+        }
+        
+        .photo-list-details {
+            flex: 1;
+        }
+        
+        .photo-list-name {
+            font-weight: 500;
+            margin-bottom: 5px;
+        }
+        
+        .photo-list-meta {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+        
+        .photo-list-date, .photo-list-size {
+            margin-right: 15px;
+        }
+        
+        .photo-list-actions {
+            display: flex;
+            gap: 10px;
+        }
+        
+        /* Photo view modal */
+        .photo-view-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0,0,0,0.9);
+            z-index: 1000;
+        }
+        
+        .photo-view-container {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+        
+        .photo-view-container .close-modal {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(0,0,0,0.5);
+            color: white;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            font-size: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: none;
+            cursor: pointer;
+            z-index: 1001;
+        }
+        
+        .photo-view-content {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 60px 20px;
+        }
+        
+        .photo-view-content img {
+            max-width: 100%;
+            max-height: calc(100vh - 200px);
+            object-fit: contain;
+            box-shadow: 0 0 30px rgba(0,0,0,0.5);
+        }
+        
+        .photo-view-info {
+            padding: 15px 20px;
+            background-color: rgba(0,0,0,0.7);
+            color: white;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .photo-view-name {
+            font-weight: 500;
+            font-size: 18px;
+        }
+        
+        .photo-view-meta {
+            font-size: 14px;
+            opacity: 0.8;
+        }
+        
+        .photo-view-meta span {
+            margin-left: 15px;
+        }
+        
+        .photo-view-actions {
+            padding: 15px 20px;
+            background-color: #000;
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+        }
+        
+        /* Upload related styles */
+        .upload-area {
+            border: 2px dashed var(--border-color);
+            padding: 40px;
+            text-align: center;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        
+        .upload-area:hover, .upload-area.drag-over {
+            background-color: var(--background-light);
+            border-color: var(--primary-color);
+        }
+        
+        .upload-instructions i {
+            font-size: 48px;
+            color: var(--text-secondary);
+            margin-bottom: 15px;
+        }
+        
+        .upload-limits {
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-top: 5px;
+        }
+        
+        .upload-progress-container {
+            display: none;
+            margin-top: 20px;
+        }
+        
+        .upload-progress-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+        
+        .upload-progress-bar-container {
+            height: 8px;
+            background-color: var(--background-light);
+            border-radius: 4px;
+            overflow: hidden;
+            margin-bottom: 15px;
+        }
+        
+        .upload-progress-bar {
+            height: 100%;
+            background-color: var(--primary-color);
+            width: 0%;
+            transition: width 0.3s;
+        }
+        
+        .upload-file-list {
+            max-height: 300px;
+            overflow-y: auto;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+        }
+        
+        .upload-file-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 12px 15px;
+            border-bottom: 1px solid var(--border-color);
+        }
+        
+        .upload-file-item:last-child {
+            border-bottom: none;
+        }
+        
+        /* Owner controls styles */
+        .owner-controls {
+            margin-bottom: 20px;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+        }
+        
+        .owner-action-btn {
+            margin-right: 10px;
+        }
+        
+        .sync-progress-container {
+            margin-top: 15px;
+        }
+        
+        .progress {
+            height: 8px;
+            background-color: var(--background-light);
+            border-radius: 4px;
+            overflow: hidden;
+            margin-bottom: 8px;
+        }
+        
+        .progress-bar {
+            height: 100%;
+            background-color: var(--primary-color);
+            transition: width 0.3s;
+        }
+        
+        .sync-progress-text {
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+        
+        .loading-indicator {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+        
+        .spinner {
+            border: 3px solid rgba(0,0,0,0.1);
+            border-top: 3px solid var(--primary-color);
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+            margin-bottom: 10px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .loading-text {
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+        
+        .load-more-container {
+            text-align: center;
+            margin: 20px 0;
+        }
+        
+        .filter-group {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .sync-results {
+            margin-top: 15px;
+            padding: 10px;
+            background-color: #f5f5f5;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        /* Add this to the <style> section in gallery-view.html */
+
+        /* Tooltip styling for revoke button */
+        .tooltip-container {
+          position: relative;
+          display: inline-block;
+        }
+        
+        .tooltip-text {
+          visibility: hidden;
+          width: 300px;
+          background-color: rgba(0, 0, 0, 0.8);
+          color: #fff;
+          text-align: center;
+          border-radius: 6px;
+          padding: 10px;
+          
+          /* Position the tooltip */
+          position: absolute;
+          z-index: 1000;
+          bottom: 125%;
+          left: 50%;
+          margin-left: -150px;
+          
+          /* Fade in animation */
+          opacity: 0;
+          transition: opacity 0.3s;
+        }
+        
+        /* Arrow for tooltip */
+        .tooltip-text::after {
+          content: "";
+          position: absolute;
+          top: 100%;
+          left: 50%;
+          margin-left: -5px;
+          border-width: 5px;
+          border-style: solid;
+          border-color: rgba(0, 0, 0, 0.8) transparent transparent transparent;
+        }
+        
+        /* Show the tooltip when hovering over the container */
+        .tooltip-container:hover .tooltip-text {
+          visibility: visible;
+          opacity: 1;
+        }
+        
+        /* Warning style for tooltip */
+        .tooltip-warning {
+          border-left: 4px solid #ff9800;
+        }
+        
+        .tooltip-warning i {
+          color: #ff9800;
+          margin-right: 5px;
+        }
+
+
+
+                /* Revoke button states - ADD THIS */
+        #revokeAccessBtn {
+          transition: all 0.3s ease;
+        }
+        
+        /* Style for when 2 attempts are left */
+        .revoke-2 {
+          background-color: #f44336 !important; /* Red */
+          color: white !important;
+        }
+        
+        /* Style for when 1 attempt is left */
+        .revoke-1 {
+          background-color: #ff9800 !important; /* Orange */
+          color: white !important;
+        }
+        
+        /* Style for when attempts are expired */
+        .revoke-expired {
+          background-color: #9e9e9e !important; /* Gray */
+          cursor: not-allowed !important;
+          color: white !important;
+        }
+        
+        /* Shake animation for the last attempt */
+        @keyframes shake {
+          0%, 100% { transform: translateX(0); }
+          10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+          20%, 40%, 60%, 80% { transform: translateX(5px); }
+        }
+        
+        .revoke-1:hover {
+          animation: shake 0.5s;
+        }
+
+
+
+        /* NOTIFICATION SYSTEM CSS - Add these missing styles */
+        .notification-container {
+            position: relative;
+            margin-right: 1rem;
+        }
+        
+        .notification-btn {
+            background: none;
+            border: none;
+            color: var(--text-color, #1f2937);
+            font-size: 1.25rem;
+            cursor: pointer;
+            position: relative;
+            display: flex;
+            align-items: center;
+            padding: 8px;
+            border-radius: 50%;
+            transition: all 0.25s ease;
+        }
+        
+        .notification-btn:hover {
+            background-color: rgba(59, 130, 246, 0.08);
+            color: #3b82f6;
+        }
+        
+        .notification-badge {
+            position: absolute;
+            top: -6px;
+            right: -6px;
+            background-color: #ef4444;
+            color: white;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            font-size: 0.75rem;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-weight: 600;
+            box-shadow: 0 2px 5px rgba(239, 68, 68, 0.4);
+            min-width: 20px;
+        }
+        
+        .notification-dropdown {
+            position: absolute;
+            top: 100%;
+            right: -120px;
+            width: 360px;
+            background-color: white;
+            border-radius: 16px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+            display: none;
+            z-index: 100;
+            max-height: 420px;
+            overflow-y: auto;
+            border: 1px solid rgba(59, 130, 246, 0.15);
+            animation: fadeInDown 0.3s ease forwards;
+        }
+        
+        .notification-dropdown.show {
+            display: block;
+        }
+        
+        .notification-header {
+            padding: 1.25rem;
+            border-bottom: 1px solid #e5e7eb;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .notification-header h3 {
+            margin: 0;
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+        
+        .mark-all-read {
+            background: none;
+            border: none;
+            color: #3b82f6;
+            font-size: 0.9rem;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.25s ease;
+            padding: 4px 8px;
+            border-radius: 6px;
+        }
+        
+        .mark-all-read:hover {
+            background-color: rgba(59, 130, 246, 0.1);
+        }
+        
+        .notification-list {
+            padding: 0.5rem 0;
+        }
+        
+        .notification-item {
+            padding: 1rem 1.25rem;
+            border-bottom: 1px solid #e5e7eb;
+            transition: all 0.25s ease;
+            position: relative;
+            cursor: pointer;
+        }
+        
+        .notification-item:last-child {
+            border-bottom: none;
+        }
+        
+        .notification-item:hover {
+            background-color: rgba(59, 130, 246, 0.05);
+        }
+        
+        .notification-item.unread {
+            background-color: rgba(59, 130, 246, 0.08);
+        }
+        
+        .notification-item.unread:before {
+            content: "";
+            display: block;
+            width: 8px;
+            height: 8px;
+            background-color: #3b82f6;
+            border-radius: 50%;
+            position: absolute;
+            left: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+        
+        .notification-content {
+            margin-left: 24px;
+        }
+        
+        .notification-title {
+            font-weight: 600;
+            color: #111827;
+            margin-bottom: 0.4rem;
+            line-height: 1.4;
+        }
+        
+        .notification-time {
+            font-size: 0.8rem;
+            color: #6b7280;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        
+        .empty-notification {
+            padding: 2rem 1.5rem;
+            text-align: center;
+            color: #6b7280;
+            font-size: 1rem;
+        }
+        
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        /* Mobile responsive */
+        @media (max-width: 768px) {
+            .notification-dropdown {
+                width: 300px;
+                right: -140px;
+            }
+        }
+
+        .nav-links a[onclick] {
+            transition: none !important;
+        }
+        
+        .nav-links a[onclick]:hover {
+            color: var(--text-muted) !important;
+            transform: none;
+        }
+    </style>
+</head>
+<body>
+    <!-- Toast Container for Notifications -->
+    <div id="toastContainer" class="toast-container"></div>
+
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="loading-overlay">
+        <div class="loading-spinner"></div>
+        <div class="loading-text">Loading gallery...</div>
+    </div>
+
+    <header>
+        <div class="container">
+            <nav>
+                <a href="../index.html" class="logo">
+                    <img src="../assets/images/snapselect-logo.jpeg" alt="SnapSelect" class="logo-image">
+                    <div class="logo-text">SnapSelect</div>
+                </a>
+                <ul class="nav-links">
+                    <li><a href="photographer-dashboard.html">Dashboard</a></li>
+                    <li><a href="client-management.html">Clients</a></li>
+                    <li><a href="#" onclick="showComingSoonAlert()" style="color: var(--text-muted); cursor: default;">Analytics (Coming Soon)</a></li>
+                </ul>
+                <div class="right-nav">
+                     <div class="notification-container">
+                        <button id="notificationBtn" class="notification-btn">
+                            <i class="fas fa-bell"></i>
+                            <span id="notificationCount" class="notification-badge">0</span>
+                        </button>
+                        
+                        <div id="notificationDropdown" class="notification-dropdown">
+                            <div class="notification-header">
+                                <h3>Notifications</h3>
+                                <button id="markAllReadBtn" class="mark-all-read">Mark all as read</button>
+                            </div>
+                            <div id="notificationList" class="notification-list">
+                                <!-- Notifications will be loaded here -->
+                            </div>
+                        </div>
+                    </div>
+                    <div class="auth-user" id="userNav">
+                        <div class="user-menu">
+                            <button class="user-menu-btn" id="userMenuBtn">
+                                <div class="avatar-placeholder" id="avatarPlaceholder">U</div>
+                                <span class="user-name" id="userName">User</span>
+                                <i class="fas fa-chevron-down"></i>
+                            </button>
+                            <div class="user-dropdown" id="userDropdown">
+                                <a href="photographer-dashboard.html">Dashboard</a>
+                                <a href="client-management.html">Clients</a>
+                                <a href="#" onclick="showComingSoonAlert()" style="color: var(--text-muted); cursor: default;">Analytics (Coming Soon)</a>
+                                <a href="account-settings.html">Account Settings</a>
+                                <a href="#" id="logoutBtn">Logout</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="hamburger">
+                    <i class="fas fa-bars"></i>
+                </div>
+              
+
+            </nav>
+        </div>
+    </header>
+
+    <main class="gallery-main">
+        <div class="container">
+            <!-- Back to dashboard link -->
+            <div class="back-link-container">
+                <a href="photographer-dashboard.html" class="back-link">
+                    <i class="fas fa-arrow-left"></i> Back to Dashboard
+                </a>
+            </div>
+            
+            <!-- Gallery information section -->
+            <section class="gallery-info-section">
+                <div class="gallery-info-container">
+                    <div class="gallery-details">
+                        <h1 id="galleryName">Loading gallery details...</h1>
+                        <div class="gallery-meta">
+                            <span class="client-name" id="clientName">Client: Loading...</span>
+                            <span class="photo-count" id="photoCount">Photos: 0</span>
+                        </div>
+                        <p id="galleryDescription" class="gallery-description"></p>
+                    </div>
+                    <div class="gallery-actions">
+                        <button id="uploadPhotosBtn" class="btn primary">
+                            <i class="fas fa-upload"></i> Upload Photos
+                        </button>
+                        <button id="shareGalleryBtn" class="btn secondary">
+                            <i class="fas fa-share-alt"></i> Share Gallery
+                        </button>
+                        <button id="gallerySettingsBtn" class="btn outline">
+                            <i class="fas fa-cog"></i> Settings
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Gallery content section -->
+            <section class="gallery-content-section">
+                <div class="gallery-filters">
+                    <div class="filter-group">
+                        <select id="sortFilter" class="filter-dropdown">
+                            <option value="newest">Newest First</option>
+                            <option value="oldest">Oldest First</option>
+                            <option value="name">Name (A-Z)</option>
+                        </select>
+                        <select id="statusFilter" class="filter-dropdown" title="Filter photos by status">
+                            <option value="active" selected>Active Photos</option>
+                            <option value="deleted">Deleted Photos</option>
+                            <option value="processing">Processing Photos</option>
+                        </select>
+                    </div>
+                    <div class="view-toggle">
+                        <button id="gridViewBtn" class="view-btn active" title="Grid View">
+                            <i class="fas fa-th"></i>
+                        </button>
+                        <button id="listViewBtn" class="view-btn" title="List View">
+                            <i class="fas fa-list"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Owner controls panel -->
+                <div class="owner-controls" id="ownerControlsPanel" style="display: none;">
+                    <button id="syncPhotosBtn" class="btn outline-btn owner-action-btn">
+                        <i class="fas fa-sync"></i> Sync with Storage
+                    </button>
+                    <div class="sync-progress-container" id="syncProgressContainer" style="display: none;">
+                        <div class="progress">
+                            <div id="syncProgressBar" class="progress-bar" role="progressbar" style="width: 0%;" 
+                                aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+                        </div>
+                        <div id="syncProgressText" class="sync-progress-text">0/0 files processed</div>
+                    </div>
+                </div>
+
+                <!-- Photos grid container -->
+                <div id="photosContainer" class="photos-grid">
+                    <!-- Photos will be loaded here -->
+                    <div id="emptyStateContainer" class="empty-state">
+                        <i class="fas fa-images empty-icon"></i>
+                        <h3>No photos yet</h3>
+                        <p>Upload photos to get started with this gallery</p>
+                        <button id="emptyStateUploadBtn" class="btn primary">Upload Photos</button>
+                    </div>
+                </div>
+                
+                <!-- Loading indicator and load more button -->
+                <div id="photosLoadingIndicator" class="loading-indicator" style="display: none;">
+                    <div class="spinner"></div>
+                    <div class="loading-text">Loading more photos...</div>
+                </div>
+                <div id="loadMoreContainer" class="load-more-container" style="display: none;">
+                    <button id="loadMoreBtn" class="btn outline-btn load-more-btn">
+                        <i class="fas fa-plus"></i> Load More Photos
+                    </button>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <footer class="dashboard-footer">
+        <div class="container">
+            <div class="footer-bottom">
+                <p class="copyright">&copy; 2025 SnapSelect. All rights reserved.</p>
+                <div class="footer-links">
+                    <a href="#">Privacy Policy</a>
+                    <a href="#">Terms of Service</a>
+                    <a href="#" id="footerHelpLink">Help Center</a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Upload photos modal -->
+
+    <div id="uploadPhotosModal" class="modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2>Upload Photos</h2>
+          <button class="close-modal">&times;</button>
+        </div>
+        
+        <!-- Upload steps indicator (new) -->
+        <div class="upload-steps">
+          <div class="upload-step active">1. Select Files *Note: Upload your photos in smaller groups of 100 for faster completion.. </div>
+          <div class="upload-step">2. Upload</div>
+        </div>
+
+        <!-- Total progress tracking -->
+        <div id="uploadProgressContainer" class="upload-progress-container" style="display: none;">
+          <div class="upload-total-progress">
+            <div class="upload-progress-header">
+              <span>Total Progress</span>
+              <span id="totalProgressText">0% Complete</span>
+            </div>
+            <div class="upload-total-progress-bar-container">
+              <div class="upload-total-progress-bar" id="totalProgressBar"></div>
+            </div>
+          </div>
+        </div>
+
+
+          
+        <div class="modal-body">
+          <!-- Step 1: Select Files -->
+          <div id="uploadStep1">
+            <div class="upload-area" id="uploadArea">
+              <div class="upload-instructions">
+                <i class="fas fa-cloud-upload-alt"></i>
+                <p>Drag photos here or click to browse</p>
+                <p class="upload-limits">Max file size: <span id="maxFileSize">10</span>MB per photo</p>
+              </div>
+              <input type="file" id="photoFileInput" multiple accept="image/*" style="display: none;">
+            </div>
+          </div>
+          
+          <!-- Step 2: Preview and Upload (new) -->
+          <div id="uploadStep2" style="display: none;">
+            <div id="uploadStatusText" class="upload-status-text">Ready to upload 0 files</div>
+            
+            <!-- File preview list -->
+            <div id="uploadPreview" class="upload-files-preview"></div>
+            
+            <!-- Rejection summary -->
+            <div id="rejectionSummary" class="rejection-summary" style="display: none;"></div>
+            
+        
+          </div>
+        </div>
+        
+        <div class="modal-footer">
+          <button id="backToSelectBtn" style="display: none;" class="btn outline-btn">Back to Select Files</button>
+          <button id="cancelUploadBtn" class="btn outline-btn">Cancel</button>
+          <button id="pauseUploadBtn" style="display: none;" class="btn secondary-btn"><i class="fas fa-pause"></i> Pause Upload</button>
+          <button id="startUploadBtn" class="btn primary-btn">Start Upload</button>
+        </div>
+      </div>
+    </div>    
+
+    <!-- Storage sync modal -->
+    <div id="syncPhotosModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Sync with Storage</h2>
+                <button class="close-modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="sync-info">
+                    <p>This will scan your Firebase Storage for this gallery and add any missing photos to Firestore.</p>
+                    <p>Note: Only photos within your plan limits will be added.</p>
+                </div>
+                <div class="sync-progress-details">
+                    <h3>Progress</h3>
+                    <div class="progress">
+                        <div id="syncModalProgressBar" class="progress-bar" role="progressbar" style="width: 0%;" 
+                            aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+                    </div>
+                    <div id="syncModalProgressText" class="sync-progress-text">0/0 files processed</div>
+                    <div id="syncResults" class="sync-results"></div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button id="closeSyncModalBtn" class="btn outline-btn">Close</button>
+                <button id="startSyncBtn" class="btn primary-btn">Start Sync</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Gallery Share Modal - Include this in your gallery-view.html page -->
+    <div id="shareGalleryModal" class="modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2>Share Gallery</h2>
+          <button class="close-modal">&times;</button>
+        </div>
+        <div class="modal-body">
+          <form id="shareSettingsForm">
+            <!-- Share Link Section (shown after sharing) -->
+            <div id="shareLinkSection" class="share-link-section hidden">
+              <h3>Share Link</h3>
+              <div class="share-link-container">
+                <input type="text" id="shareUrlDisplay" readonly class="share-url-input">
+              </div>
+              <div class="share-instructions">
+                Share this link with your client to give them access to the gallery.
+              </div>
+            </div>
+            
+            <!-- Share Settings Section -->
+            <div class="share-settings-section">
+              <h3>Sharing Settings</h3>
+              
+              <!-- Password Protection -->
+              <div class="form-group">
+                <div class="toggle-container">
+                  <label class="toggle-label">Password Protection</label>
+                  <label class="switch">
+                    <input type="checkbox" id="passwordProtection">
+                    <span class="slider round"></span>
+                  </label>
+                </div>
+                <div id="passwordSection" class="hidden">
+                  <input type="password" id="password" placeholder="Enter password" class="form-control">
+                  <p class="form-hint">Clients will need to enter this password to access the gallery.</p>
+                </div>
+              </div>
+              
+              <!-- Expiry Date -->
+              <div class="form-group">
+                <label for="expiryDate">Link Expiry Date (Optional)</label>
+                <input type="date" id="expiryDate" class="form-control">
+                <p class="form-hint">The gallery link will expire on this date. Leave blank for no expiration.</p>
+              </div>
+              
+              <!-- Photo Selection Limit -->
+              <div class="form-group">
+                <label for="maxSelections">Maximum Photo Selections</label>
+                <input type="number" id="maxSelections" min="0" class="form-control">
+                <p class="form-hint">Set the maximum number of photos the client can select. Enter 0 for unlimited selections.</p>
+              </div>
+              
+              <!-- Require Approval -->
+            <!--
+              <div class="form-group">
+                <div class="toggle-container">
+                  <label class="toggle-label">Require Approval for Selections</label>
+                  <label class="switch">
+                    <input type="checkbox" id="requireApproval">
+                    <span class="slider round"></span>
+                  </label>
+                </div>
+                <p class="form-hint">Clients must submit their selections for your approval before they're finalized.</p>
+              </div>
+              -->
+                
+              <!-- Prevent Download -->
+              <div class="form-group">
+                <div class="toggle-container">
+                  <label class="toggle-label">Prevent Download</label>
+                  <label class="switch">
+                    <input type="checkbox" id="preventDownload">
+                    <span class="slider round"></span>
+                  </label>
+                </div>
+                <p class="form-hint">Limit the ability for clients to download photos directly.</p>
+              </div>
+              
+              <!-- Watermark -->
+              <div class="form-group">
+                <div class="toggle-container">
+                  <label class="toggle-label">Enable Watermark</label>
+                  <label class="switch">
+                    <input type="checkbox" id="watermarkEnabled">
+                    <span class="slider round"></span>
+                  </label>
+                </div>
+                <p class="form-hint">Apply your watermark to all shared photos.</p>
+              </div>
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <div class="modal-footer-left">
+            
+
+              <!-- Replace the existing tooltip HTML with this: -->
+            <div class="tooltip-container">
+              <button type="button" id="revokeAccessBtn" class="btn danger-btn hidden revoke-2">Revoke 2</button>
+              <div class="tooltip-text tooltip-warning">
+                <i class="fas fa-exclamation-triangle"></i> Warning: You have 2 revoke attempts. First click will reduce attempts to 1. Second click will permanently revoke access and cannot be undone.
+              </div>
+            </div>
+          </div>
+          <div class="modal-footer-right">
+            <button type="button" class="btn outline-btn close-modal">Cancel</button>
+            <button type="submit" form="shareSettingsForm" id="shareGallerySubmitBtn" class="btn primary-btn">Share Gallery</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- Scripts -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-functions-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-storage-compat.js"></script>
+    <script src="../assets/js/firebase-config.js"></script>
+    <script src="../assets/js/firebase-auth.js"></script>
+    <script src="../assets/js/firebase-db.js"></script>
+    <script src="../assets/js/notification-system.js"></script>
+    <script src="../assets/js/header-auth.js"></script>
+    
+    //<script src="../assets/js/gallery-view.js"></script>
+    //<script src="../assets/js/gallery-sharing.js"></script>
+    <script src="../assets/js/gallery-share-modal.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize Firebase region
+            if (firebase && firebase.functions) {
+                firebase.app().functions("asia-south1");
+            }
+            
+            // Modal close buttons
+            document.querySelectorAll('.close-modal').forEach(button => {
+                button.addEventListener('click', function() {
+                    const modal = this.closest('.modal');
+                    if (modal) {
+                        modal.style.display = 'none';
+                    }
+                });
+            });
+            
+            // Click outside modal to close
+            window.addEventListener('click', function(event) {
+                if (event.target.classList.contains('modal')) {
+                    event.target.style.display = 'none';
+                }
+            });
+            
+            // Upload photos button
+            const uploadPhotosBtn = document.getElementById('uploadPhotosBtn');
+            if (uploadPhotosBtn) {
+                uploadPhotosBtn.addEventListener('click', function() {
+                    const uploadPhotosModal = document.getElementById('uploadPhotosModal');
+                    if (uploadPhotosModal) {
+                        uploadPhotosModal.style.display = 'block';
+                    }
+                });
+            }
+            
+            // Empty state upload button
+            const emptyStateUploadBtn = document.getElementById('emptyStateUploadBtn');
+            if (emptyStateUploadBtn) {
+                emptyStateUploadBtn.addEventListener('click', function() {
+                    const uploadPhotosModal = document.getElementById('uploadPhotosModal');
+                    if (uploadPhotosModal) {
+                        uploadPhotosModal.style.display = 'block';
+                    }
+                });
+            }
+            
+            // View toggle buttons
+            const gridViewBtn = document.getElementById('gridViewBtn');
+            const listViewBtn = document.getElementById('listViewBtn');
+            const photosContainer = document.getElementById('photosContainer');
+            
+            if (gridViewBtn && listViewBtn && photosContainer) {
+                gridViewBtn.addEventListener('click', function() {
+                    photosContainer.classList.add('photos-grid');
+                    photosContainer.classList.remove('photos-list');
+                    gridViewBtn.classList.add('active');
+                    listViewBtn.classList.remove('active');
+                });
+                
+                listViewBtn.addEventListener('click', function() {
+                    photosContainer.classList.remove('photos-grid');
+                    photosContainer.classList.add('photos-list');
+                    gridViewBtn.classList.remove('active');
+                    listViewBtn.classList.add('active');
+                });
+            }
+            
+            // Sort filter
+            const sortFilter = document.getElementById('sortFilter');
+            if (sortFilter) {
+                sortFilter.addEventListener('change', function() {
+                    // This will be handled by gallery-view.js
+                    // But we're connecting the event listener here
+                    if (window.galleryView && window.galleryView.handleSortChange) {
+                        window.galleryView.handleSortChange(this.value);
+                    }
+                });
+            }
+            
+            // Upload area click handler
+            const uploadArea = document.getElementById('uploadArea');
+            const photoFileInput = document.getElementById('photoFileInput');
+            
+           
+                // File input change handler
+                photoFileInput.addEventListener('change', function(e) {
+                    if (window.galleryView && window.galleryView.handleFileSelect) {
+                        window.galleryView.handleFileSelect(e);
+                    }
+                });
+                
+                // Drag and drop handlers
+                uploadArea.addEventListener('dragover', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    this.classList.add('drag-over');
+                });
+                
+                uploadArea.addEventListener('dragleave', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    this.classList.remove('drag-over');
+                });
+                
+                uploadArea.addEventListener('drop', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    this.classList.remove('drag-over');
+                    
+                    if (window.galleryView && window.galleryView.handleFileDrop) {
+                        window.galleryView.handleFileDrop(e);
+                    }
+                });
+           // }
+            
+            // Upload buttons
+            const startUploadBtn = document.getElementById('startUploadBtn');
+            const cancelUploadBtn = document.getElementById('cancelUploadBtn');
+            
+            if (startUploadBtn) {
+                startUploadBtn.addEventListener('click', function() {
+                    if (window.galleryView && window.galleryView.startPhotoUpload) {
+                        window.galleryView.startPhotoUpload();
+                    }
+                });
+            }
+            
+            if (cancelUploadBtn) {
+                cancelUploadBtn.addEventListener('click', function() {
+                    const uploadPhotosModal = document.getElementById('uploadPhotosModal');
+                    if (uploadPhotosModal) {
+                        uploadPhotosModal.style.display = 'none';
+                    }
+                });
+            }
+            
+            // Share gallery button
+    
+           // Share gallery button
+            const shareGalleryBtn = document.getElementById('shareGalleryBtn');
+            if (shareGalleryBtn) {
+                shareGalleryBtn.addEventListener('click', function() {
+                    if (window.GalleryShareModal && galleryData) {
+                        window.GalleryShareModal.open(galleryData);
+                    } else if (window.galleryView && window.galleryView.showShareGalleryModal) {
+                        window.galleryView.showShareGalleryModal();
+                    } else {
+                        // Include gallery-share-modal.html and its JavaScript files first
+                        console.error('Gallery sharing module not loaded. Make sure to include the necessary files.');
+                        alert('Please make sure the gallery sharing module is properly loaded.');
+                    }
+                });
+            }
+            
+            // Settings button
+            const gallerySettingsBtn = document.getElementById('gallerySettingsBtn');
+            if (gallerySettingsBtn) {
+                gallerySettingsBtn.addEventListener('click', function() {
+                    if (window.galleryView && window.galleryView.showGallerySettingsModal) {
+                        window.galleryView.showGallerySettingsModal();
+                    } else {
+                        alert('Gallery settings functionality is coming soon!');
+                    }
+                });
+            }
+        });
+    </script>
+
+
+
+    <script>
+        function showComingSoonAlert() {
+            alert('Analytics feature is coming up in the next release! Stay tuned for powerful insights into your photo galleries and client engagement.');
+        }
+    </script>
+    
+    <script>
+      // Patch for the Share Gallery button to ensure it works with the new standalone approach
+      document.addEventListener('DOMContentLoaded', function() {
+        const shareGalleryBtn = document.getElementById('shareGalleryBtn');
+        
+        if (shareGalleryBtn) {
+          shareGalleryBtn.addEventListener('click', function() {
+            // Check if galleryData is available in the global scope
+            if (window.galleryData) {
+              // Use GalleryShareModal if available
+              if (window.GalleryShareModal) {
+                window.GalleryShareModal.open(window.galleryData);
+              } else {
+                console.error('Gallery Share Modal not loaded');
+                alert('Gallery sharing module is not loaded properly.');
+              }
+            } else {
+              // If galleryData is not available, try to get gallery ID from URL
+              const urlParams = new URLSearchParams(window.location.search);
+              const galleryId = urlParams.get('id');
+              
+              if (galleryId) {
+                // Get gallery data from Firestore
+                try {
+                  firebase.firestore().collection('galleries').doc(galleryId).get()
+                    .then(doc => {
+                      if (doc.exists) {
+                        // Create gallery data object
+                        const galleryData = {
+                          id: doc.id,
+                          ...doc.data()
+                        };
+                        
+                        // Store in global scope for future use
+                        window.galleryData = galleryData;
+                        
+                        // Open share modal
+                        if (window.GalleryShareModal) {
+                          window.GalleryShareModal.open(galleryData);
+                        } else {
+                          console.error('Gallery Share Modal not loaded');
+                          alert('Gallery sharing module is not loaded properly.');
+                        }
+                      } else {
+                        console.error('Gallery not found');
+                        alert('Gallery not found. Please refresh the page and try again.');
+                      }
+                    })
+                    .catch(error => {
+                      console.error('Error fetching gallery:', error);
+                      alert('Error loading gallery data. Please try again.');
+                    });
+                } catch (error) {
+                  console.error('Firebase not available:', error);
+                  alert('Error: Firebase is not initialized properly.');
+                }
+              } else {
+                console.error('Gallery ID not found in URL');
+                alert('Gallery ID not found. Please refresh the page and try again.');
+              }
+            }
+          });
+        }
+      });
+    </script>
+</body>
+</html>

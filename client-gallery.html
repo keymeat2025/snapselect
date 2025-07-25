@@ -1,0 +1,871 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SnapSelect | Client Photo Selection</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Montserrat', 'Segoe UI', sans-serif;
+        }
+        
+        body {
+            background-color: #f8f9fa;
+            color: #333;
+            line-height: 1.6;
+        }
+        
+        header {
+            background-color: #1a1a2e;
+            color: white;
+            padding: 1.5rem 0;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .header-container {
+            width: 90%;
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .logo {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: #fff;
+            text-decoration: none;
+        }
+        
+        .logo span {
+            color: #4CC9F0;
+        }
+        
+        .session-info {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+        
+        .photographer-info {
+            text-align: right;
+        }
+        
+        .photographer-name {
+            font-weight: 600;
+        }
+        
+        .container {
+            width: 90%;
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem 0;
+        }
+        
+        .selection-header {
+            margin-bottom: 2rem;
+        }
+        
+        .gallery-controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+        
+        .controls-left {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        
+        .search-box {
+            padding: 0.5rem 1rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            width: 250px;
+            max-width: 100%;
+        }
+        
+        .filter-dropdown {
+            padding: 0.5rem 1rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background-color: white;
+            cursor: pointer;
+        }
+        
+        .selection-count {
+            background-color: #e9f7fe;
+            color: #0077b6;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            font-weight: 600;
+        }
+        
+        .controls-right {
+            display: flex;
+            gap: 1rem;
+        }
+        
+        .select-all-btn, .submit-selection-btn {
+            padding: 0.5rem 1.2rem;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        
+        .select-all-btn {
+            background-color: #e9f7fe;
+            color: #0077b6;
+        }
+        
+        .select-all-btn:hover {
+            background-color: #d0edff;
+        }
+        
+        .submit-selection-btn {
+            background-color: #4CC9F0;
+            color: white;
+        }
+        
+        .submit-selection-btn:hover {
+            background-color: #3ab7de;
+        }
+        
+        .submit-selection-btn:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        
+        .gallery {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 1.5rem;
+        }
+        
+        .gallery-item {
+            background-color: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.08);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            position: relative;
+        }
+        
+        .gallery-item:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.12);
+        }
+        
+        .gallery-image-container {
+            position: relative;
+            height: 220px;
+            overflow: hidden;
+        }
+        
+        .gallery-image {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 0.5s ease;
+        }
+        
+        .gallery-item:hover .gallery-image {
+            transform: scale(1.05);
+        }
+        
+        .selection-checkbox {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            z-index: 10;
+            height: 24px;
+            width: 24px;
+            cursor: pointer;
+            opacity: 0.8;
+        }
+        
+        .selection-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(76, 201, 240, 0.3);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            pointer-events: none;
+        }
+        
+        .gallery-item.selected .selection-overlay {
+            opacity: 1;
+        }
+        
+        .gallery-content {
+            padding: 1rem;
+        }
+        
+        .image-number {
+            font-size: 0.9rem;
+            color: #666;
+            margin-bottom: 0.3rem;
+        }
+        
+        .image-metadata {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.8rem;
+            color: #888;
+            margin-top: 0.5rem;
+        }
+        
+        .quick-view-btn {
+            display: block;
+            width: 100%;
+            padding: 0.7rem;
+            background-color: #f1f1f1;
+            border: none;
+            border-top: 1px solid #eee;
+            color: #555;
+            text-align: center;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            font-weight: 600;
+        }
+        
+        .quick-view-btn:hover {
+            background-color: #e5e5e5;
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1001;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.9);
+            overflow: hidden;
+        }
+        
+        .modal-content {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100%;
+            width: 100%;
+            position: relative;
+        }
+        
+        .modal-image-container {
+            position: relative;
+            height: 80vh;
+            width: 80%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .modal-image {
+            max-height: 80vh;
+            max-width: 80%;
+            object-fit: contain;
+        }
+        
+        .modal-close {
+            position: absolute;
+            top: 20px;
+            right: 35px;
+            color: #f1f1f1;
+            font-size: 40px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        
+        .modal-nav {
+            position: absolute;
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            padding: 0 5%;
+        }
+        
+        .modal-prev, .modal-next {
+            background: rgba(255,255,255,0.1);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            font-size: 24px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.3s ease;
+        }
+        
+        .modal-prev:hover, .modal-next:hover {
+            background: rgba(255,255,255,0.3);
+        }
+        
+        .modal-select-container {
+            margin-top: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: rgba(255,255,255,0.1);
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+        }
+        
+        .modal-select-label {
+            color: white;
+            font-weight: 600;
+        }
+        
+        .modal-checkbox {
+            height: 20px;
+            width: 20px;
+            cursor: pointer;
+        }
+        
+        .image-counter {
+            position: absolute;
+            bottom: 20px;
+            color: white;
+            background: rgba(0,0,0,0.5);
+            padding: 0.3rem 0.8rem;
+            border-radius: 20px;
+            font-size: 0.9rem;
+        }
+        
+        .load-more {
+            display: block;
+            width: 200px;
+            margin: 2rem auto 0;
+            padding: 0.8rem 1.5rem;
+            background-color: #1a1a2e;
+            color: white;
+            text-align: center;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+        
+        .load-more:hover {
+            background-color: #16213e;
+        }
+        
+        .instructions {
+            background-color: white;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.08);
+        }
+        
+        .session-details {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 2rem;
+            margin-bottom: 1.5rem;
+        }
+        
+        .session-detail {
+            flex: 1;
+            min-width: 200px;
+        }
+        
+        .detail-label {
+            font-weight: 600;
+            font-size: 0.9rem;
+            color: #666;
+            margin-bottom: 0.3rem;
+            display: block;
+        }
+        
+        .detail-value {
+            font-size: 1.1rem;
+        }
+        
+        footer {
+            background-color: #1a1a2e;
+            color: white;
+            text-align: center;
+            padding: 1.5rem 0;
+            margin-top: 3rem;
+        }
+        
+        .footer-content {
+            width: 90%;
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+        
+        .footer-logo {
+            font-size: 1.4rem;
+            font-weight: 700;
+        }
+        
+        .footer-logo span {
+            color: #4CC9F0;
+        }
+        
+        .footer-links {
+            display: flex;
+            gap: 1.5rem;
+        }
+        
+        .footer-link {
+            color: #ccc;
+            text-decoration: none;
+            transition: color 0.3s ease;
+        }
+        
+        .footer-link:hover {
+            color: #4CC9F0;
+        }
+        
+        @media (max-width: 768px) {
+            .header-container {
+                flex-direction: column;
+                text-align: center;
+                gap: 1rem;
+            }
+            
+            .session-info {
+                flex-direction: column;
+            }
+            
+            .photographer-info {
+                text-align: center;
+            }
+            
+            .gallery-controls {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .controls-left, .controls-right {
+                justify-content: space-between;
+            }
+            
+            .footer-content {
+                flex-direction: column;
+                text-align: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="header-container">
+            <a href="#" class="logo">Snap<span>Select</span></a>
+            <div class="session-info">
+                <div class="photographer-info">
+                    <div class="photographer-name">Sarah Williams Photography</div>
+                    <div class="session-name">Johnson Family Portrait Session</div>
+                </div>
+            </div>
+        </div>
+    </header>
+    
+    <div class="container">
+        <div class="instructions">
+            <h2>Select Your Favorite Photos</h2>
+            <p>Please review the photos from your session and select the ones you'd like to have edited. Click on any photo to view it larger.</p>
+            
+            <div class="session-details">
+                <div class="session-detail">
+                    <span class="detail-label">Session Date</span>
+                    <span class="detail-value">April 15, 2025</span>
+                </div>
+                <div class="session-detail">
+                    <span class="detail-label">Location</span>
+                    <span class="detail-value">Riverside Park</span>
+                </div>
+                <div class="session-detail">
+                    <span class="detail-label">Total Photos</span>
+                    <span class="detail-value">96</span>
+                </div>
+                <div class="session-detail">
+                    <span class="detail-label">Selection Deadline</span>
+                    <span class="detail-value">April 25, 2025</span>
+                </div>
+            </div>
+            
+            <p><strong>Note:</strong> Your photography package includes editing for 20 selected photos. Additional edited photos can be purchased for $15 each.</p>
+        </div>
+        
+        <div class="selection-header">
+            <div class="gallery-controls">
+                <div class="controls-left">
+                    <input type="text" class="search-box" placeholder="Search image number...">
+                    <select class="filter-dropdown">
+                        <option value="all">All Photos</option>
+                        <option value="family">Family Shots</option>
+                        <option value="individual">Individual Portraits</option>
+                        <option value="candid">Candid Moments</option>
+                    </select>
+                    <div class="selection-count">Selected: <span id="selected-count">0</span>/20</div>
+                </div>
+                <div class="controls-right">
+                    <button class="select-all-btn" id="toggle-select">Select All Visible</button>
+                    <button class="submit-selection-btn" id="submit-selection" disabled>Submit Selection</button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="gallery" id="photo-gallery">
+            <!-- Gallery items will be dynamically generated -->
+        </div>
+        
+        <button class="load-more" id="load-more">Load More Photos</button>
+    </div>
+    
+    <!-- Modal for enlarged view -->
+    <div id="image-modal" class="modal">
+        <span class="modal-close">&times;</span>
+        <div class="modal-content">
+            <div class="modal-nav">
+                <button class="modal-prev">&lt;</button>
+                <button class="modal-next">&gt;</button>
+            </div>
+            <div class="modal-image-container">
+                <img class="modal-image" id="modal-img" src="">
+                <div class="image-counter">Image <span id="current-image">1</span> of <span id="total-images">96</span></div>
+            </div>
+            <div class="modal-select-container">
+                <label class="modal-select-label">Select this photo</label>
+                <input type="checkbox" class="modal-checkbox" id="modal-checkbox">
+            </div>
+        </div>
+    </div>
+    
+    <footer>
+        <div class="footer-content">
+            <div class="footer-logo">Snap<span>Select</span></div>
+            <div class="footer-links">
+                <a href="#" class="footer-link">Help</a>
+                <a href="#" class="footer-link">Privacy Policy</a>
+                <a href="#" class="footer-link">Terms of Service</a>
+                <a href="#" class="footer-link">Contact</a>
+            </div>
+        </div>
+    </footer>
+    
+    <script>
+        // Sample data for the gallery
+        const galleryData = [];
+        
+        // Generate sample data
+        for (let i = 1; i <= 96; i++) {
+            const categories = ['family', 'individual', 'candid'];
+            const randomCategory = categories[Math.floor(Math.random() * categories.length)];
+            
+            galleryData.push({
+                id: i,
+                imageNumber: `IMG_${1000 + i}`,
+                category: randomCategory,
+                timestamp: `15:${Math.floor(Math.random() * 60).toString().padStart(2, '0')}`,
+                selected: false
+            });
+        }
+        
+        // DOM elements
+        const gallery = document.getElementById('photo-gallery');
+        const selectedCountEl = document.getElementById('selected-count');
+        const submitBtn = document.getElementById('submit-selection');
+        const toggleSelectBtn = document.getElementById('toggle-select');
+        const searchBox = document.querySelector('.search-box');
+        const filterDropdown = document.querySelector('.filter-dropdown');
+        const loadMoreBtn = document.getElementById('load-more');
+        const modal = document.getElementById('image-modal');
+        const modalImg = document.getElementById('modal-img');
+        const modalCheckbox = document.getElementById('modal-checkbox');
+        const modalClose = document.querySelector('.modal-close');
+        const modalPrev = document.querySelector('.modal-prev');
+        const modalNext = document.querySelector('.modal-next');
+        const currentImageEl = document.getElementById('current-image');
+        
+        // State variables
+        let currentPage = 1;
+        let itemsPerPage = 12;
+        let currentModalIndex = 0;
+        let filteredData = [...galleryData];
+        let selectedCount = 0;
+        let allSelected = false;
+        
+        // Render gallery items
+        function renderGallery() {
+            // Clear gallery
+            gallery.innerHTML = '';
+            
+            // Get current page items
+            const startIndex = (currentPage - 1) * itemsPerPage;
+            const endIndex = Math.min(startIndex + itemsPerPage, filteredData.length);
+            const currentItems = filteredData.slice(startIndex, endIndex);
+            
+            // Create gallery items
+            currentItems.forEach((item, index) => {
+                const galleryItem = document.createElement('div');
+                galleryItem.className = `gallery-item${item.selected ? ' selected' : ''}`;
+                galleryItem.dataset.id = item.id;
+                galleryItem.dataset.index = startIndex + index;
+                
+                galleryItem.innerHTML = `
+                    <div class="gallery-image-container">
+                        <img src="/api/placeholder/400/320" alt="Photo ${item.id}" class="gallery-image">
+                        <input type="checkbox" class="selection-checkbox" ${item.selected ? 'checked' : ''}>
+                        <div class="selection-overlay"></div>
+                    </div>
+                    <div class="gallery-content">
+                        <div class="image-number">${item.imageNumber}</div>
+                        <div class="image-metadata">
+                            <span>${item.category.charAt(0).toUpperCase() + item.category.slice(1)}</span>
+                            <span>${item.timestamp}</span>
+                        </div>
+                    </div>
+                    <button class="quick-view-btn">Quick View</button>
+                `;
+                
+                gallery.appendChild(galleryItem);
+            });
+            
+            // Hide load more button if all items are displayed
+            loadMoreBtn.style.display = endIndex >= filteredData.length ? 'none' : 'block';
+            
+            // Add event listeners
+            addEventListeners();
+            updateSelectedCount();
+        }
+        
+        // Filter gallery
+        function filterGallery() {
+            const searchTerm = searchBox.value.toLowerCase();
+            const selectedCategory = filterDropdown.value;
+            
+            filteredData = galleryData.filter(item => {
+                const matchesSearch = item.imageNumber.toLowerCase().includes(searchTerm);
+                const matchesCategory = selectedCategory === 'all' || item.category === selectedCategory;
+                
+                return matchesSearch && matchesCategory;
+            });
+            
+            currentPage = 1;
+            renderGallery();
+        }
+        
+        // Add event listeners to gallery items
+        function addEventListeners() {
+            // Checkbox selection
+            document.querySelectorAll('.selection-checkbox').forEach(checkbox => {
+                checkbox.addEventListener('change', function() {
+                    const galleryItem = this.closest('.gallery-item');
+                    const itemId = parseInt(galleryItem.dataset.id);
+                    const item = galleryData.find(item => item.id === itemId);
+                    
+                    if (this.checked) {
+                        if (selectedCount >= 20) {
+                            alert('You have reached the maximum selection of 20 photos.');
+                            this.checked = false;
+                            return;
+                        }
+                        item.selected = true;
+                        galleryItem.classList.add('selected');
+                        selectedCount++;
+                    } else {
+                        item.selected = false;
+                        galleryItem.classList.remove('selected');
+                        selectedCount--;
+                    }
+                    
+                    updateSelectedCount();
+                });
+            });
+            
+            // Quick view
+            document.querySelectorAll('.quick-view-btn, .gallery-image').forEach(element => {
+                element.addEventListener('click', function() {
+                    const galleryItem = this.closest('.gallery-item');
+                    const index = parseInt(galleryItem.dataset.index);
+                    openModal(index);
+                });
+            });
+        }
+        
+        // Update selected count and submit button state
+        function updateSelectedCount() {
+            selectedCountEl.textContent = selectedCount;
+            submitBtn.disabled = selectedCount === 0;
+        }
+        
+        // Open modal
+        function openModal(index) {
+            currentModalIndex = index;
+            modalImg.src = '/api/placeholder/800/600';
+            modalCheckbox.checked = filteredData[index].selected;
+            currentImageEl.textContent = filteredData[index].id;
+            modal.style.display = 'block';
+        }
+        
+        // Close modal
+        modalClose.addEventListener('click', () => {
+            modal.style.display = 'none';
+        });
+        
+        // Modal navigation
+        modalPrev.addEventListener('click', () => {
+            if (currentModalIndex > 0) {
+                currentModalIndex--;
+                modalImg.src = '/api/placeholder/800/600';
+                modalCheckbox.checked = filteredData[currentModalIndex].selected;
+                currentImageEl.textContent = filteredData[currentModalIndex].id;
+            }
+        });
+        
+        modalNext.addEventListener('click', () => {
+            if (currentModalIndex < filteredData.length - 1) {
+                currentModalIndex++;
+                modalImg.src = '/api/placeholder/800/600';
+                modalCheckbox.checked = filteredData[currentModalIndex].selected;
+                currentImageEl.textContent = filteredData[currentModalIndex].id;
+            }
+        });
+        
+        // Modal checkbox
+        modalCheckbox.addEventListener('change', function() {
+            const item = filteredData[currentModalIndex];
+            const galleryItems = document.querySelectorAll('.gallery-item');
+            
+            if (this.checked) {
+                if (selectedCount >= 20 && !item.selected) {
+                    alert('You have reached the maximum selection of 20 photos.');
+                    this.checked = false;
+                    return;
+                }
+                
+                if (!item.selected) {
+                    selectedCount++;
+                }
+                
+                item.selected = true;
+                
+                galleryItems.forEach(galleryItem => {
+                    if (parseInt(galleryItem.dataset.id) === item.id) {
+                        galleryItem.classList.add('selected');
+                        galleryItem.querySelector('.selection-checkbox').checked = true;
+                    }
+                });
+            } else {
+                if (item.selected) {
+                    selectedCount--;
+                }
+                
+                item.selected = false;
+                
+                galleryItems.forEach(galleryItem => {
+                    if (parseInt(galleryItem.dataset.id) === item.id) {
+                        galleryItem.classList.remove('selected');
+                        galleryItem.querySelector('.selection-checkbox').checked = false;
+                    }
+                });
+            }
+            
+            updateSelectedCount();
+        });
+        
+        // Toggle select all
+        toggleSelectBtn.addEventListener('click', () => {
+            // Get visible items
+            const visibleItems = Array.from(document.querySelectorAll('.gallery-item')).map(
+                item => parseInt(item.dataset.id)
+            );
+            
+            if (allSelected) {
+                // Deselect all visible items
+                visibleItems.forEach(id => {
+                    const item = galleryData.find(item => item.id === id);
+                    if (item && item.selected) {
+                        item.selected = false;
+                        selectedCount--;
+                    }
+                });
+                allSelected = false;
+                toggleSelectBtn.textContent = 'Select All Visible';
+            } else {
+                // Select all visible items (up to 20 total)
+                let availableSlots = 20 - selectedCount;
+                let selectedVisible = 0;
+                
+                if (availableSlots <= 0) {
+                    alert('You have already selected 20 photos. Please deselect some to make new selections.');
+                    return;
+                }
+                
+                for (let id of visibleItems) {
+                    if (selectedVisible >= availableSlots) break;
+                    
+                    const item = galleryData.find(item => item.id === id);
+                    if (item && !item.selected) {
+                        item.selected = true;
+                        selectedCount++;
+                        selectedVisible++;
+                    }
+                }
+                
+                allSelected = true;
+                toggleSelectBtn.textContent = 'Deselect All Visible';
+                
+                if (selectedVisible < visibleItems.length && selectedCount >= 20) {
+                    alert(`Only added ${selectedVisible} photos to reach your maximum of 20 selections.`);
+                }
+            }
+            
+            renderGallery();
+        });
+        
+        // Load more
+        loadMoreBtn.addEventListener('click', () => {
+            currentPage++;
+            renderGallery();
+        });
+        
+        // Submit selection
+        submitBtn.addEventListener('click', () => {
+            const selectedPhotos = galleryData.filter(item => item.selected).map(item => item.imageNumber);
+            alert(`Selection submitted! You selected ${selectedPhotos.length} photos:\n${selectedPhotos.join(', ')}`);
+            // In a real app, this would send the selection to the server
+        });
+        
+        // Search and filter
+        searchBox.addEventListener('input', filterGallery);
+        filterDropdown.addEventListener('change', filterGallery);
+        
+        // Initial render
+        renderGallery();
+    </script>
+</body>
+</html>
