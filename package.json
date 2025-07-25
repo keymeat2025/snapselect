@@ -1,0 +1,12 @@
+{
+  "name": "snapselect",
+  "version": "1.0.0",
+  "description": "SnapSelect - Streamline Your Photo Workflow",
+  "homepage": "https://keymeat2025.github.io/snapselect/",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/keymeat2025/snapselect.git"
+  },
+  "keywords": ["photography", "client-selection", "workflow"],
+  "author": "keymeat2025"
+}
