@@ -5,7 +5,7 @@
 
 // Global variables for hero slides (MUST be outside DOMContentLoaded for HTML onclick to work)
 let heroCurrentSlide = 0;
-const heroTotalSlides = 3;
+const heroTotalSlides = 4;
 
 // Global functions for hero slides (MUST be global for HTML onclick attributes)
 function heroUpdateSlidePosition() {
@@ -13,7 +13,7 @@ function heroUpdateSlidePosition() {
     const dots = document.querySelectorAll('.hero-nav-dot');
     
     if (wrapper) {
-        wrapper.style.transform = `translateX(-${heroCurrentSlide * 33.333}%)`;
+        wrapper.style.transform = `translateX(-${heroCurrentSlide * 25}%)`;
         console.log(`🎯 Moved to slide ${heroCurrentSlide + 1}`);
     }
     
