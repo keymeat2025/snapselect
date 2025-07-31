@@ -423,7 +423,7 @@ const GalleryShareModal = {
       }
       
       // Redirect to settings page with return parameter
-      window.location.href = '/snapselect/pages/settings.html?return=' + returnUrl;
+      window.location.href = '/pages/settings.html?return=' + returnUrl;
     }
   },
   
@@ -578,7 +578,7 @@ const GalleryShareModal = {
     
     // IMPORTANT: Always use the same consistent URL format
     const domain = window.location.origin;
-    const shareUrl = `${domain}/snapselect/pages/client-gallery-view.html?share=${shareId}`;
+    const shareUrl = `${domain}/pages/client-gallery-view.html?share=${shareId}`;
     
     console.log("Share link displayed:", shareUrl);
     
@@ -683,7 +683,7 @@ const GalleryShareModal = {
             const shareId = shareDoc.data().shareId;
             
             const domain = window.location.origin;
-            const shareUrl = `${domain}/snapselect/pages/client-gallery-view.html?share=${shareId}`;
+            const shareUrl = `${domain}/pages/client-gallery-view.html?share=${shareId}`;
             
             return db.collection('galleryShares').doc(shareDoc.id).update({
               shareUrl: shareUrl,
@@ -709,7 +709,7 @@ const GalleryShareModal = {
             // Create new share - galleryShares as master
             const shareId = Math.random().toString(36).substring(2, 10);
             const domain = window.location.origin;
-            const shareUrl = `${domain}/snapselect/pages/client-gallery-view.html?share=${shareId}`;
+            const shareUrl = `${domain}/pages/client-gallery-view.html?share=${shareId}`;
             const timestamp = firebase.firestore.FieldValue.serverTimestamp();
             
             return db.collection('galleryShares').doc(shareId).set({
