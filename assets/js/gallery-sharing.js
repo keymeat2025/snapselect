@@ -235,7 +235,7 @@ class GallerySharing {
     
     // Construct share link
     const baseUrl = window.location.origin;
-    const shareLink = `${baseUrl}/snapselect/pages/client-gallery-view.html?share=${shareId}`;
+    const shareLink = `${baseUrl}/pages/client-gallery-view.html?share=${shareId}`;
     
     // Create shared gallery document
     const sharedGalleryData = {
