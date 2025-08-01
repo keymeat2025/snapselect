@@ -2216,13 +2216,14 @@ body .dashboard-main .plans-table .plan-actions-cell .autodeletion-circle {
     gap: 8px;
 }
 
+
+
 .header-actions button {
-    width: 36px;
-    height: 36px;
+    width: 28px;
+    height: 28px;
     border: 1px solid #ddd;
     background: white;
-    border-radius: 6px;
-    cursor: pointer;
+    border-radius: 4px;
 }
 
 .header-actions button:hover {
