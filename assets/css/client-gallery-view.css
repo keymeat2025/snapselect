@@ -489,15 +489,21 @@ footer {
 }
 
 .logo {
-    display: flex;
-    align-items: center;
+    display: flex !important;
+    align-items: center !important;
     text-decoration: none;
-    gap: 12px;
+    gap: 12px !important;
 }
 
 .logo-image {
-    width: 60px;
-    height: 60px;
-    border-radius: 8px;
-    object-fit: cover;
+    width: 60px !important;
+    height: 60px !important;
+    border-radius: 8px !important;
+    object-fit: cover !important;
+}
+
+.logo-text {
+    font-size: 24px;
+    font-weight: bold;
+    color: #3498db;
 }
