@@ -289,6 +289,10 @@
                 margin-bottom: 15px;
             }
         }
+        .form-group {
+            margin-bottom: 25px;
+            position: relative; /* Add this line to existing rule */
+        }
     </style>
 </head>
 <body>
@@ -326,6 +330,7 @@
             
             <div class="form-group">
                 <label for="password">Password</label>
+        
                 <input type="password" 
                        id="password" 
                        name="password_field_login"
@@ -334,6 +339,7 @@
                        autocapitalize="off"
                        spellcheck="false"
                        required>
+                <span onclick="document.getElementById('password').type = document.getElementById('password').type === 'password' ? 'text' : 'password'" style="position:absolute;right:25px;margin-top:-30px;cursor:pointer;color:#666;">👁️</span>
             </div>
             
             <a href="Reset-Password.html" class="forgot-link">Forgot?</a>
