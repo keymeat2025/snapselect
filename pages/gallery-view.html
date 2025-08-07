@@ -1307,12 +1307,30 @@
                     }
                 });
             }
-            
+            /**
          
             if (cancelUploadBtn) {
                 cancelUploadBtn.addEventListener('click', function() {
                     // Check if upload is in progress and confirm
                     if (isUploading) {
+                        if (!confirm('Upload in progress. Are you sure you want to cancel?')) {
+                            return; // User clicked "No", don't cancel
+                        }
+                    }
+                    
+                    const uploadPhotosModal = document.getElementById('uploadPhotosModal');
+                    if (uploadPhotosModal) {
+                        uploadPhotosModal.style.display = 'none';
+                    }
+                });
+            }
+
+
+            */
+            if (cancelUploadBtn) {
+                cancelUploadBtn.addEventListener('click', function() {
+                    // Use the galleryView function to check upload status
+                    if (window.galleryView && window.galleryView.isUploading) {
                         if (!confirm('Upload in progress. Are you sure you want to cancel?')) {
                             return; // User clicked "No", don't cancel
                         }
