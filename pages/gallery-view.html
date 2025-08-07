@@ -1192,9 +1192,15 @@
                 });
             });
             
-            // Click outside modal to close
+    
+            // Click outside modal to close (with upload protection)
             window.addEventListener('click', function(event) {
                 if (event.target.classList.contains('modal')) {
+                    // Check if this is the upload modal and upload is in progress
+                    if (event.target.id === 'uploadPhotosModal' && window.isUploading) {
+                        alert('Upload in progress! Cannot close modal.');
+                        return;
+                    }
                     event.target.style.display = 'none';
                 }
             });
