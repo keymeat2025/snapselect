@@ -1166,6 +1166,52 @@
             font-weight: bold !important;
         }
 
+
+        /* HOTFIX: Loading placeholder styles */
+        .photo-placeholder {
+            background: #f8f9fa !important;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .loading-shimmer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, 
+                transparent 0%, 
+                rgba(255,255,255,0.4) 50%, 
+                transparent 100%);
+            animation: shimmer 2s infinite;
+        }
+        
+        .loading-text {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #666;
+            font-size: 14px;
+            font-weight: 500;
+        }
+        
+        @keyframes shimmer {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(200%); }
+        }
+        
+        .photo-loading {
+            opacity: 0.8;
+        }
+        
+        .photo-loading:hover {
+            transform: none !important;
+        }
+
+
+        
         
     </style>
 </head>
@@ -2776,11 +2822,53 @@
         }
 // Load gallery photos
 
+       
         function loadGalleryPhotos(galleryId, db) {
-            // Show loading toast
-            showToast("Loading photos...", 'info');
+            // HOTFIX: Load metadata first, then images in batches
+            loadGalleryPhotosWithPagination(galleryId, db);
+        }  
+
+        // HOTFIX: Metadata-first loading with pagination
+        function loadGalleryPhotosWithPagination(galleryId, db) {
+            showToast("Loading photo information...", 'info');
             
-            // Create a photo counter element
+            const counterElement = document.getElementById('photo-counter') || createPhotoCounter();
+            const photosGrid = document.getElementById('photosGrid');
+            
+            // Step 1: Load ALL photo metadata (no images yet)
+            db.collection('photos')
+                .where('galleryId', '==', galleryId)
+                .where('status', '==', 'active')
+                .select('id', 'name', 'uploadedAt') // Only metadata, no URLs
+                .get()
+                .then(snapshot => {
+                    if (snapshot.empty) {
+                        counterElement.innerHTML = '<p>No photos in this gallery yet.</p>';
+                        return;
+                    }
+                    
+                    // Store metadata
+                    allGalleryPhotos = snapshot.docs.map(doc => doc.data());
+                    const totalCount = allGalleryPhotos.length;
+                    
+                    counterElement.innerHTML = `<strong>Loading ${totalCount} photos...</strong>`;
+                    
+                    // Step 2: Create placeholder grid immediately
+                    createPlaceholderGrid(allGalleryPhotos, photosGrid);
+                    
+                    // Step 3: Load actual images in batches of 50
+                    loadImageBatch(0, 50, galleryId, db);
+                    
+                    // Initialize other systems
+                    initRatingSync();
+                })
+                .catch(error => {
+                    console.error("Error loading photo metadata:", error);
+                    showError("Error loading photos: " + error.message);
+                });
+        }
+        
+        function createPhotoCounter() {
             const counterElement = document.createElement('div');
             counterElement.id = 'photo-counter';
             counterElement.className = 'photo-count-display';
@@ -2790,19 +2878,123 @@
             counterElement.style.borderRadius = '8px';
             counterElement.style.boxShadow = '0 2px 8px rgba(0,0,0,0.1)';
             counterElement.style.textAlign = 'center';
-            counterElement.innerHTML = '<strong>Loading photos...</strong>';
             
             const photosGrid = document.getElementById('photosGrid');
-            photosGrid.innerHTML = '';
-            
-            // Add the counter at the top of the gallery (before the photos grid)
             photosGrid.parentNode.insertBefore(counterElement, photosGrid);
+            return counterElement;
+        }
+        
+        function createPlaceholderGrid(photos, container) {
+            container.innerHTML = '';
             
-            // Remove the .limit(50) to fetch ALL photos
+            photos.forEach((photo, index) => {
+                const photoItem = document.createElement('div');
+                photoItem.className = 'photo-item photo-loading';
+                photoItem.setAttribute('data-photo-id', photo.id);
+                photoItem.setAttribute('data-index', index);
+                
+                photoItem.innerHTML = `
+                    <div class="photo-container photo-placeholder">
+                        <div class="loading-shimmer"></div>
+                        <div class="loading-text">Loading...</div>
+                    </div>
+                    <div class="photo-details">
+                        <div class="photo-name">${photo.name || `Photo ${index + 1}`}</div>
+                        <div class="photo-date">Loading...</div>
+                    </div>
+                `;
+                
+                container.appendChild(photoItem);
+            });
+            
+            showToast(`Created ${photos.length} photo placeholders`, 'success');
+        }
+        
+        function loadImageBatch(startIndex, batchSize, galleryId, db) {
+            const endIndex = Math.min(startIndex + batchSize, allGalleryPhotos.length);
+            if (startIndex >= allGalleryPhotos.length) return;
+            
+            // Get photo IDs for this batch
+            const batchIds = allGalleryPhotos.slice(startIndex, endIndex).map(p => p.id);
+            
+            // Load full photo data with images
+            db.collection('photos')
+                .where('id', 'in', batchIds)
+                .get()
+                .then(snapshot => {
+                    let loadedCount = 0;
+                    
+                    snapshot.forEach(doc => {
+                        const photoData = doc.data();
+                        updatePlaceholderWithPhoto(photoData);
+                        loadedCount++;
+                    });
+                    
+                    // Update counter
+                    const totalLoaded = startIndex + loadedCount;
+                    const counterElement = document.getElementById('photo-counter');
+                    if (counterElement) {
+                        counterElement.innerHTML = `<strong>Loaded ${totalLoaded} of ${allGalleryPhotos.length} photos</strong>`;
+                    }
+                    
+                    // Continue loading next batch
+                    if (endIndex < allGalleryPhotos.length) {
+                        // Add small delay to keep UI responsive
+                        setTimeout(() => {
+                            loadImageBatch(endIndex, batchSize, galleryId, db);
+                        }, 100);
+                    } else {
+                        // All photos loaded
+                        showToast(`All ${allGalleryPhotos.length} photos loaded successfully`, 'success');
+                        
+                        // Update counter to show completion
+                        if (counterElement) {
+                            counterElement.innerHTML = `<strong>Gallery Complete: ${allGalleryPhotos.length} photos</strong>`;
+                        }
+                    }
+                })
+                .catch(error => {
+                    console.error("Error loading image batch:", error);
+                    // Continue with next batch even if this one fails
+                    if (endIndex < allGalleryPhotos.length) {
+                        setTimeout(() => {
+                            loadImageBatch(endIndex, batchSize, galleryId, db);
+                        }, 1000);
+                    }
+                });
+        }
+        
+        function updatePlaceholderWithPhoto(photoData) {
+            const placeholder = document.querySelector(`[data-photo-id="${photoData.id}"]`);
+            if (!placeholder) return;
+            
+            // Replace placeholder with actual photo
+            const photoElement = createPhotoElement(photoData);
+            placeholder.parentNode.replaceChild(photoElement, placeholder);
+            
+            // Update the global array with complete data
+            const index = allGalleryPhotos.findIndex(p => p.id === photoData.id);
+            if (index !== -1) {
+                allGalleryPhotos[index] = photoData;
+            }
+        }
+
+
+
+        
+
+                // HOTFIX: Metadata-first loading with pagination
+        function loadGalleryPhotosWithPagination(galleryId, db) {
+            showToast("Loading photo information...", 'info');
+            
+            const counterElement = document.getElementById('photo-counter') || createPhotoCounter();
+            const photosGrid = document.getElementById('photosGrid');
+            
+            // Step 1: Load ALL photo metadata (no images yet)
             db.collection('photos')
                 .where('galleryId', '==', galleryId)
                 .where('status', '==', 'active')
-                // No limit here - will fetch all photos in the gallery
+                .select('id', 'name', 'uploadedAt') // Only metadata, no URLs
                 .get()
                 .then(snapshot => {
                     if (snapshot.empty) {
@@ -2810,39 +3002,136 @@
                         return;
                     }
                     
-                    // Store all photos in the global array
+                    // Store metadata
                     allGalleryPhotos = snapshot.docs.map(doc => doc.data());
                     const totalCount = allGalleryPhotos.length;
                     
-                    // Update the counter with total photo count
-                    counterElement.innerHTML = `<strong>Total Photos: ${totalCount}</strong>`;
+                    counterElement.innerHTML = `<strong>Loading ${totalCount} photos...</strong>`;
                     
-                    // If there are many photos, use batched rendering for better performance
-                    if (totalCount > 100) {
-                        // Show first batch immediately, then render the rest
-                        showToast(`Loading ${totalCount} photos in batches...`, 'info');
-                        renderPhotosBatch(allGalleryPhotos, photosGrid, 0, 50);
-                    } else {
-                        // For smaller galleries, render all at once
-                        allGalleryPhotos.forEach(photo => {
-                            const photoElement = createPhotoElement(photo);
-                            photosGrid.appendChild(photoElement);
-                        });
-                        
-                        // Show success toast
-                        showToast(`Gallery loaded with ${totalCount} photos`, 'success');
-                    }
+                    // Step 2: Create placeholder grid immediately
+                    createPlaceholderGrid(allGalleryPhotos, photosGrid);
                     
-                    // Initialize rating sync and load total ratings
+                    // Step 3: Load actual images in batches of 50
+                    loadImageBatch(0, 50, galleryId, db);
+                    
+                    // Initialize other systems
                     initRatingSync();
-                    
-                    // Set up real-time updates for gallery counts
-                
                 })
                 .catch(error => {
-                    console.error("Error loading photos:", error);
+                    console.error("Error loading photo metadata:", error);
                     showError("Error loading photos: " + error.message);
                 });
+        }
+        
+        function createPhotoCounter() {
+            const counterElement = document.createElement('div');
+            counterElement.id = 'photo-counter';
+            counterElement.className = 'photo-count-display';
+            counterElement.style.backgroundColor = 'white';
+            counterElement.style.padding = '10px 15px';
+            counterElement.style.marginBottom = '20px';
+            counterElement.style.borderRadius = '8px';
+            counterElement.style.boxShadow = '0 2px 8px rgba(0,0,0,0.1)';
+            counterElement.style.textAlign = 'center';
+            
+            const photosGrid = document.getElementById('photosGrid');
+            photosGrid.parentNode.insertBefore(counterElement, photosGrid);
+            return counterElement;
+        }
+        
+        function createPlaceholderGrid(photos, container) {
+            container.innerHTML = '';
+            
+            photos.forEach((photo, index) => {
+                const photoItem = document.createElement('div');
+                photoItem.className = 'photo-item photo-loading';
+                photoItem.setAttribute('data-photo-id', photo.id);
+                photoItem.setAttribute('data-index', index);
+                
+                photoItem.innerHTML = `
+                    <div class="photo-container photo-placeholder">
+                        <div class="loading-shimmer"></div>
+                        <div class="loading-text">Loading...</div>
+                    </div>
+                    <div class="photo-details">
+                        <div class="photo-name">${photo.name || `Photo ${index + 1}`}</div>
+                        <div class="photo-date">Loading...</div>
+                    </div>
+                `;
+                
+                container.appendChild(photoItem);
+            });
+            
+            showToast(`Created ${photos.length} photo placeholders`, 'success');
+        }
+        
+        function loadImageBatch(startIndex, batchSize, galleryId, db) {
+            const endIndex = Math.min(startIndex + batchSize, allGalleryPhotos.length);
+            if (startIndex >= allGalleryPhotos.length) return;
+            
+            // Get photo IDs for this batch
+            const batchIds = allGalleryPhotos.slice(startIndex, endIndex).map(p => p.id);
+            
+            // Load full photo data with images
+            db.collection('photos')
+                .where('id', 'in', batchIds)
+                .get()
+                .then(snapshot => {
+                    let loadedCount = 0;
+                    
+                    snapshot.forEach(doc => {
+                        const photoData = doc.data();
+                        updatePlaceholderWithPhoto(photoData);
+                        loadedCount++;
+                    });
+                    
+                    // Update counter
+                    const totalLoaded = startIndex + loadedCount;
+                    const counterElement = document.getElementById('photo-counter');
+                    if (counterElement) {
+                        counterElement.innerHTML = `<strong>Loaded ${totalLoaded} of ${allGalleryPhotos.length} photos</strong>`;
+                    }
+                    
+                    // Continue loading next batch
+                    if (endIndex < allGalleryPhotos.length) {
+                        // Add small delay to keep UI responsive
+                        setTimeout(() => {
+                            loadImageBatch(endIndex, batchSize, galleryId, db);
+                        }, 100);
+                    } else {
+                        // All photos loaded
+                        showToast(`All ${allGalleryPhotos.length} photos loaded successfully`, 'success');
+                        
+                        // Update counter to show completion
+                        if (counterElement) {
+                            counterElement.innerHTML = `<strong>Gallery Complete: ${allGalleryPhotos.length} photos</strong>`;
+                        }
+                    }
+                })
+                .catch(error => {
+                    console.error("Error loading image batch:", error);
+                    // Continue with next batch even if this one fails
+                    if (endIndex < allGalleryPhotos.length) {
+                        setTimeout(() => {
+                            loadImageBatch(endIndex, batchSize, galleryId, db);
+                        }, 1000);
+                    }
+                });
+        }
+        
+        function updatePlaceholderWithPhoto(photoData) {
+            const placeholder = document.querySelector(`[data-photo-id="${photoData.id}"]`);
+            if (!placeholder) return;
+            
+            // Replace placeholder with actual photo
+            const photoElement = createPhotoElement(photoData);
+            placeholder.parentNode.replaceChild(photoElement, placeholder);
+            
+            // Update the global array with complete data
+            const index = allGalleryPhotos.findIndex(p => p.id === photoData.id);
+            if (index !== -1) {
+                allGalleryPhotos[index] = photoData;
+            }
         }
 
         // FUNCTION 2: Add this new function for batch rendering (for large galleries)
