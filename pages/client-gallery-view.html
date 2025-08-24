@@ -1165,6 +1165,42 @@
             color: #155724 !important;
             font-weight: bold !important;
         }
+        
+        .load-more-container {
+            text-align: center;
+            margin: 30px 0;
+            padding: 20px;
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            border: 2px dashed #dee2e6;
+        }
+        
+        .load-more-btn {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 25px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-bottom: 10px;
+            box-shadow: 0 2px 8px rgba(0,123,255,0.2);
+        }
+        
+        .load-more-btn:hover {
+            background-color: #0056b3;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,123,255,0.3);
+        }
+        
+        .load-more-info {
+            color: #6c757d;
+            font-size: 14px;
+            margin: 0;
+            font-style: italic;
+        }
 
         
     </style>
@@ -1700,6 +1736,7 @@
                         showToast("Error saving rating", 'error');
                     });
             }
+            autoLoadOnRating();
         }
 
         
@@ -2776,11 +2813,53 @@
         }
 // Load gallery photos
 
+ 
         function loadGalleryPhotos(galleryId, db) {
-            // Show loading toast
             showToast("Loading photos...", 'info');
             
-            // Create a photo counter element
+            const counterElement = createPhotoCounter();
+            const photosGrid = document.getElementById('photosGrid');
+            photosGrid.innerHTML = '';
+            
+            // Load all photo data (same pattern as your existing code)
+            db.collection('photos')
+                .where('galleryId', '==', galleryId)
+                .where('status', '==', 'active')
+                .get()
+                .then(snapshot => {
+                    if (snapshot.empty) {
+                        counterElement.innerHTML = '<p>No photos in this gallery yet.</p>';
+                        return;
+                    }
+                    
+                    // Store all photos (same as before)
+                    allGalleryPhotos = snapshot.docs.map(doc => doc.data());
+                    const totalCount = allGalleryPhotos.length;
+                    
+                    // Initialize progressive rendering
+                    window.renderedPhotos = new Set();
+                    window.loadedPhotoCount = 0;
+                    
+                    counterElement.innerHTML = `<strong>Total Photos: ${totalCount} - Showing first 15...</strong>`;
+                    
+                    // Render first 15 photos only
+                    renderPhotosBatch(allGalleryPhotos, photosGrid, 0, 15, counterElement);
+                    
+                    // Initialize rating sync
+                    initRatingSync();
+                })
+                .catch(error => {
+                    console.error("Error loading photos:", error);
+                    showError("Error loading photos: " + error.message);
+                });
+        }
+
+
+        function createPhotoCounter() {
+            if (document.getElementById('photo-counter')) {
+                return document.getElementById('photo-counter');
+            }
+            
             const counterElement = document.createElement('div');
             counterElement.id = 'photo-counter';
             counterElement.className = 'photo-count-display';
@@ -2790,59 +2869,83 @@
             counterElement.style.borderRadius = '8px';
             counterElement.style.boxShadow = '0 2px 8px rgba(0,0,0,0.1)';
             counterElement.style.textAlign = 'center';
-            counterElement.innerHTML = '<strong>Loading photos...</strong>';
             
             const photosGrid = document.getElementById('photosGrid');
-            photosGrid.innerHTML = '';
-            
-            // Add the counter at the top of the gallery (before the photos grid)
             photosGrid.parentNode.insertBefore(counterElement, photosGrid);
+            return counterElement;
+        }
+        
+        function renderPhotosBatch(photos, container, startIndex, batchSize, counterElement) {
+            const endIndex = Math.min(startIndex + batchSize, photos.length);
             
-            // Remove the .limit(50) to fetch ALL photos
-            db.collection('photos')
-                .where('galleryId', '==', galleryId)
-                .where('status', '==', 'active')
-                // No limit here - will fetch all photos in the gallery
-                .get()
-                .then(snapshot => {
-                    if (snapshot.empty) {
-                        counterElement.innerHTML = '<p>No photos in this gallery yet.</p>';
-                        return;
-                    }
-                    
-                    // Store all photos in the global array
-                    allGalleryPhotos = snapshot.docs.map(doc => doc.data());
-                    const totalCount = allGalleryPhotos.length;
-                    
-                    // Update the counter with total photo count
-                    counterElement.innerHTML = `<strong>Total Photos: ${totalCount}</strong>`;
-                    
-                    // If there are many photos, use batched rendering for better performance
-                    if (totalCount > 100) {
-                        // Show first batch immediately, then render the rest
-                        showToast(`Loading ${totalCount} photos in batches...`, 'info');
-                        renderPhotosBatch(allGalleryPhotos, photosGrid, 0, 50);
-                    } else {
-                        // For smaller galleries, render all at once
-                        allGalleryPhotos.forEach(photo => {
-                            const photoElement = createPhotoElement(photo);
-                            photosGrid.appendChild(photoElement);
-                        });
-                        
-                        // Show success toast
-                        showToast(`Gallery loaded with ${totalCount} photos`, 'success');
-                    }
-                    
-                    // Initialize rating sync and load total ratings
-                    initRatingSync();
-                    
-                    // Set up real-time updates for gallery counts
+            if (startIndex >= photos.length) return;
+            
+            // Render photos in this batch
+            for (let i = startIndex; i < endIndex; i++) {
+                if (!window.renderedPhotos.has(i)) {
+                    const photo = photos[i];
+                    const photoElement = createPhotoElement(photo);
+                    container.appendChild(photoElement);
+                    window.renderedPhotos.add(i);
+                    window.loadedPhotoCount++;
+                }
+            }
+            
+            // Update counter
+            counterElement.innerHTML = `<strong>Showing ${window.loadedPhotoCount} of ${photos.length} photos</strong>`;
+            
+            // Show load more button if needed
+            if (endIndex < photos.length) {
+                showLoadMoreButton(container, counterElement, endIndex);
+            } else {
+                counterElement.innerHTML = `<strong>All ${photos.length} photos loaded</strong>`;
+                showToast(`All ${photos.length} photos loaded`, 'success');
+            }
+            
+            showToast(`Loaded ${endIndex - startIndex} more photos`, 'success');
+        }
+        
+        function showLoadMoreButton(container, counterElement, nextStartIndex) {
+            // Remove existing button
+            const existing = document.getElementById('loadMorePhotosBtn');
+            if (existing) existing.remove();
+            
+            const remaining = allGalleryPhotos.length - nextStartIndex;
+            const nextBatch = Math.min(15, remaining);
+            
+            const loadMoreDiv = document.createElement('div');
+            loadMoreDiv.id = 'loadMorePhotosBtn';
+            loadMoreDiv.className = 'load-more-container';
+            loadMoreDiv.innerHTML = `
+                <button class="load-more-btn">
+                    <i class="fas fa-plus"></i> 
+                    Load Next ${nextBatch} Photos (${remaining} remaining)
+                </button>
+                <p class="load-more-info">Continue rating to auto-load more</p>
+            `;
+            
+            loadMoreDiv.querySelector('.load-more-btn').addEventListener('click', () => {
+                renderPhotosBatch(allGalleryPhotos, container, nextStartIndex, 15, counterElement);
+            });
+            
+            container.appendChild(loadMoreDiv);
+        }
+        
+        function autoLoadOnRating() {
+            const totalRated = Object.keys(photoRatings).length;
+            const loadedPhotos = window.loadedPhotoCount || 0;
+            
+            // Auto-load when 80% of visible photos are rated
+            if (totalRated >= Math.floor(loadedPhotos * 0.8) && loadedPhotos < allGalleryPhotos.length) {
+                const container = document.getElementById('photosGrid');
+                const counterElement = document.getElementById('photo-counter');
+                const loadMoreBtn = document.getElementById('loadMorePhotosBtn');
                 
-                })
-                .catch(error => {
-                    console.error("Error loading photos:", error);
-                    showError("Error loading photos: " + error.message);
-                });
+                if (loadMoreBtn) {
+                    loadMoreBtn.remove();
+                    renderPhotosBatch(allGalleryPhotos, container, loadedPhotos, 15, counterElement);
+                }
+            }
         }
 
         // FUNCTION 2: Add this new function for batch rendering (for large galleries)
