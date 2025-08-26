@@ -30,16 +30,16 @@ window.rejectedFiles = []; // Files that were rejected with reasons
 // Constants
 const THUMBNAIL_SIZE = 'md'; // Thumbnail size to use (options: sm, md, lg)
 const PHOTOS_PER_PAGE = 30; // Number of photos to load per page
-const DEFAULT_PLAN = 'basic'; // Default plan if no plan is found
+const DEFAULT_PLAN = 'standard'; // Default plan if no plan is found
 
 // Plan limits based on subscription
 const PLAN_LIMITS = {
-  lite: { photos: 100, storageGB: 2, maxSize: 5 },
-  mini: { photos: 200, storageGB: 5, maxSize: 8 },
-  basic: { photos: 500, storageGB: 15, maxSize: 12 },
-  pro: { photos: 800, storageGB: 25, maxSize: 15 },
-  premium: { photos: 1200, storageGB: 50, maxSize: 20 },
-  ultimate: { photos: 2500, storageGB: 100, maxSize: 25 }
+  //lite: { photos: 100, storageGB: 2, maxSize: 5 },
+  //mini: { photos: 200, storageGB: 5, maxSize: 8 },
+  standard: { photos: 500, storageGB: 15, maxSize: 150 },
+  pro: { photos: 800, storageGB: 30, maxSize: 150 },
+  //premium: { photos: 1200, storageGB: 50, maxSize: 20 },
+  //ultimate: { photos: 2500, storageGB: 100, maxSize: 25 }
 };
 
 
