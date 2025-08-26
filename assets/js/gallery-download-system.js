@@ -162,7 +162,7 @@ class GalleryDownloadSystem {
     const closeBtn = document.getElementById('closeDownloadModal');
     const cancelBtn = document.getElementById('cancelDownloadBtn');
     const confirmBtn = document.getElementById('confirmDownloadBtn');
-    const passwordInput = document.getElementById('downloadPassword');
+    //const passwordInput = document.getElementById('downloadPassword');
     const confirmCheckbox = document.getElementById('confirmDownload');
     
     // Close modal handlers
@@ -191,7 +191,7 @@ class GalleryDownloadSystem {
       }
     };
     
-    passwordInput.addEventListener('input', checkFormValidity);
+    //passwordInput.addEventListener('input', checkFormValidity);
     confirmCheckbox.addEventListener('change', checkFormValidity);
     
     // Confirm download handler
