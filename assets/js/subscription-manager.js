@@ -144,14 +144,14 @@ const SHARING_STATUS = {
 const SUBSCRIPTION_PLANS = {
  
   pro: {
-    name: 'Pro', price: 799, priceType: 'per client', storageLimit: 25, galleryLimit: 1,
-    photosPerGallery: 800, maxClients: 1, expiryDays: 45,
-    features: ['Advanced uploads', 'Client selection', 'Password protection', 'Mobile-friendly Galleries', 'Client Favorites Feature', 'Advanced Gallery Customization', 'Client Comments', 'Detailed Analytics']
+    name: 'Pro', price: 299, priceType: 'per client', storageLimit: 15, galleryLimit: 1,
+    photosPerGallery: 2000, maxClients: 1, expiryDays: 30,
+    features: ['Unlimited photo uploads within storage limit', 'max 15GB storage space', 'Password protection', 'Mobile-friendly Galleries', '30-day client rating window', '2 times ZIP download packages options per gallery', 'Standard watermarking','Email support (48h response)','Detailed Analytics']
   },
   premium: {
-    name: 'Premium', price: 1499, priceType: 'per client', storageLimit: 50, galleryLimit: 1,
-    photosPerGallery: 1200, maxClients: 1, expiryDays: 60,
-    features: ['Advanced uploads', 'Client selection', 'Password protection', 'Mobile-friendly Galleries', 'Client Favorites Feature', 'Complete Gallery Customization', 'Client Comments', 'Detailed Analytics', 'Priority Support']
+    name: 'Premium', price: 499, priceType: 'per client', storageLimit: 30, galleryLimit: 5,
+    photosPerGallery: 4000, maxClients: 1, expiryDays: 60,
+    features: ['Unlimited photo uploads','max 30GB storage space (2x more)','60-day client rating window','2 times ZIP download packages options per gallery','Custom branding & watermarks','Analytics dashboard','Client comments & feedback','Priority support (24h response)','5 private galleries']
   }
 
 };
