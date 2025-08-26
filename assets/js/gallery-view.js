@@ -839,7 +839,7 @@ function cancelUpload(showMessage = true) {
   uploadPaused = false;
   uploadQueue = [];
   currentUploadIndex = 0;
-  stopUploadProtection();
+  
   // Reset UI
 // Reset UI
   const uploadPreview = document.getElementById('uploadPreview');
@@ -1177,9 +1177,7 @@ async function startPhotoUpload() {
     currentUploadIndex = 0;
     isUploading = true;
     uploadPaused = false;
-    startUploadProtection(); 
-
-   
+    
     // Add files to upload queue - we don't need to apply plan limits again
     // since we already filtered them in handleFiles
     uploadQueue = window.filesToUpload;
@@ -1383,7 +1381,7 @@ function uploadComplete() {
   
   // Show success message
   showSuccessMessage(`Successfully uploaded ${uploadedFiles} photos`);
-  stopUploadProtection(); 
+  
   // Add notification
   if (window.NotificationSystem) {
     window.NotificationSystem.createNotificationFromEvent({
@@ -2616,80 +2614,3 @@ window.galleryView = {
   // Add the new function here
   checkIfGalleryIsShared
 };
-
-// UPLOAD PROTECTION SYSTEM
-(function() {
-    let uploadInProgress = false;
-    
-    const style = document.createElement('style');
-    style.textContent = `
-        .upload-locked {
-            pointer-events: none !important;
-            opacity: 0.6 !important;
-        }
-        .upload-notice {
-            position: fixed;
-            top: 80px;
-            right: 20px;
-            background: #ff9800;
-            color: white;
-            padding: 10px 15px;
-            border-radius: 5px;
-            z-index: 10000;
-            font-size: 14px;
-        }
-    `;
-    document.head.appendChild(style);
-    
-    window.startUploadProtection = function() {
-        uploadInProgress = true;
-        
-        const closeBtn = document.querySelector('#uploadPhotosModal .close-modal');
-        if (closeBtn) closeBtn.style.display = 'none';
-        
-        const navLinks = document.querySelector('.nav-links');
-        const rightNav = document.querySelector('.right-nav');
-        if (navLinks) navLinks.classList.add('upload-locked');
-        if (rightNav) rightNav.classList.add('upload-locked');
-        
-        window.addEventListener('beforeunload', uploadWarning);
-        
-        if (!document.getElementById('uploadNotice')) {
-            const notice = document.createElement('div');
-            notice.id = 'uploadNotice';
-            notice.className = 'upload-notice';
-            notice.innerHTML = '🔒 Upload in progress - Do not close window';
-            document.body.appendChild(notice);
-        }
-        
-        if (!window.originalTitle) window.originalTitle = document.title;
-        document.title = '⬆️ Uploading... - ' + window.originalTitle;
-    };
-    
-    window.stopUploadProtection = function() {
-        uploadInProgress = false;
-        
-        const closeBtn = document.querySelector('#uploadPhotosModal .close-modal');
-        if (closeBtn) closeBtn.style.display = 'block';
-        
-        const navLinks = document.querySelector('.nav-links');
-        const rightNav = document.querySelector('.right-nav');
-        if (navLinks) navLinks.classList.remove('upload-locked');
-        if (rightNav) rightNav.classList.remove('upload-locked');
-        
-        window.removeEventListener('beforeunload', uploadWarning);
-        
-        const notice = document.getElementById('uploadNotice');
-        if (notice) notice.remove();
-        
-        if (window.originalTitle) document.title = window.originalTitle;
-    };
-    
-    function uploadWarning(e) {
-        if (uploadInProgress) {
-            e.preventDefault();
-            e.returnValue = 'Upload in progress. Leaving will cancel your upload.';
-            return 'Upload in progress. Leaving will cancel your upload.';
-        }
-    }
-})();

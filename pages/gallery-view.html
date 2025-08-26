@@ -1192,15 +1192,9 @@
                 });
             });
             
-    
-            // Click outside modal to close (with upload protection)
+            // Click outside modal to close
             window.addEventListener('click', function(event) {
                 if (event.target.classList.contains('modal')) {
-                    // Check if this is the upload modal and upload is in progress
-                    if (event.target.id === 'uploadPhotosModal' && isUploading) {
-                        alert('Upload in progress! Cannot close modal.');
-                        return;
-                    }
                     event.target.style.display = 'none';
                 }
             });
@@ -1307,70 +1301,15 @@
                     }
                 });
             }
-            /**
-         
+            
             if (cancelUploadBtn) {
                 cancelUploadBtn.addEventListener('click', function() {
-                    // Check if upload is in progress and confirm
-                    if (isUploading) {
-                        if (!confirm('Upload in progress. Are you sure you want to cancel?')) {
-                            return; // User clicked "No", don't cancel
-                        }
-                    }
-                    
                     const uploadPhotosModal = document.getElementById('uploadPhotosModal');
                     if (uploadPhotosModal) {
                         uploadPhotosModal.style.display = 'none';
                     }
                 });
             }
-
-
-        
-            if (cancelUploadBtn) {
-                cancelUploadBtn.addEventListener('click', function() {
-                    // Use the galleryView function to check upload status
-                    if (window.galleryView && window.galleryView.isUploading) {
-                        if (!confirm('Upload in progress. Are you sure you want to cancel?')) {
-                            return; // User clicked "No", don't cancel
-                        }
-                    }
-                    
-                    const uploadPhotosModal = document.getElementById('uploadPhotosModal');
-                    if (uploadPhotosModal) {
-                        uploadPhotosModal.style.display = 'none';
-                    }
-                });
-            }
-
-            */
-
-             if (cancelUploadBtn) {
-                cancelUploadBtn.addEventListener('click', function() {
-                    // Check if upload is in progress through the exported galleryView object
-                    // We need to check the actual variable from the JS file scope
-                    let uploadInProgress = false;
-                    
-                    // Try to access upload status through any available method
-                    if (typeof isUploading !== 'undefined') {
-                        uploadInProgress = isUploading;
-                    } else if (window.galleryView && window.galleryView.isUploading !== undefined) {
-                        uploadInProgress = window.galleryView.isUploading;
-                    }
-                    
-                    // Show confirmation if upload is in progress
-                    if (uploadInProgress) {
-                        if (!confirm('Upload in progress. Are you sure you want to cancel?')) {
-                            return; // User clicked "No", don't cancel
-                        }
-                    }
-                    
-                    const uploadPhotosModal = document.getElementById('uploadPhotosModal');
-                    if (uploadPhotosModal) {
-                        uploadPhotosModal.style.display = 'none';
-                    }
-                });
-            }  
             
             // Share gallery button
     
