@@ -104,6 +104,7 @@ class GalleryDownloadSystem {
             </div>
             
             <!-- Password Verification -->
+            <!--
             <div class="password-section">
               <h3>🔐 Security Verification</h3>
               <p>Please enter your current password to confirm this download:</p>
@@ -112,7 +113,7 @@ class GalleryDownloadSystem {
                 <div id="passwordError" class="error-message" style="display: none;"></div>
               </div>
             </div>
-            
+            -->
             <!-- Final Confirmation -->
             <div class="confirmation-section">
               <div class="confirmation-checkbox">
@@ -176,10 +177,10 @@ class GalleryDownloadSystem {
     
     // Enable/disable confirm button based on inputs
     const checkFormValidity = () => {
-      const hasPassword = passwordInput.value.length > 0;
+      //const hasPassword = passwordInput.value.length > 0;
       const isConfirmed = confirmCheckbox.checked;
       
-      confirmBtn.disabled = !(hasPassword && isConfirmed);
+      confirmBtn.disabled = !isConfirmed;
       
       if (hasPassword && isConfirmed) {
         confirmBtn.textContent = '🚀 Start Secure Download';
@@ -199,8 +200,8 @@ class GalleryDownloadSystem {
       
       try {
         // Verify password first
-        const password = passwordInput.value;
-        await this.verifyPassword(password);
+        //const password = passwordInput.value;
+        //await this.verifyPassword(password);
         
         // Start the download process
         await this.executeSecureDownload(authData, clientId, galleryId, planId);
