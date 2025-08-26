@@ -152,12 +152,8 @@ const SUBSCRIPTION_PLANS = {
     name: 'Premium', price: 1499, priceType: 'per client', storageLimit: 50, galleryLimit: 1,
     photosPerGallery: 1200, maxClients: 1, expiryDays: 60,
     features: ['Advanced uploads', 'Client selection', 'Password protection', 'Mobile-friendly Galleries', 'Client Favorites Feature', 'Complete Gallery Customization', 'Client Comments', 'Detailed Analytics', 'Priority Support']
-  },
-  ultimate: {
-    name: 'Ultimate', price: 2999, priceType: 'per client', storageLimit: 100, galleryLimit: 1,
-    photosPerGallery: 2500, maxClients: 1, expiryDays: 90,
-    features: ['Advanced uploads', 'Client selection', 'Password protection', 'Mobile-friendly Galleries', 'Client Favorites Feature', 'White-label Gallery Customization', 'Client Comments', 'Advanced Analytics', 'Priority Phone Support']
   }
+
 };
 
 // Global variables
