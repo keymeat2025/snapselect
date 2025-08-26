@@ -182,7 +182,7 @@ class GalleryDownloadSystem {
       
       confirmBtn.disabled = !isConfirmed;
       
-      if (hasPassword && isConfirmed) {
+      if (isConfirmed) {
         confirmBtn.textContent = '🚀 Start Secure Download';
         confirmBtn.classList.remove('disabled');
       } else {
