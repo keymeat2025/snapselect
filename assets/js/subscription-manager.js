@@ -1042,14 +1042,11 @@ function updatePlanDisplay(planType) {
 async function processPayment(planType) {
   try {
     showPaymentProgress('Processing your request...');
-    // **ADD THIS VALIDATION**
-    if (!selectedClient || selectedClient === 'undefined' || selectedClient === '') {
-      showPaymentError('Please select a client before proceeding with payment');
-      setTimeout(resetPaymentButtons, 3000);
-      return;
-    }
     
-  
+    // Fix: Ensure selectedClient is properly handled
+    if (!selectedClient || selectedClient === 'undefined' || selectedClient === '') {
+      selectedClient = null;
+    }
     
     // Handle client selection
     let clientId = selectedClient;
